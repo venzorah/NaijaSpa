@@ -7,7 +7,7 @@ import { useTheme } from "./theme-provider";
 import { InstallPrompt } from "./install-prompt";
 
 export function BrandLogo({
-  className = "h-11 w-auto max-w-[min(11.5rem,52vw)] shrink-0 object-contain object-left sm:h-12 sm:max-w-[13.5rem]"
+  className = "h-14 w-auto max-w-[min(14.5rem,68vw)] shrink-0 object-contain object-left sm:h-16 sm:max-w-[18rem]"
 }: {
   className?: string;
 }) {
@@ -16,7 +16,11 @@ export function BrandLogo({
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/brand/logo-horizontal.png" alt="NaijaSpa" className={`dark:hidden ${className}`} />
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/brand/logo-horizontal-dark.png" alt="NaijaSpa" className={`hidden dark:block ${className}`} />
+      <img
+        src="/brand/logo-horizontal-dark.png"
+        alt="NaijaSpa"
+        className={`hidden mix-blend-screen dark:block ${className}`}
+      />
     </span>
   );
 }
@@ -25,7 +29,7 @@ export function TopBar() {
   const { theme, toggle } = useTheme();
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-line/70 bg-bg/92 pt-safe backdrop-blur-xl">
-      <div className="mx-auto flex h-[4.75rem] max-w-7xl items-center gap-2 px-4 lg:px-8">
+      <div className="mx-auto flex h-[5.5rem] max-w-7xl items-center gap-2 px-4 lg:px-8">
         <Link href="/" className="flex shrink-0 items-center" aria-label="NaijaSpa home">
           <BrandLogo />
         </Link>
@@ -100,14 +104,14 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
       <div aria-hidden className="pointer-events-none fixed inset-0 -z-10">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=2000&q=80"
+          src="/photos/bg.jpg"
           alt=""
           className="absolute inset-0 h-full w-full object-cover"
         />
         <div className="absolute inset-0 bg-bg/86 dark:bg-bg/88" />
       </div>
       <TopBar />
-      <div aria-hidden className="h-[calc(4.75rem+env(safe-area-inset-top))]" />
+      <div aria-hidden className="h-[calc(5.5rem+env(safe-area-inset-top))]" />
       <main className="relative pb-28 lg:pb-8">{children}</main>
       <BottomNav />
       <InstallPrompt />

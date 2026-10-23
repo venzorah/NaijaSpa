@@ -48,7 +48,7 @@ export default async function HomePage() {
       />
 
       <ParallaxBand
-        image="https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&w=2000&q=80"
+        image="/photos/band-spa.jpg"
         kicker="At your pace"
         title="Heat, stone and silence."
         body="Hot stone, hammam and deep tissue — book the hour your body has been asking for."
@@ -73,7 +73,7 @@ export default async function HomePage() {
       />
 
       <ParallaxBand
-        image="https://images.unsplash.com/photo-1519823551278-64ac92734fb1?auto=format&fit=crop&w=2000&q=80"
+        image="/photos/band-couples.jpg"
         kicker="Together"
         title="Two tables. One still room."
         body="Couples rituals with two therapists, private suites, and prices in Naira."

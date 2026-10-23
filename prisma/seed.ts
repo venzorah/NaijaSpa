@@ -138,7 +138,7 @@ async function main() {
     });
     const vendor = await prisma.vendor.upsert({
       where: { slug: opts.slug },
-      update: {},
+      update: { coverUrl: "/photos/band-spa.jpg" },
       create: {
         ownerId: owner.id,
         slug: opts.slug,
@@ -159,7 +159,7 @@ async function main() {
         ratingAvg: opts.paid ? 4.9 : 4.6,
         reviewCount: opts.paid ? 128 : 41,
         logoUrl: "/brand/icon-white.png",
-        coverUrl: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&w=1600&q=80"
+        coverUrl: "/photos/band-spa.jpg"
       }
     });
     const plan = opts.paid ? await prisma.subscriptionPlan.findUniqueOrThrow({ where: { code: "MONTHLY" } }) : free;
@@ -198,8 +198,8 @@ async function main() {
   for (const [slug, name, synonyms] of cats) {
     const c = await prisma.category.upsert({
       where: { slug },
-      update: {},
-      create: { slug, name, synonyms, sortOrder: i++, active: true }
+      update: { imageUrl: `/photos/${slug === "facials" ? "facials" : slug}.jpg` },
+      create: { slug, name, synonyms, sortOrder: i++, imageUrl: `/photos/${slug === "facials" ? "facials" : slug}.jpg`, active: true }
     });
     catIds[slug] = c.id;
   }
@@ -233,7 +233,7 @@ async function main() {
       cat: "massage",
       price: 3500000,
       duration: 90,
-      img: "https://images.unsplash.com/photo-1600334129128-685c5582fd35?auto=format&fit=crop&w=1200&q=80"
+      img: "/photos/massage.jpg"
     },
     {
       vendor: paidV,
@@ -242,7 +242,7 @@ async function main() {
       cat: "couples",
       price: 7200000,
       duration: 120,
-      img: "https://images.unsplash.com/photo-1519823551278-64ac92734fb1?auto=format&fit=crop&w=1200&q=80"
+      img: "/photos/couples.jpg"
     },
     {
       vendor: freeV,
@@ -251,7 +251,7 @@ async function main() {
       cat: "facials",
       price: 1800000,
       duration: 60,
-      img: "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=1200&q=80"
+      img: "/photos/facials.jpg"
     },
     {
       vendor: freeV,
@@ -260,14 +260,14 @@ async function main() {
       cat: "massage",
       price: 2500000,
       duration: 75,
-      img: "https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&w=1200&q=80"
+      img: "/photos/massage.jpg"
     }
   ];
 
   for (const s of services) {
     const row = await prisma.service.upsert({
       where: { slug: s.slug },
-      update: { hotelAddonKobo: 1500000, homeAddonKobo: 1000000 },
+      update: { hotelAddonKobo: 1500000, homeAddonKobo: 1000000, imageUrl: s.img },
       create: {
         vendorId: s.vendor.vendor.id,
         categoryId: catIds[s.cat],

@@ -3,18 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { BadgeCheck, ChevronRight, Home, MapPin } from "lucide-react";
+import { PHOTOS } from "@/lib/photos";
 
 const SLIDES = [
-  {
-    id: "massage",
-    offer: "Exclusive offer this week",
-    title: "Signature massage, from calm to recovery",
-    price: "Starting from ₦18,000",
-    cta: "Book now",
-    href: "/explore?category=massage",
-    image:
-      "https://images.unsplash.com/photo-1600334129128-685c5582fd35?auto=format&fit=crop&w=1800&q=80"
-  },
   {
     id: "nuru",
     offer: "Nuru silk ritual",
@@ -22,18 +13,25 @@ const SLIDES = [
     price: "Starting from ₦45,000",
     cta: "Explore Nuru",
     href: "/explore?category=nuru",
-    image:
-      "https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&w=1800&q=80"
+    image: PHOTOS.hero1
   },
   {
-    id: "couples",
+    id: "sensual",
+    offer: "Sensual oil hour",
+    title: "Heat, silk gel, quiet hands",
+    price: "Starting from ₦38,000",
+    cta: "Book now",
+    href: "/explore?category=nuru",
+    image: PHOTOS.hero2
+  },
+  {
+    id: "couples-nuru",
     offer: "For two",
-    title: "Couples rituals, one quiet hour",
+    title: "A shared oil ritual",
     price: "Starting from ₦72,000",
     cta: "See couples",
     href: "/explore?category=couples",
-    image:
-      "https://images.unsplash.com/photo-1519823551278-64ac92734fb1?auto=format&fit=crop&w=1800&q=80"
+    image: PHOTOS.hero3
   }
 ] as const;
 

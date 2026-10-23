@@ -3,14 +3,14 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 
 type Theme = "dark" | "light";
-const ThemeCtx = createContext<{ theme: Theme; toggle: () => void }>({ theme: "dark", toggle: () => {} });
+const ThemeCtx = createContext<{ theme: Theme; toggle: () => void }>({ theme: "light", toggle: () => {} });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("dark");
+  const [theme, setTheme] = useState<Theme>("light");
 
   useEffect(() => {
     const saved = localStorage.getItem("naijaspa-theme") as Theme | null;
-    const next = saved === "light" ? "light" : "dark";
+    const next = saved === "dark" ? "dark" : "light";
     setTheme(next);
     document.documentElement.classList.toggle("dark", next === "dark");
   }, []);
