@@ -70,3 +70,22 @@ body {
 .no-scrollbar {
   scrollbar-width: none;
 }
+
+@keyframes hero-ken {
+  from {
+    transform: scale(1.08);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.animate-hero-ken {
+  animation: hero-ken 7.2s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-hero-ken {
+    animation: none;
+  }
+}

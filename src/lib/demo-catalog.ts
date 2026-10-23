@@ -1,4 +1,5 @@
 import { DEFAULT_COMMERCIAL, FREE_ENTITLEMENT, quoteBooking, sanitizePublicVendor, type Entitlement, type LocationType } from "./commercial";
+import { CATEGORY_IMAGES } from "./category-images";
 import type { HomeCard, HomeRails, NearbyVendor } from "./home-types";
 import type { SearchFilters } from "./search-types";
 
@@ -13,13 +14,14 @@ const paidEnt: Entitlement = {
 };
 
 export const demoCategories = [
-  { id: "c1", slug: "massage", name: "Massage therapy" },
-  { id: "c2", slug: "spa", name: "Spa treatments" },
-  { id: "c3", slug: "facials", name: "Facials and skincare" },
-  { id: "c4", slug: "body", name: "Body treatments" },
-  { id: "c5", slug: "couples", name: "Couples treatments" },
-  { id: "c6", slug: "packages", name: "Wellness packages" },
-  { id: "c7", slug: "beauty", name: "Beauty and relaxation" }
+  { id: "c1", slug: "massage", name: "Massage therapy", imageUrl: CATEGORY_IMAGES.massage },
+  { id: "c2", slug: "spa", name: "Spa treatments", imageUrl: CATEGORY_IMAGES.spa },
+  { id: "c3", slug: "facials", name: "Facials and skincare", imageUrl: CATEGORY_IMAGES.facials },
+  { id: "c4", slug: "body", name: "Body treatments", imageUrl: CATEGORY_IMAGES.body },
+  { id: "c5", slug: "couples", name: "Couples treatments", imageUrl: CATEGORY_IMAGES.couples },
+  { id: "c8", slug: "nuru", name: "Nuru massage", imageUrl: CATEGORY_IMAGES.nuru },
+  { id: "c6", slug: "packages", name: "Wellness packages", imageUrl: CATEGORY_IMAGES.packages },
+  { id: "c7", slug: "beauty", name: "Beauty and relaxation", imageUrl: CATEGORY_IMAGES.beauty }
 ];
 
 const osun = {
@@ -91,6 +93,23 @@ export const demoServices = [
     homeEnabled: true,
     categorySlug: "massage",
     categoryName: "Massage therapy",
+    vendor: osun
+  },
+  {
+    id: "s-nuru",
+    vendorId: osun.id,
+    slug: "nuru-silk-ritual",
+    name: "Nuru silk ritual",
+    description: "A full-body Nuru oil ritual with long gliding strokes, heat and silk gel for deep relaxation.",
+    imageUrl: "https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&w=1200&q=80",
+    basePriceKobo: 4500000,
+    durationMin: 90,
+    active: true,
+    spaEnabled: true,
+    hotelEnabled: true,
+    homeEnabled: true,
+    categorySlug: "nuru",
+    categoryName: "Nuru massage",
     vendor: osun
   },
   {
@@ -369,7 +388,7 @@ export function demoHomeRails(): HomeRails {
       .map((s) => toHomeCard(s, extra));
 
   return {
-    featured: byId(["s-swedish", "s-couples", "s-hotstone", "s-sports", "s-hammam"], { badge: "Featured", sponsored: true }),
+    featured: byId(["s-swedish", "s-nuru", "s-couples", "s-hotstone", "s-sports", "s-hammam"], { badge: "Featured", sponsored: true }),
     premium: byId(["s-hammam", "s-couples", "s-swedish", "s-hotstone", "s-prenatal"], { badge: "Premium" }),
     promo: byId(["s-facial", "s-reflex", "s-home", "s-prenatal"], { badge: "Promo" })
   };

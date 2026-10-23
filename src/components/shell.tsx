@@ -6,10 +6,22 @@ import { CalendarDays, Compass, Heart, Home, Moon, Sparkles, Sun, User } from "l
 import { useTheme } from "./theme-provider";
 import { InstallPrompt } from "./install-prompt";
 
-export function BrandLogo({ className = "h-10 w-auto max-w-[168px] object-contain object-left sm:h-11 sm:max-w-[220px]" }: { className?: string }) {
+export function BrandLogo({
+  className = "h-12 w-auto max-w-[196px] object-contain object-left sm:h-14 sm:max-w-[248px]"
+}: {
+  className?: string;
+}) {
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src="/brand/logo-horizontal.png" alt="NaijaSpa" className={className} />
+    <span className="inline-flex min-w-0 items-center">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/brand/logo-horizontal.png" alt="NaijaSpa" className={`dark:hidden ${className}`} />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/brand/logo-horizontal-dark.png"
+        alt="NaijaSpa"
+        className={`hidden mix-blend-screen dark:block ${className}`}
+      />
+    </span>
   );
 }
 
@@ -17,7 +29,7 @@ export function TopBar() {
   const { theme, toggle } = useTheme();
   return (
     <header className="pt-safe sticky top-0 z-50 border-b border-line/70 bg-bg/85 backdrop-blur-xl">
-      <div className="mx-auto flex h-[4.25rem] max-w-7xl items-center gap-2 px-4 lg:px-8">
+      <div className="mx-auto flex h-[4.75rem] max-w-7xl items-center gap-2 px-4 lg:px-8">
         <Link href="/" className="flex min-w-0 shrink-0 items-center" aria-label="NaijaSpa home">
           <BrandLogo />
         </Link>

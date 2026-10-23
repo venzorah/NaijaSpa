@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
+import { BrandLogo } from "@/components/shell";
 
 export default async function VendorLayout({ children }: { children: React.ReactNode }) {
   const user = await getSession();
@@ -19,8 +20,7 @@ export default async function VendorLayout({ children }: { children: React.React
     <div className="flex min-h-screen bg-bg text-ink">
       <aside className="hidden w-64 border-r border-line bg-bg2 p-4 lg:block">
         <Link href="/vendor" aria-label="NaijaSpa vendor home">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/logo-horizontal.png" alt="NaijaSpa" className="h-12 w-auto max-w-full object-contain object-left" />
+          <BrandLogo className="h-14 w-auto max-w-full object-contain object-left" />
         </Link>
         <p className="mt-1 text-xs text-ink2">Vendor portal</p>
         <nav className="mt-6 grid gap-1">

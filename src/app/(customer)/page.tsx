@@ -1,6 +1,8 @@
 import Link from "next/link";
-import { MapPin, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { getHomeCatalog, usingDemoListings } from "@/lib/catalog";
+import { CategoryCarousel } from "@/components/category-carousel";
+import { HeroSlider } from "@/components/hero-slider";
 import { ServiceCarousel, VendorCarousel } from "@/components/service-carousel";
 
 export const dynamic = "force-dynamic";
@@ -25,40 +27,9 @@ export default async function HomePage() {
         </p>
       )}
 
-      <section className="mx-auto max-w-7xl px-4 pb-4 pt-6 lg:px-8">
-        <p className="text-sm text-ink2">{greeting()},</p>
-        <h1 className="font-display text-4xl font-semibold leading-tight md:text-6xl">Find your calm.</h1>
-        <p className="mt-3 max-w-xl text-ink2">
-          Verified spas, massage therapists and wellness studios. Book Spa/Office, hotel or home visits in Naira.
-        </p>
-        <Link
-          href="/explore?city=Lagos"
-          className="mt-4 inline-flex items-center gap-2 rounded-full border border-line bg-card px-4 py-2 text-sm font-semibold"
-        >
-          <MapPin className="h-4 w-4 text-goldink" />
-          Lagos · change location
-        </Link>
-        <form action="/explore" className="mt-4 flex flex-col gap-2 rounded-3xl border border-line bg-card p-3 sm:flex-row">
-          <input name="q" placeholder="Search massage, therapist, spa…" className="min-h-12 flex-1 rounded-2xl bg-elev px-4 text-sm outline-none" />
-          <input name="city" placeholder="Lagos" defaultValue="Lagos" className="min-h-12 rounded-2xl bg-elev px-4 text-sm outline-none sm:w-40" />
-          <button className="min-h-12 rounded-full bg-gold px-6 text-sm font-bold text-ongold">Search</button>
-        </form>
-      </section>
+      <HeroSlider greeting={`${greeting()},`} />
 
-      <section className="mx-auto max-w-7xl">
-        <h2 className="px-4 font-display text-2xl lg:px-8">Quick categories</h2>
-        <div className="no-scrollbar mt-4 flex gap-3 overflow-x-auto px-4 pb-2 lg:px-8">
-          {categories.map((c) => (
-            <Link
-              key={c.slug}
-              href={`/explore?category=${c.slug}`}
-              className="shrink-0 rounded-full border border-line bg-card px-4 py-2 text-sm font-semibold"
-            >
-              {c.name}
-            </Link>
-          ))}
-        </div>
-      </section>
+      <CategoryCarousel categories={categories} />
 
       <section className="mx-auto mt-8 max-w-7xl px-4 lg:px-8">
         <Link

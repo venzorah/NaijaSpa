@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { isAdminRole } from "@/lib/rbac";
+import { BrandLogo } from "@/components/shell";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await getSession();
@@ -24,8 +25,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <div className="flex min-h-screen bg-bg text-ink">
       <aside className="hidden w-64 border-r border-line bg-bg2 p-4 lg:block">
         <Link href="/admin" aria-label="NaijaSpa admin home">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/logo-horizontal.png" alt="NaijaSpa" className="h-12 w-auto max-w-full object-contain object-left" />
+          <BrandLogo className="h-14 w-auto max-w-full object-contain object-left" />
         </Link>
         <p className="mt-1 text-[11px] text-ink2">Admin · {user.role}</p>
         <nav className="mt-6 grid gap-1">
