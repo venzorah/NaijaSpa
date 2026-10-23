@@ -1,5 +1,5 @@
 import type { LocationType } from "./commercial";
-import type { TherapistGender } from "./nigeria";
+import type { LivePlace, TherapistGender } from "./nigeria";
 
 export type SearchTherapist = {
   id: string;
@@ -23,4 +23,6 @@ export type SearchFilters = {
   publicContact?: boolean;
   sort?: "relevance" | "price" | "rating" | "availability";
   page?: number;
+  /** Rank closer vendors first without hiding the rest. */
+  rankPlace?: LivePlace | null;
 };

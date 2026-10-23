@@ -4,10 +4,7 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: __dirname,
   reactStrictMode: true,
   images: {
-    remotePatterns: [
-      { protocol: "https", hostname: "images.unsplash.com" },
-      { protocol: "https", hostname: "naijaspa.ng" }
-    ]
+    remotePatterns: [{ protocol: "https", hostname: "naijaspa.ng" }]
   },
   headers: async () => [
     {

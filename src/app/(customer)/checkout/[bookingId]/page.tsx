@@ -20,9 +20,9 @@ export default async function CheckoutPage({ params }: { params: Promise<{ booki
   const payable = booking.status === "awaiting_payment" || booking.status === "pending" || confirmed;
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-8 pb-24">
+    <div className="mx-auto w-full min-w-0 max-w-lg px-4 py-6 sm:py-8">
       <BookingStepper current={4} />
-      <h1 className="mt-6 font-display text-4xl">{confirmed ? "Paid" : "Pay with Paystack"}</h1>
+      <h1 className="mt-6 font-display text-3xl leading-tight sm:text-4xl">{confirmed ? "Paid" : "Pay with Paystack"}</h1>
       <p className="mt-2 text-sm leading-relaxed text-ink2">
         Card, bank, USSD, transfer and mobile money are collected by Paystack. NaijaSpa never stores card numbers.
         Your booking confirms after Paystack verifies the charge.
@@ -30,7 +30,7 @@ export default async function CheckoutPage({ params }: { params: Promise<{ booki
       <div className="mt-6 rounded-3xl border border-line bg-card p-4">
         <p className="font-semibold">{booking.service.name}</p>
         <p className="mt-1 text-xs text-ink2">{booking.vendor.businessName}</p>
-        <p className="mt-4 font-display text-3xl">{formatNgn(booking.customerTotalKobo)}</p>
+        <p className="mt-4 break-words font-display text-3xl">{formatNgn(booking.customerTotalKobo)}</p>
         <p className="mt-1 text-xs text-ink2">NGN · charged in kobo on Paystack</p>
       </div>
       {payable ? (

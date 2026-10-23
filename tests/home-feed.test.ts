@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { categoryImage } from "../src/lib/category-images";
+import { PHOTOS, publicWellnessPhoto } from "../src/lib/photos";
 import { demoHomeRails, demoNearbyVendors } from "../src/lib/demo-catalog";
 import {
   DEFAULT_HOME_FEED_CONFIG,
@@ -42,5 +44,15 @@ describe("home feed item counts", () => {
     expect(rails.featured.every((c) => c.badge === "Featured")).toBe(true);
     expect(demoNearbyVendors().slice(0, 2)).toHaveLength(2);
     expect(homeServicePoolTake({ featured: 8, premium: 8, promo: 8, nearby: 8 })).toBe(36);
+  });
+});
+
+describe("public wellness photos", () => {
+  it("replaces Unsplash stock URLs with local Nigerian photos", () => {
+    expect(publicWellnessPhoto("https://images.unsplash.com/photo-1600334129128-685c5582fd35", PHOTOS.spa)).toBe(
+      PHOTOS.spa
+    );
+    expect(publicWellnessPhoto("/photos/massage.jpg")).toBe("/photos/massage.jpg");
+    expect(categoryImage("massage", "https://images.unsplash.com/photo-1544161515-4ab6ce6db874")).toBe(PHOTOS.massage);
   });
 });

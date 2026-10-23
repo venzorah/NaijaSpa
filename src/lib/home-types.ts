@@ -10,6 +10,7 @@ export type HomeCard = {
   vendor: {
     slug: string;
     businessName: string;
+    state?: string;
     city: string;
     neighbourhood: string;
     ratingAvg: number;
@@ -88,6 +89,7 @@ export function homeServicePoolTake(limits: HomeFeedConfig) {
 export type NearbyVendor = {
   slug: string;
   businessName: string;
+  state?: string;
   city: string;
   neighbourhood: string;
   coverUrl?: string | null;

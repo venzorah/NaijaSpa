@@ -1,4 +1,4 @@
-import { PHOTOS } from "./photos";
+import { PHOTOS, publicWellnessPhoto } from "./photos";
 
 /** Tasteful wellness photography keyed by category slug. */
 export const CATEGORY_IMAGES: Record<string, string> = {
@@ -13,6 +13,7 @@ export const CATEGORY_IMAGES: Record<string, string> = {
 };
 
 export function categoryImage(slug: string, imageUrl?: string | null) {
-  if (imageUrl) return imageUrl;
-  return CATEGORY_IMAGES[slug] || "/brand/icon-green.png";
+  const fallback = CATEGORY_IMAGES[slug] || "/brand/icon-green.png";
+  if (imageUrl) return publicWellnessPhoto(imageUrl, fallback);
+  return fallback;
 }

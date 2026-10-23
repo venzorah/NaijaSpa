@@ -5,6 +5,8 @@ import Link from "next/link";
 import { BadgeCheck, ChevronRight, Home } from "lucide-react";
 import { PHOTOS } from "@/lib/photos";
 import { SearchFiltersForm } from "@/components/search-filters-form";
+import { exploreHref } from "@/lib/place-urls";
+import type { LivePlace } from "@/lib/nigeria";
 
 const SLIDES = [
   {
@@ -13,7 +15,7 @@ const SLIDES = [
     title: "Warm oil, a slower glide",
     price: "Starting from ₦45,000",
     cta: "Explore Nuru",
-    href: "/explore?category=nuru",
+    category: "nuru",
     image: PHOTOS.hero1
   },
   {
@@ -22,7 +24,7 @@ const SLIDES = [
     title: "Heat, silk gel, quiet hands",
     price: "Starting from ₦38,000",
     cta: "Book now",
-    href: "/explore?category=nuru",
+    category: "nuru",
     image: PHOTOS.hero2
   },
   {
@@ -31,7 +33,7 @@ const SLIDES = [
     title: "A shared oil ritual",
     price: "Starting from ₦72,000",
     cta: "See couples",
-    href: "/explore?category=couples",
+    category: "couples",
     image: PHOTOS.hero3
   }
 ] as const;
@@ -40,7 +42,15 @@ const INTERVAL_MS = 7000;
 
 type Category = { slug: string; name: string };
 
-export function HeroSlider({ greeting, categories = [] }: { greeting: string; categories?: Category[] }) {
+export function HeroSlider({
+  greeting,
+  categories = [],
+  place = null
+}: {
+  greeting: string;
+  categories?: Category[];
+  place?: LivePlace | null;
+}) {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const slide = SLIDES[index];
@@ -68,7 +78,7 @@ export function HeroSlider({ greeting, categories = [] }: { greeting: string; ca
           {navCats.map((c) => (
             <Link
               key={c.slug}
-              href={`/explore?category=${c.slug}`}
+              href={exploreHref(place, { category: c.slug })}
               className="flex min-h-11 items-center justify-between gap-2 rounded-2xl px-3 text-sm font-medium text-ink hover:bg-elev"
             >
               {c.name}
@@ -76,7 +86,7 @@ export function HeroSlider({ greeting, categories = [] }: { greeting: string; ca
             </Link>
           ))}
           <Link
-            href="/explore"
+            href={exploreHref(place)}
             className="mt-auto flex min-h-11 items-center justify-between gap-2 rounded-2xl px-3 text-sm font-semibold text-goldink hover:bg-elev"
           >
             Other categories
@@ -112,7 +122,7 @@ export function HeroSlider({ greeting, categories = [] }: { greeting: string; ca
             <h1 className="mt-3 max-w-lg font-display text-4xl font-semibold leading-[1.08] md:text-5xl">{slide.title}</h1>
             <p className="mt-3 text-sm text-white/85">{slide.price}</p>
             <Link
-              href={slide.href}
+              href={exploreHref(place, { category: slide.category })}
               className="mt-6 inline-flex w-fit min-h-11 items-center rounded-full bg-gold px-6 text-sm font-bold text-ongold"
             >
               {slide.cta} →
@@ -153,7 +163,15 @@ export function HeroSlider({ greeting, categories = [] }: { greeting: string; ca
         </div>
       </div>
 
-      <SearchFiltersForm compact />
+      <SearchFiltersForm
+        compact
+        locateTo="home"
+        values={
+          place
+            ? { state: place.state, city: place.city, neighbourhood: place.neighbourhood }
+            : undefined
+        }
+      />
     </section>
   );
 }

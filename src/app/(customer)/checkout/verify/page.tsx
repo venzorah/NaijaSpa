@@ -18,7 +18,7 @@ export default async function CheckoutVerifyPage({
   }
   if (!reference) {
     return (
-      <div className="mx-auto max-w-lg px-4 py-12">
+      <div className="mx-auto w-full min-w-0 max-w-lg px-4 py-12">
         <h1 className="font-display text-4xl">Payment not found</h1>
         <p className="mt-3 text-sm text-ink2">Paystack did not return a reference. Return to your bookings and try again.</p>
         <Link href="/account/bookings" className="mt-6 inline-flex min-h-12 items-center rounded-full bg-gold px-5 font-bold text-ongold">
@@ -49,7 +49,7 @@ export default async function CheckoutVerifyPage({
   const ok = status === "success";
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-12 pb-24">
+    <div className="mx-auto w-full min-w-0 max-w-lg px-4 py-12">
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold">{ok ? "Confirmed" : "Not confirmed"}</p>
       <h1 className="mt-3 font-display text-4xl">{ok ? "Payment received" : "Payment still pending"}</h1>
       <p className="mt-3 text-sm leading-relaxed text-ink2">

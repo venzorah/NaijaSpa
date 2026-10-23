@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { BadgeCheck, Heart, MapPin, Star } from "lucide-react";
 import { getPublicService } from "@/lib/catalog";
+import { publicWellnessPhoto } from "@/lib/photos";
 import { formatReviewDate, locationLabel } from "@/lib/booking-ui";
 import { ServiceBookingCard } from "@/components/service-booking-card";
 
@@ -13,22 +14,23 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
   if (!data) notFound();
   const { service, vendor, quotes, treatments, reviews, tags } = data;
   const verified = vendor.verificationStatus === "verified";
-  const photo =
-    service.imageUrl ||
-    (vendor.logoUrl && !vendor.logoUrl.includes("icon-white") ? vendor.logoUrl : "/brand/icon-green.png");
+  const photo = publicWellnessPhoto(
+    service.imageUrl || (vendor.logoUrl && !vendor.logoUrl.includes("icon-white") ? vendor.logoUrl : null),
+    "/brand/icon-green.png"
+  );
   const locationLine = [vendor.neighbourhood, vendor.city].filter(Boolean).join(", ");
   const offered = quotes.map((q) => locationLabel(q.l)).join(" · ");
 
   return (
     <div className="bg-bg2">
-      <div className="relative h-56 overflow-hidden sm:h-72 lg:hidden">
+      <div className="relative h-40 overflow-hidden sm:h-56 lg:hidden">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={photo} alt="" className="h-full w-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-bg2 via-transparent to-black/20" />
       </div>
-      <div className="mx-auto max-w-6xl px-4 py-8 pb-24 lg:px-8 lg:py-12">
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22.5rem] lg:items-start lg:gap-12">
-          <header className="flex flex-col gap-6 sm:flex-row sm:items-start">
+      <div className="mx-auto w-full min-w-0 max-w-6xl px-4 py-4 sm:py-8 lg:px-8 lg:py-12">
+        <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,22.5rem)] lg:items-start lg:gap-12">
+          <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-6">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={photo}
@@ -46,7 +48,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
                       </span>
                     )}
                   </p>
-                  <h1 className="mt-1 font-display text-4xl leading-tight sm:text-5xl">{vendor.businessName}</h1>
+                  <h1 className="mt-1 font-display text-3xl leading-tight sm:text-5xl">{vendor.businessName}</h1>
                   <p className="mt-1 text-base text-ink2">{service.name}</p>
                 </div>
                 <Link
@@ -77,7 +79,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
             </div>
           </header>
 
-          <div className="lg:sticky lg:top-24 lg:col-start-2 lg:row-span-4">
+          <div className="min-w-0 lg:sticky lg:top-24 lg:col-start-2 lg:row-span-4">
             <ServiceBookingCard
               serviceId={service.id}
               treatments={treatments}

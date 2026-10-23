@@ -77,7 +77,7 @@ export function BottomNav() {
     <nav aria-label="Main" className="pb-safe fixed inset-x-0 bottom-0 z-50 border-t border-line/70 bg-bg/90 backdrop-blur-xl lg:hidden">
       <ul className="mx-auto grid max-w-xl grid-cols-5">
         {items.map(({ href, label, icon: Icon }) => {
-          const active = href === "/" ? path === "/" : path.startsWith(href);
+          const active = href === "/" ? path === "/" || path.startsWith("/in/") : path.startsWith(href);
           return (
             <li key={href}>
               <Link
@@ -100,7 +100,7 @@ export function BottomNav() {
 
 export function CustomerShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative min-h-screen bg-bg text-ink">
+    <div className="relative min-h-screen min-w-0 bg-bg text-ink">
       <div aria-hidden className="pointer-events-none fixed inset-0 -z-10">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -112,7 +112,9 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
       </div>
       <TopBar />
       <div aria-hidden className="h-[calc(5.5rem+env(safe-area-inset-top))]" />
-      <main className="relative pb-28 lg:pb-8">{children}</main>
+      <main className="relative min-w-0 w-full pb-[calc(7.5rem+env(safe-area-inset-bottom))] lg:pb-8">
+        {children}
+      </main>
       <BottomNav />
       <InstallPrompt />
     </div>

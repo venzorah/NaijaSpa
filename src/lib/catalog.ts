@@ -27,6 +27,8 @@ import {
   type NearbyVendor
 } from "./home-types";
 import { publicVideoLinks } from "./galleries";
+import { sortByPlace, type LivePlace } from "./nigeria";
+import { PHOTOS, publicWellnessPhoto } from "./photos";
 
 export { usingDemoListings } from "./live-db";
 export type { HomeCard, HomeFeedConfig, HomeRails, NearbyVendor } from "./home-types";
@@ -56,23 +58,26 @@ function compactService(s: {
     id: s.id,
     slug: s.slug,
     name: s.name,
-    imageUrl: s.imageUrl,
+    imageUrl: publicWellnessPhoto(s.imageUrl, PHOTOS.massage),
     basePriceKobo: s.basePriceKobo,
     durationMin: s.durationMin
   };
 }
 
-export async function getHomeCatalog() {
+function demoHomePayload(limits: HomeFeedConfig, place?: LivePlace | null) {
+  return {
+    demo: true as const,
+    categories: demoCategories,
+    rails: demoHomeRails(limits, place),
+    nearby: sortByPlace(demoNearbyVendors(), place, (v) => v).slice(0, limits.nearby),
+    faqs: demoFaqs
+  };
+}
+
+export async function getHomeCatalog(place?: LivePlace | null) {
   const limits = await resolveHomeFeedLimits();
-  if (usingDemoListings()) {
-    return {
-      demo: true,
-      categories: demoCategories,
-      rails: demoHomeRails(limits),
-      nearby: demoNearbyVendors().slice(0, limits.nearby),
-      faqs: demoFaqs
-    };
-  }
+  if (usingDemoListings()) return demoHomePayload(limits, place);
+  try {
   const { prisma } = await import("./db");
   const { vendorEntitlement } = await import("./entitlements");
   const now = new Date();
@@ -115,6 +120,7 @@ export async function getHomeCatalog() {
       vendor: {
         slug: vendor.slug,
         businessName: vendor.businessName,
+        state: vendor.state,
         city: vendor.city,
         neighbourhood: vendor.neighbourhood,
         ratingAvg: vendor.ratingAvg,
@@ -158,20 +164,30 @@ export async function getHomeCatalog() {
     return out;
   };
 
-  const allCards = services.map((s) => {
-    const ent = entitlements.get(s.vendorId)!;
-    const sponsored = campaigns.some((c) => c.vendorId === s.vendorId);
-    return cardFromService(s, ent.activePaid ? "Premium" : sponsored ? "Featured" : undefined, sponsored);
-  });
-  const premiumPool = services
-    .filter((s) => entitlements.get(s.vendorId)?.enhancedVisibility)
-    .map((s) => cardFromService(s, "Premium"));
-  const promoPool = [...services].sort((a, b) => a.basePriceKobo - b.basePriceKobo).map((s) => cardFromService(s, "Promo"));
+  const allCards = sortByPlace(
+    services.map((s) => {
+      const ent = entitlements.get(s.vendorId)!;
+      const sponsored = campaigns.some((c) => c.vendorId === s.vendorId);
+      return cardFromService(s, ent.activePaid ? "Premium" : sponsored ? "Featured" : undefined, sponsored);
+    }),
+    place,
+    (c) => c.vendor
+  );
+  const premiumPool = sortByPlace(
+    services.filter((s) => entitlements.get(s.vendorId)?.enhancedVisibility).map((s) => cardFromService(s, "Premium")),
+    place,
+    (c) => c.vendor
+  );
+  const promoPool = sortByPlace(
+    [...services].sort((a, b) => a.basePriceKobo - b.basePriceKobo).map((s) => cardFromService(s, "Promo")),
+    place,
+    (c) => c.vendor
+  );
 
   const rails: HomeRails = {
-    featured: fill(featured, allCards, "Featured", limits.featured),
-    premium: fill(premiumFromAds, premiumPool.length ? premiumPool : allCards, "Premium", limits.premium),
-    promo: fill(promo, promoPool, "Promo", limits.promo)
+    featured: sortByPlace(fill(featured, allCards, "Featured", limits.featured), place, (c) => c.vendor),
+    premium: sortByPlace(fill(premiumFromAds, premiumPool.length ? premiumPool : allCards, "Premium", limits.premium), place, (c) => c.vendor),
+    promo: sortByPlace(fill(promo, promoPool, "Promo", limits.promo), place, (c) => c.vendor)
   };
 
   const nearbyMap = new Map<string, NearbyVendor>();
@@ -180,14 +196,24 @@ export async function getHomeCatalog() {
     nearbyMap.set(s.vendor.slug, {
       slug: s.vendor.slug,
       businessName: s.vendor.businessName,
+      state: s.vendor.state,
       city: s.vendor.city,
       neighbourhood: s.vendor.neighbourhood,
-      coverUrl: s.vendor.coverUrl,
+      coverUrl: publicWellnessPhoto(s.vendor.coverUrl, PHOTOS.bandSpa),
       ratingAvg: s.vendor.ratingAvg
     });
   }
 
-  return { demo: false, categories, rails, nearby: [...nearbyMap.values()].slice(0, limits.nearby), faqs };
+  return {
+    demo: false,
+    categories,
+    rails,
+    nearby: sortByPlace([...nearbyMap.values()], place, (v) => v).slice(0, limits.nearby),
+    faqs
+  };
+  } catch {
+    return demoHomePayload(limits, place);
+  }
 }
 
 function initialsName(name: string) {
@@ -223,26 +249,29 @@ function locationQuotes(
     }));
 }
 
+function demoPublicService(slug: string) {
+  const service = demoServiceBySlug(slug);
+  if (!service) return null;
+  const vendor = sanitizePublicVendor(service.vendor, service.vendor.entitlement);
+  return {
+    demo: true as const,
+    service,
+    vendor,
+    quotes: locationQuotes(service, service.vendor.entitlement, DEFAULT_COMMERCIAL),
+    treatments: demoTreatmentsForVendor(service.vendorId),
+    reviews: demoReviewsForVendor(service.vendorId),
+    tags: [
+      service.categoryName,
+      service.spaEnabled && "Spa/Office",
+      service.hotelEnabled && "Hotel",
+      service.homeEnabled && "Home"
+    ].filter(Boolean) as string[]
+  };
+}
+
 export async function getPublicService(slug: string) {
-  if (usingDemoListings()) {
-    const service = demoServiceBySlug(slug);
-    if (!service) return null;
-    const vendor = sanitizePublicVendor(service.vendor, service.vendor.entitlement);
-    return {
-      demo: true,
-      service,
-      vendor,
-      quotes: locationQuotes(service, service.vendor.entitlement, DEFAULT_COMMERCIAL),
-      treatments: demoTreatmentsForVendor(service.vendorId),
-      reviews: demoReviewsForVendor(service.vendorId),
-      tags: [
-        service.categoryName,
-        service.spaEnabled && "Spa/Office",
-        service.hotelEnabled && "Hotel",
-        service.homeEnabled && "Home"
-      ].filter(Boolean) as string[]
-    };
-  }
+  if (usingDemoListings()) return demoPublicService(slug);
+  try {
   const { prisma, getCommercialConfig } = await import("./db");
   const { vendorEntitlement } = await import("./entitlements");
   const service = await prisma.service.findUnique({
@@ -251,7 +280,10 @@ export async function getPublicService(slug: string) {
   });
   if (!service || !service.active) return null;
   const ent = await vendorEntitlement(service.vendorId);
-  const vendor = sanitizePublicVendor(service.vendor, ent);
+  const vendor = sanitizePublicVendor(
+    { ...service.vendor, coverUrl: publicWellnessPhoto(service.vendor.coverUrl, PHOTOS.bandSpa) },
+    ent
+  );
   const cfg = await getCommercialConfig();
   const [treatments, reviewRows] = await Promise.all([
     prisma.service.findMany({
@@ -268,7 +300,7 @@ export async function getPublicService(slug: string) {
   ]);
   return {
     demo: false,
-    service,
+    service: { ...service, imageUrl: publicWellnessPhoto(service.imageUrl, PHOTOS.massage) },
     vendor,
     quotes: locationQuotes(service, ent, cfg),
     treatments,
@@ -286,6 +318,9 @@ export async function getPublicService(slug: string) {
       service.homeEnabled && "Home"
     ].filter(Boolean) as string[]
   };
+  } catch {
+    return demoPublicService(slug);
+  }
 }
 
 export async function getPublicVendor(slug: string) {
@@ -303,16 +338,22 @@ export async function getPublicVendor(slug: string) {
   if (!vendor || vendor.visibility !== "public") return null;
   const ent = await vendorEntitlement(vendor.id);
   return {
-    vendor: sanitizePublicVendor(vendor, ent),
+    vendor: sanitizePublicVendor(
+      { ...vendor, coverUrl: publicWellnessPhoto(vendor.coverUrl, PHOTOS.bandSpa) },
+      ent
+    ),
     description: vendor.description,
-    services: vendor.services,
+    services: vendor.services.map((s) => ({
+      ...s,
+      imageUrl: publicWellnessPhoto(s.imageUrl, PHOTOS.massage)
+    })),
     galleries: vendor.galleries.map((g) => ({
       id: g.id,
       title: g.title,
       caption: g.caption,
       images: g.images.map((img) => ({
         id: img.id,
-        url: img.url,
+        url: publicWellnessPhoto(img.url, PHOTOS.spa),
         caption: img.caption,
         therapistName: img.therapistName
       }))

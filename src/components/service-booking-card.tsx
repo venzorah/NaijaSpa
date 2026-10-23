@@ -102,10 +102,12 @@ export function ServiceBookingCard({
     step === 1 ? "Continue" : step === 2 ? (time ? "Review total" : "Select a time") : "Continue to payment";
 
   return (
-    <aside className="rounded-[1.6rem] border border-line bg-card p-5 shadow-sm sm:p-6">
-      <div className="flex items-baseline justify-between gap-3">
-        <p className="font-display text-4xl leading-none">{quote ? formatNairaPlain(quote.customerTotalKobo) : "—"}</p>
-        <p className="text-sm text-ink2">/ {durationMin} min</p>
+    <aside className="min-w-0 w-full rounded-[1.6rem] border border-line bg-card p-4 shadow-sm sm:p-6">
+      <div className="flex min-w-0 items-baseline justify-between gap-3">
+        <p className="min-w-0 font-display text-3xl leading-none sm:text-4xl">
+          {quote ? formatNairaPlain(quote.customerTotalKobo) : "—"}
+        </p>
+        <p className="shrink-0 text-sm text-ink2">/ {durationMin} min</p>
       </div>
 
       <div className="mt-5">
@@ -116,7 +118,7 @@ export function ServiceBookingCard({
         <label className="mt-5 block text-xs font-semibold uppercase tracking-wide text-ink2">
           Treatment
           <select
-            className="mt-2 min-h-12 w-full rounded-2xl border border-line bg-bg px-3 text-sm font-medium text-ink"
+            className="mt-2 min-h-12 w-full min-w-0 max-w-full rounded-2xl border border-line bg-bg px-3 text-sm font-medium text-ink"
             value={currentSlug}
             onChange={(e) => router.push(`/services/${e.target.value}`)}
           >
@@ -137,22 +139,22 @@ export function ServiceBookingCard({
             {quotes.map(({ l, q }) => (
               <label
                 key={l}
-                className={`flex min-h-12 cursor-pointer items-center justify-between gap-3 rounded-2xl border px-4 text-sm font-semibold ${
+                className={`flex min-h-12 min-w-0 cursor-pointer items-center justify-between gap-2 rounded-2xl border px-3 text-sm font-semibold sm:gap-3 sm:px-4 ${
                   locationType === l ? "border-forest bg-forest/10" : "border-line bg-bg"
                 }`}
               >
-                <span className="flex items-center gap-3">
+                <span className="flex min-w-0 items-center gap-2 sm:gap-3">
                   <input
                     type="radio"
                     name="location"
                     value={l}
-                    className="accent-forest"
+                    className="shrink-0 accent-forest"
                     checked={locationType === l}
                     onChange={() => setLocationType(l)}
                   />
-                  {locationLabel(l)}
+                  <span className="min-w-0 break-words">{locationLabel(l)}</span>
                 </span>
-                <span className="text-xs font-medium text-ink2">
+                <span className="shrink-0 text-xs font-medium text-ink2">
                   {l === "spa" || !q.surchargeKobo ? "No extra" : `+ ${formatNairaPlain(q.surchargeKobo)}`}
                 </span>
               </label>
@@ -174,7 +176,7 @@ export function ServiceBookingCard({
         <div className="mt-5">
           <p className="text-xs font-semibold uppercase tracking-wide text-ink2">2. Pick a time</p>
           <p className="mt-1 text-xs text-ink2">Times are Africa/Lagos.</p>
-          <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+          <div className="mt-3 flex gap-2 overflow-x-auto overscroll-x-contain pb-1">
             {days.map((d) => (
               <button
                 key={d.key}
@@ -212,17 +214,17 @@ export function ServiceBookingCard({
       {step === 3 && quote && (
         <div className="mt-5 space-y-2 text-sm">
           <p className="text-xs font-semibold uppercase tracking-wide text-ink2">3. Review total</p>
-          <div className="flex justify-between text-ink2">
-            <span>Treatment · {durationMin} min</span>
-            <span>{formatNairaPlain(quote.basePriceKobo)}</span>
+          <div className="flex justify-between gap-3 text-ink2">
+            <span className="min-w-0">Treatment · {durationMin} min</span>
+            <span className="shrink-0 tabular-nums">{formatNairaPlain(quote.basePriceKobo)}</span>
           </div>
-          <div className="flex justify-between text-ink2">
-            <span>{locationAddonLabel(locationType)}</span>
-            <span>{quote.surchargeKobo ? formatNairaPlain(quote.surchargeKobo) : "₦0"}</span>
+          <div className="flex justify-between gap-3 text-ink2">
+            <span className="min-w-0">{locationAddonLabel(locationType)}</span>
+            <span className="shrink-0 tabular-nums">{quote.surchargeKobo ? formatNairaPlain(quote.surchargeKobo) : "₦0"}</span>
           </div>
-          <div className="flex justify-between border-t border-line pt-2 font-bold">
+          <div className="flex justify-between gap-3 border-t border-line pt-2 font-bold">
             <span>Total</span>
-            <span>{formatNairaPlain(quote.customerTotalKobo)}</span>
+            <span className="shrink-0 tabular-nums">{formatNairaPlain(quote.customerTotalKobo)}</span>
           </div>
           {day && time && (
             <p className="pt-1 text-xs text-ink2">
@@ -239,7 +241,7 @@ export function ServiceBookingCard({
         type="button"
         onClick={cta}
         disabled={(step === 1 && !canLeaveLocation) || (step === 2 && !canLeaveTime)}
-        className="mt-6 flex min-h-12 w-full items-center justify-center rounded-full bg-gold px-6 font-bold text-ongold disabled:opacity-50"
+        className="mt-6 flex min-h-12 w-full items-center justify-center rounded-full bg-gold px-4 text-center font-bold leading-snug text-ongold disabled:opacity-50"
       >
         {ctaLabel}
       </button>

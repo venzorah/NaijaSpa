@@ -1,3 +1,5 @@
+import { PHOTOS, publicWellnessPhoto } from "@/lib/photos";
+
 export type PublicGalleryImage = {
   id: string;
   url: string;
@@ -36,7 +38,11 @@ export function TherapistGalleries({
             {g.images.map((img) => (
               <li key={img.id} className="overflow-hidden rounded-2xl border border-line bg-card">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={img.url} alt={img.therapistName || img.caption || g.title} className="h-40 w-full object-cover" />
+                <img
+                  src={publicWellnessPhoto(img.url, PHOTOS.spa)}
+                  alt={img.therapistName || img.caption || g.title}
+                  className="h-40 w-full object-cover"
+                />
                 {(img.therapistName || img.caption) && (
                   <p className="px-3 py-2 text-xs text-ink2">
                     {img.therapistName}

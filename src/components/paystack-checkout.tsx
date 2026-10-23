@@ -118,7 +118,7 @@ export function PaystackCheckout({
       <button
         type="button"
         disabled={busy}
-        className="mt-6 min-h-12 w-full rounded-full bg-gold font-bold text-ongold disabled:opacity-60"
+        className="mt-6 min-h-12 w-full rounded-full bg-gold px-4 text-center font-bold leading-snug text-ongold disabled:opacity-60"
         onClick={() => void pay()}
       >
         {busy ? "Opening Paystack…" : alreadyConfirmed ? "View booking" : `Pay ${amountLabel} with Paystack`}

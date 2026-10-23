@@ -1,6 +1,7 @@
 import { locationAddonKobo, sanitizePublicVendor, quoteBooking } from "./commercial";
+import { PHOTOS, firstWellnessPhoto, publicWellnessPhoto } from "./photos";
 import { usingDemoListings } from "./live-db";
-import { prismaEquals, vendorMatchesPlace } from "./nigeria";
+import { placeRank, prismaEquals, vendorMatchesPlace } from "./nigeria";
 export type { SearchFilters } from "./search-types";
 import type { SearchFilters, SearchTherapist } from "./search-types";
 
@@ -9,6 +10,15 @@ export async function searchServices(filters: SearchFilters) {
     const { demoSearch } = await import("./demo-catalog");
     return demoSearch(filters);
   }
+  try {
+    return await searchLive(filters);
+  } catch {
+    const { demoSearch } = await import("./demo-catalog");
+    return demoSearch(filters);
+  }
+}
+
+async function searchLive(filters: SearchFilters) {
   const { prisma, getCommercialConfig } = await import("./db");
   const { vendorEntitlement } = await import("./entitlements");
   const page = Math.max(1, filters.page ?? 1);
@@ -21,6 +31,7 @@ export async function searchServices(filters: SearchFilters) {
         {
           visibility: "public",
           applicationStatus: "approved",
+          ...(filters.state ? { state: prismaEquals(filters.state) } : {}),
           ...(filters.verified ? { verificationStatus: "verified" } : {}),
           ...(filters.minRating ? { ratingAvg: { gte: filters.minRating } } : {})
         },
@@ -91,8 +102,8 @@ export async function searchServices(filters: SearchFilters) {
         verificationStatus: row.vendor.verificationStatus,
         ratingAvg: row.vendor.ratingAvg,
         reviewCount: row.vendor.reviewCount,
-        logoUrl: row.vendor.logoUrl,
-        coverUrl: row.vendor.coverUrl,
+        logoUrl: publicWellnessPhoto(row.vendor.logoUrl, ""),
+        coverUrl: firstWellnessPhoto(row.vendor.coverUrl, PHOTOS.bandSpa),
         privatePhone: row.vendor.privatePhone,
         privateWhatsapp: row.vendor.privateWhatsapp
       },
@@ -124,7 +135,7 @@ export async function searchServices(filters: SearchFilters) {
         slug: row.slug,
         name: row.name,
         durationMin: row.durationMin,
-        imageUrl: row.imageUrl,
+        imageUrl: firstWellnessPhoto(row.imageUrl, row.vendor.coverUrl, PHOTOS.massage),
         category: row.category.name,
         spaEnabled: row.spaEnabled,
         hotelEnabled: row.hotelEnabled,
@@ -139,7 +150,12 @@ export async function searchServices(filters: SearchFilters) {
   }
 
   if (filters.sort === "relevance") {
-    results.sort((a, b) => Number(b.enhanced) - Number(a.enhanced) || b.vendor.ratingAvg - a.vendor.ratingAvg);
+    results.sort(
+      (a, b) =>
+        placeRank(b.vendor, filters.rankPlace) - placeRank(a.vendor, filters.rankPlace) ||
+        Number(b.enhanced) - Number(a.enhanced) ||
+        b.vendor.ratingAvg - a.vendor.ratingAvg
+    );
   }
 
   const total = results.length;

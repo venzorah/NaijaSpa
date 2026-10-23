@@ -9,6 +9,7 @@ import {
 } from "./commercial";
 import { publicVideoLinks } from "./galleries";
 import { CATEGORY_IMAGES } from "./category-images";
+import { PHOTOS, firstWellnessPhoto, publicWellnessPhoto } from "./photos";
 import {
   DEFAULT_HOME_FEED_CONFIG,
   type HomeCard,
@@ -17,7 +18,7 @@ import {
   type NearbyVendor
 } from "./home-types";
 import type { SearchFilters } from "./search-types";
-import { vendorMatchesPlace } from "./nigeria";
+import { sortByPlace, vendorMatchesPlace, type LivePlace } from "./nigeria";
 
 const paidEnt: Entitlement = {
   planCode: "MONTHLY",
@@ -458,7 +459,12 @@ export const demoCms: Record<string, { title: string; body: string }> = {
 };
 
 function publicVendor(v: typeof osun) {
-  return sanitizePublicVendor(v, v.entitlement);
+  const vendor = sanitizePublicVendor(v, v.entitlement);
+  return {
+    ...vendor,
+    logoUrl: publicWellnessPhoto(vendor.logoUrl, ""),
+    coverUrl: firstWellnessPhoto(vendor.coverUrl, PHOTOS.bandSpa)
+  };
 }
 
 export function demoSearch(filters: SearchFilters) {
@@ -488,6 +494,9 @@ export function demoSearch(filters: SearchFilters) {
   });
   if (filters.sort === "price") rows = [...rows].sort((a, b) => a.basePriceKobo - b.basePriceKobo);
   if (filters.sort === "rating") rows = [...rows].sort((a, b) => b.vendor.ratingAvg - a.vendor.ratingAvg);
+  if (!filters.sort || filters.sort === "relevance") {
+    rows = sortByPlace(rows, filters.rankPlace, (s) => s.vendor);
+  }
   const loc = (filters.locationType ?? "spa") as LocationType;
   const results = rows.slice((page - 1) * take, page * take).map((s) => ({
     service: {
@@ -495,7 +504,7 @@ export function demoSearch(filters: SearchFilters) {
       slug: s.slug,
       name: s.name,
       durationMin: s.durationMin,
-      imageUrl: s.imageUrl,
+      imageUrl: firstWellnessPhoto(s.imageUrl, s.vendor.coverUrl, PHOTOS.massage),
       category: s.categoryName,
       spaEnabled: s.spaEnabled,
       hotelEnabled: s.hotelEnabled,
@@ -545,13 +554,14 @@ function toHomeCard(
       id: s.id,
       slug: s.slug,
       name: s.name,
-      imageUrl: s.imageUrl,
+      imageUrl: firstWellnessPhoto(s.imageUrl, s.vendor.coverUrl, PHOTOS.massage),
       basePriceKobo: s.basePriceKobo,
       durationMin: s.durationMin
     },
     vendor: {
       slug: vendor.slug,
       businessName: vendor.businessName,
+      state: vendor.state,
       city: vendor.city,
       neighbourhood: vendor.neighbourhood,
       ratingAvg: vendor.ratingAvg,
@@ -571,12 +581,16 @@ export function demoHomeCards() {
   return demoServices.map((s) => toHomeCard(s));
 }
 
-export function demoHomeRails(limits: HomeFeedConfig = DEFAULT_HOME_FEED_CONFIG): HomeRails {
+export function demoHomeRails(limits: HomeFeedConfig = DEFAULT_HOME_FEED_CONFIG, place?: LivePlace | null): HomeRails {
   const byId = (ids: string[], extra?: Partial<Pick<HomeCard, "badge" | "sponsored">>) =>
-    ids
-      .map((id) => demoServices.find((s) => s.id === id))
-      .filter((s): s is (typeof demoServices)[number] => Boolean(s))
-      .map((s) => toHomeCard(s, extra));
+    sortByPlace(
+      ids
+        .map((id) => demoServices.find((s) => s.id === id))
+        .filter((s): s is (typeof demoServices)[number] => Boolean(s))
+        .map((s) => toHomeCard(s, extra)),
+      place,
+      (c) => c.vendor
+    );
 
   return {
     featured: byId(["s-swedish", "s-nuru", "s-couples", "s-hotstone", "s-sports", "s-hammam"], { badge: "Featured", sponsored: true }).slice(
@@ -592,9 +606,10 @@ export function demoNearbyVendors(): NearbyVendor[] {
   return demoVendors.map((v) => ({
     slug: v.slug,
     businessName: v.businessName,
+    state: v.state,
     city: v.city,
     neighbourhood: v.neighbourhood,
-    coverUrl: v.coverUrl,
+    coverUrl: firstWellnessPhoto(v.coverUrl, PHOTOS.bandSpa),
     ratingAvg: v.ratingAvg
   }));
 }

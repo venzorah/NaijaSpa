@@ -5,6 +5,8 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { categoryImage } from "@/lib/category-images";
 import { useAutoScroll } from "@/hooks/use-auto-scroll";
+import { exploreHref } from "@/lib/place-urls";
+import type { LivePlace } from "@/lib/nigeria";
 
 export type CategoryTile = {
   slug: string;
@@ -12,7 +14,13 @@ export type CategoryTile = {
   imageUrl?: string | null;
 };
 
-export function CategoryCarousel({ categories }: { categories: CategoryTile[] }) {
+export function CategoryCarousel({
+  categories,
+  place = null
+}: {
+  categories: CategoryTile[];
+  place?: LivePlace | null;
+}) {
   const scroller = useRef<HTMLDivElement>(null);
   const auto = useAutoScroll(scroller, 3600);
   if (categories.length === 0) return null;
@@ -59,7 +67,7 @@ export function CategoryCarousel({ categories }: { categories: CategoryTile[] })
           {categories.map((c) => (
             <Link
               key={c.slug}
-              href={`/explore?category=${c.slug}`}
+              href={exploreHref(place, { category: c.slug })}
               className="w-[7.75rem] shrink-0 snap-start sm:w-[9.25rem]"
             >
               <div className="aspect-square overflow-hidden rounded-2xl border border-line bg-elev shadow-sm transition hover:border-gold/50 hover:shadow-md">

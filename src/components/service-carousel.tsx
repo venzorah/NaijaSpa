@@ -4,6 +4,7 @@ import { useRef } from "react";
 import Link from "next/link";
 import { BadgeCheck, ChevronLeft, ChevronRight, Clock, Heart, MapPin, Star } from "lucide-react";
 import { formatNgn } from "@/lib/money";
+import { listingPhotos, publicWellnessPhoto } from "@/lib/photos";
 import type { HomeCard } from "@/lib/home-types";
 import { useAutoScroll } from "@/hooks/use-auto-scroll";
 
@@ -93,8 +94,10 @@ function ServiceFeedCard({ card }: { card: HomeCard }) {
   const { service, vendor, badge, tags = [], nextLabel, compareAtKobo } = card;
   const verified = vendor.verificationStatus === "verified";
   const vip = badge === "Premium" || badge === "Featured";
-  const cover = service.imageUrl || "/brand/icon-green.png";
-  const photo = vendor.logoUrl && !vendor.logoUrl.includes("icon-white") ? vendor.logoUrl : cover;
+  const { cover, avatar: photo } = listingPhotos({
+    imageUrl: service.imageUrl,
+    logoUrl: vendor.logoUrl
+  });
 
   return (
     <article className="flex w-[18.5rem] shrink-0 snap-start flex-col overflow-hidden rounded-[1.35rem] border border-line bg-card shadow-sm sm:w-[19.5rem]">
@@ -213,7 +216,7 @@ export function VendorCarousel({
             className="w-[16.75rem] shrink-0 snap-start overflow-hidden rounded-3xl border border-line bg-card"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={v.coverUrl || "/brand/icon-green.png"} alt="" className="h-32 w-full object-cover" />
+            <img src={publicWellnessPhoto(v.coverUrl, "/brand/icon-green.png")} alt="" className="h-32 w-full object-cover" />
             <div className="p-4">
               <h3 className="font-semibold">{v.businessName}</h3>
               <p className="mt-1 text-sm text-ink2">

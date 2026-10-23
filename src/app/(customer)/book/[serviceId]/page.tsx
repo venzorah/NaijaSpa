@@ -56,9 +56,9 @@ function BookForm() {
   }, [startsAt]);
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-8 pb-24">
+    <div className="mx-auto w-full min-w-0 max-w-lg px-4 py-6 sm:py-8">
       <BookingStepper current={3} />
-      <h1 className="mt-6 font-display text-4xl">Review total</h1>
+      <h1 className="mt-6 font-display text-3xl leading-tight sm:text-4xl">Review total</h1>
       <p className="mt-2 text-sm text-ink2">
         Confirm location and time. Spa/Office has no extra charge. Hotel and Home add-ons are set by the vendor and added
         to the treatment total. Payment is next. The booking is only confirmed after payment verification.
@@ -102,12 +102,12 @@ function BookForm() {
           {(["spa", "hotel", "home"] as const).map((l) => (
             <label
               key={l}
-              className={`flex min-h-12 items-center gap-3 rounded-2xl border px-4 text-sm font-semibold ${
+              className={`flex min-h-12 min-w-0 items-center gap-3 rounded-2xl border px-3 text-sm font-semibold sm:px-4 ${
                 locationType === l ? "border-forest bg-forest/10" : "border-line bg-card"
               }`}
             >
-              <input type="radio" name="loc" className="accent-forest" checked={locationType === l} onChange={() => setLocationType(l)} />
-              {locationLabel(l)}
+              <input type="radio" name="loc" className="shrink-0 accent-forest" checked={locationType === l} onChange={() => setLocationType(l)} />
+              <span className="min-w-0 break-words">{locationLabel(l)}</span>
             </label>
           ))}
         </fieldset>
@@ -127,27 +127,30 @@ function BookForm() {
             type="datetime-local"
             value={localValue}
             onChange={(e) => setStartsAt(e.target.value)}
-            className="mt-1 min-h-12 w-full rounded-2xl border border-line bg-card px-3 font-normal"
+            className="mt-1 box-border min-h-12 w-full min-w-0 max-w-full rounded-2xl border border-line bg-card px-3 font-normal"
           />
         </label>
         {quote && (
-          <div className="space-y-2 rounded-[1.4rem] border border-line bg-card p-5 text-sm">
-            <div className="flex justify-between text-ink2">
-              <span>Base</span>
-              <span>{formatNairaPlain(quote.basePriceKobo)}</span>
+          <div className="space-y-2 rounded-[1.4rem] border border-line bg-card p-4 text-sm sm:p-5">
+            <div className="flex justify-between gap-3 text-ink2">
+              <span className="min-w-0">Base</span>
+              <span className="shrink-0 tabular-nums">{formatNairaPlain(quote.basePriceKobo)}</span>
             </div>
-            <div className="flex justify-between text-ink2">
-              <span>{locationAddonLabel(locationType)}</span>
-              <span>{quote.surchargeKobo ? formatNairaPlain(quote.surchargeKobo) : "₦0"}</span>
+            <div className="flex justify-between gap-3 text-ink2">
+              <span className="min-w-0">{locationAddonLabel(locationType)}</span>
+              <span className="shrink-0 tabular-nums">{quote.surchargeKobo ? formatNairaPlain(quote.surchargeKobo) : "₦0"}</span>
             </div>
-            <div className="flex justify-between border-t border-line pt-2 font-bold">
+            <div className="flex justify-between gap-3 border-t border-line pt-2 font-bold">
               <span>Total</span>
-              <span>{formatNairaPlain(quote.customerTotalKobo)}</span>
+              <span className="shrink-0 tabular-nums">{formatNairaPlain(quote.customerTotalKobo)}</span>
             </div>
           </div>
         )}
         {error && <p className="text-sm text-red-500">{error}</p>}
-        <button disabled={submitting} className="min-h-12 w-full rounded-full bg-gold font-bold text-ongold disabled:opacity-60">
+        <button
+          disabled={submitting}
+          className="min-h-12 w-full rounded-full bg-gold px-4 text-center font-bold leading-snug text-ongold disabled:opacity-60"
+        >
           {submitting ? "Saving…" : "Continue to payment"}
         </button>
       </form>
@@ -157,7 +160,7 @@ function BookForm() {
 
 export default function BookPage() {
   return (
-    <Suspense fallback={<div className="mx-auto max-w-lg px-4 py-8 text-sm text-ink2">Loading booking…</div>}>
+    <Suspense fallback={<div className="mx-auto w-full min-w-0 max-w-lg px-4 py-8 text-sm text-ink2">Loading booking…</div>}>
       <BookForm />
     </Suspense>
   );
