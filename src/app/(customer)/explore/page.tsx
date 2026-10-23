@@ -3,6 +3,8 @@ import { searchServices } from "@/lib/search";
 import { formatNgn } from "@/lib/money";
 import type { LocationType } from "@/lib/commercial";
 
+export const dynamic = "force-dynamic";
+
 export default async function ExplorePage({
   searchParams
 }: {

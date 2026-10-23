@@ -14,7 +14,8 @@
     "db:migrate": "prisma migrate deploy",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
-    "db:reset": "prisma db push --force-reset && tsx prisma/seed.ts",
+    "db:migrate:dev": "prisma migrate dev",
+    "db:reset": "prisma migrate reset --force && tsx prisma/seed.ts",
     "icons": "node scripts/make-icons.mjs"
   },
   "prisma": {

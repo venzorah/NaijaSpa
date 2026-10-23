@@ -1,16 +1,26 @@
 # NaijaSpa operations
 
+NaijaSpa uses **PostgreSQL** for all persistent data (users, vendors, bookings, payments).
+
 ## Local run
 
 ```bash
+docker compose up -d postgres
 npm install --ignore-scripts
 npx prisma generate
-npx prisma db push
+npx prisma migrate deploy
 npx tsx prisma/seed.ts
 npm test
-npm run build
 npm run dev
 ```
+
+`DATABASE_URL` in `.env`:
+
+```
+postgresql://naijaspa:naijaspa@localhost:5432/naijaspa
+```
+
+If Docker is not available, use any Postgres 14+ instance (Neon, Supabase, RDS) and put that URL in `.env`.
 
 Demo password for seeded users: `NaijaSpa!dev`
 
@@ -19,13 +29,25 @@ Demo password for seeded users: `NaijaSpa!dev`
 - Free vendor: free.vendor@naijaspa.ng
 - Super admin: super.admin@naijaspa.ng
 
+## Vercel
+
+1. Create a Postgres database (Neon is typical with Vercel).
+2. Set `DATABASE_URL` on the Vercel project to the **pooled** `postgresql://` URL.
+3. Set `AUTH_SECRET` (long random string).
+4. Build already runs `prisma generate`. After first deploy, run `npx prisma migrate deploy` and `npx tsx prisma/seed.ts` against that URL (Vercel CLI, GitHub Action, or Neon SQL + a one-off job).
+
+Until `DATABASE_URL` is a `postgres://` / `postgresql://` URL, public pages show **bundled demo listings**. Those listings are removed automatically once Postgres is connected.
+
+Do not use SQLite on Vercel.
+
 ## Environment
 
 See `.env.example`. Never commit real keys.
 
 | Variable | Required for |
 |---|---|
-| `DATABASE_URL` | SQLite file by default. Use `postgresql://` in production and change `provider` in `prisma/schema.prisma`. |
+| `DATABASE_URL` | PostgreSQL. Required for live catalog, auth, bookings. Demo listings stay on Vercel until this is set. |
+| `USE_DEMO_LISTINGS` | Optional. `true` forces demo; `false` forces Prisma. |
 | `AUTH_SECRET` | Session JWT |
 | `PAYSTACK_SECRET_KEY` | Live/sandbox payments. Without it, checkout records `initialized` payments and will **not** confirm bookings. |
 | `PAYSTACK_WEBHOOK_SECRET` | Webhook HMAC |
@@ -45,7 +67,7 @@ Paystack initialize + verify + signed webhook. No escrow. No card PAN storage.
 
 ## Backup
 
-Copy `prisma/dev.db` (SQLite) or run `pg_dump` on PostgreSQL. Store encryption keys and `.env` separately.
+`pg_dump` the Postgres database on a schedule. Store encryption keys and `.env` separately from dumps.
 
 ## Magic Patterns
 

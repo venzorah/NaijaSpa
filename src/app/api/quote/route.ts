@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { prisma, getCommercialConfig } from "@/lib/db";
-import { quoteBooking, type LocationType } from "@/lib/commercial";
-import { vendorEntitlement } from "@/lib/entitlements";
+import { quotePublicService } from "@/lib/catalog";
+import type { LocationType } from "@/lib/commercial";
 import { jsonError } from "@/lib/http";
 
 export async function GET(req: Request) {
@@ -10,10 +9,7 @@ export async function GET(req: Request) {
     const serviceId = url.searchParams.get("serviceId");
     const location = (url.searchParams.get("location") || "spa") as LocationType;
     if (!serviceId) return NextResponse.json({ error: "serviceId required" }, { status: 400 });
-    const service = await prisma.service.findUniqueOrThrow({ where: { id: serviceId } });
-    const ent = await vendorEntitlement(service.vendorId);
-    const config = await getCommercialConfig();
-    return NextResponse.json(quoteBooking({ basePriceKobo: service.basePriceKobo, location, entitlement: ent, config }));
+    return NextResponse.json(await quotePublicService(serviceId, location));
   } catch (e) {
     return jsonError(e);
   }

@@ -1,34 +1,25 @@
-import { prisma } from "./db";
-import { vendorEntitlement } from "./entitlements";
-import { sanitizePublicVendor, quoteBooking, type LocationType } from "./commercial";
-import { getCommercialConfig } from "./db";
-
-export type SearchFilters = {
-  q?: string;
-  city?: string;
-  neighbourhood?: string;
-  category?: string;
-  minPrice?: number;
-  maxPrice?: number;
-  minRating?: number;
-  verified?: boolean;
-  durationMin?: number;
-  locationType?: LocationType;
-  publicContact?: boolean;
-  sort?: "relevance" | "price" | "rating" | "availability";
-  page?: number;
-};
+import { sanitizePublicVendor, quoteBooking } from "./commercial";
+import { usingDemoListings } from "./live-db";
+export type { SearchFilters } from "./search-types";
+import type { SearchFilters } from "./search-types";
 
 export async function searchServices(filters: SearchFilters) {
+  if (usingDemoListings()) {
+    const { demoSearch } = await import("./demo-catalog");
+    return demoSearch(filters);
+  }
+  const { prisma, getCommercialConfig } = await import("./db");
+  const { vendorEntitlement } = await import("./entitlements");
   const page = Math.max(1, filters.page ?? 1);
   const take = 12;
+  const contains = (value: string) => ({ contains: value, mode: "insensitive" as const });
   const where: Record<string, unknown> = {
     active: true,
     vendor: {
       visibility: "public",
       applicationStatus: "approved",
-      ...(filters.city ? { city: { contains: filters.city } } : {}),
-      ...(filters.neighbourhood ? { neighbourhood: { contains: filters.neighbourhood } } : {}),
+      ...(filters.city ? { city: contains(filters.city) } : {}),
+      ...(filters.neighbourhood ? { neighbourhood: contains(filters.neighbourhood) } : {}),
       ...(filters.verified ? { verificationStatus: "verified" } : {}),
       ...(filters.minRating ? { ratingAvg: { gte: filters.minRating } } : {})
     },
@@ -39,11 +30,11 @@ export async function searchServices(filters: SearchFilters) {
   };
   if (filters.q) {
     where.OR = [
-      { name: { contains: filters.q } },
-      { description: { contains: filters.q } },
-      { vendor: { businessName: { contains: filters.q } } },
-      { category: { name: { contains: filters.q } } },
-      { category: { synonyms: { contains: filters.q } } }
+      { name: contains(filters.q) },
+      { description: contains(filters.q) },
+      { vendor: { businessName: contains(filters.q) } },
+      { category: { name: contains(filters.q) } },
+      { category: { synonyms: contains(filters.q) } }
     ];
   }
   if (filters.locationType === "spa") where.spaEnabled = true;

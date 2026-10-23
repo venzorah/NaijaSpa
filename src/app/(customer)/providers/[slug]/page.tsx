@@ -1,35 +1,31 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { prisma } from "@/lib/db";
-import { vendorEntitlement } from "@/lib/entitlements";
-import { sanitizePublicVendor } from "@/lib/commercial";
+import { getPublicVendor } from "@/lib/catalog";
 import { formatNgn } from "@/lib/money";
+
+export const dynamic = "force-dynamic";
 
 export default async function ProviderPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const vendor = await prisma.vendor.findUnique({
-    where: { slug },
-    include: { services: { where: { active: true }, include: { category: true } } }
-  });
-  if (!vendor || vendor.visibility !== "public") notFound();
-  const ent = await vendorEntitlement(vendor.id);
-  const pub = sanitizePublicVendor(vendor, ent);
+  const data = await getPublicVendor(slug);
+  if (!data) notFound();
+  const { vendor, description, services } = data;
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
-      <h1 className="font-display text-4xl">{pub.businessName}</h1>
+      <h1 className="font-display text-4xl">{vendor.businessName}</h1>
       <p className="text-ink2">
         {vendor.neighbourhood}, {vendor.city} {vendor.verificationStatus === "verified" ? "· Verified" : ""}
       </p>
-      <p className="mt-4 max-w-2xl text-sm">{vendor.description}</p>
-      {pub.publicPhone || pub.publicWhatsapp ? (
+      <p className="mt-4 max-w-2xl text-sm">{description}</p>
+      {vendor.publicPhone || vendor.publicWhatsapp ? (
         <p className="mt-3 text-sm">
-          {pub.publicPhone} {pub.publicWhatsapp && <a href={pub.publicWhatsapp}>WhatsApp</a>}
+          {vendor.publicPhone} {vendor.publicWhatsapp && <a href={vendor.publicWhatsapp}>WhatsApp</a>}
         </p>
       ) : (
         <p className="mt-3 text-xs text-ink2">Contact details are not public for this listing.</p>
       )}
       <ul className="mt-8 space-y-3">
-        {vendor.services.map((s) => (
+        {services.map((s) => (
           <li key={s.id} className="flex items-center justify-between rounded-2xl border border-line bg-card p-4">
             <div>
               <p className="font-semibold">{s.name}</p>

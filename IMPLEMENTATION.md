@@ -15,7 +15,7 @@ Magic Patterns screen sets were generated first, then this Next.js app was imple
 | Area | Status |
 |---|---|
 | Design system, dark default, light mode, theme persistence | Implemented but not fully verified (needs browser pass) |
-| Customer home, explore, profiles, services | Implemented; backed by Prisma seed data |
+| Customer home, explore, profiles, services | Implemented; Prisma when a live DB is configured, bundled demo listings on Vercel until then |
 | Auth, account, favourites, bookings | Implemented |
 | Vendor portal, unlimited listings, entitlements | Implemented |
 | Admin vendor invite, commercial config, dashboard | Implemented |
@@ -25,5 +25,5 @@ Magic Patterns screen sets were generated first, then this Next.js app was imple
 | PWA manifest/SW/install copy | Implemented; icon resize needs `sharp` generate |
 | i18n dictionaries EN/FR/DE/ES | Partial (nav/install strings) |
 | Push notifications | Structure only; **blocked** without VAPID keys |
-| PostgreSQL production | Schema is SQLite for local; switch provider for prod |
+| PostgreSQL | Prisma provider is `postgresql`. Demo listings on Vercel until `DATABASE_URL` is set. |
 | Darkroom | Explicitly not implemented |

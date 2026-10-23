@@ -341,6 +341,26 @@ async function main() {
       active: true
     }
   });
+  await prisma.campaign.create({
+    data: {
+      vendorId: paidV.vendor.id,
+      placement: "homepage_premium",
+      startsAt: new Date(),
+      endsAt: new Date(Date.now() + 30 * 864e5),
+      priority: 8,
+      active: true
+    }
+  });
+  await prisma.campaign.create({
+    data: {
+      vendorId: paidV.vendor.id,
+      placement: "homepage_promo",
+      startsAt: new Date(),
+      endsAt: new Date(Date.now() + 30 * 864e5),
+      priority: 6,
+      active: true
+    }
+  });
 
   console.log("Seeded NaijaSpa. Demo password for all accounts: NaijaSpa!dev");
 }

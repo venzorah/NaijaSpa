@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: naijaspa-postgres
+    environment:
+      POSTGRES_USER: naijaspa
+      POSTGRES_PASSWORD: naijaspa
+      POSTGRES_DB: naijaspa
+    ports:
+      - "5432:5432"
+    volumes:
+      - naijaspa_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U naijaspa"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  naijaspa_pg:

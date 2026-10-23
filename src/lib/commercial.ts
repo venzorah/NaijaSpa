@@ -164,7 +164,9 @@ export function sanitizePublicVendor<T extends { privatePhone?: string | null; p
   const allow = publicContactAllowed(entitlement);
   const phone = allow ? vendor.privatePhone ?? null : null;
   const whatsapp = allow ? toWhatsAppLink(vendor.privateWhatsapp) : null;
-  const { privatePhone: _p, privateWhatsapp: _w, ...rest } = vendor;
+  const { privatePhone: _p, privateWhatsapp: _w, entitlement: _e, ...rest } = vendor as T & {
+    entitlement?: unknown;
+  };
   return {
     ...rest,
     publicPhone: phone && allow ? phone : null,

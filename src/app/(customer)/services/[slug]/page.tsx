@@ -1,30 +1,22 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { prisma, getCommercialConfig } from "@/lib/db";
-import { vendorEntitlement } from "@/lib/entitlements";
-import { quoteBooking, sanitizePublicVendor } from "@/lib/commercial";
+import { getPublicService } from "@/lib/catalog";
 import { formatNgn } from "@/lib/money";
+
+export const dynamic = "force-dynamic";
 
 export default async function ServicePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const service = await prisma.service.findUnique({
-    where: { slug },
-    include: { vendor: true, category: true, addons: true, staff: { include: { staff: true } } }
-  });
-  if (!service || !service.active) notFound();
-  const ent = await vendorEntitlement(service.vendorId);
-  const vendor = sanitizePublicVendor(service.vendor, ent);
-  const cfg = await getCommercialConfig();
-  const quotes = (["spa", "hotel", "home"] as const)
-    .filter((l) => (l === "spa" ? service.spaEnabled : l === "hotel" ? service.hotelEnabled : service.homeEnabled))
-    .map((l) => ({ l, q: quoteBooking({ basePriceKobo: service.basePriceKobo, location: l, entitlement: ent, config: cfg }) }));
+  const data = await getPublicService(slug);
+  if (!data) notFound();
+  const { service, vendor, quotes } = data;
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={service.imageUrl || "/brand/icon-green.png"} alt="" className="h-56 w-full rounded-3xl object-cover" />
       <p className="mt-4 text-sm text-ink2">
-        <Link href={`/providers/${service.vendor.slug}`}>{vendor.businessName}</Link>
+        <Link href={`/providers/${vendor.slug}`}>{vendor.businessName}</Link>
         {vendor.verificationStatus === "verified" ? " · Verified" : ""}
       </p>
       <h1 className="font-display text-4xl">{service.name}</h1>
