@@ -16,14 +16,11 @@ export function ParallaxBand({
   cta: string;
 }) {
   return (
-    <section className="relative isolate my-14 min-h-[22rem] overflow-hidden md:min-h-[28rem]">
-      <div
-        aria-hidden
-        className="absolute inset-0 scale-105 bg-cover bg-center bg-fixed"
-        style={{ backgroundImage: `url(${image})` }}
-      />
+    <section className="relative isolate my-14 h-[22rem] overflow-hidden md:h-[28rem]">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={image} alt="" className="absolute inset-0 h-full w-full object-cover" />
       <div className="absolute inset-0 bg-[#06140f]/60" />
-      <div className="relative z-10 mx-auto flex min-h-[22rem] max-w-7xl flex-col justify-end px-4 py-14 text-white md:min-h-[28rem] lg:px-8">
+      <div className="relative z-10 mx-auto flex h-full max-w-7xl flex-col justify-end px-4 py-14 text-white lg:px-8">
         <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-gold">{kicker}</p>
         <h2 className="mt-3 max-w-2xl font-display text-4xl font-semibold leading-tight md:text-5xl">{title}</h2>
         <p className="mt-3 max-w-lg text-sm text-white/80 md:text-base">{body}</p>

@@ -7,20 +7,16 @@ import { useTheme } from "./theme-provider";
 import { InstallPrompt } from "./install-prompt";
 
 export function BrandLogo({
-  className = "h-12 w-auto max-w-[196px] object-contain object-left sm:h-14 sm:max-w-[248px]"
+  className = "h-11 w-auto max-w-[min(11.5rem,52vw)] shrink-0 object-contain object-left sm:h-12 sm:max-w-[13.5rem]"
 }: {
   className?: string;
 }) {
   return (
-    <span className="inline-flex min-w-0 items-center">
+    <span className="inline-flex shrink-0 items-center">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/brand/logo-horizontal.png" alt="NaijaSpa" className={`dark:hidden ${className}`} />
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/brand/logo-horizontal-dark.png"
-        alt="NaijaSpa"
-        className={`hidden mix-blend-screen dark:block ${className}`}
-      />
+      <img src="/brand/logo-horizontal-dark.png" alt="NaijaSpa" className={`hidden dark:block ${className}`} />
     </span>
   );
 }
@@ -28,9 +24,9 @@ export function BrandLogo({
 export function TopBar() {
   const { theme, toggle } = useTheme();
   return (
-    <header className="pt-safe sticky top-0 z-50 border-b border-line/70 bg-bg/85 backdrop-blur-xl">
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-line/70 bg-bg/92 pt-safe backdrop-blur-xl">
       <div className="mx-auto flex h-[4.75rem] max-w-7xl items-center gap-2 px-4 lg:px-8">
-        <Link href="/" className="flex min-w-0 shrink-0 items-center" aria-label="NaijaSpa home">
+        <Link href="/" className="flex shrink-0 items-center" aria-label="NaijaSpa home">
           <BrandLogo />
         </Link>
         <nav className="ml-8 hidden items-center gap-1 lg:flex" aria-label="Primary">
@@ -102,16 +98,16 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="relative min-h-screen bg-bg text-ink">
       <div aria-hidden className="pointer-events-none fixed inset-0 -z-10">
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-fixed"
-          style={{
-            backgroundImage:
-              "url(https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=2000&q=80)"
-          }}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=2000&q=80"
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover"
         />
         <div className="absolute inset-0 bg-bg/86 dark:bg-bg/88" />
       </div>
       <TopBar />
+      <div aria-hidden className="h-[calc(4.75rem+env(safe-area-inset-top))]" />
       <main className="relative pb-28 lg:pb-8">{children}</main>
       <BottomNav />
       <InstallPrompt />

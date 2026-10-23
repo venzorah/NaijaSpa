@@ -93,10 +93,14 @@ function ServiceFeedCard({ card }: { card: HomeCard }) {
   const { service, vendor, badge, tags = [], nextLabel, compareAtKobo } = card;
   const verified = vendor.verificationStatus === "verified";
   const vip = badge === "Premium" || badge === "Featured";
-  const photo = vendor.logoUrl && !vendor.logoUrl.includes("icon-white") ? vendor.logoUrl : service.imageUrl || "/brand/icon-green.png";
+  const cover = service.imageUrl || "/brand/icon-green.png";
+  const photo = vendor.logoUrl && !vendor.logoUrl.includes("icon-white") ? vendor.logoUrl : cover;
 
   return (
-    <article className="flex w-[18.5rem] shrink-0 snap-start flex-col rounded-[1.35rem] border border-line bg-card p-4 shadow-sm sm:w-[19.5rem]">
+    <article className="flex w-[18.5rem] shrink-0 snap-start flex-col overflow-hidden rounded-[1.35rem] border border-line bg-card shadow-sm sm:w-[19.5rem]">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={cover} alt="" className="h-40 w-full object-cover" />
+      <div className="flex flex-1 flex-col p-4">
       <div className="flex items-start gap-3">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={photo} alt="" className="h-14 w-14 shrink-0 rounded-full object-cover" />
@@ -166,6 +170,7 @@ function ServiceFeedCard({ card }: { card: HomeCard }) {
         >
           View & book
         </Link>
+      </div>
       </div>
     </article>
   );

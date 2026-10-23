@@ -64,7 +64,7 @@ export function HeroSlider({ greeting, categories = [] }: { greeting: string; ca
       <div className="grid items-stretch gap-4 lg:grid-cols-[220px_minmax(0,1fr)_220px] xl:grid-cols-[240px_minmax(0,1fr)_240px]">
         <nav
           aria-label="Categories"
-          className="hidden rounded-3xl border border-line bg-card p-3 lg:flex lg:flex-col"
+          className="hidden rounded-3xl border border-line bg-card p-3 lg:order-1 lg:flex lg:flex-col"
         >
           {navCats.map((c) => (
             <Link
@@ -86,7 +86,7 @@ export function HeroSlider({ greeting, categories = [] }: { greeting: string; ca
         </nav>
 
         <div
-          className="relative min-h-[22rem] overflow-hidden rounded-3xl text-white md:min-h-[26rem]"
+          className="relative order-1 h-[22rem] overflow-hidden rounded-3xl bg-forest text-white md:h-[26rem] lg:order-2"
           aria-roledescription="carousel"
           aria-label="Featured treatments"
           onMouseEnter={() => setPaused(true)}
@@ -99,11 +99,16 @@ export function HeroSlider({ greeting, categories = [] }: { greeting: string; ca
               aria-hidden={i !== index}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={s.image} alt="" className={`h-full w-full object-cover ${i === index ? "animate-hero-ken" : ""}`} />
+              <img
+                src={s.image}
+                alt=""
+                fetchPriority={i === 0 ? "high" : "low"}
+                className={`h-full w-full object-cover ${i === index ? "animate-hero-ken" : ""}`}
+              />
               <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/35 to-black/15" />
             </div>
           ))}
-          <div className="relative z-10 flex h-full min-h-[22rem] flex-col justify-end p-6 md:min-h-[26rem] md:p-10">
+          <div className="relative z-10 flex h-full flex-col justify-end p-6 md:p-10">
             <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-gold">{slide.offer}</p>
             <h1 className="mt-3 max-w-lg font-display text-4xl font-semibold leading-[1.08] md:text-5xl">{slide.title}</h1>
             <p className="mt-3 text-sm text-white/85">{slide.price}</p>
@@ -129,7 +134,7 @@ export function HeroSlider({ greeting, categories = [] }: { greeting: string; ca
           </div>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+        <div className="order-2 grid gap-4 sm:grid-cols-2 lg:order-3 lg:grid-cols-1">
           <article className="flex flex-col items-center rounded-3xl border border-line bg-card px-5 py-8 text-center">
             <span className="flex h-12 w-12 items-center justify-center rounded-full border border-line text-goldink">
               <BadgeCheck className="h-5 w-5" aria-hidden />
@@ -142,7 +147,9 @@ export function HeroSlider({ greeting, categories = [] }: { greeting: string; ca
               <Home className="h-5 w-5" aria-hidden />
             </span>
             <h2 className="mt-4 text-base font-semibold">Spa, hotel or home</h2>
-            <p className="mt-2 text-sm leading-relaxed text-ink2">Choose where you unwind. Surcharges stay itemized in Naira.</p>
+            <p className="mt-2 text-sm leading-relaxed text-ink2">
+              Choose where you unwind. Hotel and Home add-ons are set by the vendor; Spa/Office has no extra.
+            </p>
           </article>
         </div>
       </div>

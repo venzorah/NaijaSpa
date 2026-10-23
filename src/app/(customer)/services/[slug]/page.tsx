@@ -21,6 +21,11 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
 
   return (
     <div className="bg-bg2">
+      <div className="relative h-56 overflow-hidden sm:h-72 lg:hidden">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={photo} alt="" className="h-full w-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-t from-bg2 via-transparent to-black/20" />
+      </div>
       <div className="mx-auto max-w-6xl px-4 py-8 pb-24 lg:px-8 lg:py-12">
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22.5rem] lg:items-start lg:gap-12">
           <header className="flex flex-col gap-6 sm:flex-row sm:items-start">
@@ -28,7 +33,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
             <img
               src={photo}
               alt=""
-              className="h-28 w-28 shrink-0 rounded-full object-cover ring-4 ring-card sm:h-32 sm:w-32"
+              className="hidden h-28 w-28 shrink-0 rounded-full object-cover ring-4 ring-card sm:block sm:h-32 sm:w-32"
             />
             <div className="min-w-0 flex-1">
               <div className="flex items-start justify-between gap-3">
