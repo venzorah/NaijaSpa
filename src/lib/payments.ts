@@ -6,13 +6,75 @@ export function paystackConfigured() {
   return Boolean(process.env.PAYSTACK_SECRET_KEY);
 }
 
+export function paystackPublicKey() {
+  return process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || process.env.PAYSTACK_PUBLIC_KEY || "";
+}
+
+export function appUrl() {
+  if (process.env.APP_URL) return process.env.APP_URL.replace(/\/$/, "");
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return "http://localhost:3000";
+}
+
+function paystackSecret() {
+  const key = process.env.PAYSTACK_SECRET_KEY;
+  if (!key) throw Object.assign(new Error("Paystack is not configured"), { status: 503 });
+  return key;
+}
+
+function webhookSecret() {
+  return process.env.PAYSTACK_WEBHOOK_SECRET || process.env.PAYSTACK_SECRET_KEY || "";
+}
+
 export async function initPayment(input: {
   email: string;
   amountKobo: number;
   purpose: "booking" | "subscription" | "membership";
   bookingId?: string;
+  customerId?: string;
   metadata?: Record<string, string>;
 }) {
+  if (input.amountKobo < 100) {
+    throw Object.assign(new Error("Amount is too small to charge"), { status: 400 });
+  }
+
+  if (input.bookingId) {
+    const paid = await prisma.payment.findFirst({
+      where: { bookingId: input.bookingId, status: "success" }
+    });
+    if (paid) {
+      return {
+        payment: paid,
+        authorizationUrl: null as string | null,
+        accessCode: null as string | null,
+        publicKey: paystackPublicKey(),
+        alreadyPaid: true,
+        blocked: false,
+        message: "This booking is already paid."
+      };
+    }
+    const pending = await prisma.payment.findFirst({
+      where: {
+        bookingId: input.bookingId,
+        amountKobo: input.amountKobo,
+        status: "pending",
+        provider: "paystack"
+      },
+      orderBy: { createdAt: "desc" }
+    });
+    if (pending?.providerRef) {
+      return {
+        payment: pending,
+        authorizationUrl: `https://checkout.paystack.com/${pending.providerRef}`,
+        accessCode: pending.providerRef,
+        publicKey: paystackPublicKey(),
+        alreadyPaid: false,
+        blocked: false,
+        message: null
+      };
+    }
+  }
+
   const reference = `NS-${input.purpose}-${crypto.randomBytes(8).toString("hex")}`;
   const payment = await prisma.payment.create({
     data: {
@@ -31,65 +93,131 @@ export async function initPayment(input: {
     return {
       payment,
       authorizationUrl: null,
+      accessCode: null,
+      publicKey: "",
+      alreadyPaid: false,
       blocked: true,
-      message: "PAYSTACK_SECRET_KEY is not configured. Payment was recorded as initialized only and will not be confirmed."
+      message:
+        "Paystack keys are not set. Add PAYSTACK_SECRET_KEY (and NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY) on this host to collect payment."
     };
   }
 
+  const callback = `${appUrl()}/checkout/verify?reference=${encodeURIComponent(reference)}`;
   const res = await fetch("https://api.paystack.co/transaction/initialize", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+      Authorization: `Bearer ${paystackSecret()}`,
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
       email: input.email,
       amount: input.amountKobo,
+      currency: "NGN",
       reference,
-      callback_url: `${process.env.APP_URL}/checkout/verify?reference=${reference}`,
-      metadata: input.metadata ?? {}
+      callback_url: callback,
+      channels: ["card", "bank", "ussd", "qr", "mobile_money", "bank_transfer"],
+      metadata: {
+        bookingId: input.bookingId ?? "",
+        purpose: input.purpose,
+        customerId: input.customerId ?? "",
+        cancel_action: input.bookingId ? `${appUrl()}/checkout/${input.bookingId}` : callback,
+        ...(input.metadata ?? {})
+      }
     })
   });
-  const data = await res.json();
-  if (!data.status) {
-    await prisma.payment.update({ where: { id: payment.id }, data: { status: "failed", rawPayload: JSON.stringify(data) } });
+  const data = (await res.json()) as {
+    status?: boolean;
+    message?: string;
+    data?: { authorization_url?: string; access_code?: string; reference?: string };
+  };
+  if (!data.status || !data.data?.authorization_url) {
+    await prisma.payment.update({
+      where: { id: payment.id },
+      data: { status: "failed", rawPayload: JSON.stringify(data) }
+    });
     throw Object.assign(new Error(data.message || "Paystack initialize failed"), { status: 502 });
   }
-  await prisma.payment.update({
+
+  const updated = await prisma.payment.update({
     where: { id: payment.id },
-    data: { status: "pending", providerRef: data.data.access_code, rawPayload: JSON.stringify({ access_code: data.data.access_code }) }
+    data: {
+      status: "pending",
+      providerRef: data.data.access_code,
+      rawPayload: JSON.stringify({ access_code: data.data.access_code })
+    }
   });
-  return { payment, authorizationUrl: data.data.authorization_url as string, blocked: false };
+
+  return {
+    payment: updated,
+    authorizationUrl: data.data.authorization_url,
+    accessCode: data.data.access_code ?? null,
+    publicKey: paystackPublicKey(),
+    alreadyPaid: false,
+    blocked: false,
+    message: null as string | null
+  };
+}
+
+async function markPaymentSuccess(paymentId: string, bookingId: string | null, providerRef: string) {
+  const payment = await prisma.payment.update({
+    where: { id: paymentId },
+    data: { status: "success", providerRef }
+  });
+  if (bookingId) {
+    try {
+      await confirmBookingFromPayment(bookingId);
+    } catch {
+      const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
+      if (booking?.status !== "confirmed") throw Object.assign(new Error("Could not confirm booking"), { status: 500 });
+    }
+  }
+  return payment;
 }
 
 export async function verifyPaystack(reference: string) {
   const payment = await prisma.payment.findUnique({ where: { reference } });
   if (!payment) throw Object.assign(new Error("Unknown payment"), { status: 404 });
   if (payment.status === "success") return payment;
+  if (!paystackConfigured()) return payment;
 
-  if (!paystackConfigured()) {
-    return payment;
-  }
-
-  const res = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
-    headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` }
+  const res = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
+    headers: { Authorization: `Bearer ${paystackSecret()}` }
   });
-  const data = await res.json();
-  if (data.status && data.data?.status === "success") {
-    const updated = await prisma.payment.update({
-      where: { id: payment.id },
-      data: { status: "success", providerRef: String(data.data.id), rawPayload: JSON.stringify({ id: data.data.id, status: data.data.status }) }
-    });
-    if (payment.bookingId) await confirmBookingFromPayment(payment.bookingId);
-    return updated;
+  const data = (await res.json()) as {
+    status?: boolean;
+    data?: { id?: number; status?: string; amount?: number; currency?: string; reference?: string };
+  };
+  const tx = data.data;
+  const paid =
+    Boolean(data.status) &&
+    tx?.status === "success" &&
+    tx.amount === payment.amountKobo &&
+    String(tx.currency || "NGN").toUpperCase() === "NGN";
+
+  if (paid) {
+    return markPaymentSuccess(payment.id, payment.bookingId, String(tx?.id ?? reference));
   }
-  await prisma.payment.update({ where: { id: payment.id }, data: { status: "failed" } });
-  return payment;
+
+  await prisma.payment.update({
+    where: { id: payment.id },
+    data: { status: "failed", rawPayload: JSON.stringify({ verify: tx?.status ?? data }) }
+  });
+  return prisma.payment.findUniqueOrThrow({ where: { id: payment.id } });
+}
+
+export async function applyChargeSuccess(reference: string, providerId?: string) {
+  const payment = await prisma.payment.findUnique({ where: { reference } });
+  if (!payment) return null;
+  if (payment.status === "success") return payment;
+  return markPaymentSuccess(payment.id, payment.bookingId, String(providerId ?? reference));
 }
 
 export function verifyWebhookSignature(rawBody: string, signature: string | null) {
-  const secret = process.env.PAYSTACK_WEBHOOK_SECRET || process.env.PAYSTACK_SECRET_KEY;
+  const secret = webhookSecret();
   if (!secret || !signature) return false;
   const hash = crypto.createHmac("sha512", secret).update(rawBody).digest("hex");
-  return crypto.timingSafeEqual(Buffer.from(hash), Buffer.from(signature));
+  const a = Buffer.from(hash);
+  const b = Buffer.from(signature);
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
 }

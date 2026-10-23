@@ -10,6 +10,7 @@ export default async function VendorLayout({ children }: { children: React.React
   const links = [
     ["/vendor", "Dashboard"],
     ["/vendor/services", "Services"],
+    ["/vendor/galleries", "Galleries"],
     ["/vendor/bookings", "Bookings"],
     ["/vendor/subscriptions", "Subscriptions"],
     ["/vendor/earnings", "Earnings"],

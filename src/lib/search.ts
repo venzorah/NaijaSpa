@@ -1,7 +1,8 @@
 import { locationAddonKobo, sanitizePublicVendor, quoteBooking } from "./commercial";
 import { usingDemoListings } from "./live-db";
+import { prismaEquals, vendorMatchesPlace } from "./nigeria";
 export type { SearchFilters } from "./search-types";
-import type { SearchFilters } from "./search-types";
+import type { SearchFilters, SearchTherapist } from "./search-types";
 
 export async function searchServices(filters: SearchFilters) {
   if (usingDemoListings()) {
@@ -16,12 +17,21 @@ export async function searchServices(filters: SearchFilters) {
   const where: Record<string, unknown> = {
     active: true,
     vendor: {
-      visibility: "public",
-      applicationStatus: "approved",
-      ...(filters.city ? { city: contains(filters.city) } : {}),
-      ...(filters.neighbourhood ? { neighbourhood: contains(filters.neighbourhood) } : {}),
-      ...(filters.verified ? { verificationStatus: "verified" } : {}),
-      ...(filters.minRating ? { ratingAvg: { gte: filters.minRating } } : {})
+      AND: [
+        {
+          visibility: "public",
+          applicationStatus: "approved",
+          ...(filters.verified ? { verificationStatus: "verified" } : {}),
+          ...(filters.minRating ? { ratingAvg: { gte: filters.minRating } } : {})
+        },
+        ...(filters.city && filters.neighbourhood
+          ? [{ city: prismaEquals(filters.city), neighbourhood: prismaEquals(filters.neighbourhood) }]
+          : filters.city
+            ? [{ OR: [{ city: prismaEquals(filters.city) }, { neighbourhood: prismaEquals(filters.city) }] }]
+            : filters.neighbourhood
+              ? [{ neighbourhood: prismaEquals(filters.neighbourhood) }]
+              : [])
+      ]
     },
     ...(filters.category ? { category: { slug: filters.category } } : {}),
     ...(filters.minPrice != null ? { basePriceKobo: { gte: filters.minPrice } } : {}),
@@ -40,6 +50,9 @@ export async function searchServices(filters: SearchFilters) {
   if (filters.locationType === "spa") where.spaEnabled = true;
   if (filters.locationType === "hotel") where.hotelEnabled = true;
   if (filters.locationType === "home") where.homeEnabled = true;
+  if (filters.gender || filters.state || filters.city || filters.neighbourhood) {
+    where.staff = { some: { staff: { active: true } } };
+  }
 
   const orderBy =
     filters.sort === "price"
@@ -48,27 +61,31 @@ export async function searchServices(filters: SearchFilters) {
         ? { vendor: { ratingAvg: "desc" as const } }
         : { createdAt: "desc" as const };
 
-  const [total, rows] = await Promise.all([
-    prisma.service.count({ where }),
-    prisma.service.findMany({
-      where,
-      include: { vendor: true, category: true },
-      orderBy,
-      skip: (page - 1) * take,
-      take
-    })
-  ]);
+  const placeFilter = Boolean(filters.state || filters.city || filters.neighbourhood || filters.gender);
+  const rows = await prisma.service.findMany({
+    where,
+    include: { vendor: true, category: true, staff: { include: { staff: true } } },
+    orderBy,
+    ...(placeFilter ? {} : { skip: (page - 1) * take, take })
+  });
 
   const config = await getCommercialConfig();
   const results = [];
   for (const row of rows) {
     const ent = await vendorEntitlement(row.vendorId);
     if (filters.publicContact && !ent.publicDirectContact) continue;
+    const vendorPlace = {
+      state: "state" in row.vendor ? String(row.vendor.state ?? "") : "",
+      city: row.vendor.city,
+      neighbourhood: row.vendor.neighbourhood
+    };
+    if (!vendorMatchesPlace(vendorPlace, filters)) continue;
     const publicVendor = sanitizePublicVendor(
       {
         id: row.vendor.id,
         slug: row.vendor.slug,
         businessName: row.vendor.businessName,
+        state: vendorPlace.state,
         city: row.vendor.city,
         neighbourhood: row.vendor.neighbourhood,
         verificationStatus: row.vendor.verificationStatus,
@@ -89,6 +106,18 @@ export async function searchServices(filters: SearchFilters) {
       entitlement: ent,
       config
     });
+    const therapists: SearchTherapist[] = row.staff
+      .map((link) => link.staff)
+      .filter((person) => {
+        const gender = "gender" in person ? String(person.gender ?? "") : "";
+        return person.active && (!filters.gender || gender === filters.gender);
+      })
+      .map((person) => ({
+        id: person.id,
+        name: person.name,
+        gender: "gender" in person ? String(person.gender ?? "") : ""
+      }));
+    if (therapists.length === 0) continue;
     results.push({
       service: {
         id: row.id,
@@ -102,6 +131,7 @@ export async function searchServices(filters: SearchFilters) {
         homeEnabled: row.homeEnabled
       },
       vendor: publicVendor,
+      therapists,
       sponsored: ent.sponsoredEligible,
       enhanced: ent.enhancedVisibility,
       quote
@@ -112,5 +142,7 @@ export async function searchServices(filters: SearchFilters) {
     results.sort((a, b) => Number(b.enhanced) - Number(a.enhanced) || b.vendor.ratingAvg - a.vendor.ratingAvg);
   }
 
-  return { total, page, results };
+  const total = results.length;
+  const paged = placeFilter ? results.slice((page - 1) * take, page * take) : results;
+  return { total, page, results: paged };
 }

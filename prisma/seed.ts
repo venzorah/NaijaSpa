@@ -1,6 +1,8 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { DEFAULT_COMMERCIAL } from "../src/lib/commercial";
+import { DEFAULT_GALLERY_CONFIG } from "../src/lib/galleries";
+import { DEFAULT_HOME_FEED_CONFIG, HOME_FEED_CONFIG_KEYS } from "../src/lib/home-types";
 
 const prisma = new PrismaClient();
 
@@ -15,7 +17,13 @@ async function main() {
     freeCommissionBps: String(DEFAULT_COMMERCIAL.freeCommissionBps),
     paidCommissionBps: String(DEFAULT_COMMERCIAL.paidCommissionBps),
     graceDays: String(DEFAULT_COMMERCIAL.graceDays),
-    paidPlanPricesNote: "Paid plan prices below are seed placeholders for local development. Change them in Admin → Commercial config before production."
+    paidPlanPricesNote: "Paid plan prices below are seed placeholders for local development. Change them in Admin → Commercial config before production.",
+    galleryMaxImagesPerGallery: String(DEFAULT_GALLERY_CONFIG.maxImagesPerGallery),
+    galleryMaxImageBytes: String(DEFAULT_GALLERY_CONFIG.maxImageBytes),
+    [HOME_FEED_CONFIG_KEYS.featured]: String(DEFAULT_HOME_FEED_CONFIG.featured),
+    [HOME_FEED_CONFIG_KEYS.premium]: String(DEFAULT_HOME_FEED_CONFIG.premium),
+    [HOME_FEED_CONFIG_KEYS.promo]: String(DEFAULT_HOME_FEED_CONFIG.promo),
+    [HOME_FEED_CONFIG_KEYS.nearby]: String(DEFAULT_HOME_FEED_CONFIG.nearby)
   };
   for (const [key, value] of Object.entries(config)) {
     await prisma.systemConfig.upsert({ where: { key }, create: { key, value }, update: { value } });
@@ -138,12 +146,18 @@ async function main() {
     });
     const vendor = await prisma.vendor.upsert({
       where: { slug: opts.slug },
-      update: { coverUrl: "/photos/band-spa.jpg" },
+      update: {
+        coverUrl: "/photos/band-spa.jpg",
+        state: opts.city === "Abuja" ? "FCT" : "Lagos",
+        city: opts.city,
+        neighbourhood: opts.area
+      },
       create: {
         ownerId: owner.id,
         slug: opts.slug,
         businessName: opts.business,
         description: `${opts.business} offers professional spa and wellness treatments in ${opts.area}, ${opts.city}.`,
+        state: opts.city === "Abuja" ? "FCT" : "Lagos",
         city: opts.city,
         neighbourhood: opts.area,
         address: `12 Wellness Close, ${opts.area}, ${opts.city}`,
@@ -173,13 +187,27 @@ async function main() {
         endsAt: opts.paid ? new Date(Date.now() + 30 * 864e5) : new Date("9999-12-31")
       }
     });
-    const staff = await prisma.vendorStaff.create({
-      data: { vendorId: vendor.id, name: `${opts.name.split(" ")[0]} Therapist`, title: "Lead therapist" }
-    });
-    for (let d = 0; d < 7; d++) {
-      await prisma.availabilitySlot.create({
-        data: { vendorId: vendor.id, staffId: staff.id, weekday: d, startMin: 9 * 60, endMin: 20 * 60, bufferMin: 15 }
-      });
+    const staffGender = opts.paid ? "female" : "male";
+    const existingStaff = await prisma.vendorStaff.findFirst({ where: { vendorId: vendor.id } });
+    const staff =
+      existingStaff ??
+      (await prisma.vendorStaff.create({
+        data: {
+          vendorId: vendor.id,
+          name: `${opts.name.split(" ")[0]} Therapist`,
+          title: "Lead therapist",
+          gender: staffGender
+        }
+      }));
+    if (existingStaff && existingStaff.gender !== staffGender) {
+      await prisma.vendorStaff.update({ where: { id: existingStaff.id }, data: { gender: staffGender } });
+    }
+    if (!existingStaff) {
+      for (let d = 0; d < 7; d++) {
+        await prisma.availabilitySlot.create({
+          data: { vendorId: vendor.id, staffId: staff.id, weekday: d, startMin: 9 * 60, endMin: 20 * 60, bufferMin: 15 }
+        });
+      }
     }
     return { vendor, staff };
   }
@@ -224,6 +252,51 @@ async function main() {
     paid: false,
     phone: "+2348022222222"
   });
+
+  async function seedGallery(
+    vendorId: string,
+    title: string,
+    caption: string,
+    images: Array<{ url: string; therapistName: string; caption: string }>,
+    videos: Array<{ url: string; title: string }>
+  ) {
+    const existing = await prisma.therapistGallery.findFirst({ where: { vendorId, title } });
+    if (existing) return;
+    await prisma.therapistGallery.create({
+      data: {
+        vendorId,
+        title,
+        caption,
+        images: { create: images.map((img, i) => ({ ...img, sortOrder: i })) }
+      }
+    });
+    if (videos.length) {
+      const videoCount = await prisma.vendorVideoLink.count({ where: { vendorId } });
+      if (videoCount === 0) {
+        await prisma.vendorVideoLink.createMany({
+          data: videos.map((v, i) => ({ vendorId, url: v.url, title: v.title, sortOrder: i }))
+        });
+      }
+    }
+  }
+
+  await seedGallery(
+    paidV.vendor.id,
+    "Lekki therapists",
+    "Resident team at Osun Wellness.",
+    [
+      { url: "/photos/massage.jpg", therapistName: "Kemi Osun", caption: "Lead therapist" },
+      { url: "/photos/spa.jpg", therapistName: "Adaeze Cole", caption: "Deep tissue" }
+    ],
+    [{ url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", title: "Studio tour" }]
+  );
+  await seedGallery(
+    freeV.vendor.id,
+    "Ikeja team",
+    "Calm House therapists.",
+    [{ url: "/photos/facials.jpg", therapistName: "Ibrahim Musa", caption: "Facials" }],
+    []
+  );
 
   const services = [
     {

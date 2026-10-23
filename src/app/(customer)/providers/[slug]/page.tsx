@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getPublicVendor } from "@/lib/catalog";
 import { formatNgn } from "@/lib/money";
+import { TherapistGalleries } from "@/components/therapist-galleries";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +10,7 @@ export default async function ProviderPage({ params }: { params: Promise<{ slug:
   const { slug } = await params;
   const data = await getPublicVendor(slug);
   if (!data) notFound();
-  const { vendor, description, services } = data;
+  const { vendor, description, services, galleries, videoLinks } = data;
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
       <h1 className="font-display text-4xl">{vendor.businessName}</h1>
@@ -24,6 +25,7 @@ export default async function ProviderPage({ params }: { params: Promise<{ slug:
       ) : (
         <p className="mt-3 text-xs text-ink2">Contact details are not public for this listing.</p>
       )}
+      <TherapistGalleries galleries={galleries} videoLinks={videoLinks} />
       <ul className="mt-8 space-y-3">
         {services.map((s) => (
           <li key={s.id} className="flex items-center justify-between rounded-2xl border border-line bg-card p-4">

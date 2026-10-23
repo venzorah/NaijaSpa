@@ -7,9 +7,17 @@ import {
   type Entitlement,
   type LocationType
 } from "./commercial";
+import { publicVideoLinks } from "./galleries";
 import { CATEGORY_IMAGES } from "./category-images";
-import type { HomeCard, HomeRails, NearbyVendor } from "./home-types";
+import {
+  DEFAULT_HOME_FEED_CONFIG,
+  type HomeCard,
+  type HomeFeedConfig,
+  type HomeRails,
+  type NearbyVendor
+} from "./home-types";
 import type { SearchFilters } from "./search-types";
+import { vendorMatchesPlace } from "./nigeria";
 
 const paidEnt: Entitlement = {
   planCode: "MONTHLY",
@@ -37,8 +45,10 @@ const osun = {
   slug: "osun-wellness",
   businessName: "Osun Wellness Spa",
   description: "Osun Wellness Spa offers professional spa and wellness treatments in Lekki, Lagos.",
+  state: "Lagos",
   city: "Lagos",
   neighbourhood: "Lekki",
+  therapists: [{ id: "t-kemi", name: "Kemi Osun", gender: "female", available: true }],
   verificationStatus: "verified",
   ratingAvg: 4.9,
   reviewCount: 128,
@@ -47,7 +57,19 @@ const osun = {
   privatePhone: "+2348011111111",
   privateWhatsapp: "+2348011111111",
   cancellationPolicy: "Free cancellation up to 12 hours before the appointment.",
-  entitlement: paidEnt
+  entitlement: paidEnt,
+  galleries: [
+    {
+      id: "g-osun-1",
+      title: "Lekki therapists",
+      caption: "Resident team at Osun Wellness.",
+      images: [
+        { id: "gi-osun-1", url: "/photos/massage.jpg", therapistName: "Kemi Osun", caption: "Lead therapist" },
+        { id: "gi-osun-2", url: "/photos/spa.jpg", therapistName: "Adaeze Cole", caption: "Deep tissue" }
+      ]
+    }
+  ],
+  videoLinks: [{ id: "vid-osun-1", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", title: "Studio tour" }]
 };
 
 const calm = {
@@ -55,8 +77,10 @@ const calm = {
   slug: "calm-house-ikeja",
   businessName: "Calm House Ikeja",
   description: "Calm House Ikeja offers professional spa and wellness treatments in Ikeja, Lagos.",
+  state: "Lagos",
   city: "Lagos",
   neighbourhood: "Ikeja",
+  therapists: [{ id: "t-ibrahim", name: "Ibrahim Musa", gender: "male", available: true }],
   verificationStatus: "verified",
   ratingAvg: 4.6,
   reviewCount: 41,
@@ -65,7 +89,16 @@ const calm = {
   privatePhone: "+2348022222222",
   privateWhatsapp: "+2348022222222",
   cancellationPolicy: "Free cancellation up to 12 hours before the appointment.",
-  entitlement: FREE_ENTITLEMENT
+  entitlement: FREE_ENTITLEMENT,
+  galleries: [
+    {
+      id: "g-calm-1",
+      title: "Ikeja team",
+      caption: "Calm House therapists.",
+      images: [{ id: "gi-calm-1", url: "/photos/facials.jpg", therapistName: "Ibrahim Musa", caption: "Facials" }]
+    }
+  ],
+  videoLinks: [{ id: "vid-calm-hidden", url: "https://vimeo.com/123456", title: "Should stay hidden on free" }]
 };
 
 const olive = {
@@ -73,8 +106,10 @@ const olive = {
   slug: "olive-room-lekki",
   businessName: "The Olive Room",
   description: "Quiet treatment suites in Lekki Phase 1.",
+  state: "Lagos",
   city: "Lagos",
   neighbourhood: "Lekki Phase 1",
+  therapists: [{ id: "t-titi", name: "Titi Ade", gender: "female", available: true }],
   verificationStatus: "verified",
   ratingAvg: 4.8,
   reviewCount: 96,
@@ -83,10 +118,34 @@ const olive = {
   privatePhone: "+2348033333333",
   privateWhatsapp: "+2348033333333",
   cancellationPolicy: "Free cancellation up to 24 hours before the appointment.",
-  entitlement: paidEnt
+  entitlement: paidEnt,
+  galleries: [],
+  videoLinks: []
 };
 
-export const demoVendors = [osun, calm, olive];
+const maitama = {
+  id: "v-maitama",
+  slug: "maitama-hands",
+  businessName: "Maitama Hands",
+  description: "Quiet recovery sessions in Maitama, Abuja.",
+  state: "FCT",
+  city: "Abuja",
+  neighbourhood: "Maitama",
+  therapists: [{ id: "t-chuka", name: "Chuka Bello", gender: "male", available: true }],
+  verificationStatus: "verified",
+  ratingAvg: 4.7,
+  reviewCount: 54,
+  logoUrl: "/brand/icon-white.png",
+  coverUrl: "/photos/spa.jpg",
+  privatePhone: "+2348044444444",
+  privateWhatsapp: "+2348044444444",
+  cancellationPolicy: "Free cancellation up to 12 hours before the appointment.",
+  entitlement: paidEnt,
+  galleries: [],
+  videoLinks: []
+};
+
+export const demoVendors = [osun, calm, olive, maitama];
 
 export const demoReviews = [
   {
@@ -337,6 +396,25 @@ export const demoServices = [
     categorySlug: "massage",
     categoryName: "Massage therapy",
     vendor: osun
+  },
+  {
+    id: "s-abuja-swedish",
+    vendorId: maitama.id,
+    slug: "maitama-swedish-75",
+    name: "Maitama Swedish 75 min",
+    description: "Swedish massage in Maitama by an available NaijaSpa therapist.",
+    imageUrl: "/photos/massage.jpg",
+    basePriceKobo: 2800000,
+    durationMin: 75,
+    active: true,
+    spaEnabled: true,
+    hotelEnabled: true,
+    homeEnabled: true,
+    hotelAddonKobo: 1500000,
+    homeAddonKobo: 1000000,
+    categorySlug: "massage",
+    categoryName: "Massage therapy",
+    vendor: maitama
   }
 ];
 
@@ -388,12 +466,14 @@ export function demoSearch(filters: SearchFilters) {
   const take = 12;
   let rows = demoServices.filter((s) => {
     if (filters.category && s.categorySlug !== filters.category) return false;
-    if (filters.city && !s.vendor.city.toLowerCase().includes(filters.city.toLowerCase())) return false;
-    if (filters.neighbourhood && !s.vendor.neighbourhood.toLowerCase().includes(filters.neighbourhood.toLowerCase()))
-      return false;
+    if (!vendorMatchesPlace(s.vendor, filters)) return false;
+    const therapists = s.vendor.therapists.filter(
+      (t) => t.available && (!filters.gender || t.gender === filters.gender)
+    );
+    if (therapists.length === 0) return false;
     if (filters.q) {
       const q = filters.q.toLowerCase();
-      const blob = `${s.name} ${s.description} ${s.vendor.businessName} ${s.categoryName}`.toLowerCase();
+      const blob = `${s.name} ${s.description} ${s.vendor.businessName} ${s.categoryName} ${therapists.map((t) => t.name).join(" ")}`.toLowerCase();
       if (!blob.includes(q)) return false;
     }
     if (filters.minPrice != null && s.basePriceKobo < filters.minPrice) return false;
@@ -422,6 +502,9 @@ export function demoSearch(filters: SearchFilters) {
       homeEnabled: s.homeEnabled
     },
     vendor: publicVendor(s.vendor),
+    therapists: s.vendor.therapists
+      .filter((t) => t.available && (!filters.gender || t.gender === filters.gender))
+      .map((t) => ({ id: t.id, name: t.name, gender: t.gender })),
     sponsored: s.vendor.entitlement.sponsoredEligible,
     enhanced: s.vendor.entitlement.enhancedVisibility,
     quote: quoteBooking({
@@ -488,7 +571,7 @@ export function demoHomeCards() {
   return demoServices.map((s) => toHomeCard(s));
 }
 
-export function demoHomeRails(): HomeRails {
+export function demoHomeRails(limits: HomeFeedConfig = DEFAULT_HOME_FEED_CONFIG): HomeRails {
   const byId = (ids: string[], extra?: Partial<Pick<HomeCard, "badge" | "sponsored">>) =>
     ids
       .map((id) => demoServices.find((s) => s.id === id))
@@ -496,9 +579,12 @@ export function demoHomeRails(): HomeRails {
       .map((s) => toHomeCard(s, extra));
 
   return {
-    featured: byId(["s-swedish", "s-nuru", "s-couples", "s-hotstone", "s-sports", "s-hammam"], { badge: "Featured", sponsored: true }),
-    premium: byId(["s-hammam", "s-couples", "s-swedish", "s-hotstone", "s-prenatal"], { badge: "Premium" }),
-    promo: byId(["s-facial", "s-reflex", "s-home", "s-prenatal"], { badge: "Promo" })
+    featured: byId(["s-swedish", "s-nuru", "s-couples", "s-hotstone", "s-sports", "s-hammam"], { badge: "Featured", sponsored: true }).slice(
+      0,
+      limits.featured
+    ),
+    premium: byId(["s-hammam", "s-couples", "s-swedish", "s-hotstone", "s-prenatal"], { badge: "Premium" }).slice(0, limits.premium),
+    promo: byId(["s-facial", "s-reflex", "s-home", "s-prenatal"], { badge: "Promo" }).slice(0, limits.promo)
   };
 }
 
@@ -539,6 +625,8 @@ export function demoVendorBySlug(slug: string) {
   return {
     vendor: publicVendor(vendor),
     description: vendor.description,
-    services: demoServices.filter((s) => s.vendorId === vendor.id)
+    services: demoServices.filter((s) => s.vendorId === vendor.id),
+    galleries: vendor.galleries ?? [],
+    videoLinks: publicVideoLinks(vendor.videoLinks ?? [], vendor.entitlement)
   };
 }

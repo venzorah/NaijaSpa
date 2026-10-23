@@ -1,44 +1,47 @@
-"use client";
-
-import { useParams } from "next/navigation";
-import { useState } from "react";
+import { redirect } from "next/navigation";
 import { BookingStepper } from "@/components/booking-stepper";
+import { PaystackCheckout } from "@/components/paystack-checkout";
+import { getSession } from "@/lib/auth";
+import { prisma } from "@/lib/db";
+import { formatNgn } from "@/lib/money";
 
-export default function CheckoutPage() {
-  const { bookingId } = useParams<{ bookingId: string }>();
-  const [msg, setMsg] = useState("");
-  const [busy, setBusy] = useState(false);
+export default async function CheckoutPage({ params }: { params: Promise<{ bookingId: string }> }) {
+  const user = await getSession();
+  const { bookingId } = await params;
+  if (!user) redirect(`/login?next=/checkout/${bookingId}`);
+
+  const booking = await prisma.booking.findUnique({
+    where: { id: bookingId },
+    include: { service: true, vendor: true }
+  });
+  if (!booking || booking.customerId !== user.id) redirect("/account/bookings");
+
+  const confirmed = booking.status === "confirmed";
+  const payable = booking.status === "awaiting_payment" || booking.status === "pending" || confirmed;
 
   return (
     <div className="mx-auto max-w-lg px-4 py-8 pb-24">
       <BookingStepper current={4} />
-      <h1 className="mt-6 font-display text-4xl">Pay</h1>
+      <h1 className="mt-6 font-display text-4xl">{confirmed ? "Paid" : "Pay with Paystack"}</h1>
       <p className="mt-2 text-sm leading-relaxed text-ink2">
-        Paystack holds card data. NaijaSpa never stores card numbers. Bookings confirm only after verified payment or
-        webhook.
+        Card, bank, USSD, transfer and mobile money are collected by Paystack. NaijaSpa never stores card numbers.
+        Your booking confirms after Paystack verifies the charge.
       </p>
-      <button
-        disabled={busy}
-        className="mt-6 min-h-12 w-full rounded-full bg-gold font-bold text-ongold disabled:opacity-60"
-        onClick={async () => {
-          setBusy(true);
-          const res = await fetch("/api/payments/init", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ bookingId })
-          });
-          const json = await res.json();
-          setBusy(false);
-          if (json.authorizationUrl) {
-            window.location.href = json.authorizationUrl;
-            return;
-          }
-          setMsg(json.message || json.error || "Payment provider is not configured.");
-        }}
-      >
-        {busy ? "Opening Paystack…" : "Pay with Paystack"}
-      </button>
-      {msg && <p className="mt-4 text-sm text-ink2">{msg}</p>}
+      <div className="mt-6 rounded-3xl border border-line bg-card p-4">
+        <p className="font-semibold">{booking.service.name}</p>
+        <p className="mt-1 text-xs text-ink2">{booking.vendor.businessName}</p>
+        <p className="mt-4 font-display text-3xl">{formatNgn(booking.customerTotalKobo)}</p>
+        <p className="mt-1 text-xs text-ink2">NGN · charged in kobo on Paystack</p>
+      </div>
+      {payable ? (
+        <PaystackCheckout
+          bookingId={booking.id}
+          amountLabel={formatNgn(booking.customerTotalKobo)}
+          alreadyConfirmed={confirmed}
+        />
+      ) : (
+        <p className="mt-6 text-sm text-ink2">This booking cannot be paid in its current state ({booking.status}).</p>
+      )}
     </div>
   );
 }

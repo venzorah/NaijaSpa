@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { BadgeCheck, ChevronRight, Home, MapPin } from "lucide-react";
+import { BadgeCheck, ChevronRight, Home } from "lucide-react";
 import { PHOTOS } from "@/lib/photos";
+import { SearchFiltersForm } from "@/components/search-filters-form";
 
 const SLIDES = [
   {
@@ -152,22 +153,7 @@ export function HeroSlider({ greeting, categories = [] }: { greeting: string; ca
         </div>
       </div>
 
-      <form action="/explore" className="mt-4 flex flex-col gap-2 rounded-3xl border border-line bg-card p-2 sm:flex-row sm:items-center sm:p-2">
-        <Link
-          href="/explore?city=Lagos"
-          className="inline-flex min-h-11 items-center gap-2 rounded-2xl px-4 text-sm font-semibold"
-        >
-          <MapPin className="h-4 w-4 text-goldink" />
-          Lagos
-        </Link>
-        <input
-          name="q"
-          placeholder="Search massage, Nuru, couples…"
-          className="min-h-11 flex-1 rounded-2xl bg-elev px-4 text-sm outline-none"
-        />
-        <input type="hidden" name="city" value="Lagos" />
-        <button className="min-h-11 rounded-full bg-gold px-6 text-sm font-bold text-ongold">Search</button>
-      </form>
+      <SearchFiltersForm compact />
     </section>
   );
 }

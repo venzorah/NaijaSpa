@@ -18,10 +18,29 @@ import {
   demoVendorBySlug,
   demoCms
 } from "./demo-catalog";
-import type { HomeCard, HomeRails, NearbyVendor } from "./home-types";
+import {
+  DEFAULT_HOME_FEED_CONFIG,
+  homeServicePoolTake,
+  type HomeCard,
+  type HomeFeedConfig,
+  type HomeRails,
+  type NearbyVendor
+} from "./home-types";
+import { publicVideoLinks } from "./galleries";
 
 export { usingDemoListings } from "./live-db";
-export type { HomeCard, HomeRails, NearbyVendor } from "./home-types";
+export type { HomeCard, HomeFeedConfig, HomeRails, NearbyVendor } from "./home-types";
+export { DEFAULT_HOME_FEED_CONFIG, parseHomeFeedConfig } from "./home-types";
+
+async function resolveHomeFeedLimits(): Promise<HomeFeedConfig> {
+  if (!process.env.DATABASE_URL) return DEFAULT_HOME_FEED_CONFIG;
+  try {
+    const { getHomeFeedConfig } = await import("./db");
+    return await getHomeFeedConfig();
+  } catch {
+    return DEFAULT_HOME_FEED_CONFIG;
+  }
+}
 
 const HOME_PLACEMENTS = ["homepage_featured", "homepage_premium", "homepage_promo"] as const;
 
@@ -44,12 +63,13 @@ function compactService(s: {
 }
 
 export async function getHomeCatalog() {
+  const limits = await resolveHomeFeedLimits();
   if (usingDemoListings()) {
     return {
       demo: true,
       categories: demoCategories,
-      rails: demoHomeRails(),
-      nearby: demoNearbyVendors(),
+      rails: demoHomeRails(limits),
+      nearby: demoNearbyVendors().slice(0, limits.nearby),
       faqs: demoFaqs
     };
   }
@@ -61,7 +81,7 @@ export async function getHomeCatalog() {
     prisma.service.findMany({
       where: { active: true, vendor: { visibility: "public", applicationStatus: "approved" } },
       include: { vendor: true, category: true },
-      take: 36
+      take: homeServicePoolTake(limits)
     }),
     prisma.faq.findMany({ where: { published: true }, orderBy: { sortOrder: "asc" }, take: 4 }),
     prisma.campaign.findMany({
@@ -126,15 +146,16 @@ export async function getHomeCatalog() {
   const premiumFromAds = pickFromCampaigns("homepage_premium", "Premium");
   const promo = pickFromCampaigns("homepage_promo", "Promo");
 
-  const fill = (target: HomeCard[], source: HomeCard[], badge: string, limit = 8) => {
-    const seen = new Set(target.map((c) => c.service.id));
+  const fill = (target: HomeCard[], source: HomeCard[], badge: string, limit: number) => {
+    const out = target.slice(0, limit);
+    const seen = new Set(out.map((c) => c.service.id));
     for (const c of source) {
-      if (target.length >= limit) break;
+      if (out.length >= limit) break;
       if (seen.has(c.service.id)) continue;
       seen.add(c.service.id);
-      target.push({ ...c, badge });
+      out.push({ ...c, badge });
     }
-    return target;
+    return out;
   };
 
   const allCards = services.map((s) => {
@@ -148,9 +169,9 @@ export async function getHomeCatalog() {
   const promoPool = [...services].sort((a, b) => a.basePriceKobo - b.basePriceKobo).map((s) => cardFromService(s, "Promo"));
 
   const rails: HomeRails = {
-    featured: fill(featured, allCards, "Featured"),
-    premium: fill(premiumFromAds, premiumPool.length ? premiumPool : allCards, "Premium"),
-    promo: fill(promo, promoPool, "Promo")
+    featured: fill(featured, allCards, "Featured", limits.featured),
+    premium: fill(premiumFromAds, premiumPool.length ? premiumPool : allCards, "Premium", limits.premium),
+    promo: fill(promo, promoPool, "Promo", limits.promo)
   };
 
   const nearbyMap = new Map<string, NearbyVendor>();
@@ -166,7 +187,7 @@ export async function getHomeCatalog() {
     });
   }
 
-  return { demo: false, categories, rails, nearby: [...nearbyMap.values()].slice(0, 8), faqs };
+  return { demo: false, categories, rails, nearby: [...nearbyMap.values()].slice(0, limits.nearby), faqs };
 }
 
 function initialsName(name: string) {
@@ -273,11 +294,34 @@ export async function getPublicVendor(slug: string) {
   const { vendorEntitlement } = await import("./entitlements");
   const vendor = await prisma.vendor.findUnique({
     where: { slug },
-    include: { services: { where: { active: true }, include: { category: true } } }
+    include: {
+      services: { where: { active: true }, include: { category: true } },
+      galleries: { include: { images: { orderBy: { sortOrder: "asc" } } }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] },
+      videoLinks: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] }
+    }
   });
   if (!vendor || vendor.visibility !== "public") return null;
   const ent = await vendorEntitlement(vendor.id);
-  return { vendor: sanitizePublicVendor(vendor, ent), description: vendor.description, services: vendor.services };
+  return {
+    vendor: sanitizePublicVendor(vendor, ent),
+    description: vendor.description,
+    services: vendor.services,
+    galleries: vendor.galleries.map((g) => ({
+      id: g.id,
+      title: g.title,
+      caption: g.caption,
+      images: g.images.map((img) => ({
+        id: img.id,
+        url: img.url,
+        caption: img.caption,
+        therapistName: img.therapistName
+      }))
+    })),
+    videoLinks: publicVideoLinks(
+      vendor.videoLinks.map((v) => ({ id: v.id, url: v.url, title: v.title })),
+      ent
+    )
+  };
 }
 
 export async function quotePublicService(serviceId: string, location: LocationType) {

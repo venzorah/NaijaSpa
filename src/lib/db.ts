@@ -1,5 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { DEFAULT_COMMERCIAL, type CommercialConfig } from "./commercial";
+import { parseGalleryConfig, type GalleryConfig } from "./galleries";
+import { HOME_FEED_CONFIG_KEYS, parseHomeFeedConfig, type HomeFeedConfig } from "./home-types";
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
@@ -23,6 +25,22 @@ export async function getCommercialConfig(): Promise<CommercialConfig> {
     paidCommissionBps: Number(map.paidCommissionBps ?? DEFAULT_COMMERCIAL.paidCommissionBps),
     graceDays: Number(map.graceDays ?? DEFAULT_COMMERCIAL.graceDays)
   };
+}
+
+export async function getGalleryConfig(): Promise<GalleryConfig> {
+  const rows = await prisma.systemConfig.findMany({
+    where: { key: { in: ["galleryMaxImagesPerGallery", "galleryMaxImageBytes"] } }
+  });
+  const map = Object.fromEntries(rows.map((r) => [r.key, r.value]));
+  return parseGalleryConfig(map);
+}
+
+export async function getHomeFeedConfig(): Promise<HomeFeedConfig> {
+  const rows = await prisma.systemConfig.findMany({
+    where: { key: { in: Object.values(HOME_FEED_CONFIG_KEYS) } }
+  });
+  const map = Object.fromEntries(rows.map((r) => [r.key, r.value]));
+  return parseHomeFeedConfig(map);
 }
 
 export async function setConfig(key: string, value: string) {
