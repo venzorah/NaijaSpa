@@ -4,6 +4,7 @@ import { useRef } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { categoryImage } from "@/lib/category-images";
+import { useAutoScroll } from "@/hooks/use-auto-scroll";
 
 export type CategoryTile = {
   slug: string;
@@ -13,6 +14,7 @@ export type CategoryTile = {
 
 export function CategoryCarousel({ categories }: { categories: CategoryTile[] }) {
   const scroller = useRef<HTMLDivElement>(null);
+  const auto = useAutoScroll(scroller, 3600);
   if (categories.length === 0) return null;
 
   const scrollByDir = (dir: -1 | 1) => {
@@ -22,7 +24,12 @@ export function CategoryCarousel({ categories }: { categories: CategoryTile[] })
   };
 
   return (
-    <section aria-labelledby="shop-by-category" className="mx-auto mt-10 max-w-7xl">
+    <section
+      aria-labelledby="shop-by-category"
+      className="mx-auto mt-10 max-w-7xl"
+      onMouseEnter={auto.pause}
+      onMouseLeave={auto.resume}
+    >
       <div className="flex items-center justify-between gap-3 px-4 lg:px-8">
         <h2 id="shop-by-category" className="font-display text-2xl md:text-3xl">
           Shop by category

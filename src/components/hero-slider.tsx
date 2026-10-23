@@ -2,47 +2,50 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, MapPin } from "lucide-react";
+import { BadgeCheck, ChevronRight, Home, MapPin } from "lucide-react";
 
 const SLIDES = [
   {
     id: "massage",
-    kicker: "Signature massage",
-    title: "Hands that know the map of you.",
-    body: "Swedish, deep tissue and sports recovery with verified therapists — spa, hotel or home.",
-    cta: "Explore massage",
+    offer: "Exclusive offer this week",
+    title: "Signature massage, from calm to recovery",
+    price: "Starting from ₦18,000",
+    cta: "Book now",
     href: "/explore?category=massage",
     image:
-      "https://images.unsplash.com/photo-1600334129128-685c5582fd35?auto=format&fit=crop&w=2000&q=80"
+      "https://images.unsplash.com/photo-1600334129128-685c5582fd35?auto=format&fit=crop&w=1800&q=80"
   },
   {
     id: "nuru",
-    kicker: "Nuru massage",
-    title: "Silk, warmth, a slower glide.",
-    body: "A full-body oil ritual: long strokes, heat and gel that lets the nervous system finally drop.",
-    cta: "Book Nuru",
+    offer: "Nuru silk ritual",
+    title: "Warm oil, a slower glide",
+    price: "Starting from ₦45,000",
+    cta: "Explore Nuru",
     href: "/explore?category=nuru",
     image:
-      "https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&w=2000&q=80"
+      "https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&w=1800&q=80"
   },
   {
     id: "couples",
-    kicker: "Couples massage",
-    title: "Two tables. One quiet hour.",
-    body: "Side-by-side suites for two — shared stillness, separate therapists, one booking.",
-    cta: "See couples rituals",
+    offer: "For two",
+    title: "Couples rituals, one quiet hour",
+    price: "Starting from ₦72,000",
+    cta: "See couples",
     href: "/explore?category=couples",
     image:
-      "https://images.unsplash.com/photo-1519823551278-64ac92734fb1?auto=format&fit=crop&w=2000&q=80"
+      "https://images.unsplash.com/photo-1519823551278-64ac92734fb1?auto=format&fit=crop&w=1800&q=80"
   }
 ] as const;
 
 const INTERVAL_MS = 7000;
 
-export function HeroSlider({ greeting }: { greeting: string }) {
+type Category = { slug: string; name: string };
+
+export function HeroSlider({ greeting, categories = [] }: { greeting: string; categories?: Category[] }) {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const slide = SLIDES[index];
+  const navCats = categories.slice(0, 8);
 
   const go = useCallback((dir: -1 | 1) => {
     setIndex((i) => (i + dir + SLIDES.length) % SLIDES.length);
@@ -56,118 +59,110 @@ export function HeroSlider({ greeting }: { greeting: string }) {
   }, [paused, go, index]);
 
   return (
-    <section
-      className="relative isolate overflow-hidden bg-[#06140f] text-white"
-      aria-roledescription="carousel"
-      aria-label="Featured treatment stories"
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-      onFocusCapture={() => setPaused(true)}
-      onBlurCapture={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget as Node)) setPaused(false);
-      }}
-    >
-      <div className="relative min-h-[34rem] md:min-h-[40rem] lg:min-h-[44rem]">
-        {SLIDES.map((s, i) => (
-          <div
-            key={s.id}
-            className={`absolute inset-0 transition-opacity duration-700 ease-out ${i === index ? "opacity-100" : "pointer-events-none opacity-0"}`}
-            aria-hidden={i !== index}
+    <section className="mx-auto max-w-7xl px-4 pb-2 pt-5 lg:px-8">
+      <p className="mb-4 text-sm text-ink2">{greeting}</p>
+      <div className="grid items-stretch gap-4 lg:grid-cols-[220px_minmax(0,1fr)_220px] xl:grid-cols-[240px_minmax(0,1fr)_240px]">
+        <nav
+          aria-label="Categories"
+          className="hidden rounded-3xl border border-line bg-card p-3 lg:flex lg:flex-col"
+        >
+          {navCats.map((c) => (
+            <Link
+              key={c.slug}
+              href={`/explore?category=${c.slug}`}
+              className="flex min-h-11 items-center justify-between gap-2 rounded-2xl px-3 text-sm font-medium text-ink hover:bg-elev"
+            >
+              {c.name}
+              <ChevronRight className="h-4 w-4 text-ink2" aria-hidden />
+            </Link>
+          ))}
+          <Link
+            href="/explore"
+            className="mt-auto flex min-h-11 items-center justify-between gap-2 rounded-2xl px-3 text-sm font-semibold text-goldink hover:bg-elev"
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={s.image}
-              alt=""
-              className={`h-full w-full object-cover ${i === index ? "animate-hero-ken" : ""}`}
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#06140f] via-[#06140f]/78 to-[#06140f]/20" />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#06140f] via-transparent to-[#06140f]/35" />
-            <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-gold/0 via-gold to-gold/0" />
-          </div>
-        ))}
+            Other categories
+            <ChevronRight className="h-4 w-4" aria-hidden />
+          </Link>
+        </nav>
 
-        <div className="relative z-10 mx-auto flex min-h-[34rem] max-w-7xl flex-col justify-end px-4 pb-28 pt-10 md:min-h-[40rem] md:pb-32 lg:min-h-[44rem] lg:px-8 lg:pb-36">
-          <p className="text-sm font-medium text-white/70">{greeting}</p>
-          <p className="mt-5 inline-flex w-fit items-center gap-2 rounded-full border border-gold/40 bg-gold/15 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-gold">
-            <span className="h-1.5 w-1.5 rounded-full bg-gold" />
-            {slide.kicker}
-          </p>
-          <h1 className="mt-4 max-w-3xl font-display text-[2.6rem] font-semibold leading-[1.05] tracking-tight md:text-6xl lg:text-7xl">
-            {slide.title}
-          </h1>
-          <p className="mt-4 max-w-lg text-base text-white/80 md:text-lg">{slide.body}</p>
-          <div className="mt-7 flex flex-wrap items-center gap-3">
+        <div
+          className="relative min-h-[22rem] overflow-hidden rounded-3xl text-white md:min-h-[26rem]"
+          aria-roledescription="carousel"
+          aria-label="Featured treatments"
+          onMouseEnter={() => setPaused(true)}
+          onMouseLeave={() => setPaused(false)}
+        >
+          {SLIDES.map((s, i) => (
+            <div
+              key={s.id}
+              className={`absolute inset-0 transition-opacity duration-700 ${i === index ? "opacity-100" : "pointer-events-none opacity-0"}`}
+              aria-hidden={i !== index}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={s.image} alt="" className={`h-full w-full object-cover ${i === index ? "animate-hero-ken" : ""}`} />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/35 to-black/15" />
+            </div>
+          ))}
+          <div className="relative z-10 flex h-full min-h-[22rem] flex-col justify-end p-6 md:min-h-[26rem] md:p-10">
+            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-gold">{slide.offer}</p>
+            <h1 className="mt-3 max-w-lg font-display text-4xl font-semibold leading-[1.08] md:text-5xl">{slide.title}</h1>
+            <p className="mt-3 text-sm text-white/85">{slide.price}</p>
             <Link
               href={slide.href}
-              className="inline-flex min-h-12 items-center rounded-full bg-gold px-6 text-sm font-bold text-ongold shadow-[0_12px_40px_rgba(212,175,55,0.28)]"
+              className="mt-6 inline-flex w-fit min-h-11 items-center rounded-full bg-gold px-6 text-sm font-bold text-ongold"
             >
-              {slide.cta}
+              {slide.cta} →
             </Link>
-            <Link
-              href="/ai"
-              className="inline-flex min-h-12 items-center rounded-full border border-white/25 bg-white/10 px-6 text-sm font-semibold text-white backdrop-blur"
-            >
-              Ask NaijaSpa AI
-            </Link>
-          </div>
-
-          <div className="mt-10 flex items-center gap-4">
-            <button
-              type="button"
-              aria-label="Previous slide"
-              onClick={() => go(-1)}
-              className="flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur hover:bg-white/20"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-            <button
-              type="button"
-              aria-label="Next slide"
-              onClick={() => go(1)}
-              className="flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur hover:bg-white/20"
-            >
-              <ChevronRight className="h-5 w-5" />
-            </button>
-            <div className="ml-1 flex gap-2" role="tablist" aria-label="Hero slides">
+            <div className="mt-8 flex items-center gap-2" role="tablist" aria-label="Hero slides">
               {SLIDES.map((s, i) => (
                 <button
                   key={s.id}
                   type="button"
                   role="tab"
                   aria-selected={i === index}
-                  aria-label={s.kicker}
+                  aria-label={s.offer}
                   onClick={() => setIndex(i)}
-                  className={`h-1.5 overflow-hidden rounded-full transition-all ${i === index ? "w-10 bg-gold" : "w-3 bg-white/35"}`}
+                  className={`h-1.5 rounded-full transition-all ${i === index ? "w-8 bg-gold" : "w-2.5 bg-white/40"}`}
                 />
               ))}
             </div>
-            <p className="ml-auto hidden text-xs font-semibold uppercase tracking-[0.18em] text-white/50 sm:block">
-              {String(index + 1).padStart(2, "0")} / 0{SLIDES.length}
-            </p>
           </div>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+          <article className="flex flex-col items-center rounded-3xl border border-line bg-card px-5 py-8 text-center">
+            <span className="flex h-12 w-12 items-center justify-center rounded-full border border-line text-goldink">
+              <BadgeCheck className="h-5 w-5" aria-hidden />
+            </span>
+            <h2 className="mt-4 text-base font-semibold">Verified vendors</h2>
+            <p className="mt-2 text-sm leading-relaxed text-ink2">Book ID-checked spas and therapists across Nigeria.</p>
+          </article>
+          <article className="flex flex-col items-center rounded-3xl border border-line bg-card px-5 py-8 text-center">
+            <span className="flex h-12 w-12 items-center justify-center rounded-full border border-line text-goldink">
+              <Home className="h-5 w-5" aria-hidden />
+            </span>
+            <h2 className="mt-4 text-base font-semibold">Spa, hotel or home</h2>
+            <p className="mt-2 text-sm leading-relaxed text-ink2">Choose where you unwind. Surcharges stay itemized in Naira.</p>
+          </article>
         </div>
       </div>
 
-      <div className="relative z-20 mx-auto -mt-16 max-w-7xl px-4 lg:-mt-20 lg:px-8">
-        <div className="rounded-[1.75rem] border border-white/10 bg-[#101713]/90 p-3 shadow-[0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-xl dark:bg-card/90">
-          <form action="/explore" className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <Link
-              href="/explore?city=Lagos"
-              className="inline-flex min-h-12 items-center gap-2 rounded-2xl bg-white/5 px-4 text-sm font-semibold text-white sm:w-auto"
-            >
-              <MapPin className="h-4 w-4 text-gold" />
-              Lagos
-            </Link>
-            <input
-              name="q"
-              placeholder="Search massage, Nuru, couples…"
-              className="min-h-12 flex-1 rounded-2xl bg-white/5 px-4 text-sm text-white outline-none placeholder:text-white/40"
-            />
-            <input type="hidden" name="city" value="Lagos" />
-            <button className="min-h-12 rounded-full bg-gold px-6 text-sm font-bold text-ongold">Search</button>
-          </form>
-        </div>
-      </div>
+      <form action="/explore" className="mt-4 flex flex-col gap-2 rounded-3xl border border-line bg-card p-2 sm:flex-row sm:items-center sm:p-2">
+        <Link
+          href="/explore?city=Lagos"
+          className="inline-flex min-h-11 items-center gap-2 rounded-2xl px-4 text-sm font-semibold"
+        >
+          <MapPin className="h-4 w-4 text-goldink" />
+          Lagos
+        </Link>
+        <input
+          name="q"
+          placeholder="Search massage, Nuru, couples…"
+          className="min-h-11 flex-1 rounded-2xl bg-elev px-4 text-sm outline-none"
+        />
+        <input type="hidden" name="city" value="Lagos" />
+        <button className="min-h-11 rounded-full bg-gold px-6 text-sm font-bold text-ongold">Search</button>
+      </form>
     </section>
   );
 }

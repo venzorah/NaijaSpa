@@ -100,9 +100,19 @@ export function BottomNav() {
 
 export function CustomerShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-bg text-ink">
+    <div className="relative min-h-screen bg-bg text-ink">
+      <div aria-hidden className="pointer-events-none fixed inset-0 -z-10">
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-fixed"
+          style={{
+            backgroundImage:
+              "url(https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=2000&q=80)"
+          }}
+        />
+        <div className="absolute inset-0 bg-bg/86 dark:bg-bg/88" />
+      </div>
       <TopBar />
-      <main className="pb-28 lg:pb-8">{children}</main>
+      <main className="relative pb-28 lg:pb-8">{children}</main>
       <BottomNav />
       <InstallPrompt />
     </div>

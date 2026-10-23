@@ -3,6 +3,7 @@ import { Sparkles } from "lucide-react";
 import { getHomeCatalog, usingDemoListings } from "@/lib/catalog";
 import { CategoryCarousel } from "@/components/category-carousel";
 import { HeroSlider } from "@/components/hero-slider";
+import { ParallaxBand } from "@/components/parallax-band";
 import { ServiceCarousel, VendorCarousel } from "@/components/service-carousel";
 
 export const dynamic = "force-dynamic";
@@ -27,7 +28,7 @@ export default async function HomePage() {
         </p>
       )}
 
-      <HeroSlider greeting={`${greeting()},`} />
+      <HeroSlider greeting={`${greeting()},`} categories={categories} />
 
       <CategoryCarousel categories={categories} />
 
@@ -53,6 +54,16 @@ export default async function HomePage() {
         seeAllHref="/explore"
         cards={rails.featured}
       />
+
+      <ParallaxBand
+        image="https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&w=2000&q=80"
+        kicker="At your pace"
+        title="Heat, stone and silence."
+        body="Hot stone, hammam and deep tissue — book the hour your body has been asking for."
+        href="/explore?category=spa"
+        cta="Browse spa treatments"
+      />
+
       <ServiceCarousel
         id="premium-services"
         title="Premium"
@@ -67,6 +78,15 @@ export default async function HomePage() {
         subtitle="Limited-time prices and campaign offers."
         seeAllHref="/explore?sort=price"
         cards={rails.promo}
+      />
+
+      <ParallaxBand
+        image="https://images.unsplash.com/photo-1519823551278-64ac92734fb1?auto=format&fit=crop&w=2000&q=80"
+        kicker="Together"
+        title="Two tables. One still room."
+        body="Couples rituals with two therapists, private suites, and prices in Naira."
+        href="/explore?category=couples"
+        cta="See couples bookings"
       />
 
       <VendorCarousel title="Nearby spas & studios" vendors={nearby} />

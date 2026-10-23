@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { formatNgn } from "@/lib/money";
 import type { HomeCard } from "@/lib/home-types";
+import { useAutoScroll } from "@/hooks/use-auto-scroll";
 
 export function ServiceCarousel({
   id,
@@ -22,6 +23,7 @@ export function ServiceCarousel({
   accent?: "gold" | "leaf";
 }) {
   const scroller = useRef<HTMLDivElement>(null);
+  const auto = useAutoScroll(scroller, 4000);
   if (cards.length === 0) return null;
 
   const scrollByDir = (dir: -1 | 1) => {
@@ -31,7 +33,16 @@ export function ServiceCarousel({
   };
 
   return (
-    <section aria-labelledby={id} className="mx-auto mt-10 max-w-7xl">
+    <section
+      aria-labelledby={id}
+      className="mx-auto mt-10 max-w-7xl"
+      onMouseEnter={auto.pause}
+      onMouseLeave={auto.resume}
+      onFocusCapture={auto.pause}
+      onBlurCapture={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) auto.resume();
+      }}
+    >
       <div className="flex items-end justify-between gap-3 px-4 lg:px-8">
         <div>
           <h2 id={id} className="font-display text-2xl md:text-3xl">
@@ -136,13 +147,22 @@ export function VendorCarousel({
     ratingAvg: number;
   }>;
 }) {
+  const scroller = useRef<HTMLDivElement>(null);
+  const auto = useAutoScroll(scroller, 4800);
   if (vendors.length === 0) return null;
   return (
-    <section className="mx-auto mt-10 max-w-7xl">
+    <section
+      className="mx-auto mt-10 max-w-7xl"
+      onMouseEnter={auto.pause}
+      onMouseLeave={auto.resume}
+    >
       <div className="px-4 lg:px-8">
         <h2 className="font-display text-2xl md:text-3xl">{title}</h2>
       </div>
-      <div className="no-scrollbar mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 lg:px-8">
+      <div
+        ref={scroller}
+        className="no-scrollbar mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 lg:px-8"
+      >
         {vendors.map((v) => (
           <Link
             key={v.slug}
