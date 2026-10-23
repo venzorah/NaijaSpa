@@ -23,10 +23,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <div className="flex min-h-screen bg-bg text-ink">
       <aside className="hidden w-64 border-r border-line bg-bg2 p-4 lg:block">
-        <p className="text-sm font-semibold">
-          Naija<span className="text-goldink">Spa</span> Admin
-        </p>
-        <p className="text-[11px] text-ink2">{user.role}</p>
+        <Link href="/admin" aria-label="NaijaSpa admin home">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/logo-horizontal.png" alt="NaijaSpa" className="h-12 w-auto max-w-full object-contain object-left" />
+        </Link>
+        <p className="mt-1 text-[11px] text-ink2">Admin · {user.role}</p>
         <nav className="mt-6 grid gap-1">
           {links.map(([href, label]) => (
             <Link key={href} href={href} className="rounded-xl px-3 py-2 text-sm hover:bg-elev">

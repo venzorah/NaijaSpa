@@ -8,8 +8,8 @@ export const metadata: Metadata = {
   applicationName: "NaijaSpa",
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: [{ url: "/brand/icon-white.png", type: "image/png" }],
-    apple: [{ url: "/icons/apple-touch-icon.png" }]
+    icon: [{ url: "/icon.png", type: "image/png" }],
+    apple: [{ url: "/apple-icon.png" }]
   },
   appleWebApp: { capable: true, title: "NaijaSpa", statusBarStyle: "black-translucent" }
 };
@@ -30,8 +30,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             __html: `(function(){try{var t=localStorage.getItem('naijaspa-theme');if(t==='light'){document.documentElement.classList.remove('dark');}else{document.documentElement.classList.add('dark');}}catch(e){document.documentElement.classList.add('dark');}})();`
           }}
         />
-        <link rel="icon" href="/brand/icon-white.png" type="image/png" />
-        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+        <link rel="icon" href="/icon.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/apple-icon.png" />
       </head>
       <body>
         <ThemeProvider>{children}</ThemeProvider>

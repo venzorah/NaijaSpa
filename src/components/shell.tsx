@@ -6,10 +6,10 @@ import { CalendarDays, Compass, Heart, Home, Moon, Sparkles, Sun, User } from "l
 import { useTheme } from "./theme-provider";
 import { InstallPrompt } from "./install-prompt";
 
-export function BrandMark({ size = 36 }: { size?: number }) {
+export function BrandLogo({ className = "h-10 w-auto max-w-[168px] object-contain object-left sm:h-11 sm:max-w-[220px]" }: { className?: string }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src="/brand/icon-white.png" alt="NaijaSpa" width={size} height={size} className="rounded-full bg-white object-contain" />
+    <img src="/brand/logo-horizontal.png" alt="NaijaSpa" className={className} />
   );
 }
 
@@ -17,13 +17,9 @@ export function TopBar() {
   const { theme, toggle } = useTheme();
   return (
     <header className="pt-safe sticky top-0 z-50 border-b border-line/70 bg-bg/85 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-7xl items-center gap-2 px-4 lg:px-8">
-        <Link href="/" className="flex items-center gap-2" aria-label="NaijaSpa home">
-          <BrandMark />
-          <span className="font-display text-[22px] font-bold leading-none">
-            <span className="text-leaf">Naija</span>
-            <span className="text-goldink">Spa</span>
-          </span>
+      <div className="mx-auto flex h-[4.25rem] max-w-7xl items-center gap-2 px-4 lg:px-8">
+        <Link href="/" className="flex min-w-0 shrink-0 items-center" aria-label="NaijaSpa home">
+          <BrandLogo />
         </Link>
         <nav className="ml-8 hidden items-center gap-1 lg:flex" aria-label="Primary">
           {[
