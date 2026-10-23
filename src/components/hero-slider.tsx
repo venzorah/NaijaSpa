@@ -132,7 +132,7 @@ export function HeroSlider({ greeting, categories = [] }: { greeting: string; ca
           </div>
         </div>
 
-        <div className="order-2 grid gap-4 sm:grid-cols-2 lg:order-3 lg:grid-cols-1">
+        <div className="order-2 hidden gap-4 sm:grid-cols-2 lg:order-3 lg:grid lg:grid-cols-1">
           <article className="flex flex-col items-center rounded-3xl border border-line bg-card px-5 py-8 text-center">
             <span className="flex h-12 w-12 items-center justify-center rounded-full border border-line text-goldink">
               <BadgeCheck className="h-5 w-5" aria-hidden />
