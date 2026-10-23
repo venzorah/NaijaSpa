@@ -1,0 +1,28 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { getSession, requireUser } from "@/lib/auth";
+import { assertPermission } from "@/lib/rbac";
+import { prisma } from "@/lib/db";
+import { audit } from "@/lib/audit";
+import { jsonError } from "@/lib/http";
+
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const actor = requireUser(await getSession());
+    assertPermission(actor.role, "vendors.manage");
+    const { id } = await params;
+    const before = await prisma.vendor.findUniqueOrThrow({ where: { id } });
+    const body = z
+      .object({
+        applicationStatus: z.enum(["draft", "submitted", "under_review", "approved", "rejected", "suspended"]).optional(),
+        verificationStatus: z.enum(["unverified", "verified", "rejected"]).optional(),
+        visibility: z.enum(["hidden", "public"]).optional()
+      })
+      .parse(await req.json());
+    const vendor = await prisma.vendor.update({ where: { id }, data: body });
+    await audit({ actorId: actor.id, action: "vendor.update", entityType: "Vendor", entityId: id, before, after: vendor });
+    return NextResponse.json({ vendor });
+  } catch (e) {
+    return jsonError(e);
+  }
+}

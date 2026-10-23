@@ -1,0 +1,547 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                 String    @id @default(cuid())
+  email              String    @unique
+  passwordHash       String
+  name               String
+  phone              String?
+  locale             String    @default("en")
+  theme              String?
+  role               String
+  status             String    @default("active")
+  emailVerifiedAt    DateTime?
+  deletionRequestedAt DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  sessions           Session[]
+  passwordResets     PasswordReset[]
+  vendorOwned        Vendor?               @relation("VendorOwner")
+  staffMemberships   VendorStaff[]
+  customerProfile    CustomerProfile?
+  bookings           Booking[]
+  reviews            Review[]
+  favourites         Favourite[]
+  tickets            SupportTicket[]       @relation("TicketAuthor")
+  assignedTickets    SupportTicket[]       @relation("TicketAssignee")
+  notifications      Notification[]
+  memberships        CustomerMembership[]
+  auditLogs          AuditLog[]
+  invitesSent        VendorInvite[]        @relation("InviteSender")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model PasswordReset {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CustomerProfile {
+  id           String  @id @default(cuid())
+  userId       String  @unique
+  city         String?
+  neighbourhood String?
+  user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Vendor {
+  id                   String    @id @default(cuid())
+  ownerId              String    @unique
+  slug                 String    @unique
+  businessName         String
+  providerType         String    @default("spa")
+  description          String    @default("")
+  logoUrl              String?
+  coverUrl             String?
+  galleryJson          String    @default("[]")
+  city                 String
+  neighbourhood        String
+  address              String
+  coverageJson         String    @default("[]")
+  amenitiesJson        String    @default("[]")
+  hoursJson            String    @default("{}")
+  privatePhone         String?
+  privateWhatsapp      String?
+  cancellationPolicy   String    @default("")
+  applicationStatus    String    @default("draft")
+  verificationStatus   String    @default("unverified")
+  visibility           String    @default("hidden")
+  suspendedAt          DateTime?
+  ratingAvg            Float     @default(0)
+  reviewCount          Int       @default(0)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  owner                User              @relation("VendorOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  staff                VendorStaff[]
+  services             Service[]
+  documents            VerificationDoc[]
+  subscriptions        VendorSubscription[]
+  bookings             Booking[]
+  campaigns            Campaign[]
+  payouts              Payout[]
+  earnings             VendorEarning[]
+  invites              VendorInvite[]
+}
+
+model VendorInvite {
+  id          String    @id @default(cuid())
+  vendorId    String?
+  email       String
+  token       String    @unique
+  invitedById String
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  vendor      Vendor?   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  invitedBy   User      @relation("InviteSender", fields: [invitedById], references: [id])
+}
+
+model VendorStaff {
+  id        String  @id @default(cuid())
+  vendorId  String
+  userId    String?
+  name      String
+  title     String?
+  bio       String?
+  photoUrl  String?
+  active    Boolean @default(true)
+  vendor    Vendor  @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  user      User?   @relation(fields: [userId], references: [id])
+  services  ServiceStaff[]
+  slots     AvailabilitySlot[]
+  bookings  Booking[]
+
+  @@index([vendorId])
+}
+
+model VerificationDoc {
+  id        String   @id @default(cuid())
+  vendorId  String
+  kind      String
+  filePath  String
+  status    String   @default("submitted")
+  notes     String?
+  createdAt DateTime @default(now())
+  vendor    Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  name        String
+  synonyms    String    @default("")
+  description String    @default("")
+  imageUrl    String?
+  sortOrder   Int       @default(0)
+  active      Boolean   @default(true)
+  archivedAt  DateTime?
+  services    Service[]
+}
+
+model Service {
+  id                   String   @id @default(cuid())
+  vendorId             String
+  categoryId           String
+  slug                 String   @unique
+  name                 String
+  description          String   @default("")
+  imageUrl             String?
+  basePriceKobo        Int
+  durationMin          Int
+  active               Boolean  @default(true)
+  spaEnabled           Boolean  @default(true)
+  hotelEnabled         Boolean  @default(true)
+  homeEnabled          Boolean  @default(true)
+  cancellationRules    String   @default("")
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  vendor               Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  category             Category @relation(fields: [categoryId], references: [id])
+  addons               ServiceAddon[]
+  staff                ServiceStaff[]
+  bookings             Booking[]
+  favourites           Favourite[]
+  campaigns            Campaign[]
+
+  @@index([vendorId, active])
+}
+
+model ServiceAddon {
+  id          String  @id @default(cuid())
+  serviceId   String
+  name        String
+  priceKobo   Int
+  durationMin Int     @default(0)
+  service     Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+}
+
+model ServiceStaff {
+  serviceId String
+  staffId   String
+  service   Service     @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  staff     VendorStaff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@id([serviceId, staffId])
+}
+
+model AvailabilitySlot {
+  id        String      @id @default(cuid())
+  vendorId  String
+  staffId   String?
+  weekday   Int
+  startMin  Int
+  endMin    Int
+  bufferMin Int         @default(15)
+  staff     VendorStaff? @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([vendorId, weekday])
+}
+
+model TimeOff {
+  id        String   @id @default(cuid())
+  staffId   String
+  startsAt  DateTime
+  endsAt    DateTime
+  reason    String?
+}
+
+model SubscriptionPlan {
+  id                 String  @id @default(cuid())
+  code               String  @unique
+  name               String
+  durationDays       Int
+  priceKobo          Int
+  commissionBps      Int
+  publicDirectContact Boolean @default(false)
+  enhancedVisibility Boolean @default(false)
+  sponsoredEligible  Boolean @default(false)
+  unlimitedListings  Boolean @default(true)
+  active             Boolean @default(true)
+  subscriptions      VendorSubscription[]
+}
+
+model VendorSubscription {
+  id            String    @id @default(cuid())
+  vendorId      String
+  planId        String
+  status        String
+  source        String
+  startsAt      DateTime
+  endsAt        DateTime
+  cancelAtPeriodEnd Boolean @default(false)
+  graceUntil    DateTime?
+  createdAt     DateTime  @default(now())
+  vendor        Vendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  plan          SubscriptionPlan @relation(fields: [planId], references: [id])
+  bookings      Booking[]
+
+  @@index([vendorId, status])
+}
+
+model SystemConfig {
+  key   String @id
+  value String
+}
+
+model Booking {
+  id                    String   @id @default(cuid())
+  customerId            String
+  vendorId              String
+  serviceId             String
+  staffId               String?
+  locationType          String
+  locationDetails       String   @default("")
+  startsAt              DateTime
+  endsAt                DateTime
+  timezone              String   @default("Africa/Lagos")
+  status                String
+  currency              String   @default("NGN")
+  basePriceKobo         Int
+  surchargeKobo         Int
+  discountKobo          Int      @default(0)
+  feesKobo              Int      @default(0)
+  commissionBps         Int
+  commissionKobo        Int
+  customerTotalKobo     Int
+  vendorPayableKobo     Int
+  surchargeRecipient    String
+  subscriptionId        String?
+  planCodeSnapshot      String
+  idempotencyKey        String   @unique
+  cancelReason          String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  customer              User     @relation(fields: [customerId], references: [id])
+  vendor                Vendor   @relation(fields: [vendorId], references: [id])
+  service               Service  @relation(fields: [serviceId], references: [id])
+  staff                 VendorStaff? @relation(fields: [staffId], references: [id])
+  subscription          VendorSubscription? @relation(fields: [subscriptionId], references: [id])
+  payments              Payment[]
+  refunds               Refund[]
+  earning               VendorEarning?
+  review                Review?
+  statusHistory         BookingStatusEvent[]
+
+  @@index([vendorId, startsAt])
+  @@index([customerId, status])
+  @@index([staffId, startsAt])
+}
+
+model BookingStatusEvent {
+  id        String   @id @default(cuid())
+  bookingId String
+  fromStatus String?
+  toStatus  String
+  actorId   String?
+  note      String?
+  createdAt DateTime @default(now())
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+}
+
+model Payment {
+  id              String   @id @default(cuid())
+  bookingId       String?
+  membershipId    String?
+  subscriptionId  String?
+  provider        String
+  purpose         String
+  amountKobo      Int
+  currency        String   @default("NGN")
+  status          String
+  reference       String   @unique
+  providerRef     String?
+  idempotencyKey  String   @unique
+  rawPayload      String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  booking         Booking? @relation(fields: [bookingId], references: [id])
+  refunds         Refund[]
+}
+
+model Refund {
+  id          String   @id @default(cuid())
+  paymentId   String
+  bookingId   String?
+  amountKobo  Int
+  reason      String?
+  status      String
+  createdAt   DateTime @default(now())
+  payment     Payment  @relation(fields: [paymentId], references: [id])
+  booking     Booking? @relation(fields: [bookingId], references: [id])
+}
+
+model VendorEarning {
+  id            String  @id @default(cuid())
+  vendorId      String
+  bookingId     String  @unique
+  payableKobo   Int
+  commissionKobo Int
+  surchargeKobo Int
+  status        String  @default("pending")
+  vendor        Vendor  @relation(fields: [vendorId], references: [id])
+  booking       Booking @relation(fields: [bookingId], references: [id])
+}
+
+model Payout {
+  id          String   @id @default(cuid())
+  vendorId    String
+  amountKobo  Int
+  status      String
+  note        String?
+  createdAt   DateTime @default(now())
+  vendor      Vendor   @relation(fields: [vendorId], references: [id])
+}
+
+model MembershipPlan {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  interval    String
+  priceKobo   Int
+  benefits    String
+  active      Boolean  @default(true)
+  memberships CustomerMembership[]
+}
+
+model CustomerMembership {
+  id        String   @id @default(cuid())
+  userId    String
+  planId    String
+  status    String
+  startsAt  DateTime
+  endsAt    DateTime
+  user      User     @relation(fields: [userId], references: [id])
+  plan      MembershipPlan @relation(fields: [planId], references: [id])
+}
+
+model Promotion {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  description String
+  percentOff  Int      @default(0)
+  amountKobo  Int      @default(0)
+  startsAt    DateTime
+  endsAt      DateTime
+  maxRedemptions Int?
+  usedCount   Int      @default(0)
+  active      Boolean  @default(true)
+  redemptions PromoRedemption[]
+}
+
+model PromoRedemption {
+  id          String   @id @default(cuid())
+  promotionId String
+  userId      String
+  bookingId   String?
+  createdAt   DateTime @default(now())
+  promotion   Promotion @relation(fields: [promotionId], references: [id])
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  bookingId  String   @unique
+  userId     String
+  vendorId   String
+  rating     Int
+  body       String
+  status     String   @default("published")
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id])
+  booking    Booking  @relation(fields: [bookingId], references: [id])
+}
+
+model Favourite {
+  id        String   @id @default(cuid())
+  userId    String
+  vendorId  String?
+  serviceId String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  service   Service? @relation(fields: [serviceId], references: [id])
+
+  @@unique([userId, vendorId, serviceId])
+}
+
+model Campaign {
+  id          String   @id @default(cuid())
+  vendorId    String
+  serviceId   String?
+  placement   String
+  startsAt    DateTime
+  endsAt      DateTime
+  priority    Int      @default(0)
+  active      Boolean  @default(true)
+  impressions Int      @default(0)
+  clicks      Int      @default(0)
+  vendor      Vendor   @relation(fields: [vendorId], references: [id])
+  service     Service? @relation(fields: [serviceId], references: [id])
+}
+
+model CmsBlock {
+  id        String  @id @default(cuid())
+  key       String  @unique
+  title     String
+  body      String
+  locale    String  @default("en")
+  published Boolean @default(true)
+}
+
+model Faq {
+  id        String  @id @default(cuid())
+  question  String
+  answer    String
+  sortOrder Int     @default(0)
+  published Boolean @default(true)
+}
+
+model SupportTicket {
+  id          String   @id @default(cuid())
+  authorId    String
+  assigneeId  String?
+  subject     String
+  status      String   @default("open")
+  internalNotes String @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  author      User     @relation("TicketAuthor", fields: [authorId], references: [id])
+  assignee    User?    @relation("TicketAssignee", fields: [assigneeId], references: [id])
+  messages    TicketMessage[]
+}
+
+model TicketMessage {
+  id        String   @id @default(cuid())
+  ticketId  String
+  authorId  String
+  body      String
+  internal  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  body      String
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PushSubscription {
+  id        String @id @default(cuid())
+  userId    String
+  endpoint  String @unique
+  p256dh    String
+  auth      String
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  action     String
+  entityType String
+  entityId   String
+  beforeJson String?
+  afterJson  String?
+  createdAt  DateTime @default(now())
+  actor      User?    @relation(fields: [actorId], references: [id])
+
+  @@index([entityType, entityId])
+}
+
+model AiSearchLog {
+  id           String   @id @default(cuid())
+  userId       String?
+  query        String
+  filtersJson  String
+  resultCount  Int
+  usedFallback Boolean  @default(false)
+  createdAt    DateTime @default(now())
+}

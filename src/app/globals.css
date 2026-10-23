@@ -1,0 +1,72 @@
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Manrope:wght@400;500;600;700;800&display=swap");
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Cormorant Garamond", Georgia, serif;
+  --color-bg: var(--c-bg);
+  --color-bg2: var(--c-bg2);
+  --color-card: var(--c-card);
+  --color-elev: var(--c-elev);
+  --color-ink: var(--c-ink);
+  --color-ink2: var(--c-ink2);
+  --color-line: var(--c-line);
+  --color-gold: #d4af37;
+  --color-goldink: var(--c-goldink);
+  --color-forest: #064e3b;
+  --color-leaf: var(--c-leaf);
+  --color-ongold: #1a1405;
+  --radius-xl: 0.875rem;
+}
+
+:root {
+  --c-bg: #ffffff;
+  --c-bg2: #f7f9f7;
+  --c-card: #ffffff;
+  --c-elev: #f1f5f1;
+  --c-ink: #183127;
+  --c-ink2: #5e6b63;
+  --c-line: #dce5de;
+  --c-goldink: #8a7014;
+  --c-leaf: #064e3b;
+}
+
+html.dark {
+  --c-bg: #101713;
+  --c-bg2: #151e18;
+  --c-card: #1b2720;
+  --c-elev: #243229;
+  --c-ink: #f5f7f5;
+  --c-ink2: #b8c3bb;
+  --c-line: #35443a;
+  --c-goldink: #e3c766;
+  --c-leaf: #5fd3a5;
+}
+
+html,
+body {
+  background: var(--c-bg);
+  color: var(--c-ink);
+  font-family: var(--font-sans);
+  min-height: 100%;
+  overflow-x: hidden;
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
