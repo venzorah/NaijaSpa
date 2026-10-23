@@ -5,8 +5,10 @@ import {
   demoFaqs,
   demoHomeRails,
   demoNearbyVendors,
+  demoReviewsForVendor,
   demoServiceById,
   demoServiceBySlug,
+  demoTreatmentsForVendor,
   demoVendorBySlug,
   demoCms
 } from "./demo-catalog";
@@ -161,26 +163,44 @@ export async function getHomeCatalog() {
   return { demo: false, categories, rails, nearby: [...nearbyMap.values()].slice(0, 8), faqs };
 }
 
+function initialsName(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "Guest";
+  if (parts.length === 1) return parts[0];
+  return `${parts[0]} ${parts[parts.length - 1][0]}.`;
+}
+
+function locationQuotes(
+  service: { basePriceKobo: number; spaEnabled: boolean; hotelEnabled: boolean; homeEnabled: boolean },
+  entitlement: Parameters<typeof quoteBooking>[0]["entitlement"],
+  config: Parameters<typeof quoteBooking>[0]["config"]
+) {
+  return (["spa", "hotel", "home"] as const)
+    .filter((l) => (l === "spa" ? service.spaEnabled : l === "hotel" ? service.hotelEnabled : service.homeEnabled))
+    .map((l) => ({
+      l,
+      q: quoteBooking({ basePriceKobo: service.basePriceKobo, location: l, entitlement, config })
+    }));
+}
+
 export async function getPublicService(slug: string) {
   if (usingDemoListings()) {
     const service = demoServiceBySlug(slug);
     if (!service) return null;
-    const quotes = (["spa", "hotel", "home"] as const)
-      .filter((l) => (l === "spa" ? service.spaEnabled : l === "hotel" ? service.hotelEnabled : service.homeEnabled))
-      .map((l) => ({
-        l,
-        q: quoteBooking({
-          basePriceKobo: service.basePriceKobo,
-          location: l,
-          entitlement: service.vendor.entitlement,
-          config: DEFAULT_COMMERCIAL
-        })
-      }));
+    const vendor = sanitizePublicVendor(service.vendor, service.vendor.entitlement);
     return {
       demo: true,
       service,
-      vendor: sanitizePublicVendor(service.vendor, service.vendor.entitlement),
-      quotes
+      vendor,
+      quotes: locationQuotes(service, service.vendor.entitlement, DEFAULT_COMMERCIAL),
+      treatments: demoTreatmentsForVendor(service.vendorId),
+      reviews: demoReviewsForVendor(service.vendorId),
+      tags: [
+        service.categoryName,
+        service.spaEnabled && "Spa/Office",
+        service.hotelEnabled && "Hotel",
+        service.homeEnabled && "Home"
+      ].filter(Boolean) as string[]
     };
   }
   const { prisma, getCommercialConfig } = await import("./db");
@@ -193,10 +213,39 @@ export async function getPublicService(slug: string) {
   const ent = await vendorEntitlement(service.vendorId);
   const vendor = sanitizePublicVendor(service.vendor, ent);
   const cfg = await getCommercialConfig();
-  const quotes = (["spa", "hotel", "home"] as const)
-    .filter((l) => (l === "spa" ? service.spaEnabled : l === "hotel" ? service.hotelEnabled : service.homeEnabled))
-    .map((l) => ({ l, q: quoteBooking({ basePriceKobo: service.basePriceKobo, location: l, entitlement: ent, config: cfg }) }));
-  return { demo: false, service, vendor, quotes };
+  const [treatments, reviewRows] = await Promise.all([
+    prisma.service.findMany({
+      where: { vendorId: service.vendorId, active: true },
+      select: { id: true, slug: true, name: true, durationMin: true, basePriceKobo: true },
+      orderBy: { durationMin: "asc" }
+    }),
+    prisma.review.findMany({
+      where: { vendorId: service.vendorId, status: "published" },
+      include: { user: { select: { name: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 8
+    })
+  ]);
+  return {
+    demo: false,
+    service,
+    vendor,
+    quotes: locationQuotes(service, ent, cfg),
+    treatments,
+    reviews: reviewRows.map((r) => ({
+      vendorId: r.vendorId,
+      author: initialsName(r.user.name),
+      rating: r.rating,
+      createdAt: r.createdAt.toISOString(),
+      body: r.body
+    })),
+    tags: [
+      service.category?.name,
+      service.spaEnabled && "Spa/Office",
+      service.hotelEnabled && "Hotel",
+      service.homeEnabled && "Home"
+    ].filter(Boolean) as string[]
+  };
 }
 
 export async function getPublicVendor(slug: string) {

@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { BadgeCheck, Heart, MapPin, Star } from "lucide-react";
 import { getPublicService } from "@/lib/catalog";
-import { formatNgn } from "@/lib/money";
+import { formatReviewDate, locationLabel } from "@/lib/booking-ui";
+import { ServiceBookingCard } from "@/components/service-booking-card";
 
 export const dynamic = "force-dynamic";
 
@@ -9,42 +11,162 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
   const { slug } = await params;
   const data = await getPublicService(slug);
   if (!data) notFound();
-  const { service, vendor, quotes } = data;
+  const { service, vendor, quotes, treatments, reviews, tags } = data;
+  const verified = vendor.verificationStatus === "verified";
+  const photo =
+    service.imageUrl ||
+    (vendor.logoUrl && !vendor.logoUrl.includes("icon-white") ? vendor.logoUrl : "/brand/icon-green.png");
+  const locationLine = [vendor.neighbourhood, vendor.city].filter(Boolean).join(", ");
+  const offered = quotes.map((q) => locationLabel(q.l)).join(" · ");
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={service.imageUrl || "/brand/icon-green.png"} alt="" className="h-56 w-full rounded-3xl object-cover" />
-      <p className="mt-4 text-sm text-ink2">
-        <Link href={`/providers/${vendor.slug}`}>{vendor.businessName}</Link>
-        {vendor.verificationStatus === "verified" ? " · Verified" : ""}
-      </p>
-      <h1 className="font-display text-4xl">{service.name}</h1>
-      <p className="mt-2 text-ink2">{service.description}</p>
-      <p className="mt-3 font-semibold">{service.durationMin} minutes</p>
-      <div className="mt-4 space-y-2 rounded-3xl border border-line bg-card p-4">
-        {quotes.map(({ l, q }) => (
-          <p key={l} className="text-sm">
-            <span className="capitalize">{l === "spa" ? "Spa/Office" : l}</span>: {formatNgn(q.basePriceKobo)}
-            {q.surchargeKobo ? ` + ${formatNgn(q.surchargeKobo)} surcharge` : ""} = {formatNgn(q.customerTotalKobo)}
-          </p>
-        ))}
+    <div className="bg-bg2">
+      <div className="mx-auto max-w-6xl px-4 py-8 pb-24 lg:px-8 lg:py-12">
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_22.5rem] lg:items-start lg:gap-12">
+          <header className="flex flex-col gap-6 sm:flex-row sm:items-start">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={photo}
+              alt=""
+              className="h-28 w-28 shrink-0 rounded-full object-cover ring-4 ring-card sm:h-32 sm:w-32"
+            />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-ink2">
+                    {verified && (
+                      <span className="inline-flex items-center gap-1 text-leaf">
+                        <BadgeCheck className="h-3.5 w-3.5" aria-hidden />
+                        Verified
+                      </span>
+                    )}
+                  </p>
+                  <h1 className="mt-1 font-display text-4xl leading-tight sm:text-5xl">{vendor.businessName}</h1>
+                  <p className="mt-1 text-base text-ink2">{service.name}</p>
+                </div>
+                <Link
+                  href="/account/favourites"
+                  className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-line bg-card px-3 text-sm font-semibold"
+                >
+                  <Heart className="h-4 w-4" aria-hidden />
+                  Save
+                </Link>
+              </div>
+              <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink2">
+                {typeof vendor.ratingAvg === "number" && vendor.ratingAvg > 0 && (
+                  <span className="inline-flex items-center gap-1 font-semibold text-ink">
+                    <Star className="h-4 w-4 fill-gold text-gold" aria-hidden />
+                    {vendor.ratingAvg.toFixed(1)}
+                    {vendor.reviewCount ? (
+                      <span className="font-normal text-ink2">({vendor.reviewCount})</span>
+                    ) : null}
+                  </span>
+                )}
+                {locationLine && (
+                  <span className="inline-flex items-center gap-1">
+                    <MapPin className="h-4 w-4" aria-hidden />
+                    {locationLine}
+                  </span>
+                )}
+              </p>
+            </div>
+          </header>
+
+          <div className="lg:sticky lg:top-24 lg:col-start-2 lg:row-span-4">
+            <ServiceBookingCard
+              serviceId={service.id}
+              treatments={treatments}
+              currentSlug={service.slug}
+              durationMin={service.durationMin}
+              quotes={quotes}
+              cancellationPolicy={"cancellationPolicy" in vendor ? String(vendor.cancellationPolicy || "") : ""}
+            />
+          </div>
+
+          <dl className="grid grid-cols-2 gap-6 border-y border-line py-6 sm:grid-cols-4">
+            <div>
+              <dt className="text-[11px] font-bold uppercase tracking-wide text-ink2">Reviews</dt>
+              <dd className="mt-1 font-display text-3xl">{vendor.reviewCount || reviews.length || "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-[11px] font-bold uppercase tracking-wide text-ink2">Duration</dt>
+              <dd className="mt-1 font-display text-3xl">{service.durationMin} min</dd>
+            </div>
+            <div>
+              <dt className="text-[11px] font-bold uppercase tracking-wide text-ink2">Rating</dt>
+              <dd className="mt-1 font-display text-3xl">
+                {vendor.ratingAvg ? vendor.ratingAvg.toFixed(1) : "—"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[11px] font-bold uppercase tracking-wide text-ink2">Locations</dt>
+              <dd className="mt-1 font-display text-3xl">{quotes.length || "—"}</dd>
+              {offered ? <p className="mt-1 text-[11px] leading-snug text-ink2">{offered}</p> : null}
+            </div>
+          </dl>
+
+          <section>
+            <h2 className="font-display text-3xl">About</h2>
+            <p className="mt-3 max-w-2xl text-base leading-relaxed text-ink2">
+              {service.description || vendor.description || `${vendor.businessName} offers this treatment on NaijaSpa.`}
+            </p>
+            {tags.length > 0 && (
+              <ul className="mt-5 flex flex-wrap gap-2">
+                {tags.map((tag) => (
+                  <li key={tag} className="rounded-full bg-card px-3 py-1.5 text-sm text-ink2 ring-1 ring-line">
+                    {tag}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="mt-4 text-sm">
+              <Link href={`/providers/${vendor.slug}`} className="font-semibold text-leaf">
+                View provider
+              </Link>
+              {vendor.publicPhone || vendor.publicWhatsapp ? (
+                <span className="text-ink2">
+                  {vendor.publicPhone ? ` · ${vendor.publicPhone}` : ""}
+                  {vendor.publicWhatsapp ? (
+                    <>
+                      {" · "}
+                      <a className="text-leaf" href={vendor.publicWhatsapp}>
+                        WhatsApp
+                      </a>
+                    </>
+                  ) : null}
+                </span>
+              ) : (
+                <span className="ml-2 text-xs text-ink2">Direct phone is hidden. Book through NaijaSpa.</span>
+              )}
+            </p>
+          </section>
+
+          <section>
+            <h2 className="font-display text-3xl">Reviews {reviews.length ? `(${vendor.reviewCount || reviews.length})` : ""}</h2>
+            {reviews.length === 0 ? (
+              <p className="mt-3 text-sm text-ink2">No published reviews yet for this provider.</p>
+            ) : (
+              <ul className="mt-5 space-y-4">
+                {reviews.map((r) => (
+                  <li key={`${r.author}-${r.createdAt}`} className="rounded-[1.4rem] border border-line bg-card p-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-semibold">{r.author}</p>
+                        <p className="mt-0.5 inline-flex items-center gap-1 text-sm">
+                          <Star className="h-3.5 w-3.5 fill-gold text-gold" aria-hidden />
+                          {r.rating.toFixed(1)}
+                        </p>
+                      </div>
+                      <p className="text-sm text-ink2">{formatReviewDate(r.createdAt)}</p>
+                    </div>
+                    <p className="mt-3 text-sm leading-relaxed text-ink2">{r.body}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
       </div>
-      {vendor.publicPhone || vendor.publicWhatsapp ? (
-        <p className="mt-3 text-sm">
-          {vendor.publicPhone && <span>Phone {vendor.publicPhone} </span>}
-          {vendor.publicWhatsapp && (
-            <a className="text-leaf" href={vendor.publicWhatsapp}>
-              WhatsApp
-            </a>
-          )}
-        </p>
-      ) : (
-        <p className="mt-3 text-xs text-ink2">Direct phone/WhatsApp is hidden for this provider. Book through NaijaSpa.</p>
-      )}
-      <Link href={`/book/${service.id}`} className="mt-6 inline-flex min-h-12 items-center rounded-full bg-gold px-6 font-bold text-ongold">
-        Book now
-      </Link>
     </div>
   );
 }

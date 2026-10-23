@@ -38,6 +38,7 @@ const osun = {
   coverUrl: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&w=1600&q=80",
   privatePhone: "+2348011111111",
   privateWhatsapp: "+2348011111111",
+  cancellationPolicy: "Free cancellation up to 12 hours before the appointment.",
   entitlement: paidEnt
 };
 
@@ -55,6 +56,7 @@ const calm = {
   coverUrl: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&w=1600&q=80",
   privatePhone: "+2348022222222",
   privateWhatsapp: "+2348022222222",
+  cancellationPolicy: "Free cancellation up to 12 hours before the appointment.",
   entitlement: FREE_ENTITLEMENT
 };
 
@@ -72,10 +74,67 @@ const olive = {
   coverUrl: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1600&q=80",
   privatePhone: "+2348033333333",
   privateWhatsapp: "+2348033333333",
+  cancellationPolicy: "Free cancellation up to 24 hours before the appointment.",
   entitlement: paidEnt
 };
 
 export const demoVendors = [osun, calm, olive];
+
+export const demoReviews = [
+  {
+    vendorId: osun.id,
+    author: "Grace E.",
+    rating: 5,
+    createdAt: "2026-09-12",
+    body: "She found a knot in my shoulder I have had for three years and actually explained what was causing it. Left the room spotless."
+  },
+  {
+    vendorId: osun.id,
+    author: "Chidi O.",
+    rating: 5,
+    createdAt: "2026-08-28",
+    body: "Firm pressure without ever being painful. I book the same slot every fortnight now."
+  },
+  {
+    vendorId: osun.id,
+    author: "Ifeoma N.",
+    rating: 4,
+    createdAt: "2026-08-04",
+    body: "Excellent prenatal session. Studio was calm; arrive a few minutes early on weekends."
+  },
+  {
+    vendorId: calm.id,
+    author: "Tunde A.",
+    rating: 5,
+    createdAt: "2026-09-02",
+    body: "The glow facial was unhurried. Skin felt clean, not stripped. Easy booking through NaijaSpa."
+  },
+  {
+    vendorId: calm.id,
+    author: "Amaka K.",
+    rating: 4,
+    createdAt: "2026-07-19",
+    body: "Deep tissue at home was on time and professional. Quote matched what I paid."
+  },
+  {
+    vendorId: olive.id,
+    author: "Seyi B.",
+    rating: 5,
+    createdAt: "2026-09-18",
+    body: "Hammam ritual in a private suite. Steam, black soap, then quiet. Worth the trip to Lekki Phase 1."
+  },
+  {
+    vendorId: olive.id,
+    author: "Ngozi M.",
+    rating: 5,
+    createdAt: "2026-08-11",
+    body: "Sports recovery before a race weekend. Clear communication and a well-paced session."
+  }
+];
+
+export function demoReviewsForVendor(vendorId: string) {
+  return demoReviews.filter((r) => r.vendorId === vendorId);
+}
 
 export const demoServices = [
   {
@@ -423,6 +482,18 @@ export function demoNearbyVendors(): NearbyVendor[] {
     coverUrl: v.coverUrl,
     ratingAvg: v.ratingAvg
   }));
+}
+
+export function demoTreatmentsForVendor(vendorId: string) {
+  return demoServices
+    .filter((s) => s.vendorId === vendorId && s.active)
+    .map((s) => ({
+      id: s.id,
+      slug: s.slug,
+      name: s.name,
+      durationMin: s.durationMin,
+      basePriceKobo: s.basePriceKobo
+    }));
 }
 
 export function demoServiceBySlug(slug: string) {
