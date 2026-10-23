@@ -176,6 +176,8 @@ model Service {
   spaEnabled           Boolean  @default(true)
   hotelEnabled         Boolean  @default(true)
   homeEnabled          Boolean  @default(true)
+  hotelAddonKobo       Int      @default(0)
+  homeAddonKobo        Int      @default(0)
   cancellationRules    String   @default("")
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt

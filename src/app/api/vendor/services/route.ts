@@ -28,7 +28,9 @@ export async function POST(req: Request) {
         description: z.string().optional(),
         spaEnabled: z.boolean().optional(),
         hotelEnabled: z.boolean().optional(),
-        homeEnabled: z.boolean().optional()
+        homeEnabled: z.boolean().optional(),
+        hotelAddonKobo: z.number().int().min(0).optional(),
+        homeAddonKobo: z.number().int().min(0).optional()
       })
       .parse(await req.json());
     const service = await prisma.service.create({
@@ -38,6 +40,32 @@ export async function POST(req: Request) {
         ...body
       }
     });
+    return NextResponse.json({ service });
+  } catch (e) {
+    return jsonError(e);
+  }
+}
+
+export async function PATCH(req: Request) {
+  try {
+    const user = requireUser(await getSession());
+    if (!user.vendorId) return NextResponse.json({ error: "Not a vendor" }, { status: 403 });
+    const body = z
+      .object({
+        id: z.string(),
+        hotelAddonKobo: z.number().int().min(0).optional(),
+        homeAddonKobo: z.number().int().min(0).optional(),
+        spaEnabled: z.boolean().optional(),
+        hotelEnabled: z.boolean().optional(),
+        homeEnabled: z.boolean().optional()
+      })
+      .parse(await req.json());
+    const existing = await prisma.service.findFirst({
+      where: { id: body.id, vendorId: user.vendorId }
+    });
+    if (!existing) return NextResponse.json({ error: "Service not found" }, { status: 404 });
+    const { id, ...data } = body;
+    const service = await prisma.service.update({ where: { id }, data });
     return NextResponse.json({ service });
   } catch (e) {
     return jsonError(e);

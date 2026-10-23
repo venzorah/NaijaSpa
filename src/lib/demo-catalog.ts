@@ -1,4 +1,12 @@
-import { DEFAULT_COMMERCIAL, FREE_ENTITLEMENT, quoteBooking, sanitizePublicVendor, type Entitlement, type LocationType } from "./commercial";
+import {
+  DEFAULT_COMMERCIAL,
+  FREE_ENTITLEMENT,
+  locationAddonKobo,
+  quoteBooking,
+  sanitizePublicVendor,
+  type Entitlement,
+  type LocationType
+} from "./commercial";
 import { CATEGORY_IMAGES } from "./category-images";
 import type { HomeCard, HomeRails, NearbyVendor } from "./home-types";
 import type { SearchFilters } from "./search-types";
@@ -150,6 +158,8 @@ export const demoServices = [
     spaEnabled: true,
     hotelEnabled: true,
     homeEnabled: true,
+    hotelAddonKobo: 1500000,
+    homeAddonKobo: 1000000,
     categorySlug: "massage",
     categoryName: "Massage therapy",
     vendor: osun
@@ -167,6 +177,8 @@ export const demoServices = [
     spaEnabled: true,
     hotelEnabled: true,
     homeEnabled: true,
+    hotelAddonKobo: 1500000,
+    homeAddonKobo: 1000000,
     categorySlug: "nuru",
     categoryName: "Nuru massage",
     vendor: osun
@@ -184,6 +196,8 @@ export const demoServices = [
     spaEnabled: true,
     hotelEnabled: true,
     homeEnabled: false,
+    hotelAddonKobo: 1500000,
+    homeAddonKobo: 1000000,
     categorySlug: "couples",
     categoryName: "Couples treatments",
     vendor: osun
@@ -202,6 +216,8 @@ export const demoServices = [
     spaEnabled: true,
     hotelEnabled: true,
     homeEnabled: false,
+    hotelAddonKobo: 1500000,
+    homeAddonKobo: 1000000,
     categorySlug: "facials",
     categoryName: "Facials and skincare",
     vendor: calm
@@ -219,6 +235,8 @@ export const demoServices = [
     spaEnabled: true,
     hotelEnabled: true,
     homeEnabled: true,
+    hotelAddonKobo: 1500000,
+    homeAddonKobo: 1000000,
     categorySlug: "massage",
     categoryName: "Massage therapy",
     vendor: calm
@@ -236,6 +254,8 @@ export const demoServices = [
     spaEnabled: true,
     hotelEnabled: true,
     homeEnabled: false,
+    hotelAddonKobo: 1500000,
+    homeAddonKobo: 1000000,
     categorySlug: "spa",
     categoryName: "Spa treatments",
     vendor: osun
@@ -253,6 +273,8 @@ export const demoServices = [
     spaEnabled: true,
     hotelEnabled: true,
     homeEnabled: true,
+    hotelAddonKobo: 1500000,
+    homeAddonKobo: 1000000,
     categorySlug: "massage",
     categoryName: "Massage therapy",
     vendor: olive
@@ -271,6 +293,8 @@ export const demoServices = [
     spaEnabled: true,
     hotelEnabled: false,
     homeEnabled: true,
+    hotelAddonKobo: 1500000,
+    homeAddonKobo: 1000000,
     categorySlug: "body",
     categoryName: "Body treatments",
     vendor: calm
@@ -288,6 +312,8 @@ export const demoServices = [
     spaEnabled: true,
     hotelEnabled: false,
     homeEnabled: false,
+    hotelAddonKobo: 1500000,
+    homeAddonKobo: 1000000,
     categorySlug: "spa",
     categoryName: "Spa treatments",
     vendor: olive
@@ -306,6 +332,8 @@ export const demoServices = [
     spaEnabled: true,
     hotelEnabled: true,
     homeEnabled: true,
+    hotelAddonKobo: 1500000,
+    homeAddonKobo: 1000000,
     categorySlug: "massage",
     categoryName: "Massage therapy",
     vendor: osun
@@ -325,8 +353,8 @@ export const demoFaqs = [
   },
   {
     id: "f3",
-    question: "What is the hotel or home surcharge?",
-    answer: "Administrators configure these amounts. Defaults are ₦0 for Spa/Office and ₦10,000 for Hotel or Home, itemized separately from the service price."
+    question: "What is the hotel or home service add-on?",
+    answer: "Spa/Office has no extra charge. Vendors set their own Hotel service and Home service add-on prices. The selected add-on is added to the treatment total."
   },
   {
     id: "f4",
@@ -399,6 +427,7 @@ export function demoSearch(filters: SearchFilters) {
     quote: quoteBooking({
       basePriceKobo: s.basePriceKobo,
       location: loc,
+      locationAddonKobo: locationAddonKobo(loc, s),
       entitlement: s.vendor.entitlement,
       config: DEFAULT_COMMERCIAL
     })

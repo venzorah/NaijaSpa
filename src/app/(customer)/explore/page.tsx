@@ -69,7 +69,7 @@ export default async function ExplorePage({
                   <h2 className="font-semibold">{r.service.name}</h2>
                   <p className="text-sm text-goldink">
                     {formatNgn(r.quote.basePriceKobo)}
-                    {r.quote.surchargeKobo > 0 ? ` + ${formatNgn(r.quote.surchargeKobo)} surcharge` : ""} · total {formatNgn(r.quote.customerTotalKobo)}
+                    {r.quote.surchargeKobo > 0 ? ` + ${formatNgn(r.quote.surchargeKobo)} add-on` : ""} · total {formatNgn(r.quote.customerTotalKobo)}
                   </p>
                   {r.vendor.publicPhone && <p className="text-xs">Phone {r.vendor.publicPhone}</p>}
                   {r.vendor.publicWhatsapp && (

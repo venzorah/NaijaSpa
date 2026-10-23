@@ -267,7 +267,7 @@ async function main() {
   for (const s of services) {
     const row = await prisma.service.upsert({
       where: { slug: s.slug },
-      update: {},
+      update: { hotelAddonKobo: 1500000, homeAddonKobo: 1000000 },
       create: {
         vendorId: s.vendor.vendor.id,
         categoryId: catIds[s.cat],
@@ -280,6 +280,8 @@ async function main() {
         spaEnabled: true,
         hotelEnabled: true,
         homeEnabled: s.slug.includes("home") || s.slug.includes("swedish"),
+        hotelAddonKobo: 1500000,
+        homeAddonKobo: 1000000,
         staff: { create: { staffId: s.vendor.staff.id } }
       }
     });
@@ -315,7 +317,7 @@ async function main() {
   const faqs = [
     ["How do bookings work?", "Choose a service, pick Spa/Office, Hotel or Home, select a time, then pay. The booking is only confirmed after payment is verified by NaijaSpa."],
     ["Why can’t I see a vendor’s WhatsApp?", "Public phone and WhatsApp are available only for vendors on an active paid plan, and only when the number is valid."],
-    ["What is the hotel or home surcharge?", "Administrators configure these amounts. Defaults are ₦0 for Spa/Office and ₦10,000 for Hotel or Home, itemized separately from the service price."],
+    ["What is the hotel or home service add-on?", "Spa/Office has no extra charge. Vendors set their own Hotel service and Home service add-on prices. The selected add-on is added to the treatment total."],
     ["Do you offer Darkroom?", "No. NaijaSpa is a professional spa and wellness marketplace only."]
   ];
   for (const [q, a] of faqs) {

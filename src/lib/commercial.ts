@@ -20,8 +20,8 @@ export interface CommercialConfig {
 
 export const DEFAULT_COMMERCIAL: CommercialConfig = {
   spaSurchargeKobo: 0,
-  hotelSurchargeKobo: 1_000_000,
-  homeSurchargeKobo: 1_000_000,
+  hotelSurchargeKobo: 0,
+  homeSurchargeKobo: 0,
   surchargeRecipient: "vendor",
   freeCommissionBps: 1000,
   paidCommissionBps: 0,
@@ -86,10 +86,21 @@ export function surchargeFor(location: LocationType, cfg: CommercialConfig): num
   return cfg.spaSurchargeKobo;
 }
 
+/** Vendor-set Hotel/Home add-on. Spa/Office is always ₦0 extra. */
+export function locationAddonKobo(
+  location: LocationType,
+  service: { hotelAddonKobo?: number | null; homeAddonKobo?: number | null }
+): number {
+  if (location === LOCATION_HOTEL) return Math.max(0, service.hotelAddonKobo ?? 0);
+  if (location === LOCATION_HOME) return Math.max(0, service.homeAddonKobo ?? 0);
+  return 0;
+}
+
 export interface QuoteInput {
   basePriceKobo: number;
   location: LocationType;
   addonKobo?: number;
+  locationAddonKobo?: number;
   discountKobo?: number;
   feesKobo?: number;
   entitlement: Entitlement;
@@ -115,7 +126,8 @@ export function quoteBooking(input: QuoteInput): Quote {
   const addonKobo = input.addonKobo ?? 0;
   const discountKobo = input.discountKobo ?? 0;
   const feesKobo = input.feesKobo ?? 0;
-  const surchargeKobo = surchargeFor(input.location, input.config);
+  const locationAddon = Math.max(0, input.locationAddonKobo ?? 0);
+  const surchargeKobo = locationAddon;
   const commissionBps = input.entitlement.activePaid
     ? input.config.paidCommissionBps
     : input.config.freeCommissionBps;

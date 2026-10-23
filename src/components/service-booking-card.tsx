@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { formatNairaPlain, locationLabel } from "@/lib/booking-ui";
+import { formatNairaPlain, locationAddonLabel, locationLabel } from "@/lib/booking-ui";
 import { BookingStepper } from "@/components/booking-stepper";
 import type { LocationType } from "@/lib/commercial";
 
@@ -132,23 +132,29 @@ export function ServiceBookingCard({
       {step === 1 && (
         <fieldset className="mt-5">
           <legend className="text-xs font-semibold uppercase tracking-wide text-ink2">1. Choose location</legend>
+          <p className="mt-1 text-xs text-ink2">Spa/Office has no extra. Hotel and Home add-ons are set by the vendor and added to the total.</p>
           <div className="mt-2 grid grid-cols-1 gap-2">
-            {quotes.map(({ l }) => (
+            {quotes.map(({ l, q }) => (
               <label
                 key={l}
-                className={`flex min-h-12 cursor-pointer items-center gap-3 rounded-2xl border px-4 text-sm font-semibold ${
+                className={`flex min-h-12 cursor-pointer items-center justify-between gap-3 rounded-2xl border px-4 text-sm font-semibold ${
                   locationType === l ? "border-forest bg-forest/10" : "border-line bg-bg"
                 }`}
               >
-                <input
-                  type="radio"
-                  name="location"
-                  value={l}
-                  className="accent-forest"
-                  checked={locationType === l}
-                  onChange={() => setLocationType(l)}
-                />
-                {locationLabel(l)}
+                <span className="flex items-center gap-3">
+                  <input
+                    type="radio"
+                    name="location"
+                    value={l}
+                    className="accent-forest"
+                    checked={locationType === l}
+                    onChange={() => setLocationType(l)}
+                  />
+                  {locationLabel(l)}
+                </span>
+                <span className="text-xs font-medium text-ink2">
+                  {l === "spa" || !q.surchargeKobo ? "No extra" : `+ ${formatNairaPlain(q.surchargeKobo)}`}
+                </span>
               </label>
             ))}
           </div>
@@ -211,7 +217,7 @@ export function ServiceBookingCard({
             <span>{formatNairaPlain(quote.basePriceKobo)}</span>
           </div>
           <div className="flex justify-between text-ink2">
-            <span>{locationLabel(locationType)} surcharge</span>
+            <span>{locationAddonLabel(locationType)}</span>
             <span>{quote.surchargeKobo ? formatNairaPlain(quote.surchargeKobo) : "₦0"}</span>
           </div>
           <div className="flex justify-between border-t border-line pt-2 font-bold">

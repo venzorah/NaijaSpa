@@ -9,9 +9,16 @@ export const BOOKING_STEPS = [
 
 export function locationLabel(location: LocationType | string) {
   if (location === "spa") return "Spa/Office";
-  if (location === "hotel") return "Hotel";
-  if (location === "home") return "Home";
+  if (location === "hotel") return "Hotel service";
+  if (location === "home") return "Home service";
   return location;
+}
+
+export function locationAddonLabel(location: LocationType | string) {
+  if (location === "spa") return "Spa/Office extra";
+  if (location === "hotel") return "Hotel service";
+  if (location === "home") return "Home service";
+  return "Add-on";
 }
 
 export function formatNairaPlain(kobo: number) {

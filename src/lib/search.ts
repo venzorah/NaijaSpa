@@ -1,4 +1,4 @@
-import { sanitizePublicVendor, quoteBooking } from "./commercial";
+import { locationAddonKobo, sanitizePublicVendor, quoteBooking } from "./commercial";
 import { usingDemoListings } from "./live-db";
 export type { SearchFilters } from "./search-types";
 import type { SearchFilters } from "./search-types";
@@ -85,6 +85,7 @@ export async function searchServices(filters: SearchFilters) {
     const quote = quoteBooking({
       basePriceKobo: row.basePriceKobo,
       location: loc,
+      locationAddonKobo: locationAddonKobo(loc, row),
       entitlement: ent,
       config
     });

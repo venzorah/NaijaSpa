@@ -12,7 +12,11 @@ export default function CommercialPage() {
   return (
     <div>
       <h1 className="font-display text-3xl">Commercial config</h1>
-      <p className="text-sm text-ink2">Free plan is ₦0 / 10% commission. Paid plan prices are not hardcoded — set them here.</p>
+      <p className="text-sm text-ink2">
+        Free plan is ₦0 / 10% commission. Paid plan prices are not hardcoded — set them here. Hotel and Home extras are
+        vendor-set per service (Spa/Office is always ₦0 extra). Keep platform surcharges at ₦0 unless you need a platform
+        fee on top.
+      </p>
       <form
         className="mt-6 grid max-w-xl gap-3"
         onSubmit={async (e) => {

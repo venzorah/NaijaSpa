@@ -1,5 +1,11 @@
 import { usingDemoListings } from "./live-db";
-import { quoteBooking, sanitizePublicVendor, DEFAULT_COMMERCIAL, type LocationType } from "./commercial";
+import {
+  quoteBooking,
+  sanitizePublicVendor,
+  DEFAULT_COMMERCIAL,
+  locationAddonKobo,
+  type LocationType
+} from "./commercial";
 import {
   demoCategories,
   demoFaqs,
@@ -171,7 +177,14 @@ function initialsName(name: string) {
 }
 
 function locationQuotes(
-  service: { basePriceKobo: number; spaEnabled: boolean; hotelEnabled: boolean; homeEnabled: boolean },
+  service: {
+    basePriceKobo: number;
+    spaEnabled: boolean;
+    hotelEnabled: boolean;
+    homeEnabled: boolean;
+    hotelAddonKobo?: number | null;
+    homeAddonKobo?: number | null;
+  },
   entitlement: Parameters<typeof quoteBooking>[0]["entitlement"],
   config: Parameters<typeof quoteBooking>[0]["config"]
 ) {
@@ -179,7 +192,13 @@ function locationQuotes(
     .filter((l) => (l === "spa" ? service.spaEnabled : l === "hotel" ? service.hotelEnabled : service.homeEnabled))
     .map((l) => ({
       l,
-      q: quoteBooking({ basePriceKobo: service.basePriceKobo, location: l, entitlement, config })
+      q: quoteBooking({
+        basePriceKobo: service.basePriceKobo,
+        location: l,
+        locationAddonKobo: locationAddonKobo(l, service),
+        entitlement,
+        config
+      })
     }));
 }
 
@@ -268,6 +287,7 @@ export async function quotePublicService(serviceId: string, location: LocationTy
     return quoteBooking({
       basePriceKobo: service.basePriceKobo,
       location,
+      locationAddonKobo: locationAddonKobo(location, service),
       entitlement: service.vendor.entitlement,
       config: DEFAULT_COMMERCIAL
     });
@@ -277,7 +297,13 @@ export async function quotePublicService(serviceId: string, location: LocationTy
   const service = await prisma.service.findUniqueOrThrow({ where: { id: serviceId } });
   const ent = await vendorEntitlement(service.vendorId);
   const config = await getCommercialConfig();
-  return quoteBooking({ basePriceKobo: service.basePriceKobo, location, entitlement: ent, config });
+  return quoteBooking({
+    basePriceKobo: service.basePriceKobo,
+    location,
+    locationAddonKobo: locationAddonKobo(location, service),
+    entitlement: ent,
+    config
+  });
 }
 
 export function getDemoCms(slug: string) {

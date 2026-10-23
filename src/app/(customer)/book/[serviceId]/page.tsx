@@ -2,7 +2,7 @@
 
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
-import { formatNairaPlain, locationLabel } from "@/lib/booking-ui";
+import { formatNairaPlain, locationAddonLabel, locationLabel } from "@/lib/booking-ui";
 import { BookingStepper } from "@/components/booking-stepper";
 
 type LocationType = "spa" | "hotel" | "home";
@@ -60,7 +60,8 @@ function BookForm() {
       <BookingStepper current={3} />
       <h1 className="mt-6 font-display text-4xl">Review total</h1>
       <p className="mt-2 text-sm text-ink2">
-        Confirm location and time. Payment is next. The booking is only confirmed after payment verification.
+        Confirm location and time. Spa/Office has no extra charge. Hotel and Home add-ons are set by the vendor and added
+        to the treatment total. Payment is next. The booking is only confirmed after payment verification.
       </p>
       <form
         className="mt-6 space-y-4"
@@ -136,7 +137,7 @@ function BookForm() {
               <span>{formatNairaPlain(quote.basePriceKobo)}</span>
             </div>
             <div className="flex justify-between text-ink2">
-              <span>{locationLabel(locationType)} surcharge</span>
+              <span>{locationAddonLabel(locationType)}</span>
               <span>{quote.surchargeKobo ? formatNairaPlain(quote.surchargeKobo) : "₦0"}</span>
             </div>
             <div className="flex justify-between border-t border-line pt-2 font-bold">

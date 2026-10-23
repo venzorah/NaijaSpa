@@ -3,6 +3,7 @@ import {
   DEFAULT_COMMERCIAL,
   FREE_ENTITLEMENT,
   entitlementFromPlan,
+  locationAddonKobo,
   quoteBooking,
   sanitizePublicVendor,
   toWhatsAppLink
@@ -18,10 +19,11 @@ const paidPlan = {
 };
 
 describe("commission and surcharges", () => {
-  it("charges 10% of base on free plan and excludes surcharge from commission", () => {
+  it("charges 10% of base on free plan and excludes location add-on from commission", () => {
     const q = quoteBooking({
       basePriceKobo: 20_000_00,
       location: "home",
+      locationAddonKobo: 1_000_000,
       entitlement: FREE_ENTITLEMENT,
       config: DEFAULT_COMMERCIAL
     });
@@ -30,6 +32,34 @@ describe("commission and surcharges", () => {
     expect(q.commissionKobo).toBe(200_000);
     expect(q.customerTotalKobo).toBe(3_000_000);
     expect(q.vendorPayableKobo).toBe(2_800_000);
+  });
+
+  it("never charges a spa extra even when hotel/home add-ons are set", () => {
+    const service = { hotelAddonKobo: 1_500_000, homeAddonKobo: 1_000_000 };
+    expect(locationAddonKobo("spa", service)).toBe(0);
+    expect(locationAddonKobo("hotel", service)).toBe(1_500_000);
+    expect(locationAddonKobo("home", service)).toBe(1_000_000);
+  });
+
+  it("adds vendor hotel/home add-ons to the total and keeps spa extra at ₦0", () => {
+    const spa = quoteBooking({
+      basePriceKobo: 20_000_00,
+      location: "spa",
+      locationAddonKobo: 0,
+      entitlement: FREE_ENTITLEMENT,
+      config: DEFAULT_COMMERCIAL
+    });
+    const hotel = quoteBooking({
+      basePriceKobo: 20_000_00,
+      location: "hotel",
+      locationAddonKobo: 1_500_000,
+      entitlement: FREE_ENTITLEMENT,
+      config: DEFAULT_COMMERCIAL
+    });
+    expect(spa.surchargeKobo).toBe(0);
+    expect(spa.customerTotalKobo).toBe(2_000_000);
+    expect(hotel.surchargeKobo).toBe(1_500_000);
+    expect(hotel.customerTotalKobo).toBe(3_500_000);
   });
 
   it("charges 0% commission on active paid plan", () => {

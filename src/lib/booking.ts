@@ -1,5 +1,5 @@
 import { prisma, getCommercialConfig } from "./db";
-import { quoteBooking, type LocationType } from "./commercial";
+import { locationAddonKobo, quoteBooking, type LocationType } from "./commercial";
 import { vendorEntitlement } from "./entitlements";
 import { audit } from "./audit";
 
@@ -74,6 +74,7 @@ export async function createBooking(input: {
     const quote = quoteBooking({
       basePriceKobo: service.basePriceKobo,
       location: loc,
+      locationAddonKobo: locationAddonKobo(loc, service),
       addonKobo,
       discountKobo,
       entitlement,
