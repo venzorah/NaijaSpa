@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { BadgeCheck, ChevronLeft, ChevronRight, Clock, Heart, MapPin, Star } from "lucide-react";
 import { formatNgn } from "@/lib/money";
 import type { HomeCard } from "@/lib/home-types";
 import { useAutoScroll } from "@/hooks/use-auto-scroll";
@@ -52,7 +52,7 @@ export function ServiceCarousel({
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <Link href={seeAllHref} className="hidden text-sm font-semibold text-goldink sm:inline">
-            See all
+            Browse all →
           </Link>
           <button
             type="button"
@@ -77,59 +77,97 @@ export function ServiceCarousel({
         className="no-scrollbar mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 lg:px-8"
       >
         {cards.map((card) => (
-          <ServiceTile key={`${id}-${card.service.id}`} card={card} accent={accent} />
+          <ServiceFeedCard key={`${id}-${card.service.id}`} card={card} />
         ))}
       </div>
       <div className="mt-2 px-4 sm:hidden lg:px-8">
         <Link href={seeAllHref} className="text-sm font-semibold text-goldink">
-          See all {title.toLowerCase()} →
+          Browse all {title.toLowerCase()} →
         </Link>
       </div>
     </section>
   );
 }
 
-function ServiceTile({ card, accent }: { card: HomeCard; accent: "gold" | "leaf" }) {
-  const { service, vendor, badge, sponsored, compareAtKobo } = card;
-  const badgeLabel = badge || (sponsored ? "Sponsored" : null);
+function ServiceFeedCard({ card }: { card: HomeCard }) {
+  const { service, vendor, badge, tags = [], nextLabel, compareAtKobo } = card;
+  const verified = vendor.verificationStatus === "verified";
+  const vip = badge === "Premium" || badge === "Featured";
+  const photo = vendor.logoUrl && !vendor.logoUrl.includes("icon-white") ? vendor.logoUrl : service.imageUrl || "/brand/icon-green.png";
+
   return (
-    <Link
-      href={`/services/${service.slug}`}
-      className="w-[16.75rem] shrink-0 snap-start overflow-hidden rounded-3xl border border-line bg-card sm:w-[18.5rem]"
-    >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={service.imageUrl || "/brand/icon-green.png"} alt="" className="h-40 w-full object-cover" />
-      <div className="p-4">
-        <div className="flex items-center gap-2">
-          <p className="min-w-0 truncate text-xs text-ink2">
-            {vendor.businessName}
-            {vendor.neighbourhood ? ` · ${vendor.neighbourhood}` : ""}
-          </p>
-          {badgeLabel && (
-            <span
-              className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
-                accent === "leaf" ? "bg-leaf/15 text-leaf" : "bg-gold/20 text-goldink"
-              }`}
-            >
-              {badgeLabel}
-            </span>
-          )}
+    <article className="flex w-[18.5rem] shrink-0 snap-start flex-col rounded-[1.35rem] border border-line bg-card p-4 shadow-sm sm:w-[19.5rem]">
+      <div className="flex items-start gap-3">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={photo} alt="" className="h-14 w-14 shrink-0 rounded-full object-cover" />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="font-semibold leading-snug">{vendor.businessName}</h3>
+            <Heart className="mt-0.5 h-4 w-4 shrink-0 text-ink2" aria-hidden />
+          </div>
+          <p className="mt-0.5 line-clamp-2 text-xs text-ink2">{service.name}</p>
         </div>
-        <h3 className="mt-1 font-semibold leading-snug">{service.name}</h3>
-        <p className="mt-1 text-sm text-goldink">
-          {compareAtKobo != null && compareAtKobo > service.basePriceKobo && (
-            <span className="mr-1 text-ink2 line-through">{formatNgn(compareAtKobo)}</span>
-          )}
-          from {formatNgn(service.basePriceKobo)} · {service.durationMin} min
-        </p>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
         {typeof vendor.ratingAvg === "number" && vendor.ratingAvg > 0 && (
-          <p className="mt-1 text-xs text-ink2">
+          <span className="inline-flex items-center gap-1 font-semibold">
+            <Star className="h-3.5 w-3.5 fill-gold text-gold" aria-hidden />
             {vendor.ratingAvg.toFixed(1)}
-            {vendor.reviewCount ? ` · ${vendor.reviewCount} reviews` : ""}
-          </p>
+            {vendor.reviewCount ? <span className="font-normal text-ink2">({vendor.reviewCount})</span> : null}
+          </span>
+        )}
+        {verified && (
+          <span className="inline-flex items-center gap-1 text-ink2">
+            <BadgeCheck className="h-3.5 w-3.5 text-leaf" aria-hidden />
+            Verified
+          </span>
         )}
       </div>
-    </Link>
+
+      {vip && (
+        <span className="mt-3 inline-flex w-fit rounded-full bg-gold/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-goldink">
+          VIP
+        </span>
+      )}
+
+      {tags.length > 0 && (
+        <ul className="mt-3 flex flex-wrap gap-1.5">
+          {tags.map((tag) => (
+            <li key={tag} className="rounded-full bg-elev px-2.5 py-1 text-[11px] text-ink2">
+              {tag}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <p className="mt-3 inline-flex items-center gap-1.5 text-xs text-ink2">
+        <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
+        {[vendor.neighbourhood, vendor.city].filter(Boolean).join(", ")}
+      </p>
+      {nextLabel && (
+        <p className="mt-1 inline-flex items-center gap-1.5 text-xs text-ink2">
+          <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          {nextLabel}
+        </p>
+      )}
+
+      <div className="mt-auto flex items-end justify-between gap-3 pt-5">
+        <p className="text-lg font-bold leading-none">
+          {compareAtKobo != null && compareAtKobo > service.basePriceKobo && (
+            <span className="mr-1 text-xs font-normal text-ink2 line-through">{formatNgn(compareAtKobo)}</span>
+          )}
+          {formatNgn(service.basePriceKobo)}
+          <span className="ml-1 text-xs font-normal text-ink2">/ {service.durationMin} min</span>
+        </p>
+        <Link
+          href={`/services/${service.slug}`}
+          className="inline-flex min-h-10 items-center rounded-full bg-ink px-4 text-xs font-bold text-bg"
+        >
+          View & book
+        </Link>
+      </div>
+    </article>
   );
 }
 

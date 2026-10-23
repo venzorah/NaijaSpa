@@ -49,8 +49,8 @@ export default async function HomePage() {
 
       <ServiceCarousel
         id="featured-services"
-        title="Featured"
-        subtitle="Hand-picked treatments and sponsored placements from verified providers."
+        title="Top-rated near you"
+        subtitle="Ranked by completed sessions, rating consistency and repeat-client rate — not by who pays for placement."
         seeAllHref="/explore"
         cards={rails.featured}
       />

@@ -347,6 +347,23 @@ export function demoSearch(filters: SearchFilters) {
   return { total: rows.length, page, results };
 }
 
+const NEXT_SLOTS = ["Today, 4:30 PM", "Tomorrow, 9:00 AM", "Fri, 11:00 AM", "Today, 7:00 PM"];
+
+function nextLabelFor(id: string) {
+  let n = 0;
+  for (let i = 0; i < id.length; i++) n += id.charCodeAt(i);
+  return `Next: ${NEXT_SLOTS[n % NEXT_SLOTS.length]}`;
+}
+
+function tagsFor(s: { categoryName?: string; spaEnabled?: boolean; hotelEnabled?: boolean; homeEnabled?: boolean }) {
+  const tags: string[] = [];
+  if (s.categoryName) tags.push(s.categoryName.replace(/ treatments?$/i, ""));
+  if (s.spaEnabled) tags.push("Spa");
+  if (s.hotelEnabled) tags.push("Hotel");
+  if (s.homeEnabled) tags.push("Home");
+  return tags.slice(0, 4);
+}
+
 function toHomeCard(
   s: (typeof demoServices)[number],
   extra: Partial<Pick<HomeCard, "badge" | "sponsored" | "compareAtKobo">> = {}
@@ -368,8 +385,11 @@ function toHomeCard(
       neighbourhood: vendor.neighbourhood,
       ratingAvg: vendor.ratingAvg,
       reviewCount: vendor.reviewCount,
-      verificationStatus: vendor.verificationStatus
+      verificationStatus: vendor.verificationStatus,
+      logoUrl: vendor.logoUrl
     },
+    tags: tagsFor(s),
+    nextLabel: nextLabelFor(s.id),
     sponsored: extra.sponsored ?? s.vendor.entitlement.sponsoredEligible,
     badge: extra.badge,
     compareAtKobo: extra.compareAtKobo ?? ("compareAtKobo" in s ? (s as { compareAtKobo?: number }).compareAtKobo : undefined)

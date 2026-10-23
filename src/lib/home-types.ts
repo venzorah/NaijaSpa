@@ -15,7 +15,10 @@ export type HomeCard = {
     ratingAvg: number;
     reviewCount?: number;
     verificationStatus?: string;
+    logoUrl?: string | null;
   };
+  tags?: string[];
+  nextLabel?: string;
   badge?: string;
   sponsored?: boolean;
   compareAtKobo?: number;

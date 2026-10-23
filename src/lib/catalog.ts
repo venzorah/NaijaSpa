@@ -79,6 +79,9 @@ export async function getHomeCatalog() {
   const cardFromService = (s: (typeof services)[number], badge?: string, sponsored?: boolean): HomeCard => {
     const ent = entitlements.get(s.vendorId)!;
     const vendor = sanitizePublicVendor(s.vendor, ent);
+    const tags = [s.category?.name, s.spaEnabled && "Spa", s.hotelEnabled && "Hotel", s.homeEnabled && "Home"].filter(
+      Boolean
+    ) as string[];
     return {
       service: compactService(s),
       vendor: {
@@ -88,8 +91,11 @@ export async function getHomeCatalog() {
         neighbourhood: vendor.neighbourhood,
         ratingAvg: vendor.ratingAvg,
         reviewCount: vendor.reviewCount,
-        verificationStatus: vendor.verificationStatus
+        verificationStatus: vendor.verificationStatus,
+        logoUrl: vendor.logoUrl
       },
+      tags: tags.slice(0, 4),
+      nextLabel: "Next: Book a time",
       badge,
       sponsored
     };
