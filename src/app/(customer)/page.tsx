@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Sparkles } from "lucide-react";
-import { getHomeCatalog, usingDemoListings } from "@/lib/catalog";
+import { getHomeCatalog } from "@/lib/catalog";
 import { CategoryCarousel } from "@/components/category-carousel";
 import { HeroSlider } from "@/components/hero-slider";
 import { ParallaxBand } from "@/components/parallax-band";
@@ -17,17 +17,9 @@ function greeting() {
 
 export default async function HomePage() {
   const { categories, rails, nearby, faqs } = await getHomeCatalog();
-  const demo = usingDemoListings();
 
   return (
     <div>
-      {demo && (
-        <p className="border-b border-gold/30 bg-gold/10 px-4 py-2 text-center text-xs text-goldink">
-          Preview listings are showing until a live database is connected on this host. They are removed automatically when{" "}
-          <code>DATABASE_URL</code> points at production Postgres.
-        </p>
-      )}
-
       <HeroSlider greeting={`${greeting()},`} categories={categories} />
 
       <CategoryCarousel categories={categories} />
