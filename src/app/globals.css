@@ -45,6 +45,11 @@ html.dark {
   --c-leaf: #5fd3a5;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 html,
 body {
   background: var(--c-bg);
@@ -52,6 +57,29 @@ body {
   font-family: var(--font-sans);
   min-height: 100%;
   max-width: 100%;
+}
+
+/* 16px inputs stop iPhone from auto-zooming on focus (and leaving the page scaled). */
+input,
+select,
+textarea,
+button {
+  touch-action: manipulation;
+}
+
+input,
+select,
+textarea {
+  font-size: 1rem;
+  max-width: 100%;
+  min-width: 0;
+}
+
+select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23064E3B' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2.25rem;
 }
 
 input[type="datetime-local"],

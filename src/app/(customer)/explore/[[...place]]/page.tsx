@@ -66,7 +66,7 @@ export default async function ExplorePage({
       <PlaceSync place={pathPlace} />
       <h1 className="font-display text-3xl">{label ? `Explore ${label}` : "Explore"}</h1>
       <p className="mt-2 text-sm text-ink2">
-        We show therapists in your city first. Search with state, city and area to keep only that exact place.
+        We show therapists in your city first. Search with state and city to keep only that place.
       </p>
       <SearchFiltersForm
         locateTo="explore"
@@ -90,7 +90,7 @@ export default async function ExplorePage({
       {data.results.length === 0 ? (
         <p className="mt-10 text-ink2">
           {filtered
-            ? "No available therapists in that exact location. Try another city, area or gender."
+            ? "No available therapists in that location. Try another city or state."
             : "No services match those filters."}
         </p>
       ) : (

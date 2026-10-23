@@ -8,7 +8,7 @@ import { exploreHref, inHref } from "@/lib/place-urls";
 import { persistLivePlace } from "@/components/place-sync";
 
 function fieldClass() {
-  return "min-h-12 w-full rounded-2xl border-2 border-forest/25 bg-white px-3 text-sm text-ink outline-none placeholder:text-ink2 focus:border-forest dark:bg-elev";
+  return "box-border min-h-12 w-full min-w-0 max-w-full appearance-none rounded-2xl border-2 border-forest/25 bg-white px-3 text-base leading-normal text-ink outline-none placeholder:text-ink2 focus:border-forest dark:bg-elev";
 }
 
 function readStoredPlace(): LivePlace | null {
@@ -80,7 +80,6 @@ export function SearchFiltersForm({
     router.push(
       exploreHref(next, {
         q: extra?.q || values?.q,
-        gender: extra?.gender || values?.gender,
         location: extra?.location || values?.location
       })
     );
@@ -126,13 +125,12 @@ export function SearchFiltersForm({
     const next = {
       state: String(fd.get("state") || ""),
       city: String(fd.get("city") || ""),
-      neighbourhood: String(fd.get("neighbourhood") || "")
+      neighbourhood: ""
     };
-    if (next.state || next.city || next.neighbourhood) persistLivePlace(next);
+    if (next.state || next.city) persistLivePlace({ ...place, ...next });
     router.push(
       exploreHref(next, {
         q: String(fd.get("q") || "") || undefined,
-        gender: String(fd.get("gender") || "") || undefined,
         location: String(fd.get("location") || "") || undefined
       })
     );
@@ -142,28 +140,28 @@ export function SearchFiltersForm({
     <form
       action="/explore"
       onSubmit={onSubmit}
-      className={`mt-5 rounded-[1.75rem] border-2 border-forest bg-white p-4 shadow-[0_16px_40px_rgba(6,78,59,0.14)] dark:bg-card sm:p-5 ${compact ? "" : ""}`}
+      className="mt-5 w-full min-w-0 max-w-full overflow-x-clip rounded-[1.75rem] border-2 border-forest bg-white p-4 shadow-[0_16px_40px_rgba(6,78,59,0.14)] dark:bg-card sm:p-5"
     >
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="font-display text-2xl leading-none text-forest dark:text-gold">Find a therapist</p>
-          <p className="mt-1 text-sm text-ink2">{hint || "Search by state, city, area and preferred gender."}</p>
+      <div className="mb-4 flex min-w-0 flex-col gap-3">
+        <div className="min-w-0">
+          <p className="font-display text-2xl leading-tight text-forest dark:text-gold">Find a therapist</p>
+          <p className="mt-1 text-sm leading-snug text-ink2">{hint || "Search by treatment, state and city."}</p>
         </div>
         <button
           type="button"
           onClick={() => void useMyLocation()}
-          className="inline-flex min-h-11 items-center gap-2 rounded-full border-2 border-gold bg-gold/15 px-4 text-sm font-bold text-forest dark:text-gold"
+          className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border-2 border-gold bg-gold/15 px-4 text-base font-bold text-forest dark:text-gold sm:w-auto"
         >
-          <MapPin className="h-4 w-4" aria-hidden />
+          <MapPin className="h-4 w-4 shrink-0" aria-hidden />
           {locating ? "Locating…" : "Use my location"}
         </button>
       </div>
-      <div className={`grid gap-3 ${compact ? "sm:grid-cols-2" : "md:grid-cols-3 lg:grid-cols-4"}`}>
-        <label className={compact ? "sm:col-span-2" : "md:col-span-2"}>
+      <div className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+        <label className="min-w-0 md:col-span-2 lg:col-span-2">
           <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-forest">Treatment or therapist</span>
           <input name="q" defaultValue={values?.q} placeholder="Nuru, Swedish, couples…" className={fieldClass()} />
         </label>
-        <label>
+        <label className="min-w-0">
           <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-forest">State</span>
           <select name="state" value={place.state} onChange={(e) => setPlace((p) => ({ ...p, state: e.target.value }))} className={fieldClass()}>
             <option value="">All states</option>
@@ -174,7 +172,7 @@ export function SearchFiltersForm({
             ))}
           </select>
         </label>
-        <label>
+        <label className="min-w-0">
           <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-forest">City</span>
           <input
             name="city"
@@ -184,25 +182,7 @@ export function SearchFiltersForm({
             className={fieldClass()}
           />
         </label>
-        <label>
-          <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-forest">Location / area</span>
-          <input
-            name="neighbourhood"
-            value={place.neighbourhood}
-            onChange={(e) => setPlace((p) => ({ ...p, neighbourhood: e.target.value }))}
-            placeholder="e.g. Lekki"
-            className={fieldClass()}
-          />
-        </label>
-        <label>
-          <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-forest">Preferred gender</span>
-          <select name="gender" defaultValue={values?.gender || ""} className={fieldClass()}>
-            <option value="">Any</option>
-            <option value="female">Female</option>
-            <option value="male">Male</option>
-          </select>
-        </label>
-        <label>
+        <label className="min-w-0">
           <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-forest">Where</span>
           <select name="location" defaultValue={values?.location || ""} className={fieldClass()}>
             <option value="">Spa, hotel or home</option>
@@ -211,8 +191,10 @@ export function SearchFiltersForm({
             <option value="home">Home</option>
           </select>
         </label>
-        <div className="flex items-end">
-          <button className="min-h-12 w-full rounded-full bg-gold text-base font-bold text-ongold">Search</button>
+        <div className="flex min-w-0 items-end md:col-span-2 lg:col-span-1">
+          <button type="submit" className="min-h-12 w-full rounded-full bg-gold text-base font-bold text-ongold">
+            Search
+          </button>
         </div>
       </div>
     </form>

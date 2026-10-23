@@ -68,7 +68,7 @@ export function HeroSlider({
   }, [paused, go, index]);
 
   return (
-    <section className="mx-auto max-w-7xl px-4 pb-2 pt-5 lg:px-8">
+    <section className="mx-auto w-full min-w-0 max-w-7xl px-4 pb-2 pt-5 lg:px-8">
       <p className="mb-4 text-sm text-ink2">{greeting}</p>
       <div className="grid items-stretch gap-4 lg:grid-cols-[220px_minmax(0,1fr)_220px] xl:grid-cols-[240px_minmax(0,1fr)_240px]">
         <nav
