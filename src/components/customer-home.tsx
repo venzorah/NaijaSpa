@@ -61,8 +61,8 @@ export function CustomerHome({
         title="Top-rated near you"
         subtitle={
           place?.city || place?.state
-            ? `Therapists in ${[place.neighbourhood, place.city, place.state].filter(Boolean).join(", ")} show first, then others across Nigeria.`
-            : "Allow location on first visit to see therapists in your city first, then others."
+            ? `Every therapist in ${place.state === "FCT" ? "Abuja / FCT" : place.state || "your state"}, with ${[place.neighbourhood, place.city].filter(Boolean).join(", ") || "your area"} shown first.`
+            : "Allow location on first visit to see every therapist in your state, closest first."
         }
         seeAllHref={browse()}
         cards={rails.featured}
@@ -102,7 +102,7 @@ export function CustomerHome({
         cta="See couples bookings"
       />
 
-      <VendorCarousel title="Nearby spas & studios" vendors={nearby} />
+      <VendorCarousel title="Spas & studios in your state" vendors={nearby} />
 
       <section className="mx-auto mt-10 max-w-7xl px-4 lg:px-8">
         <h2 className="font-display text-2xl">How NaijaSpa works</h2>

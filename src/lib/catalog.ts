@@ -28,7 +28,7 @@ import {
   type NearbyVendor
 } from "./home-types";
 import { publicVideoLinks } from "./galleries";
-import { sortByPlace, type LivePlace } from "./nigeria";
+import { filterByServiceArea, sortByPlace, type LivePlace } from "./nigeria";
 import { type HomeHeroPayload } from "./home-hero";
 import { PHOTOS, publicWellnessPhoto } from "./photos";
 
@@ -81,7 +81,7 @@ function demoHomePayload(limits: HomeFeedConfig, place?: LivePlace | null, hero?
     demo: true as const,
     categories: demoCategories,
     rails: demoHomeRails(limits, place),
-    nearby: sortByPlace(demoNearbyVendors(), place, (v) => v).slice(0, limits.nearby),
+    nearby: sortByPlace(filterByServiceArea(demoNearbyVendors(), place, (v) => v), place, (v) => v).slice(0, limits.nearby),
     faqs: demoFaqs,
     hero: hero ?? demoHomeHero()
   };
@@ -178,29 +178,49 @@ export async function getHomeCatalog(place?: LivePlace | null) {
   };
 
   const allCards = sortByPlace(
-    services.map((s) => {
-      const ent = entitlements.get(s.vendorId)!;
-      const sponsored = campaigns.some((c) => c.vendorId === s.vendorId);
-      return cardFromService(s, ent.activePaid ? "Premium" : sponsored ? "Featured" : undefined, sponsored);
-    }),
+    filterByServiceArea(
+      services.map((s) => {
+        const ent = entitlements.get(s.vendorId)!;
+        const sponsored = campaigns.some((c) => c.vendorId === s.vendorId);
+        return cardFromService(s, ent.activePaid ? "Premium" : sponsored ? "Featured" : undefined, sponsored);
+      }),
+      place,
+      (c) => c.vendor
+    ),
     place,
     (c) => c.vendor
   );
   const premiumPool = sortByPlace(
-    services.filter((s) => entitlements.get(s.vendorId)?.enhancedVisibility).map((s) => cardFromService(s, "Premium")),
+    filterByServiceArea(
+      services.filter((s) => entitlements.get(s.vendorId)?.enhancedVisibility).map((s) => cardFromService(s, "Premium")),
+      place,
+      (c) => c.vendor
+    ),
     place,
     (c) => c.vendor
   );
   const promoPool = sortByPlace(
-    [...services].sort((a, b) => a.basePriceKobo - b.basePriceKobo).map((s) => cardFromService(s, "Promo")),
+    filterByServiceArea(
+      [...services].sort((a, b) => a.basePriceKobo - b.basePriceKobo).map((s) => cardFromService(s, "Promo")),
+      place,
+      (c) => c.vendor
+    ),
     place,
     (c) => c.vendor
   );
 
   const rails: HomeRails = {
-    featured: sortByPlace(fill(featured, allCards, "Featured", limits.featured), place, (c) => c.vendor),
-    premium: sortByPlace(fill(premiumFromAds, premiumPool.length ? premiumPool : allCards, "Premium", limits.premium), place, (c) => c.vendor),
-    promo: sortByPlace(fill(promo, promoPool, "Promo", limits.promo), place, (c) => c.vendor)
+    featured: sortByPlace(
+      fill(filterByServiceArea(featured, place, (c) => c.vendor), allCards, "Featured", limits.featured),
+      place,
+      (c) => c.vendor
+    ),
+    premium: sortByPlace(
+      fill(filterByServiceArea(premiumFromAds, place, (c) => c.vendor), premiumPool.length ? premiumPool : allCards, "Premium", limits.premium),
+      place,
+      (c) => c.vendor
+    ),
+    promo: sortByPlace(fill(filterByServiceArea(promo, place, (c) => c.vendor), promoPool, "Promo", limits.promo), place, (c) => c.vendor)
   };
 
   const nearbyMap = new Map<string, NearbyVendor>();
@@ -221,7 +241,7 @@ export async function getHomeCatalog(place?: LivePlace | null) {
     demo: false,
     categories,
     rails,
-    nearby: sortByPlace([...nearbyMap.values()], place, (v) => v).slice(0, limits.nearby),
+    nearby: sortByPlace(filterByServiceArea([...nearbyMap.values()], place, (v) => v), place, (v) => v).slice(0, limits.nearby),
     faqs,
     hero
   };

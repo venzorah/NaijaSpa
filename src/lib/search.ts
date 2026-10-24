@@ -2,7 +2,7 @@ import { locationAddonKobo, sanitizePublicVendor, quoteBooking } from "./commerc
 import { collectExploreCities, type ExploreCityFilters } from "./explore-cities";
 import { PHOTOS, firstWellnessPhoto, publicWellnessPhoto } from "./photos";
 import { usingDemoListings } from "./live-db";
-import { placeRank, prismaEquals, vendorMatchesPlace } from "./nigeria";
+import { placeRank, prismaServiceAreaFilter, serviceAreaState, vendorMatchesPlace } from "./nigeria";
 import { tokenizeSearch } from "./query-match";
 export type { SearchFilters } from "./search-types";
 export type { ExploreCityCard, ExploreCityFilters } from "./explore-cities";
@@ -40,7 +40,7 @@ async function liveExploreCities(filters: ExploreCityFilters) {
     where: {
       visibility: "public",
       applicationStatus: "approved",
-      ...(filters.state ? { state: prismaEquals(filters.state) } : {}),
+      ...(serviceAreaState(filters) ? prismaServiceAreaFilter(serviceAreaState(filters)) : {}),
       staff: { some: { active: true } },
       services: { some: { active: true } }
     },
@@ -69,6 +69,7 @@ async function searchLive(filters: SearchFilters) {
       { staff: { some: { staff: { name: contains(token) } } } }
     ]
   });
+  const areaState = serviceAreaState(filters);
   const where: Record<string, unknown> = {
     active: true,
     vendor: {
@@ -76,17 +77,10 @@ async function searchLive(filters: SearchFilters) {
         {
           visibility: "public",
           applicationStatus: "approved",
-          ...(filters.state ? { state: prismaEquals(filters.state) } : {}),
           ...(filters.verified ? { verificationStatus: "verified" } : {}),
           ...(filters.minRating ? { ratingAvg: { gte: filters.minRating } } : {})
         },
-        ...(filters.city && filters.neighbourhood
-          ? [{ city: prismaEquals(filters.city), neighbourhood: prismaEquals(filters.neighbourhood) }]
-          : filters.city
-            ? [{ OR: [{ city: prismaEquals(filters.city) }, { neighbourhood: prismaEquals(filters.city) }] }]
-            : filters.neighbourhood
-              ? [{ neighbourhood: prismaEquals(filters.neighbourhood) }]
-              : [])
+        ...(areaState ? [prismaServiceAreaFilter(areaState)] : [])
       ]
     },
     ...(filters.category ? { category: { slug: filters.category } } : {}),

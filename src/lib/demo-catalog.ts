@@ -22,7 +22,7 @@ export { demoHomeHero } from "./home-hero";
 import type { SearchFilters } from "./search-types";
 import { CATEGORY_SYNONYMS, listingHaystack, queryMatchesListing, tokenHitCount } from "./query-match";
 import { collectExploreCities, type ExploreCityFilters } from "./explore-cities";
-import { sortByPlace, vendorMatchesPlace, type LivePlace } from "./nigeria";
+import { filterByServiceArea, sortByPlace, vendorMatchesPlace, type LivePlace } from "./nigeria";
 
 const paidEnt: Entitlement = {
   planCode: "MONTHLY",
@@ -621,10 +621,14 @@ export function demoHomeCards() {
 export function demoHomeRails(limits: HomeFeedConfig = DEFAULT_HOME_FEED_CONFIG, place?: LivePlace | null): HomeRails {
   const byId = (ids: string[], extra?: Partial<Pick<HomeCard, "badge" | "sponsored">>) =>
     sortByPlace(
-      ids
-        .map((id) => demoServices.find((s) => s.id === id))
-        .filter((s): s is (typeof demoServices)[number] => Boolean(s))
-        .map((s) => toHomeCard(s, extra)),
+      filterByServiceArea(
+        ids
+          .map((id) => demoServices.find((s) => s.id === id))
+          .filter((s): s is (typeof demoServices)[number] => Boolean(s))
+          .map((s) => toHomeCard(s, extra)),
+        place,
+        (c) => c.vendor
+      ),
       place,
       (c) => c.vendor
     );

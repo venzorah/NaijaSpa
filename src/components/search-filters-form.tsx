@@ -3,7 +3,7 @@
 import { MapPin } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
-import { NIGERIA_STATES, PLACE_COOKIE, parsePlaceCookie, type LivePlace } from "@/lib/nigeria";
+import { NIGERIA_STATES, PLACE_COOKIE, nigeriaStateLabel, parsePlaceCookie, type LivePlace } from "@/lib/nigeria";
 import { exploreHref, inHref } from "@/lib/place-urls";
 import { persistLivePlace } from "@/components/place-sync";
 
@@ -113,7 +113,7 @@ export function SearchFiltersForm({
       },
       () => {
         setLocating(false);
-        setHint("Allow location to see therapists in your city first.");
+        setHint("Allow location to see therapists in your state, closest first.");
       },
       { enableHighAccuracy: false, timeout: 12000, maximumAge: 60_000 }
     );
@@ -145,7 +145,7 @@ export function SearchFiltersForm({
       <div className="mb-4 flex min-w-0 flex-col gap-3">
         <div className="min-w-0">
           <p className="font-display text-2xl leading-tight text-forest dark:text-gold">Find a therapist</p>
-          <p className="mt-1 text-sm leading-snug text-ink2">{hint || "Search by treatment, state and city."}</p>
+          <p className="mt-1 text-sm leading-snug text-ink2">{hint || "Search a state to see every therapist there. Your area is used to sort."}</p>
         </div>
         <button
           type="button"
@@ -167,7 +167,7 @@ export function SearchFiltersForm({
             <option value="">All states</option>
             {NIGERIA_STATES.map((state) => (
               <option key={state} value={state}>
-                {state}
+                {nigeriaStateLabel(state)}
               </option>
             ))}
           </select>

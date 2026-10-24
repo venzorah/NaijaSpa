@@ -1,6 +1,6 @@
 import { firstWellnessPhoto, PHOTOS } from "./photos";
 import { exploreHref } from "./place-urls";
-import { normalizePlace, placesEqual } from "./nigeria";
+import { normalizePlace, placesEqual, sameServiceArea } from "./nigeria";
 
 export type ExploreCityCard = {
   state: string;
@@ -54,7 +54,7 @@ export function collectExploreCities(rows: PlaceRow[], opts: ExploreCityFilters 
 
   for (const row of rows) {
     const state = (row.state || "").trim();
-    if (opts.state && state && !placesEqual(state, opts.state)) continue;
+    if (opts.state && state && !sameServiceArea({ state, city: row.city }, { state: opts.state, city: "", neighbourhood: "" })) continue;
     bump(state, row.city, row.coverUrl);
     if (row.neighbourhood && !placesEqual(row.neighbourhood, row.city)) {
       bump(state, row.neighbourhood, row.coverUrl);

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { NIGERIA_STATES } from "@/lib/nigeria";
+import { NIGERIA_STATES, nigeriaStateLabel } from "@/lib/nigeria";
 
 function LightLogo({ className }: { className?: string }) {
   return (
@@ -320,13 +320,22 @@ export function VendorOnboarding() {
                   <>
                     <label>
                       <span className={labelClass}>State</span>
-                      <select className={fieldClass} value={form.state} onChange={(e) => set("state", e.target.value)}>
+                      <select
+                        className={fieldClass}
+                        value={form.state}
+                        onChange={(e) => {
+                          const state = e.target.value;
+                          set("state", state);
+                          if (state === "FCT" && !form.city) set("city", "Abuja");
+                        }}
+                      >
                         {NIGERIA_STATES.map((s) => (
                           <option key={s} value={s}>
-                            {s}
+                            {nigeriaStateLabel(s)}
                           </option>
                         ))}
                       </select>
+                      <p className="mt-1 text-sm text-white/65">You can take bookings from anywhere in this state. Abuja / FCT covers the whole territory.</p>
                     </label>
                     <label>
                       <span className={labelClass}>City</span>

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { searchServices, type SearchFilters } from "./search";
 import type { LocationType } from "./commercial";
-import { NIGERIA_STATES, placeRank, type LivePlace } from "./nigeria";
+import { NIGERIA_STATES, placeRank, serviceAreaState, type LivePlace } from "./nigeria";
 import { haystackHasToken, tokenizeSearch } from "./query-match";
 
 const FilterSchema = z.object({
@@ -165,9 +165,7 @@ function toSearchFilters(filters: ParsedFilters, extra: Partial<SearchFilters> =
   const place = rankPlaceFrom(filters);
   return {
     q: filters.q,
-    state: filters.state,
-    city: filters.city,
-    neighbourhood: filters.neighbourhood,
+    state: serviceAreaState(filters) || filters.state,
     gender: filters.gender,
     category: filters.category,
     maxPrice: filters.maxPriceNaira ? filters.maxPriceNaira * 100 : undefined,

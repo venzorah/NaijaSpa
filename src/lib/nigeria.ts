@@ -54,19 +54,57 @@ export function prismaEquals(value: string) {
   return { equals: value.trim() };
 }
 
+/** Canonical Nigerian state / FCT for coverage. Abuja maps to FCT. */
+export function serviceAreaState(place?: { state?: string; city?: string; neighbourhood?: string } | null) {
+  if (!place) return "";
+  return mapNigeriaState(place.state) || mapNigeriaState(place.city) || "";
+}
+
+export function nigeriaStateLabel(state: string) {
+  return state === "FCT" ? "Abuja / FCT" : state;
+}
+
+export function serviceAreaAliases(state: string) {
+  const canonical = mapNigeriaState(state) || state.trim();
+  if (!canonical) return [];
+  if (canonical === "FCT") return ["FCT", "Abuja", "Federal Capital Territory"];
+  return [canonical];
+}
+
+export function sameServiceArea(
+  vendor: { state?: string; city?: string; neighbourhood?: string },
+  place?: { state?: string; city?: string; neighbourhood?: string } | null
+) {
+  const area = serviceAreaState(place);
+  const vendorArea = serviceAreaState(vendor);
+  return Boolean(area && vendorArea && area === vendorArea);
+}
+
+export function prismaServiceAreaFilter(state: string) {
+  const aliases = serviceAreaAliases(state);
+  if (!aliases.length) return {};
+  return {
+    OR: aliases.flatMap((alias) => [{ state: prismaEquals(alias) }, { city: prismaEquals(alias) }])
+  };
+}
+
+export function filterByServiceArea<T>(
+  rows: T[],
+  place: LivePlace | null | undefined,
+  vendorOf: (row: T) => { state?: string; city?: string; neighbourhood?: string }
+) {
+  if (!serviceAreaState(place)) return rows;
+  return rows.filter((row) => sameServiceArea(vendorOf(row), place));
+}
+
+/** Therapists cover their whole state. City/area is ranking only. */
 export function vendorMatchesPlace(
   vendor: { state?: string; city: string; neighbourhood: string },
   filters: { state?: string; city?: string; neighbourhood?: string }
 ) {
-  if (filters.state && vendor.state && !placesEqual(vendor.state, filters.state)) return false;
-  if (filters.city && filters.neighbourhood) {
-    return placesEqual(vendor.city, filters.city) && placesEqual(vendor.neighbourhood, filters.neighbourhood);
-  }
-  if (filters.city) {
-    return placesEqual(vendor.city, filters.city) || placesEqual(vendor.neighbourhood, filters.city);
-  }
-  if (filters.neighbourhood) return placesEqual(vendor.neighbourhood, filters.neighbourhood);
-  return true;
+  const area = serviceAreaState(filters);
+  if (!area) return true;
+  return sameServiceArea(vendor, filters);
 }
 
 export type LivePlace = {
@@ -129,13 +167,14 @@ export function placeRank(
   place?: LivePlace | null
 ) {
   if (!place || (!place.state && !place.city && !place.neighbourhood)) return 0;
-  const sameState = !place.state || !vendor.state || placesEqual(vendor.state, place.state);
-  if (!sameState) return 0;
-  if (place.neighbourhood && placesEqual(vendor.neighbourhood, place.neighbourhood) && (!place.city || placesEqual(vendor.city, place.city))) {
+  const filterArea = serviceAreaState(place);
+  const vendorArea = serviceAreaState(vendor);
+  if (filterArea && vendorArea && filterArea !== vendorArea) return 0;
+  if (place.neighbourhood && placesEqual(vendor.neighbourhood, place.neighbourhood) && (!place.city || placesEqual(vendor.city, place.city) || sameServiceArea(vendor, place))) {
     return 3;
   }
   if (place.city && (placesEqual(vendor.city, place.city) || placesEqual(vendor.neighbourhood, place.city))) return 2;
-  if (place.state && sameState) return 1;
+  if (filterArea && vendorArea === filterArea) return 1;
   return 0;
 }
 

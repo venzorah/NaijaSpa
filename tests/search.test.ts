@@ -5,31 +5,39 @@ import { placeFromNominatim, placeRank, vendorMatchesPlace } from "../src/lib/ni
 import { exploreHref, exploreQueryRedirect, inPlaceHref, parsePlacePath } from "../src/lib/place-urls";
 
 describe("exact place matching", () => {
-  it("matches city or area exactly, not as a substring", () => {
+  it("matches the whole state, treating Abuja and FCT as one area", () => {
     const lekki = { state: "Lagos", city: "Lagos", neighbourhood: "Lekki" };
+    const ikeja = { state: "Lagos", city: "Lagos", neighbourhood: "Ikeja" };
+    const maitama = { state: "FCT", city: "Abuja", neighbourhood: "Maitama" };
     expect(vendorMatchesPlace(lekki, { city: "Lagos" })).toBe(true);
-    expect(vendorMatchesPlace(lekki, { neighbourhood: "Lekki" })).toBe(true);
-    expect(vendorMatchesPlace(lekki, { neighbourhood: "Lekki Phase 1" })).toBe(false);
+    expect(vendorMatchesPlace(ikeja, { state: "Lagos", neighbourhood: "Lekki" })).toBe(true);
     expect(vendorMatchesPlace(lekki, { city: "Abuja" })).toBe(false);
     expect(vendorMatchesPlace(lekki, { state: "FCT", city: "Lagos" })).toBe(false);
+    expect(vendorMatchesPlace(maitama, { state: "FCT" })).toBe(true);
+    expect(vendorMatchesPlace(maitama, { city: "Abuja" })).toBe(true);
+    expect(vendorMatchesPlace(maitama, { neighbourhood: "Wuse" })).toBe(true);
   });
 });
 
 describe("demo therapist search", () => {
-  it("returns only therapists in the exact city", () => {
-    const lagos = demoSearch({ city: "Lagos" });
+  it("returns every therapist in the state, not only the live area", () => {
+    const lagos = demoSearch({ city: "Lagos", neighbourhood: "Lekki", rankPlace: { state: "Lagos", city: "Lagos", neighbourhood: "Lekki" } });
     expect(lagos.results.length).toBeGreaterThan(0);
-    expect(lagos.results.every((r) => r.vendor.city === "Lagos")).toBe(true);
+    expect(lagos.results.every((r) => r.vendor.state === "Lagos")).toBe(true);
+    expect(lagos.results.some((r) => r.vendor.neighbourhood === "Ikeja")).toBe(true);
+    expect(lagos.results[0]?.vendor.neighbourhood).toBe("Lekki");
     const abuja = demoSearch({ city: "Abuja", state: "FCT" });
     expect(abuja.results.length).toBeGreaterThan(0);
-    expect(abuja.results.every((r) => r.vendor.city === "Abuja")).toBe(true);
+    expect(abuja.results.every((r) => r.vendor.state === "FCT")).toBe(true);
     expect(abuja.results.some((r) => r.vendor.city === "Lagos")).toBe(false);
   });
 
-  it("keeps Lekki distinct from Lekki Phase 1", () => {
-    const lekki = demoSearch({ neighbourhood: "Lekki" });
-    expect(lekki.results.every((r) => r.vendor.neighbourhood === "Lekki")).toBe(true);
-    expect(lekki.results.some((r) => r.vendor.neighbourhood === "Lekki Phase 1")).toBe(false);
+  it("ranks Lekki above Lekki Phase 1 without hiding either", () => {
+    const place = { state: "Lagos", city: "Lagos", neighbourhood: "Lekki" };
+    const lekki = demoSearch({ state: "Lagos", rankPlace: place });
+    expect(lekki.results.some((r) => r.vendor.neighbourhood === "Lekki")).toBe(true);
+    expect(lekki.results.some((r) => r.vendor.neighbourhood === "Lekki Phase 1")).toBe(true);
+    expect(lekki.results[0]?.vendor.neighbourhood).toBe("Lekki");
   });
 
   it("exposes local listing photos instead of stock CDNs", () => {
@@ -52,8 +60,9 @@ describe("demo therapist search", () => {
   });
 
   it("shows sibling cities in the same state when a city has no therapists", () => {
-    const empty = demoSearch({ state: "Lagos", city: "Yaba" });
-    expect(empty.results).toEqual([]);
+    const statewide = demoSearch({ state: "Lagos", city: "Yaba" });
+    expect(statewide.results.length).toBeGreaterThan(0);
+    expect(statewide.results.every((r) => r.vendor.state === "Lagos")).toBe(true);
     const siblings = demoExploreCities({ state: "Lagos", excludeCity: "Yaba" });
     expect(siblings.length).toBeGreaterThan(0);
     expect(siblings.every((c) => c.state === "Lagos")).toBe(true);
@@ -132,10 +141,15 @@ describe("live place ranking", () => {
     expect(placeRank({ state: "FCT", city: "Abuja", neighbourhood: "Maitama" }, place)).toBe(0);
   });
 
-  it("puts local therapists first then others", () => {
-    const ranked = demoSearch({ rankPlace: { state: "FCT", city: "Abuja", neighbourhood: "Maitama" } });
+  it("puts local therapists first then others in the same state", () => {
+    const ranked = demoSearch({
+      state: "FCT",
+      rankPlace: { state: "FCT", city: "Abuja", neighbourhood: "Maitama" }
+    });
     expect(ranked.results[0]?.vendor.city).toBe("Abuja");
-    expect(ranked.results.some((r) => r.vendor.city === "Lagos")).toBe(true);
+    expect(ranked.results.every((r) => r.vendor.state === "FCT")).toBe(true);
+    const nationwide = demoSearch({ rankPlace: { state: "FCT", city: "Abuja", neighbourhood: "Maitama" } });
+    expect(nationwide.results.some((r) => r.vendor.city === "Lagos")).toBe(true);
     const nearby = demoNearbyVendors();
     expect(nearby.some((v) => v.city === "Abuja")).toBe(true);
     expect(demoHomeRails({ featured: 8, premium: 8, promo: 8, nearby: 8 }).featured.length).toBeGreaterThan(0);
