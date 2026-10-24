@@ -8,8 +8,15 @@ export async function GET() {
   try {
     const user = requireUser(await getSession());
     if (!user.vendorId) return NextResponse.json({ error: "Not a vendor" }, { status: 403 });
-    const services = await prisma.service.findMany({ where: { vendorId: user.vendorId } });
-    return NextResponse.json({ services, unlimited: true });
+    const [services, categories] = await Promise.all([
+      prisma.service.findMany({
+        where: { vendorId: user.vendorId },
+        include: { category: { select: { name: true } }, _count: { select: { bookings: true } } },
+        orderBy: { createdAt: "desc" }
+      }),
+      prisma.category.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" }, select: { id: true, name: true } })
+    ]);
+    return NextResponse.json({ services, categories, unlimited: true });
   } catch (e) {
     return jsonError(e);
   }
@@ -52,7 +59,14 @@ export async function PATCH(req: Request) {
     if (!user.vendorId) return NextResponse.json({ error: "Not a vendor" }, { status: 403 });
     const body = z
       .object({
-        id: z.string(),
+        id: z.string().optional(),
+        location: z.enum(["spa", "hotel", "home"]).optional(),
+        locationEnabled: z.boolean().optional(),
+        name: z.string().min(2).optional(),
+        description: z.string().optional(),
+        basePriceKobo: z.number().int().positive().optional(),
+        durationMin: z.number().int().positive().optional(),
+        active: z.boolean().optional(),
         hotelAddonKobo: z.number().int().min(0).optional(),
         homeAddonKobo: z.number().int().min(0).optional(),
         spaEnabled: z.boolean().optional(),
@@ -60,11 +74,17 @@ export async function PATCH(req: Request) {
         homeEnabled: z.boolean().optional()
       })
       .parse(await req.json());
+    if (body.location && body.locationEnabled !== undefined) {
+      const field = body.location === "spa" ? "spaEnabled" : body.location === "hotel" ? "hotelEnabled" : "homeEnabled";
+      await prisma.service.updateMany({ where: { vendorId: user.vendorId }, data: { [field]: body.locationEnabled } });
+      return NextResponse.json({ ok: true });
+    }
+    if (!body.id) return NextResponse.json({ error: "Service id required" }, { status: 400 });
     const existing = await prisma.service.findFirst({
       where: { id: body.id, vendorId: user.vendorId }
     });
     if (!existing) return NextResponse.json({ error: "Service not found" }, { status: 404 });
-    const { id, ...data } = body;
+    const { id, location, locationEnabled, ...data } = body;
     const service = await prisma.service.update({ where: { id }, data });
     return NextResponse.json({ service });
   } catch (e) {

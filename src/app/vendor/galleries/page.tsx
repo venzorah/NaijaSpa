@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { isProfileGalleryTitle, PROFILE_GALLERY_MAX_IMAGES } from "@/lib/galleries";
+import { VendorPageHeader } from "@/components/vendor/page-header";
 
 type ImageRow = { id: string; url: string; caption: string; therapistName: string };
 type GalleryRow = { id: string; title: string; caption: string; images: ImageRow[] };
@@ -209,12 +210,10 @@ export default function VendorGalleriesPage() {
 
   return (
     <div>
-      <h1 className="font-display text-3xl">Galleries</h1>
-      <p className="mt-2 max-w-2xl text-sm text-ink2">
-        Profile photos show as a two-up swipe gallery on your public listing (up to {profileMax} images,{" "}
-        {Math.round(maxBytes / 1024)} KB each — the system size). You can also add up to {maxGalleries} named therapist
-        galleries ({maxImages} photos each). Video links are for paid plans only.
-      </p>
+      <VendorPageHeader
+        title="Galleries"
+        description={`Profile photos show as a two-up swipe gallery on your public listing (up to ${profileMax} images, ${Math.round(maxBytes / 1024)} KB each). Add up to ${maxGalleries} named therapist galleries (${maxImages} photos each). Video links are for paid plans only.`}
+      />
       {message ? <p className="mt-3 text-sm font-medium text-forest">{message}</p> : null}
 
       <form onSubmit={createGallery} className="mt-6 grid max-w-xl gap-3 rounded-2xl border border-line bg-card p-4">

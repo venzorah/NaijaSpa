@@ -66,7 +66,7 @@ function hoursJson(open: string, close: string) {
   return JSON.stringify(Object.fromEntries(days.map((d) => [d, `${open}-${close}`])));
 }
 
-export function VendorOnboarding() {
+export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<Form>(empty);
   const [status, setStatus] = useState("draft");
@@ -185,7 +185,7 @@ export function VendorOnboarding() {
   }
 
   return (
-    <div className="fixed inset-0 z-[60] grid bg-[#04140f] text-white lg:grid-cols-2">
+    <div className={embedded ? "grid min-h-[36rem] overflow-hidden rounded-2xl border border-line bg-[#04140f] text-white lg:grid-cols-2" : "fixed inset-0 z-[60] grid bg-[#04140f] text-white lg:grid-cols-2"}>
       <aside className="relative hidden overflow-hidden lg:block">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/photos/spa.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" />

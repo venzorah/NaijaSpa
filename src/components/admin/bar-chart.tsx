@@ -9,7 +9,12 @@ export function MiniBars({
 }) {
   const max = Math.max(1, ...series.flatMap((s) => s.values.map((v) => v.value)));
   return (
-    <div className={cn("grid grid-cols-6 items-end gap-2", className)} role="img" aria-label="Chart">
+    <div
+      className={cn("grid items-end gap-2", className)}
+      style={{ gridTemplateColumns: `repeat(${Math.max(1, series.length)}, minmax(0, 1fr))` }}
+      role="img"
+      aria-label="Chart"
+    >
       {series.map((col) => (
         <div key={col.label} className="flex flex-col items-center gap-1">
           <div className="flex h-28 w-full items-end justify-center gap-0.5">

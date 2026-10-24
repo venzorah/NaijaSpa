@@ -4,18 +4,24 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
+  BarChart3,
   Bell,
   CalendarCheck2,
-  ClipboardList,
+  CalendarDays,
   Crown,
   Image as ImageIcon,
   LayoutDashboard,
+  LifeBuoy,
   Menu,
+  Megaphone,
   Moon,
+  Search,
   Settings,
   ShieldCheck,
   Sparkles,
+  Store,
   Sun,
+  Users,
   Wallet,
   X
 } from "lucide-react";
@@ -25,35 +31,45 @@ import { useTheme } from "@/components/theme-provider";
 import { BrandLogo } from "@/components/shell";
 import { ADMIN_SCREEN_GROUPS, ADMIN_SCREENS, accessForScreen, type AdminScreenId } from "@/lib/admin";
 
-export type PortalLink = { href: string; label: string; icon: LucideIcon };
+export type PortalLink = { href: string; label: string; icon: LucideIcon; badge?: string };
 
 export const VENDOR_NAV: { label: string; items: PortalLink[] }[] = [
   {
     label: "Overview",
     items: [
       { href: "/vendor", label: "Dashboard", icon: LayoutDashboard },
-      { href: "/vendor/bookings", label: "Bookings", icon: CalendarCheck2 }
+      { href: "/vendor/bookings", label: "Bookings", icon: CalendarCheck2 },
+      { href: "/vendor/availability", label: "Availability", icon: CalendarDays }
     ]
   },
   {
     label: "Business",
     items: [
-      { href: "/vendor/onboarding", label: "Onboarding", icon: ClipboardList },
+      { href: "/vendor/profile", label: "Business profile", icon: Store },
       { href: "/vendor/services", label: "Services", icon: Sparkles },
+      { href: "/vendor/staff", label: "Staff & schedules", icon: Users },
       { href: "/vendor/galleries", label: "Galleries", icon: ImageIcon }
     ]
   },
   {
     label: "Money",
     items: [
-      { href: "/vendor/earnings", label: "Earnings", icon: Wallet },
+      { href: "/vendor/earnings", label: "Earnings & payouts", icon: Wallet },
       { href: "/vendor/subscriptions", label: "Subscription", icon: Crown }
+    ]
+  },
+  {
+    label: "Growth",
+    items: [
+      { href: "/vendor/analytics", label: "Analytics", icon: BarChart3 },
+      { href: "/vendor/campaigns", label: "Sponsored", icon: Megaphone }
     ]
   },
   {
     label: "Account",
     items: [
-      { href: "/vendor/settings", label: "Settings", icon: Settings }
+      { href: "/vendor/settings", label: "Settings", icon: Settings },
+      { href: "/vendor/support", label: "Support", icon: LifeBuoy }
     ]
   }
 ];
@@ -87,7 +103,7 @@ function NavList({
   path,
   onNavigate
 }: {
-  groups: { label: string; items: (PortalLink & { viewOnly?: boolean })[] }[];
+  groups: { label: string; items: (PortalLink & { viewOnly?: boolean; badge?: string })[] }[];
   path: string;
   onNavigate?: () => void;
 }) {
@@ -113,6 +129,9 @@ function NavList({
                     {active ? <span className="absolute -left-3 top-1.5 h-5 w-0.5 rounded-r bg-gold" aria-hidden /> : null}
                     <Icon className={`h-4 w-4 shrink-0 ${active ? "text-goldink" : ""}`} aria-hidden />
                     <span className="flex-1 truncate">{item.label}</span>
+                    {item.badge ? (
+                      <span className="rounded-full bg-gold/15 px-1.5 py-0.5 text-[10px] font-semibold text-goldink">{item.badge}</span>
+                    ) : null}
                     {item.viewOnly ? (
                       <span className="rounded border border-line px-1 text-[9px] uppercase tracking-wide text-ink2">View</span>
                     ) : null}
@@ -134,6 +153,10 @@ export function PortalChrome({
   userName,
   role,
   alerts = 0,
+  businessName,
+  planPaid,
+  planLabel,
+  bookingBadge,
   children
 }: {
   variant: "vendor" | "admin";
@@ -142,13 +165,24 @@ export function PortalChrome({
   userName: string;
   role?: string;
   alerts?: number;
+  businessName?: string;
+  planPaid?: boolean;
+  planLabel?: string;
+  bookingBadge?: string;
   children: React.ReactNode;
 }) {
   const path = usePathname();
   const router = useRouter();
   const { theme, toggle } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
-  const groups = variant === "vendor" ? VENDOR_NAV : adminNavForRole(role || "");
+  const [query, setQuery] = useState("");
+  const groups =
+    variant === "vendor"
+      ? VENDOR_NAV.map((g) => ({
+          ...g,
+          items: g.items.map((item) => (item.href === "/vendor/bookings" && bookingBadge ? { ...item, badge: bookingBadge } : item))
+        }))
+      : adminNavForRole(role || "");
   const home = variant === "vendor" ? "/vendor" : "/admin";
   const currentScreen = ADMIN_SCREENS.find((s) => linkActive(path, s.href));
 
@@ -159,21 +193,55 @@ export function PortalChrome({
           <BrandLogo className="h-12 w-auto max-w-[12.5rem] object-contain object-left" />
         </Link>
       </div>
-      <p className="px-4 pt-3 text-[11px] text-ink2">{subtitle}</p>
-      <NavList groups={groups} path={path} onNavigate={() => setMenuOpen(false)} />
-      <div className="border-t border-line p-3">
-        <div className="flex items-center gap-2.5 rounded-lg bg-elev p-2.5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-forest text-[11px] font-semibold text-gold ring-1 ring-gold/40">
-            {initials(userName)}
+      {variant === "vendor" && businessName ? (
+        <div className="mx-3 mb-1 mt-3 flex items-center gap-3 rounded-xl border border-line bg-elev p-2.5">
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-forest text-[11px] font-semibold text-gold">
+            {initials(businessName)}
           </span>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-medium">{userName}</p>
-            <p className="flex items-center gap-1 truncate text-[11px] text-ink2">
-              <ShieldCheck className="h-3 w-3 text-goldink" aria-hidden />
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium">{businessName}</p>
+            <p className="flex items-center gap-1 text-xs text-ink2">
+              <ShieldCheck className="h-3.5 w-3.5 text-goldink" aria-hidden />
               {subtitle}
             </p>
           </div>
         </div>
+      ) : (
+        <p className="px-4 pt-3 text-[11px] text-ink2">{subtitle}</p>
+      )}
+      <NavList groups={groups} path={path} onNavigate={() => setMenuOpen(false)} />
+      <div className="border-t border-line p-3">
+        {variant === "vendor" ? (
+          <div className="rounded-xl border border-line bg-elev p-3.5">
+            <div className="flex items-center gap-2">
+              <Crown className="h-4 w-4 text-goldink" aria-hidden />
+              <p className="text-sm font-medium">{planPaid ? planLabel || "Paid" : "Free plan · 10% commission"}</p>
+            </div>
+            <p className="mt-1 text-xs text-ink2">
+              {planPaid ? "0% commission while this plan is active." : "Go Paid to keep 100% and show phone & WhatsApp."}
+            </p>
+            <Link
+              href="/vendor/subscriptions"
+              onClick={() => setMenuOpen(false)}
+              className="mt-3 inline-flex min-h-9 w-full items-center justify-center rounded-full bg-gold text-xs font-bold text-ongold"
+            >
+              {planPaid ? "Manage plan" : "Upgrade"}
+            </Link>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2.5 rounded-lg bg-elev p-2.5">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-forest text-[11px] font-semibold text-gold ring-1 ring-gold/40">
+              {initials(userName)}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs font-medium">{userName}</p>
+              <p className="flex items-center gap-1 truncate text-[11px] text-ink2">
+                <ShieldCheck className="h-3 w-3 text-goldink" aria-hidden />
+                {subtitle}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -232,7 +300,7 @@ export function PortalChrome({
             </div>
           ) : (
             <p className="hidden min-w-0 truncate text-sm text-ink2 lg:block">
-              {title} <span className="mx-1.5 text-line">/</span>
+              {businessName || title} <span className="mx-1.5 text-line">/</span>
               <span className="text-ink">{groups.flatMap((g) => g.items).find((i) => linkActive(path, i.href))?.label ?? "Dashboard"}</span>
             </p>
           )}
@@ -242,6 +310,31 @@ export function PortalChrome({
             </span>
           ) : null}
           <div className="ml-auto flex items-center gap-1">
+            {variant === "vendor" ? (
+              <form
+                className="relative hidden md:block"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  router.push(`/vendor/bookings?q=${encodeURIComponent(query)}`);
+                }}
+              >
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink2" aria-hidden />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  aria-label="Search bookings, customers, services"
+                  placeholder="Search bookings, customers…"
+                  className="h-9 w-64 rounded-lg border border-line bg-elev pl-9 pr-3 text-sm"
+                />
+              </form>
+            ) : null}
+            {variant === "vendor" ? (
+              <Link href="/vendor/subscriptions" className="hidden sm:block" aria-label="Subscription status">
+                <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${planPaid ? "bg-gold/15 text-goldink" : "bg-elev text-ink2"}`}>
+                  {planPaid ? "Paid · 0%" : "Free · 10%"}
+                </span>
+              </Link>
+            ) : null}
             <button
               type="button"
               onClick={toggle}
@@ -250,10 +343,10 @@ export function PortalChrome({
             >
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
-            {variant === "admin" ? (
+            {variant === "admin" || variant === "vendor" ? (
               <Link
-                href="/admin/support"
-                aria-label={alerts ? `Notifications, ${alerts} open tickets` : "Notifications"}
+                href={variant === "admin" ? "/admin/support" : "/vendor/support"}
+                aria-label={alerts ? `Notifications, ${alerts} open` : "Notifications"}
                 className="relative flex h-9 w-9 items-center justify-center rounded-full hover:bg-elev"
               >
                 <Bell className="h-4 w-4" />
