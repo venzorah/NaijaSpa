@@ -25,7 +25,8 @@ export default async function AccountPage() {
           ["/account/payments", "Payments"],
           ["/account/reviews", "Reviews"],
           ["/account/support", "Support"],
-          ["/account/settings", "Settings"]
+          ["/account/settings", "Settings"],
+          ["/install", "Install the app"]
         ].map(([href, label]) => (
           <Link key={href} href={href} className="rounded-2xl border border-line bg-card p-4 font-semibold">
             {label}
