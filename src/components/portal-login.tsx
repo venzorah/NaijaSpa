@@ -96,7 +96,7 @@ export function PortalLogin({
         </p>
       ) : portal === "vendor" ? (
         <p className="mt-4 text-center text-sm">
-          <Link href="/register?asVendor=1">Register as a vendor</Link> · <Link href="/forgot">Forgot password</Link>
+          <Link href="/register?asVendor=1">Create account</Link> · <Link href="/forgot">Forgot password</Link>
         </p>
       ) : (
         <p className="mt-4 text-center text-sm">
