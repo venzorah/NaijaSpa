@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
-export default function RegisterPage() {
+function RegisterForm() {
   const router = useRouter();
+  const search = useSearchParams();
+  const asVendorDefault = search.get("asVendor") === "1";
   const [error, setError] = useState("");
   return (
     <div className="mx-auto max-w-md px-4 py-16">
@@ -33,11 +35,19 @@ export default function RegisterPage() {
         <input name="email" type="email" required placeholder="Email" className="min-h-12 w-full rounded-2xl border border-line bg-card px-4" />
         <input name="password" type="password" required minLength={10} placeholder="Password (10+ chars)" className="min-h-12 w-full rounded-2xl border border-line bg-card px-4" />
         <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" name="asVendor" /> Register as vendor
+          <input type="checkbox" name="asVendor" defaultChecked={asVendorDefault} /> Register as vendor
         </label>
         {error && <p className="text-sm text-red-400">{error}</p>}
         <button className="min-h-12 w-full rounded-full bg-gold font-bold text-ongold">Create account</button>
       </form>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="mx-auto max-w-md px-4 py-16 text-sm text-ink2">Loading…</div>}>
+      <RegisterForm />
+    </Suspense>
   );
 }

@@ -5,7 +5,7 @@ import { BrandLogo } from "@/components/shell";
 
 export default async function VendorLayout({ children }: { children: React.ReactNode }) {
   const user = await getSession();
-  if (!user) redirect("/login?next=/vendor");
+  if (!user) redirect("/login/vendor?next=/vendor");
   if (!["vendor_owner", "vendor_staff"].includes(user.role)) redirect("/account");
   const links = [
     ["/vendor", "Dashboard"],

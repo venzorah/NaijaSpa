@@ -26,10 +26,11 @@ If Docker is not available, use any Postgres 14+ instance (Neon, Supabase, RDS) 
 
 Demo password for seeded users: `NaijaSpa!dev`
 
-- Customer: customer@naijaspa.ng
-- Paid vendor: paid.vendor@naijaspa.ng
-- Free vendor: free.vendor@naijaspa.ng
-- Super admin: super.admin@naijaspa.ng
+Logins (Postgres must be running and seeded):
+
+- Customer: `/login` — customer@naijaspa.ng
+- Vendor: `/login/vendor` — paid.vendor@naijaspa.ng or free.vendor@naijaspa.ng
+- Admin: `/login/admin` — super.admin@naijaspa.ng
 
 ## Vercel
 

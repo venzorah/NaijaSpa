@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Sparkles } from "lucide-react";
+import { DarkRoomTeaser } from "@/components/dark-room-teaser";
 import { CategoryCarousel } from "@/components/category-carousel";
 import { HeroSlider } from "@/components/hero-slider";
 import { ParallaxBand } from "@/components/parallax-band";
@@ -117,6 +118,8 @@ export function CustomerHome({
         </Link>
       </section>
 
+      <DarkRoomTeaser />
+
       <section className="mx-auto mt-10 max-w-3xl px-4 lg:px-8">
         <h2 className="font-display text-2xl">FAQs</h2>
         <dl className="mt-4 space-y-3">
@@ -135,8 +138,9 @@ export function CustomerHome({
           <Link href="/contact">Contact</Link>
           <Link href="/privacy">Privacy</Link>
           <Link href="/terms">Terms</Link>
-          <Link href="/login">Vendor</Link>
-          <Link href="/admin">Admin</Link>
+          <Link href="/login">Customer login</Link>
+          <Link href="/login/vendor">Vendor login</Link>
+          <Link href="/login/admin">Admin login</Link>
         </div>
         <p className="mt-4">© {new Date().getFullYear()} NaijaSpa · WELLNESS · BEAUTY · RELAXATION · MORE</p>
       </footer>

@@ -78,6 +78,16 @@ export function isAdminRole(role: string): boolean {
   return role in MATRIX;
 }
 
+export function isVendorRole(role: string): boolean {
+  return role === ROLES.VENDOR_OWNER || role === ROLES.VENDOR_STAFF;
+}
+
+export function portalHome(role: string) {
+  if (isAdminRole(role)) return "/admin";
+  if (isVendorRole(role)) return "/vendor";
+  return "/account";
+}
+
 export function hasPermission(role: string, permission: Permission): boolean {
   return MATRIX[role]?.includes(permission) ?? false;
 }

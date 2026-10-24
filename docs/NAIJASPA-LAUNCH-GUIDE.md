@@ -263,12 +263,11 @@ Rollback: keep previous Vercel deployment; Paystack webhook can stay; do not rew
 
 Password: `NaijaSpa!dev`
 
-| Role | Email |
-|---|---|
-| Customer | customer@naijaspa.ng |
-| Paid vendor | paid.vendor@naijaspa.ng |
-| Free vendor | free.vendor@naijaspa.ng |
-| Super admin | super.admin@naijaspa.ng |
+| Portal | URL | Email |
+|---|---|---|
+| Customer | `/login` | customer@naijaspa.ng |
+| Vendor | `/login/vendor` | paid.vendor@naijaspa.ng or free.vendor@naijaspa.ng |
+| Admin | `/login/admin` | super.admin@naijaspa.ng |
 
 Also seeded: ops, verify, support, finance, content, marketing, moderator, analyst.
 

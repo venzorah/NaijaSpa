@@ -6,7 +6,7 @@ import { BrandLogo } from "@/components/shell";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await getSession();
-  if (!user) redirect("/login?next=/admin");
+  if (!user) redirect("/login/admin?next=/admin");
   if (!isAdminRole(user.role)) redirect("/account");
   const links = [
     ["/admin", "Dashboard"],
