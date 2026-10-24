@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { listingPhotos, publicWellnessPhoto } from "../src/lib/photos";
-import { demoHomeRails, demoNearbyVendors, demoSearch } from "../src/lib/demo-catalog";
+import { demoExploreCities, demoHomeRails, demoNearbyVendors, demoSearch } from "../src/lib/demo-catalog";
 import { placeFromNominatim, placeRank, vendorMatchesPlace } from "../src/lib/nigeria";
 import { exploreHref, exploreQueryRedirect, inPlaceHref, parsePlacePath } from "../src/lib/place-urls";
 
@@ -49,6 +49,22 @@ describe("demo therapist search", () => {
       expect(photos.avatar).toMatch(/^\/photos\//);
       expect(photos.cover).not.toMatch(/unsplash|pexels|picsum/i);
     }
+  });
+
+  it("shows sibling cities in the same state when a city has no therapists", () => {
+    const empty = demoSearch({ state: "Lagos", city: "Yaba" });
+    expect(empty.results).toEqual([]);
+    const siblings = demoExploreCities({ state: "Lagos", excludeCity: "Yaba" });
+    expect(siblings.length).toBeGreaterThan(0);
+    expect(siblings.every((c) => c.state === "Lagos")).toBe(true);
+    expect(siblings.every((c) => c.city.toLowerCase() !== "yaba")).toBe(true);
+    expect(siblings.some((c) => c.city === "Ikeja")).toBe(true);
+    expect(siblings.some((c) => c.city === "Lekki")).toBe(true);
+    expect(siblings.every((c) => c.href.startsWith("/explore/lagos/"))).toBe(true);
+
+    const fromLagosCity = demoExploreCities({ state: "Lagos", excludeCity: "Lagos" });
+    expect(fromLagosCity.every((c) => c.city !== "Lagos")).toBe(true);
+    expect(fromLagosCity.some((c) => c.city === "Lekki Phase 1")).toBe(true);
   });
 
   it("filters by preferred gender", () => {

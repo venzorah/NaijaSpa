@@ -1,8 +1,11 @@
 import { locationAddonKobo, sanitizePublicVendor, quoteBooking } from "./commercial";
+import { collectExploreCities, type ExploreCityFilters } from "./explore-cities";
 import { PHOTOS, firstWellnessPhoto, publicWellnessPhoto } from "./photos";
 import { usingDemoListings } from "./live-db";
 import { placeRank, prismaEquals, vendorMatchesPlace } from "./nigeria";
+import { tokenizeSearch } from "./query-match";
 export type { SearchFilters } from "./search-types";
+export type { ExploreCityCard, ExploreCityFilters } from "./explore-cities";
 import type { SearchFilters, SearchTherapist } from "./search-types";
 
 export async function searchServices(filters: SearchFilters) {
@@ -18,12 +21,54 @@ export async function searchServices(filters: SearchFilters) {
   }
 }
 
+export async function listExploreCities(filters: ExploreCityFilters = {}) {
+  if (usingDemoListings()) {
+    const { demoExploreCities } = await import("./demo-catalog");
+    return demoExploreCities(filters);
+  }
+  try {
+    return await liveExploreCities(filters);
+  } catch {
+    const { demoExploreCities } = await import("./demo-catalog");
+    return demoExploreCities(filters);
+  }
+}
+
+async function liveExploreCities(filters: ExploreCityFilters) {
+  const { prisma } = await import("./db");
+  const vendors = await prisma.vendor.findMany({
+    where: {
+      visibility: "public",
+      applicationStatus: "approved",
+      ...(filters.state ? { state: prismaEquals(filters.state) } : {}),
+      staff: { some: { active: true } },
+      services: { some: { active: true } }
+    },
+    select: { state: true, city: true, neighbourhood: true, coverUrl: true }
+  });
+  return collectExploreCities(vendors, filters);
+}
+
 async function searchLive(filters: SearchFilters) {
   const { prisma, getCommercialConfig } = await import("./db");
   const { vendorEntitlement } = await import("./entitlements");
   const page = Math.max(1, filters.page ?? 1);
-  const take = 12;
+  const take = Math.min(100, Math.max(1, filters.take ?? 12));
   const contains = (value: string) => ({ contains: value, mode: "insensitive" as const });
+  const tokenClause = (token: string) => ({
+    OR: [
+      { name: contains(token) },
+      { description: contains(token) },
+      { vendor: { businessName: contains(token) } },
+      { vendor: { city: contains(token) } },
+      { vendor: { state: contains(token) } },
+      { vendor: { neighbourhood: contains(token) } },
+      { category: { name: contains(token) } },
+      { category: { slug: contains(token) } },
+      { category: { synonyms: contains(token) } },
+      { staff: { some: { staff: { name: contains(token) } } } }
+    ]
+  });
   const where: Record<string, unknown> = {
     active: true,
     vendor: {
@@ -49,14 +94,16 @@ async function searchLive(filters: SearchFilters) {
     ...(filters.maxPrice != null ? { basePriceKobo: { lte: filters.maxPrice } } : {}),
     ...(filters.durationMin ? { durationMin: { lte: filters.durationMin + 15, gte: filters.durationMin - 15 } } : {})
   };
-  if (filters.q) {
-    where.OR = [
-      { name: contains(filters.q) },
-      { description: contains(filters.q) },
-      { vendor: { businessName: contains(filters.q) } },
-      { category: { name: contains(filters.q) } },
-      { category: { synonyms: contains(filters.q) } }
-    ];
+  const tokens = tokenizeSearch(filters.q);
+  if (tokens.length) {
+    const mode = filters.matchMode ?? "all";
+    if (mode === "any") {
+      where.OR = tokens.flatMap((token) => tokenClause(token).OR);
+    } else if (tokens.length === 1) {
+      Object.assign(where, tokenClause(tokens[0]));
+    } else {
+      where.AND = tokens.map((token) => tokenClause(token));
+    }
   }
   if (filters.locationType === "spa") where.spaEnabled = true;
   if (filters.locationType === "hotel") where.hotelEnabled = true;

@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { SearchFiltersForm } from "@/components/search-filters-form";
 import { PlaceSync } from "@/components/place-sync";
 import { ExploreResultCard } from "@/components/explore-result-card";
-import { searchServices } from "@/lib/search";
+import { CityCarousel } from "@/components/service-carousel";
+import { listExploreCities, searchServices } from "@/lib/search";
 import { PLACE_COOKIE, parsePlaceCookie } from "@/lib/nigeria";
 import type { LocationType } from "@/lib/commercial";
 import type { TherapistGender } from "@/lib/nigeria";
@@ -40,10 +41,12 @@ export default async function ExplorePage({
   }
   const gender = filters.gender === "male" || filters.gender === "female" ? (filters.gender as TherapistGender) : undefined;
   const explicitPlace = placeHasLocation(pathPlace);
+  const searchedCity = pathPlace?.city || undefined;
+  const searchedState = pathPlace?.state || undefined;
   const data = await searchServices({
     q: filters.q,
-    state: pathPlace?.state || undefined,
-    city: pathPlace?.city || undefined,
+    state: searchedState,
+    city: searchedCity,
     neighbourhood: pathPlace?.neighbourhood || undefined,
     gender,
     category: filters.category,
@@ -58,8 +61,23 @@ export default async function ExplorePage({
     page: filters.page ? Number(filters.page) : 1,
     rankPlace: explicitPlace ? null : stored
   });
-  const filtered = explicitPlace || Boolean(gender);
+  const siblingCities = await listExploreCities({
+    state: searchedState,
+    excludeCity: searchedCity,
+    limit: searchedState ? 12 : 8
+  });
   const label = [pathPlace?.neighbourhood, pathPlace?.city, pathPlace?.state].filter(Boolean).join(", ");
+  const emptyCopy = explicitPlace
+    ? `No therapist available yet${label ? ` in ${label}` : ""}.`
+    : "No services match those filters.";
+  const cityRailTitle = searchedState
+    ? searchedCity
+      ? `Other cities in ${searchedState}`
+      : `Cities in ${searchedState}`
+    : "Cities with therapists";
+  const cityRailSubtitle = searchedState
+    ? "Browse therapists in other cities in this state."
+    : "Popular cities with listings across Nigeria.";
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 lg:px-8">
@@ -88,11 +106,12 @@ export default async function ExplorePage({
         </Link>
       </div>
       {data.results.length === 0 ? (
-        <p className="mt-10 text-ink2">
-          {filtered
-            ? "No available therapists in that location. Try another city or state."
-            : "No services match those filters."}
-        </p>
+        <div className="mt-10 rounded-3xl border border-line bg-card px-5 py-8">
+          <p className="font-display text-2xl">{emptyCopy}</p>
+          {siblingCities.length > 0 ? (
+            <p className="mt-2 text-sm text-ink2">See therapists in other cities below.</p>
+          ) : null}
+        </div>
       ) : (
         <ul className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {data.results.map((r) => (
@@ -102,6 +121,12 @@ export default async function ExplorePage({
           ))}
         </ul>
       )}
+      <CityCarousel
+        id="explore-cities"
+        title={cityRailTitle}
+        subtitle={cityRailSubtitle}
+        cities={siblingCities}
+      />
     </div>
   );
 }

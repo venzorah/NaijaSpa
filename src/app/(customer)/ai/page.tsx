@@ -2,23 +2,21 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowUp, BadgeCheck, Sparkles } from "lucide-react";
+import { ArrowUp, Sparkles } from "lucide-react";
+import { ExploreResultCard, type ExploreResult } from "@/components/explore-result-card";
 
 type Result = {
   usedFallback: boolean;
   filters: Record<string, unknown>;
-  results: Array<{
-    service: { slug: string; name: string };
-    vendor: { businessName: string; city: string; publicPhone: string | null; publicWhatsapp: string | null; verificationStatus: string };
-    quote: { basePriceKobo: number; surchargeKobo: number; customerTotalKobo: number };
-  }>;
+  results: ExploreResult[];
 };
 
 const EXAMPLES = [
+  "Nuru massage",
+  "Treatments in Ikeja",
+  "Couples treatments",
   "A highly rated spa in Lekki under ₦30,000",
-  "Couples treatments in Abuja",
-  "Home service in Lagos",
-  "Providers with public WhatsApp"
+  "Home service in Lagos"
 ];
 
 export default function AskAiPage() {
@@ -53,20 +51,21 @@ export default function AskAiPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 pb-16 pt-10 lg:pt-14">
-      <div className="flex flex-col items-center text-center">
+    <div className="mx-auto max-w-7xl px-4 pb-16 pt-10 lg:px-8 lg:pt-14">
+      <div className="mx-auto flex max-w-2xl flex-col items-center text-center">
         <span className="flex h-12 w-12 items-center justify-center rounded-full border border-gold/40 bg-gold/10 text-goldink">
           <Sparkles className="h-5 w-5" aria-hidden />
         </span>
         <p className="mt-5 text-[11px] font-bold uppercase tracking-[0.22em] text-goldink">Concierge</p>
         <h1 className="mt-2 font-display text-5xl font-semibold leading-tight tracking-tight sm:text-6xl">Ask NaijaSpa</h1>
         <p className="mt-4 max-w-md text-sm leading-relaxed text-ink2">
-          Describe a treatment, city or budget. We search live listings. AI never confirms a booking or payment.
+          Describe a treatment, city or budget. We search every live listing on the site. AI never confirms a booking or
+          payment.
         </p>
       </div>
 
       <form
-        className="mt-10"
+        className="mx-auto mt-10 max-w-2xl"
         onSubmit={(ev) => {
           ev.preventDefault();
           send(q);
@@ -81,7 +80,7 @@ export default function AskAiPage() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             className="min-h-12 flex-1 bg-transparent px-4 text-sm outline-none placeholder:text-ink2"
-            placeholder="A deep tissue in Lekki, under ₦40,000…"
+            placeholder="Nuru in Lekki, couples in Lagos, Ikeja facials…"
           />
           <button
             type="submit"
@@ -94,7 +93,7 @@ export default function AskAiPage() {
         </div>
       </form>
 
-      <ul className="mt-5 flex flex-wrap justify-center gap-2">
+      <ul className="mx-auto mt-5 flex max-w-2xl flex-wrap justify-center gap-2">
         {EXAMPLES.map((e) => (
           <li key={e}>
             <button
@@ -124,33 +123,13 @@ export default function AskAiPage() {
           )}
           {data.results.length === 0 ? (
             <p className="rounded-3xl border border-line bg-card px-5 py-8 text-center text-sm text-ink2">
-              Nothing matched. Try a city or a looser budget.
+              Nothing on NaijaSpa matched that request.
             </p>
           ) : (
-            <ul className="space-y-3">
+            <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {data.results.map((r) => (
                 <li key={r.service.slug}>
-                  <Link
-                    href={`/services/${r.service.slug}`}
-                    className="flex items-center justify-between gap-4 rounded-3xl border border-line bg-card px-5 py-4 transition hover:border-gold/40"
-                  >
-                    <span>
-                      <span className="block font-semibold">{r.service.name}</span>
-                      <span className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-ink2">
-                        <span>{r.vendor.businessName}</span>
-                        {r.vendor.city ? <span>· {r.vendor.city}</span> : null}
-                        {r.vendor.verificationStatus === "verified" ? (
-                          <span className="inline-flex items-center gap-1 text-leaf">
-                            <BadgeCheck className="h-3.5 w-3.5" aria-hidden />
-                            Verified
-                          </span>
-                        ) : null}
-                      </span>
-                    </span>
-                    <span className="shrink-0 text-sm font-semibold text-goldink">
-                      ₦{(r.quote.customerTotalKobo / 100).toLocaleString()}
-                    </span>
-                  </Link>
+                  <ExploreResultCard result={r} />
                 </li>
               ))}
             </ul>

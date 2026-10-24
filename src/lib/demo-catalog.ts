@@ -18,6 +18,8 @@ import {
   type NearbyVendor
 } from "./home-types";
 import type { SearchFilters } from "./search-types";
+import { CATEGORY_SYNONYMS, listingHaystack, queryMatchesListing, tokenHitCount } from "./query-match";
+import { collectExploreCities, type ExploreCityFilters } from "./explore-cities";
 import { sortByPlace, vendorMatchesPlace, type LivePlace } from "./nigeria";
 
 const paidEnt: Entitlement = {
@@ -467,9 +469,25 @@ function publicVendor(v: typeof osun) {
   };
 }
 
+function serviceHaystack(s: (typeof demoServices)[number]) {
+  return listingHaystack([
+    s.name,
+    s.description,
+    s.categoryName,
+    s.categorySlug,
+    CATEGORY_SYNONYMS[s.categorySlug],
+    s.vendor.businessName,
+    s.vendor.state,
+    s.vendor.city,
+    s.vendor.neighbourhood,
+    ...s.vendor.therapists.map((t) => t.name)
+  ]);
+}
+
 export function demoSearch(filters: SearchFilters) {
   const page = Math.max(1, filters.page ?? 1);
-  const take = 12;
+  const take = Math.min(100, Math.max(1, filters.take ?? 12));
+  const matchMode = filters.matchMode ?? "all";
   let rows = demoServices.filter((s) => {
     if (filters.category && s.categorySlug !== filters.category) return false;
     if (!vendorMatchesPlace(s.vendor, filters)) return false;
@@ -477,11 +495,7 @@ export function demoSearch(filters: SearchFilters) {
       (t) => t.available && (!filters.gender || t.gender === filters.gender)
     );
     if (therapists.length === 0) return false;
-    if (filters.q) {
-      const q = filters.q.toLowerCase();
-      const blob = `${s.name} ${s.description} ${s.vendor.businessName} ${s.categoryName} ${therapists.map((t) => t.name).join(" ")}`.toLowerCase();
-      if (!blob.includes(q)) return false;
-    }
+    if (filters.q && !queryMatchesListing(filters.q, serviceHaystack(s), matchMode)) return false;
     if (filters.minPrice != null && s.basePriceKobo < filters.minPrice) return false;
     if (filters.maxPrice != null && s.basePriceKobo > filters.maxPrice) return false;
     if (filters.minRating && s.vendor.ratingAvg < filters.minRating) return false;
@@ -496,6 +510,9 @@ export function demoSearch(filters: SearchFilters) {
   if (filters.sort === "rating") rows = [...rows].sort((a, b) => b.vendor.ratingAvg - a.vendor.ratingAvg);
   if (!filters.sort || filters.sort === "relevance") {
     rows = sortByPlace(rows, filters.rankPlace, (s) => s.vendor);
+    if (filters.q) {
+      rows = [...rows].sort((a, b) => tokenHitCount(filters.q, serviceHaystack(b)) - tokenHitCount(filters.q, serviceHaystack(a)));
+    }
   }
   const loc = (filters.locationType ?? "spa") as LocationType;
   const results = rows.slice((page - 1) * take, page * take).map((s) => ({
@@ -525,6 +542,11 @@ export function demoSearch(filters: SearchFilters) {
     })
   }));
   return { total: rows.length, page, results };
+}
+
+export function demoExploreCities(opts: ExploreCityFilters = {}) {
+  const vendors = demoVendors.filter((v) => v.therapists.some((t) => t.available));
+  return collectExploreCities(vendors, opts);
 }
 
 const NEXT_SLOTS = ["Today, 4:30 PM", "Tomorrow, 9:00 AM", "Fri, 11:00 AM", "Today, 7:00 PM"];
