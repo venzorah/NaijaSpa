@@ -5,6 +5,7 @@ import { AdminPageHeader } from "@/components/admin/page-header";
 import { Panel } from "@/components/admin/panel";
 import { adminBtn, adminField, FormRow } from "@/components/admin/form-row";
 import { adminJson } from "@/components/admin/json";
+import { LogoutButton } from "@/components/logout-button";
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<Record<string, string>>({});
@@ -50,6 +51,9 @@ export default function SettingsPage() {
           <button className={adminBtn}>Save settings</button>
           {msg ? <p className="text-xs text-goldink">{msg}</p> : null}
         </form>
+      </Panel>
+      <Panel className="mt-4 max-w-lg" title="Session" description="Sign out of the admin console on this device.">
+        <LogoutButton href="/login/admin" className="mt-0" />
       </Panel>
     </div>
   );

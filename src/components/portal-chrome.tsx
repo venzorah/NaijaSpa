@@ -29,6 +29,7 @@ import { useRouter } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import { BrandLogo } from "@/components/shell";
+import { LogoutButton } from "@/components/logout-button";
 import { ADMIN_SCREEN_GROUPS, ADMIN_SCREENS, accessForScreen, type AdminScreenId } from "@/lib/admin";
 
 export type PortalLink = { href: string; label: string; icon: LucideIcon; badge?: string };
@@ -242,6 +243,11 @@ export function PortalChrome({
             </div>
           </div>
         )}
+        <LogoutButton
+          variant="row"
+          href={variant === "admin" ? "/login/admin" : "/login/vendor"}
+          className="mt-2"
+        />
       </div>
     </div>
   );
@@ -356,6 +362,7 @@ export function PortalChrome({
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-forest/10 text-xs font-semibold text-forest">
               {initials(userName)}
             </span>
+            <LogoutButton variant="compact" href={variant === "admin" ? "/login/admin" : "/login/vendor"} />
           </div>
         </header>
         <main className="mx-auto w-full max-w-[1480px] flex-1 px-3 pb-16 pt-5 sm:px-6">{children}</main>

@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 import { formatNgn } from "@/lib/money";
 import { PageHeader } from "@/components/page-header";
 import { StatusPill } from "@/components/status-pill";
+import { LogoutButton } from "@/components/logout-button";
 
 function greeting() {
   const hour = (new Date().getUTCHours() + 1) % 24;
@@ -39,7 +40,11 @@ export default async function AccountDashboardPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 pt-6 lg:px-8">
-      <PageHeader title={`${greeting()}, ${first}`} subtitle="Here’s what’s coming up on your wellness calendar." />
+      <PageHeader
+        title={`${greeting()}, ${first}`}
+        subtitle="Here’s what’s coming up on your wellness calendar."
+        right={<LogoutButton variant="compact" href="/login" />}
+      />
       <div className="grid gap-4 lg:grid-cols-3">
         <section className="relative overflow-hidden rounded-3xl border border-gold/40 bg-forest p-5 text-white lg:col-span-2">
           <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full border border-gold/30" aria-hidden />

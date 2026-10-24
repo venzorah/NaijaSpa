@@ -7,6 +7,7 @@ import { useTheme } from "./theme-provider";
 import { InstallPrompt } from "./install-prompt";
 import { LocationHubPicker } from "./location-hub-picker";
 import { SiteFooter } from "./site-footer";
+import { LogoutButton } from "./logout-button";
 
 export function BrandLogo({
   className = "h-14 w-auto max-w-[min(14.5rem,68vw)] shrink-0 object-contain object-left sm:h-16 sm:max-w-[18rem]",
@@ -58,7 +59,7 @@ function hideSiteFooter(path: string) {
   );
 }
 
-export function TopBar() {
+export function TopBar({ signedIn = false }: { signedIn?: boolean }) {
   const { theme, toggle } = useTheme();
   const path = usePathname();
   const desktopLinks = [
@@ -105,6 +106,7 @@ export function TopBar() {
           >
             {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </button>
+          {signedIn ? <LogoutButton variant="compact" href="/login" className="h-11 px-3" /> : null}
         </div>
       </div>
     </header>
@@ -145,7 +147,7 @@ export function BottomNav() {
   );
 }
 
-export function CustomerShell({ children }: { children: React.ReactNode }) {
+export function CustomerShell({ children, signedIn = false }: { children: React.ReactNode; signedIn?: boolean }) {
   const path = usePathname();
   if (isAuthPath(path)) {
     return (
@@ -172,7 +174,7 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
         />
         <div className="absolute inset-0 bg-bg/86 dark:bg-bg/93" />
       </div>
-      <TopBar />
+      <TopBar signedIn={signedIn} />
       <div aria-hidden className="h-[calc(4rem+env(safe-area-inset-top))]" />
       <main id="main" className="relative min-w-0 w-full pb-[calc(7.5rem+env(safe-area-inset-bottom))] lg:pb-8">
         {children}

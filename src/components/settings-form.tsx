@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/page-header";
 import { GoldButton } from "@/components/shell";
 import { BottomSheet } from "@/components/bottom-sheet";
 import { useTheme } from "@/components/theme-provider";
+import { LogoutButton } from "@/components/logout-button";
 
 const field = "mt-1 h-12 w-full rounded-xl border border-line bg-bg2 px-3 text-ink";
 const LANGS = [
@@ -167,6 +168,8 @@ export function SettingsForm({
           ))}
         </div>
       </section>
+
+      <LogoutButton href="/login" />
 
       <section className="mt-4 rounded-3xl border border-red-500/30 bg-card p-5">
         <h2 className="font-semibold text-ink">Delete account</h2>

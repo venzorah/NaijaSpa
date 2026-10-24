@@ -3,6 +3,7 @@
 import { useTheme } from "@/components/theme-provider";
 import { VendorPageHeader } from "@/components/vendor/page-header";
 import { Panel } from "@/components/admin/panel";
+import { LogoutButton } from "@/components/logout-button";
 
 export default function Page() {
   const { theme, toggle } = useTheme();
@@ -20,6 +21,10 @@ export default function Page() {
           <p className="text-sm text-ink2">
             Booking alerts appear as the badge on Bookings. Open tickets light the bell in the top bar. Email delivery is handled by NaijaSpa operations.
           </p>
+        </Panel>
+        <Panel title="Session">
+          <p className="text-sm text-ink2">Sign out of this device. You can always come back at /login/vendor.</p>
+          <LogoutButton href="/login/vendor" className="mt-4" />
         </Panel>
       </div>
     </div>
