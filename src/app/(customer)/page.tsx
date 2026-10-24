@@ -11,6 +11,6 @@ export default async function HomePage() {
   const place = parsePlaceCookie((await cookies()).get(PLACE_COOKIE)?.value);
   const localHref = inHref(place);
   if (localHref !== "/") redirect(localHref);
-  const { categories, rails, nearby, faqs } = await getHomeCatalog(null);
-  return <CustomerHome place={null} categories={categories} rails={rails} nearby={nearby} faqs={faqs} />;
+  const { categories, rails, nearby, faqs, hero } = await getHomeCatalog(null);
+  return <CustomerHome place={null} categories={categories} rails={rails} nearby={nearby} faqs={faqs} hero={hero} />;
 }

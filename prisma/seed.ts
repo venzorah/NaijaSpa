@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { DEFAULT_COMMERCIAL } from "../src/lib/commercial";
 import { DEFAULT_GALLERY_CONFIG } from "../src/lib/galleries";
+import { DEFAULT_HOME_HERO, DEFAULT_HERO_ADS, DEFAULT_HERO_AD_DISPLAY_LIMIT, HERO_AD_LIMIT_KEY } from "../src/lib/home-hero";
 import { DEFAULT_HOME_FEED_CONFIG, HOME_FEED_CONFIG_KEYS } from "../src/lib/home-types";
 
 const prisma = new PrismaClient();
@@ -23,7 +24,8 @@ async function main() {
     [HOME_FEED_CONFIG_KEYS.featured]: String(DEFAULT_HOME_FEED_CONFIG.featured),
     [HOME_FEED_CONFIG_KEYS.premium]: String(DEFAULT_HOME_FEED_CONFIG.premium),
     [HOME_FEED_CONFIG_KEYS.promo]: String(DEFAULT_HOME_FEED_CONFIG.promo),
-    [HOME_FEED_CONFIG_KEYS.nearby]: String(DEFAULT_HOME_FEED_CONFIG.nearby)
+    [HOME_FEED_CONFIG_KEYS.nearby]: String(DEFAULT_HOME_FEED_CONFIG.nearby),
+    [HERO_AD_LIMIT_KEY]: String(DEFAULT_HERO_AD_DISPLAY_LIMIT)
   };
   for (const [key, value] of Object.entries(config)) {
     await prisma.systemConfig.upsert({ where: { key }, create: { key, value }, update: { value } });
@@ -436,6 +438,27 @@ async function main() {
       active: true
     }
   });
+
+  await prisma.homeHero.upsert({
+    where: { id: "home" },
+    update: {},
+    create: { id: "home", ...DEFAULT_HOME_HERO }
+  });
+  const heroAdCount = await prisma.heroAd.count();
+  if (heroAdCount === 0) {
+    await prisma.heroAd.createMany({
+      data: DEFAULT_HERO_ADS.map((ad, i) => ({
+        title: ad.title,
+        body: ad.body,
+        imageUrl: ad.imageUrl,
+        ctaLabel: ad.ctaLabel,
+        ctaHref: ad.ctaHref,
+        sortOrder: i,
+        active: true,
+        vendorId: i === 0 ? paidV.vendor.id : null
+      }))
+    });
+  }
 
   console.log("Seeded NaijaSpa. Demo password for all accounts: NaijaSpa!dev");
 }

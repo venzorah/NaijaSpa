@@ -17,6 +17,8 @@ import {
   type HomeRails,
   type NearbyVendor
 } from "./home-types";
+
+export { demoHomeHero } from "./home-hero";
 import type { SearchFilters } from "./search-types";
 import { CATEGORY_SYNONYMS, listingHaystack, queryMatchesListing, tokenHitCount } from "./query-match";
 import { collectExploreCities, type ExploreCityFilters } from "./explore-cities";

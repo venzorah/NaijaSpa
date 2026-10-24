@@ -19,7 +19,13 @@ export async function POST(req: Request) {
       where: { email: body.email.toLowerCase() },
       include: { vendorOwned: true, staffMemberships: true }
     });
-    if (!user || user.status !== "active" || !(await verifyPassword(body.password, user.passwordHash))) {
+    if (!user || user.status !== "active") {
+      return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
+    }
+    if (!user.passwordHash) {
+      return NextResponse.json({ error: "This account uses Gmail. Continue with Gmail to sign in." }, { status: 401 });
+    }
+    if (!(await verifyPassword(body.password, user.passwordHash))) {
       return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
     }
     if (body.expect === "vendor" && !isVendorRole(user.role)) {

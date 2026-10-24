@@ -2,75 +2,131 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { BadgeCheck, ChevronRight, Home } from "lucide-react";
-import { PHOTOS } from "@/lib/photos";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { SearchFiltersForm } from "@/components/search-filters-form";
 import { exploreHref } from "@/lib/place-urls";
+import { HERO_AD_INTERVAL_MS, type HomeHeroAd, type HomeHeroBanner } from "@/lib/home-hero";
 import type { LivePlace } from "@/lib/nigeria";
 
-const SLIDES = [
-  {
-    id: "nuru",
-    offer: "Nuru silk ritual",
-    title: "Warm oil, a slower glide",
-    price: "Starting from ₦45,000",
-    cta: "Explore Nuru",
-    category: "nuru",
-    image: PHOTOS.hero1
-  },
-  {
-    id: "sensual",
-    offer: "Sensual oil hour",
-    title: "Heat, silk gel, quiet hands",
-    price: "Starting from ₦38,000",
-    cta: "Book now",
-    category: "nuru",
-    image: PHOTOS.hero2
-  },
-  {
-    id: "couples-nuru",
-    offer: "For two",
-    title: "A shared oil ritual",
-    price: "Starting from ₦72,000",
-    cta: "See couples",
-    category: "couples",
-    image: PHOTOS.hero3
-  }
-] as const;
-
-const INTERVAL_MS = 7000;
-
 type Category = { slug: string; name: string };
+
+function PremiumAdCarousel({ ads }: { ads: HomeHeroAd[] }) {
+  const [index, setIndex] = useState(0);
+  const [manual, setManual] = useState(false);
+  const ad = ads[index] ?? ads[0];
+
+  const go = useCallback(
+    (dir: -1 | 1, fromUser = false) => {
+      if (fromUser) setManual(true);
+      setIndex((i) => (i + dir + ads.length) % ads.length);
+    },
+    [ads.length]
+  );
+
+  const pick = (i: number) => {
+    setManual(true);
+    setIndex(i);
+  };
+
+  useEffect(() => {
+    if (manual || ads.length < 2) return;
+    if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const id = window.setInterval(() => go(1), HERO_AD_INTERVAL_MS);
+    return () => window.clearInterval(id);
+  }, [manual, ads.length, go, index]);
+
+  if (!ad) return null;
+
+  return (
+    <aside
+      className="relative order-2 h-[22rem] overflow-hidden rounded-3xl border border-line bg-card text-ink lg:order-3 md:h-[26rem]"
+      aria-roledescription="carousel"
+      aria-label="Premium vendor ads"
+    >
+      {ads.map((item, i) => (
+        <div
+          key={item.id}
+          className={`absolute inset-0 flex flex-col transition-opacity duration-500 ${i === index ? "z-10 opacity-100" : "pointer-events-none z-0 opacity-0"}`}
+          aria-hidden={i !== index}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={item.imageUrl} alt="" className="h-36 w-full object-cover md:h-40" />
+          <div className="flex flex-1 flex-col p-5 pb-14">
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-goldink">Premium vendor</p>
+            <h2 className="mt-2 font-display text-2xl font-semibold leading-tight">{item.title}</h2>
+            <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-ink2">{item.body}</p>
+            <Link
+              href={item.ctaHref}
+              className="mt-auto inline-flex w-fit min-h-11 items-center rounded-full bg-gold px-5 text-sm font-bold text-ongold"
+            >
+              {item.ctaLabel} →
+            </Link>
+          </div>
+        </div>
+      ))}
+
+      {ads.length > 1 ? (
+        <div className="absolute inset-x-0 bottom-3 z-10 flex items-center justify-between px-3">
+          <button
+            type="button"
+            aria-label="Previous ad"
+            onClick={() => go(-1, true)}
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-card/90 text-ink"
+          >
+            <ChevronLeft className="h-4 w-4" aria-hidden />
+          </button>
+          <div className="flex items-center gap-1.5" role="tablist" aria-label="Premium ads">
+            {ads.map((item, i) => (
+              <button
+                key={item.id}
+                type="button"
+                role="tab"
+                aria-selected={i === index}
+                aria-label={item.title}
+                onClick={() => pick(i)}
+                className={`h-1.5 rounded-full transition-all ${i === index ? "w-6 bg-gold" : "w-2 bg-ink/25"}`}
+              />
+            ))}
+          </div>
+          <button
+            type="button"
+            aria-label="Next ad"
+            onClick={() => go(1, true)}
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-card/90 text-ink"
+          >
+            <ChevronRight className="h-4 w-4" aria-hidden />
+          </button>
+        </div>
+      ) : null}
+    </aside>
+  );
+}
 
 export function HeroSlider({
   greeting,
   categories = [],
-  place = null
+  place = null,
+  banner,
+  ads = []
 }: {
   greeting: string;
   categories?: Category[];
   place?: LivePlace | null;
+  banner: HomeHeroBanner;
+  ads?: HomeHeroAd[];
 }) {
-  const [index, setIndex] = useState(0);
-  const [paused, setPaused] = useState(false);
-  const slide = SLIDES[index];
   const navCats = categories.slice(0, 8);
-
-  const go = useCallback((dir: -1 | 1) => {
-    setIndex((i) => (i + dir + SLIDES.length) % SLIDES.length);
-  }, []);
-
-  useEffect(() => {
-    if (paused) return;
-    if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const id = window.setInterval(() => go(1), INTERVAL_MS);
-    return () => window.clearInterval(id);
-  }, [paused, go, index]);
 
   return (
     <section className="mx-auto w-full min-w-0 max-w-7xl px-4 pb-2 pt-5 lg:px-8">
       <p className="mb-4 text-sm text-ink2">{greeting}</p>
-      <div className="grid items-stretch gap-4 lg:grid-cols-[220px_minmax(0,1fr)_220px] xl:grid-cols-[240px_minmax(0,1fr)_240px]">
+      <div
+        className={`grid items-stretch gap-4 ${
+          ads.length
+            ? "lg:grid-cols-[220px_minmax(0,1fr)_240px] xl:grid-cols-[240px_minmax(0,1fr)_260px]"
+            : "lg:grid-cols-[220px_minmax(0,1fr)] xl:grid-cols-[240px_minmax(0,1fr)]"
+        }`}
+      >
         <nav
           aria-label="Categories"
           className="hidden rounded-3xl border border-line bg-card p-3 lg:order-1 lg:flex lg:flex-col"
@@ -94,73 +150,25 @@ export function HeroSlider({
           </Link>
         </nav>
 
-        <div
-          className="relative order-1 h-[22rem] overflow-hidden rounded-3xl bg-forest text-white md:h-[26rem] lg:order-2"
-          aria-roledescription="carousel"
-          aria-label="Featured treatments"
-          onMouseEnter={() => setPaused(true)}
-          onMouseLeave={() => setPaused(false)}
-        >
-          {SLIDES.map((s, i) => (
-            <div
-              key={s.id}
-              className={`absolute inset-0 transition-opacity duration-700 ${i === index ? "opacity-100" : "pointer-events-none opacity-0"}`}
-              aria-hidden={i !== index}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={s.image}
-                alt=""
-                fetchPriority={i === 0 ? "high" : "low"}
-                className={`h-full w-full object-cover ${i === index ? "animate-hero-ken" : ""}`}
-              />
-              <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/35 to-black/15" />
-            </div>
-          ))}
+        <div className="relative order-1 h-[22rem] overflow-hidden rounded-3xl bg-forest text-white md:h-[26rem] lg:order-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={banner.imageUrl} alt="" fetchPriority="high" className="h-full w-full object-cover animate-hero-ken" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/35 to-black/15" />
           <div className="relative z-10 flex h-full flex-col justify-end p-6 md:p-10">
-            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-gold">{slide.offer}</p>
-            <h1 className="mt-3 max-w-lg font-display text-4xl font-semibold leading-[1.08] md:text-5xl">{slide.title}</h1>
-            <p className="mt-3 text-sm text-white/85">{slide.price}</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-gold">{banner.kicker}</p>
+            <h1 className="mt-3 max-w-lg font-display text-4xl font-semibold leading-[1.08] md:text-5xl">{banner.title}</h1>
+            {banner.subtitle ? <p className="mt-3 max-w-md text-sm text-white/85">{banner.subtitle}</p> : null}
+            {banner.priceLine ? <p className="mt-2 text-sm font-semibold text-gold">{banner.priceLine}</p> : null}
             <Link
-              href={exploreHref(place, { category: slide.category })}
+              href={banner.ctaHref}
               className="mt-6 inline-flex w-fit min-h-11 items-center rounded-full bg-gold px-6 text-sm font-bold text-ongold"
             >
-              {slide.cta} →
+              {banner.ctaLabel} →
             </Link>
-            <div className="mt-8 flex items-center gap-2" role="tablist" aria-label="Hero slides">
-              {SLIDES.map((s, i) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={i === index}
-                  aria-label={s.offer}
-                  onClick={() => setIndex(i)}
-                  className={`h-1.5 rounded-full transition-all ${i === index ? "w-8 bg-gold" : "w-2.5 bg-white/40"}`}
-                />
-              ))}
-            </div>
           </div>
         </div>
 
-        <div className="order-2 hidden gap-4 sm:grid-cols-2 lg:order-3 lg:grid lg:grid-cols-1">
-          <article className="flex flex-col items-center rounded-3xl border border-line bg-card px-5 py-8 text-center">
-            <span className="flex h-12 w-12 items-center justify-center rounded-full border border-line text-goldink">
-              <BadgeCheck className="h-5 w-5" aria-hidden />
-            </span>
-            <h2 className="mt-4 text-base font-semibold">Verified vendors</h2>
-            <p className="mt-2 text-sm leading-relaxed text-ink2">Book ID-checked spas and therapists across Nigeria.</p>
-          </article>
-          <article className="flex flex-col items-center rounded-3xl border border-line bg-card px-5 py-8 text-center">
-            <span className="flex h-12 w-12 items-center justify-center rounded-full border border-line text-goldink">
-              <Home className="h-5 w-5" aria-hidden />
-            </span>
-            <h2 className="mt-4 text-base font-semibold">Spa, hotel or home</h2>
-            <p className="mt-2 text-sm leading-relaxed text-ink2">
-              Choose where you unwind. Hotel and Home add-ons are set by the vendor; Spa/Office has no extra.
-            </p>
-          </article>
-        </div>
+        {ads.length ? <PremiumAdCarousel ads={ads} /> : null}
       </div>
 
       <SearchFiltersForm

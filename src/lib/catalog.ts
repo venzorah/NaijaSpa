@@ -16,7 +16,8 @@ import {
   demoServiceBySlug,
   demoTreatmentsForVendor,
   demoVendorBySlug,
-  demoCms
+  demoCms,
+  demoHomeHero
 } from "./demo-catalog";
 import {
   DEFAULT_HOME_FEED_CONFIG,
@@ -28,6 +29,7 @@ import {
 } from "./home-types";
 import { publicVideoLinks } from "./galleries";
 import { sortByPlace, type LivePlace } from "./nigeria";
+import { type HomeHeroPayload } from "./home-hero";
 import { PHOTOS, publicWellnessPhoto } from "./photos";
 
 export { usingDemoListings } from "./live-db";
@@ -41,6 +43,16 @@ async function resolveHomeFeedLimits(): Promise<HomeFeedConfig> {
     return await getHomeFeedConfig();
   } catch {
     return DEFAULT_HOME_FEED_CONFIG;
+  }
+}
+
+async function resolveHomeHero(): Promise<HomeHeroPayload> {
+  if (!process.env.DATABASE_URL) return demoHomeHero();
+  try {
+    const { getHomeHeroPayload } = await import("./db");
+    return await getHomeHeroPayload();
+  } catch {
+    return demoHomeHero();
   }
 }
 
@@ -64,19 +76,20 @@ function compactService(s: {
   };
 }
 
-function demoHomePayload(limits: HomeFeedConfig, place?: LivePlace | null) {
+function demoHomePayload(limits: HomeFeedConfig, place?: LivePlace | null, hero?: HomeHeroPayload) {
   return {
     demo: true as const,
     categories: demoCategories,
     rails: demoHomeRails(limits, place),
     nearby: sortByPlace(demoNearbyVendors(), place, (v) => v).slice(0, limits.nearby),
-    faqs: demoFaqs
+    faqs: demoFaqs,
+    hero: hero ?? demoHomeHero()
   };
 }
 
 export async function getHomeCatalog(place?: LivePlace | null) {
-  const limits = await resolveHomeFeedLimits();
-  if (usingDemoListings()) return demoHomePayload(limits, place);
+  const [limits, hero] = await Promise.all([resolveHomeFeedLimits(), resolveHomeHero()]);
+  if (usingDemoListings()) return demoHomePayload(limits, place, hero);
   try {
   const { prisma } = await import("./db");
   const { vendorEntitlement } = await import("./entitlements");
@@ -209,10 +222,11 @@ export async function getHomeCatalog(place?: LivePlace | null) {
     categories,
     rails,
     nearby: sortByPlace([...nearbyMap.values()], place, (v) => v).slice(0, limits.nearby),
-    faqs
+    faqs,
+    hero
   };
   } catch {
-    return demoHomePayload(limits, place);
+    return demoHomePayload(limits, place, hero);
   }
 }
 

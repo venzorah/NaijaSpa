@@ -7,6 +7,7 @@ import { ParallaxBand } from "@/components/parallax-band";
 import { ServiceCarousel, VendorCarousel } from "@/components/service-carousel";
 import { PlaceSync } from "@/components/place-sync";
 import { exploreHref } from "@/lib/place-urls";
+import type { HomeHeroAd, HomeHeroBanner } from "@/lib/home-hero";
 import type { HomeCard, NearbyVendor } from "@/lib/home-types";
 import type { LivePlace } from "@/lib/nigeria";
 
@@ -24,20 +25,22 @@ export function CustomerHome({
   categories,
   rails,
   nearby,
-  faqs
+  faqs,
+  hero
 }: {
   place: LivePlace | null;
   categories: Category[];
   rails: { featured: HomeCard[]; premium: HomeCard[]; promo: HomeCard[] };
   nearby: NearbyVendor[];
   faqs: { question: string; answer: string }[];
+  hero: { banner: HomeHeroBanner; ads: HomeHeroAd[] };
 }) {
   const browse = (query?: Record<string, string | undefined>) => exploreHref(place, query);
 
   return (
     <div>
       <PlaceSync place={place} />
-      <HeroSlider greeting={`${greeting()},`} categories={categories} place={place} />
+      <HeroSlider greeting={`${greeting()},`} categories={categories} place={place} banner={hero.banner} ads={hero.ads} />
 
       <CategoryCarousel categories={categories} place={place} />
 

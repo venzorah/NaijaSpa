@@ -10,7 +10,8 @@ datasource db {
 model User {
   id                 String    @id @default(cuid())
   email              String    @unique
-  passwordHash       String
+  passwordHash       String?
+  googleId           String?   @unique
   name               String
   phone              String?
   locale             String    @default("en")
@@ -108,6 +109,7 @@ model Vendor {
   invites              VendorInvite[]
   galleries            TherapistGallery[]
   videoLinks           VendorVideoLink[]
+  heroAds              HeroAd[]
 }
 
 model TherapistGallery {
@@ -312,6 +314,37 @@ model VendorSubscription {
 model SystemConfig {
   key   String @id
   value String
+}
+
+model HomeHero {
+  id        String   @id @default("home")
+  kicker    String
+  title     String
+  subtitle  String   @default("")
+  priceLine String   @default("")
+  ctaLabel  String
+  ctaHref   String
+  imageUrl  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model HeroAd {
+  id        String   @id @default(cuid())
+  vendorId  String?
+  title     String
+  body      String   @default("")
+  imageUrl  String
+  ctaLabel  String   @default("View vendor")
+  ctaHref   String
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  vendor    Vendor?  @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+
+  @@index([active, sortOrder])
+  @@index([vendorId])
 }
 
 model Booking {

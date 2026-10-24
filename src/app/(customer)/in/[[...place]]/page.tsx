@@ -14,6 +14,6 @@ export default async function LocalizedHomePage({ params }: { params: Promise<{ 
   const canonical = inHref(place);
   const current = `/in/${segments.join("/")}`;
   if (canonical !== current) redirect(canonical);
-  const { categories, rails, nearby, faqs } = await getHomeCatalog(place);
-  return <CustomerHome place={place} categories={categories} rails={rails} nearby={nearby} faqs={faqs} />;
+  const { categories, rails, nearby, faqs, hero } = await getHomeCatalog(place);
+  return <CustomerHome place={place} categories={categories} rails={rails} nearby={nearby} faqs={faqs} hero={hero} />;
 }

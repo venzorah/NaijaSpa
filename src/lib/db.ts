@@ -1,6 +1,15 @@
 import { PrismaClient } from "@prisma/client";
 import { DEFAULT_COMMERCIAL, type CommercialConfig } from "./commercial";
 import { parseGalleryConfig, type GalleryConfig } from "./galleries";
+import {
+  DEFAULT_HOME_HERO,
+  HERO_AD_LIMIT_KEY,
+  parseHeroAdDisplayLimit,
+  sanitizeHeroAd,
+  sanitizeHeroBanner,
+  visibleHeroAds,
+  type HomeHeroPayload
+} from "./home-hero";
 import { HOME_FEED_CONFIG_KEYS, parseHomeFeedConfig, type HomeFeedConfig } from "./home-types";
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
@@ -45,4 +54,42 @@ export async function getHomeFeedConfig(): Promise<HomeFeedConfig> {
 
 export async function setConfig(key: string, value: string) {
   await prisma.systemConfig.upsert({ where: { key }, create: { key, value }, update: { value } });
+}
+
+export async function getHeroAdDisplayLimit(): Promise<number> {
+  const row = await prisma.systemConfig.findUnique({ where: { key: HERO_AD_LIMIT_KEY } });
+  return parseHeroAdDisplayLimit({ [HERO_AD_LIMIT_KEY]: row?.value });
+}
+
+export async function getHomeHeroPayload(): Promise<HomeHeroPayload> {
+  const [hero, ads, displayLimit] = await Promise.all([
+    prisma.homeHero.findUnique({ where: { id: "home" } }),
+    prisma.heroAd.findMany({
+      include: { vendor: { select: { businessName: true, slug: true } } },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }]
+    }),
+    getHeroAdDisplayLimit()
+  ]);
+  const publicAds = ads.map((ad, i) =>
+    sanitizeHeroAd(
+      {
+        id: ad.id,
+        vendorId: ad.vendorId,
+        vendorName: ad.vendor?.businessName ?? null,
+        title: ad.title,
+        body: ad.body,
+        imageUrl: ad.imageUrl,
+        ctaLabel: ad.ctaLabel,
+        ctaHref: ad.ctaHref || (ad.vendor ? `/providers/${ad.vendor.slug}` : "/explore"),
+        sortOrder: ad.sortOrder,
+        active: ad.active
+      },
+      i
+    )
+  );
+  return {
+    banner: sanitizeHeroBanner(hero ?? DEFAULT_HOME_HERO),
+    ads: visibleHeroAds(publicAds, displayLimit),
+    displayLimit
+  };
 }
