@@ -169,3 +169,30 @@ export function extraNamedGalleries<T extends { title: string; images: unknown[]
   if (!hasProfile) return [];
   return galleries.filter((g) => !isProfileGalleryTitle(g.title) && g.images.length);
 }
+
+export function collectProfileGalleryImages<T extends { id: string; url: string; caption?: string; therapistName?: string }>(
+  galleries: Array<{ title: string; images: T[] }>,
+  fallbacks: Array<string | null | undefined> = []
+): Array<{ id: string; url: string; caption: string; therapistName: string }> {
+  const seen = new Set<string>();
+  const out: Array<{ id: string; url: string; caption: string; therapistName: string }> = [];
+  for (const img of profileImagesFromGalleries(galleries) as T[]) {
+    const url = img.url?.trim();
+    if (!url || seen.has(url)) continue;
+    seen.add(url);
+    out.push({
+      id: img.id,
+      url,
+      caption: img.caption ?? "",
+      therapistName: img.therapistName ?? ""
+    });
+    if (out.length >= PROFILE_GALLERY_MAX_IMAGES) return out;
+  }
+  fallbacks.forEach((url, i) => {
+    const value = url?.trim();
+    if (!value || seen.has(value) || out.length >= PROFILE_GALLERY_MAX_IMAGES) return;
+    seen.add(value);
+    out.push({ id: `cover-${i}`, url: value, caption: "", therapistName: "" });
+  });
+  return out;
+}

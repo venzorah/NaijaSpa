@@ -17,7 +17,11 @@ export default async function ProviderPage({ params }: { params: Promise<{ slug:
       <p className="text-ink2">
         {vendor.neighbourhood}, {vendor.city} {vendor.verificationStatus === "verified" ? "· Verified" : ""}
       </p>
-      <TherapistGalleries galleries={galleries} videoLinks={videoLinks} />
+      <TherapistGalleries
+        galleries={galleries}
+        videoLinks={videoLinks}
+        coverUrl={"coverUrl" in vendor ? String(vendor.coverUrl || "") : undefined}
+      />
       <p className="mt-6 max-w-2xl text-sm">{description}</p>
       {vendor.publicPhone || vendor.publicWhatsapp ? (
         <p className="mt-3 text-sm">

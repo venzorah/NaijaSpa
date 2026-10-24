@@ -263,6 +263,27 @@ function locationQuotes(
     }));
 }
 
+function mapPublicGalleries(
+  galleries: Array<{
+    id: string;
+    title: string;
+    caption: string;
+    images: Array<{ id: string; url: string; caption: string; therapistName: string }>;
+  }>
+) {
+  return galleries.map((g) => ({
+    id: g.id,
+    title: g.title,
+    caption: g.caption,
+    images: g.images.map((img) => ({
+      id: img.id,
+      url: publicWellnessPhoto(img.url, PHOTOS.spa),
+      caption: img.caption,
+      therapistName: img.therapistName
+    }))
+  }));
+}
+
 function demoPublicService(slug: string) {
   const service = demoServiceBySlug(slug);
   if (!service) return null;
@@ -274,6 +295,7 @@ function demoPublicService(slug: string) {
     quotes: locationQuotes(service, service.vendor.entitlement, DEFAULT_COMMERCIAL),
     treatments: demoTreatmentsForVendor(service.vendorId),
     reviews: demoReviewsForVendor(service.vendorId),
+    galleries: mapPublicGalleries(service.vendor.galleries ?? []),
     tags: [
       service.categoryName,
       service.spaEnabled && "Spa/Office",
@@ -290,7 +312,19 @@ export async function getPublicService(slug: string) {
   const { vendorEntitlement } = await import("./entitlements");
   const service = await prisma.service.findUnique({
     where: { slug },
-    include: { vendor: true, category: true, addons: true, staff: { include: { staff: true } } }
+    include: {
+      vendor: {
+        include: {
+          galleries: {
+            include: { images: { orderBy: { sortOrder: "asc" } } },
+            orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }]
+          }
+        }
+      },
+      category: true,
+      addons: true,
+      staff: { include: { staff: true } }
+    }
   });
   if (!service || !service.active) return null;
   const ent = await vendorEntitlement(service.vendorId);
@@ -316,6 +350,7 @@ export async function getPublicService(slug: string) {
     demo: false,
     service: { ...service, imageUrl: publicWellnessPhoto(service.imageUrl, PHOTOS.massage) },
     vendor,
+    galleries: mapPublicGalleries(service.vendor.galleries),
     quotes: locationQuotes(service, ent, cfg),
     treatments,
     reviews: reviewRows.map((r) => ({
@@ -362,17 +397,7 @@ export async function getPublicVendor(slug: string) {
       ...s,
       imageUrl: publicWellnessPhoto(s.imageUrl, PHOTOS.massage)
     })),
-    galleries: vendor.galleries.map((g) => ({
-      id: g.id,
-      title: g.title,
-      caption: g.caption,
-      images: g.images.map((img) => ({
-        id: img.id,
-        url: publicWellnessPhoto(img.url, PHOTOS.spa),
-        caption: img.caption,
-        therapistName: img.therapistName
-      }))
-    })),
+    galleries: mapPublicGalleries(vendor.galleries),
     videoLinks: publicVideoLinks(
       vendor.videoLinks.map((v) => ({ id: v.id, url: v.url, title: v.title })),
       ent

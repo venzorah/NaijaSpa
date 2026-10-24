@@ -11,6 +11,7 @@ import {
   assertVideoLinksAllowed,
   assertVideoUrl,
   detectImageMime,
+  collectProfileGalleryImages,
   extraNamedGalleries,
   parseGalleryConfig,
   profileGalleryImageLimit,
@@ -82,6 +83,7 @@ describe("therapist galleries", () => {
     const paidVendor = demoVendorBySlug("osun-wellness");
     expect(paidVendor?.galleries[0]?.title).toBe(PROFILE_GALLERY_TITLE);
     expect(profileImagesFromGalleries(paidVendor?.galleries || []).length).toBe(6);
+    expect(collectProfileGalleryImages(paidVendor?.galleries || [], ["/photos/bg.jpg"]).length).toBe(6);
     expect(extraNamedGalleries(paidVendor?.galleries || [])[0]?.title).toBe("Lekki therapists");
     expect(paidVendor?.videoLinks.length).toBeGreaterThan(0);
     const freeVendor = demoVendorBySlug("calm-house-ikeja");

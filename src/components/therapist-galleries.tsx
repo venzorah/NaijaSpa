@@ -1,5 +1,5 @@
 import { VendorProfileGallery, type ProfileGalleryImage } from "@/components/vendor-profile-gallery";
-import { extraNamedGalleries, profileImagesFromGalleries } from "@/lib/galleries";
+import { collectProfileGalleryImages, extraNamedGalleries } from "@/lib/galleries";
 
 export type PublicGalleryImage = ProfileGalleryImage;
 
@@ -18,22 +18,21 @@ export type PublicVideoLink = {
 
 export function TherapistGalleries({
   galleries,
-  videoLinks
+  videoLinks,
+  coverUrl
 }: {
   galleries: PublicGallery[];
   videoLinks: PublicVideoLink[];
+  coverUrl?: string | null;
 }) {
-  const profileImages = profileImagesFromGalleries(galleries);
+  const profileImages = collectProfileGalleryImages(galleries, [coverUrl]);
   const named = extraNamedGalleries(galleries);
   if (profileImages.length === 0 && named.length === 0 && videoLinks.length === 0) return null;
   return (
     <section className="mt-6 space-y-8">
       <VendorProfileGallery images={profileImages} />
       {named.map((g) => (
-        <div key={g.id}>
-          {g.caption ? <p className="-mb-6 mt-2 text-sm text-ink2">{g.caption}</p> : null}
-          <VendorProfileGallery images={g.images} heading={g.title} />
-        </div>
+        <VendorProfileGallery key={g.id} images={g.images} heading={g.title} />
       ))}
       {videoLinks.length > 0 ? (
         <div>
