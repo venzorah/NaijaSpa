@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { PrismaClient } from "@prisma/client";
 import { DEFAULT_COMMERCIAL, type CommercialConfig } from "./commercial";
 import { parseGalleryConfig, type GalleryConfig } from "./galleries";
@@ -22,19 +23,23 @@ export const prisma =
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 
-export async function getCommercialConfig(): Promise<CommercialConfig> {
-  const rows = await prisma.systemConfig.findMany();
-  const map = Object.fromEntries(rows.map((r) => [r.key, r.value]));
-  return {
-    spaSurchargeKobo: Number(map.spaSurchargeKobo ?? DEFAULT_COMMERCIAL.spaSurchargeKobo),
-    hotelSurchargeKobo: Number(map.hotelSurchargeKobo ?? DEFAULT_COMMERCIAL.hotelSurchargeKobo),
-    homeSurchargeKobo: Number(map.homeSurchargeKobo ?? DEFAULT_COMMERCIAL.homeSurchargeKobo),
-    surchargeRecipient: (map.surchargeRecipient as CommercialConfig["surchargeRecipient"]) ?? "vendor",
-    freeCommissionBps: Number(map.freeCommissionBps ?? DEFAULT_COMMERCIAL.freeCommissionBps),
-    paidCommissionBps: Number(map.paidCommissionBps ?? DEFAULT_COMMERCIAL.paidCommissionBps),
-    graceDays: Number(map.graceDays ?? DEFAULT_COMMERCIAL.graceDays)
-  };
-}
+export const getCommercialConfig = unstable_cache(
+  async (): Promise<CommercialConfig> => {
+    const rows = await prisma.systemConfig.findMany();
+    const map = Object.fromEntries(rows.map((r) => [r.key, r.value]));
+    return {
+      spaSurchargeKobo: Number(map.spaSurchargeKobo ?? DEFAULT_COMMERCIAL.spaSurchargeKobo),
+      hotelSurchargeKobo: Number(map.hotelSurchargeKobo ?? DEFAULT_COMMERCIAL.hotelSurchargeKobo),
+      homeSurchargeKobo: Number(map.homeSurchargeKobo ?? DEFAULT_COMMERCIAL.homeSurchargeKobo),
+      surchargeRecipient: (map.surchargeRecipient as CommercialConfig["surchargeRecipient"]) ?? "vendor",
+      freeCommissionBps: Number(map.freeCommissionBps ?? DEFAULT_COMMERCIAL.freeCommissionBps),
+      paidCommissionBps: Number(map.paidCommissionBps ?? DEFAULT_COMMERCIAL.paidCommissionBps),
+      graceDays: Number(map.graceDays ?? DEFAULT_COMMERCIAL.graceDays)
+    };
+  },
+  ["commercial-config"],
+  { revalidate: 30, tags: ["system-config"] }
+);
 
 export async function getGalleryConfig(): Promise<GalleryConfig> {
   const rows = await prisma.systemConfig.findMany({
@@ -44,13 +49,17 @@ export async function getGalleryConfig(): Promise<GalleryConfig> {
   return parseGalleryConfig(map);
 }
 
-export async function getHomeFeedConfig(): Promise<HomeFeedConfig> {
-  const rows = await prisma.systemConfig.findMany({
-    where: { key: { in: Object.values(HOME_FEED_CONFIG_KEYS) } }
-  });
-  const map = Object.fromEntries(rows.map((r) => [r.key, r.value]));
-  return parseHomeFeedConfig(map);
-}
+export const getHomeFeedConfig = unstable_cache(
+  async (): Promise<HomeFeedConfig> => {
+    const rows = await prisma.systemConfig.findMany({
+      where: { key: { in: Object.values(HOME_FEED_CONFIG_KEYS) } }
+    });
+    const map = Object.fromEntries(rows.map((r) => [r.key, r.value]));
+    return parseHomeFeedConfig(map);
+  },
+  ["home-feed-config"],
+  { revalidate: 30, tags: ["system-config"] }
+);
 
 export async function setConfig(key: string, value: string) {
   await prisma.systemConfig.upsert({ where: { key }, create: { key, value }, update: { value } });
@@ -61,7 +70,7 @@ export async function getHeroAdDisplayLimit(): Promise<number> {
   return parseHeroAdDisplayLimit({ [HERO_AD_LIMIT_KEY]: row?.value });
 }
 
-export async function getHomeHeroPayload(): Promise<HomeHeroPayload> {
+async function loadHomeHeroPayload(): Promise<HomeHeroPayload> {
   const [hero, ads, displayLimit] = await Promise.all([
     prisma.homeHero.findUnique({ where: { id: "home" } }),
     prisma.heroAd.findMany({
@@ -93,3 +102,5 @@ export async function getHomeHeroPayload(): Promise<HomeHeroPayload> {
     displayLimit
   };
 }
+
+export const getHomeHeroPayload = unstable_cache(loadHomeHeroPayload, ["home-hero"], { revalidate: 30, tags: ["home-hero"] });

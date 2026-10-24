@@ -3,6 +3,9 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   outputFileTracingRoot: __dirname,
   reactStrictMode: true,
+  experimental: {
+    optimizePackageImports: ["lucide-react"]
+  },
   images: {
     remotePatterns: [{ protocol: "https", hostname: "naijaspa.com" }]
   },

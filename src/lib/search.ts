@@ -1,4 +1,4 @@
-import { locationAddonKobo, sanitizePublicVendor, quoteBooking } from "./commercial";
+import { FREE_ENTITLEMENT, locationAddonKobo, sanitizePublicVendor, quoteBooking } from "./commercial";
 import { collectExploreCities, type ExploreCityFilters } from "./explore-cities";
 import { PHOTOS, firstWellnessPhoto, publicWellnessPhoto } from "./photos";
 import { usingDemoListings } from "./live-db";
@@ -52,7 +52,7 @@ async function liveExploreCities(filters: ExploreCityFilters) {
 
 async function searchLive(filters: SearchFilters) {
   const { prisma, getCommercialConfig } = await import("./db");
-  const { vendorEntitlement } = await import("./entitlements");
+  const { vendorEntitlements } = await import("./entitlements");
   const page = Math.max(1, filters.page ?? 1);
   const take = Math.min(100, Math.max(1, filters.take ?? 12));
   const contains = (value: string) => ({ contains: value, mode: "insensitive" as const });
@@ -122,10 +122,10 @@ async function searchLive(filters: SearchFilters) {
     ...(placeFilter ? {} : { skip: (page - 1) * take, take })
   });
 
-  const config = await getCommercialConfig();
+  const [entitlements, config] = await Promise.all([vendorEntitlements(rows.map((row) => row.vendorId)), getCommercialConfig()]);
   const results = [];
   for (const row of rows) {
-    const ent = await vendorEntitlement(row.vendorId);
+    const ent = entitlements.get(row.vendorId) ?? FREE_ENTITLEMENT;
     if (filters.publicContact && !ent.publicDirectContact) continue;
     const vendorPlace = {
       state: "state" in row.vendor ? String(row.vendor.state ?? "") : "",

@@ -54,18 +54,37 @@ export async function destroySession() {
   jar.delete(COOKIE);
 }
 
+export async function hasSessionCookie(): Promise<boolean> {
+  return Boolean((await cookies()).get(COOKIE)?.value);
+}
+
 export async function getSession(): Promise<SessionUser | null> {
   const jar = await cookies();
   const token = jar.get(COOKIE)?.value;
   if (!token) return null;
   try {
-    const { payload } = await jwtVerify(token, secret());
-    const row = await prisma.session.findUnique({ where: { token } });
-    if (!row || row.expiresAt < new Date()) return null;
-    const user = await prisma.user.findUnique({
-      where: { id: payload.id as string },
-      include: { vendorOwned: true, staffMemberships: true }
+    await jwtVerify(token, secret());
+    const row = await prisma.session.findUnique({
+      where: { token },
+      select: {
+        expiresAt: true,
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            role: true,
+            locale: true,
+            theme: true,
+            status: true,
+            vendorOwned: { select: { id: true } },
+            staffMemberships: { select: { vendorId: true }, take: 1 }
+          }
+        }
+      }
     });
+    if (!row || row.expiresAt < new Date()) return null;
+    const user = row.user;
     if (!user || user.status !== "active") return null;
     return {
       id: user.id,

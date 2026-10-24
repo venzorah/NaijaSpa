@@ -9,16 +9,21 @@ export default async function VendorLayout({ children }: { children: React.React
   if (!user) redirect("/login/vendor?next=/vendor");
   if (!["vendor_owner", "vendor_staff"].includes(user.role)) redirect("/account");
   const vendorId = user.vendorId;
-  const vendor = vendorId ? await prisma.vendor.findUnique({ where: { id: vendorId } }) : null;
-  const ent = vendorId ? await vendorEntitlement(vendorId) : null;
-  const actionCount = vendorId
-    ? await prisma.booking.count({
-        where: { vendorId, status: { in: ["awaiting_payment", "pending", "cancellation_requested"] } }
-      })
-    : 0;
-  const openTickets = vendorId
-    ? await prisma.supportTicket.count({ where: { authorId: user.id, status: { in: ["open", "pending"] } } })
-    : 0;
+  const [vendor, ent, actionCount, openTickets] = await Promise.all([
+    vendorId
+      ? prisma.vendor.findUnique({
+          where: { id: vendorId },
+          select: { businessName: true, city: true, applicationStatus: true, verificationStatus: true }
+        })
+      : Promise.resolve(null),
+    vendorId ? vendorEntitlement(vendorId) : Promise.resolve(null),
+    vendorId
+      ? prisma.booking.count({
+          where: { vendorId, status: { in: ["awaiting_payment", "pending", "cancellation_requested"] } }
+        })
+      : Promise.resolve(0),
+    prisma.supportTicket.count({ where: { authorId: user.id, status: { in: ["open", "pending"] } } })
+  ]);
   const verified = vendor?.verificationStatus === "verified";
   return (
     <PortalChrome

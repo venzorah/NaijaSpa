@@ -34,13 +34,17 @@ export function LocationHubPicker() {
 
   useEffect(() => {
     setPlace(readStoredPlace());
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
     fetch("/api/hubs")
       .then((r) => r.json())
       .then((data: { hubs?: MarketplaceHub[] }) => {
         if (Array.isArray(data.hubs) && data.hubs.length) setHubs(data.hubs);
       })
       .catch(() => undefined);
-  }, []);
+  }, [open]);
 
   const label = hubLabelForPlace(place, hubs);
 

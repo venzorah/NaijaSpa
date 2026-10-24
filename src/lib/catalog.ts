@@ -1,8 +1,10 @@
+import { unstable_cache } from "next/cache";
 import { usingDemoListings } from "./live-db";
 import {
   quoteBooking,
   sanitizePublicVendor,
   DEFAULT_COMMERCIAL,
+  FREE_ENTITLEMENT,
   locationAddonKobo,
   type LocationType
 } from "./commercial";
@@ -87,21 +89,64 @@ function demoHomePayload(limits: HomeFeedConfig, place?: LivePlace | null, hero?
   };
 }
 
+function placeCacheKey(place?: LivePlace | null) {
+  return `${place?.state ?? ""}|${place?.city ?? ""}|${place?.neighbourhood ?? ""}`;
+}
+
 export async function getHomeCatalog(place?: LivePlace | null) {
+  return unstable_cache(() => loadHomeCatalog(place ?? null), ["home-catalog", placeCacheKey(place)], {
+    revalidate: 30,
+    tags: ["home-catalog"]
+  })();
+}
+
+async function loadHomeCatalog(place: LivePlace | null) {
   const [limits, hero] = await Promise.all([resolveHomeFeedLimits(), resolveHomeHero()]);
   if (usingDemoListings()) return demoHomePayload(limits, place, hero);
   try {
   const { prisma } = await import("./db");
-  const { vendorEntitlement } = await import("./entitlements");
+  const { vendorEntitlements } = await import("./entitlements");
   const now = new Date();
   const [categories, services, faqs, campaigns] = await Promise.all([
-    prisma.category.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } }),
+    prisma.category.findMany({
+      where: { active: true },
+      orderBy: { sortOrder: "asc" },
+      select: { slug: true, name: true, imageUrl: true }
+    }),
     prisma.service.findMany({
       where: { active: true, vendor: { visibility: "public", applicationStatus: "approved" } },
-      include: { vendor: true, category: true },
+      select: {
+        id: true,
+        vendorId: true,
+        slug: true,
+        name: true,
+        imageUrl: true,
+        basePriceKobo: true,
+        durationMin: true,
+        spaEnabled: true,
+        hotelEnabled: true,
+        homeEnabled: true,
+        vendor: {
+          select: {
+            slug: true,
+            businessName: true,
+            state: true,
+            city: true,
+            neighbourhood: true,
+            ratingAvg: true,
+            reviewCount: true,
+            verificationStatus: true,
+            logoUrl: true,
+            coverUrl: true,
+            privatePhone: true,
+            privateWhatsapp: true
+          }
+        },
+        category: { select: { name: true } }
+      },
       take: homeServicePoolTake(limits)
     }),
-    prisma.faq.findMany({ where: { published: true }, orderBy: { sortOrder: "asc" }, take: 4 }),
+    prisma.faq.findMany({ where: { published: true }, orderBy: { sortOrder: "asc" }, take: 4, select: { question: true, answer: true } }),
     prisma.campaign.findMany({
       where: {
         active: true,
@@ -109,21 +154,15 @@ export async function getHomeCatalog(place?: LivePlace | null) {
         startsAt: { lte: now },
         endsAt: { gte: now }
       },
-      include: { vendor: true, service: true },
+      select: { vendorId: true, serviceId: true, placement: true },
       orderBy: { priority: "desc" }
     })
   ]);
 
-  const entitlements = new Map<string, Awaited<ReturnType<typeof vendorEntitlement>>>();
-  for (const s of services) {
-    if (!entitlements.has(s.vendorId)) entitlements.set(s.vendorId, await vendorEntitlement(s.vendorId));
-  }
-  for (const c of campaigns) {
-    if (!entitlements.has(c.vendorId)) entitlements.set(c.vendorId, await vendorEntitlement(c.vendorId));
-  }
+  const entitlements = await vendorEntitlements([...services.map((s) => s.vendorId), ...campaigns.map((c) => c.vendorId)]);
 
   const cardFromService = (s: (typeof services)[number], badge?: string, sponsored?: boolean): HomeCard => {
-    const ent = entitlements.get(s.vendorId)!;
+    const ent = entitlements.get(s.vendorId) ?? FREE_ENTITLEMENT;
     const vendor = sanitizePublicVendor(s.vendor, ent);
     const tags = [s.category?.name, s.spaEnabled && "Spa", s.hotelEnabled && "Hotel", s.homeEnabled && "Home"].filter(
       Boolean
@@ -180,7 +219,7 @@ export async function getHomeCatalog(place?: LivePlace | null) {
   const allCards = sortByPlace(
     filterByServiceArea(
       services.map((s) => {
-        const ent = entitlements.get(s.vendorId)!;
+        const ent = entitlements.get(s.vendorId) ?? FREE_ENTITLEMENT;
         const sponsored = campaigns.some((c) => c.vendorId === s.vendorId);
         return cardFromService(s, ent.activePaid ? "Premium" : sponsored ? "Featured" : undefined, sponsored);
       }),
