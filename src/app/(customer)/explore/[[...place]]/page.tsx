@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { SearchFiltersForm } from "@/components/search-filters-form";
+import { ExploreSearch } from "@/components/explore-search";
 import { PlaceSync } from "@/components/place-sync";
 import { ExploreResultCard } from "@/components/explore-result-card";
 import { CityCarousel } from "@/components/service-carousel";
@@ -84,10 +84,12 @@ export default async function ExplorePage({
       <PlaceSync place={pathPlace} />
       <h1 className="font-display text-3xl">{label ? `Explore ${label}` : "Explore"}</h1>
       <p className="mt-2 text-sm text-ink2">
-        We show therapists in your city first. Search with state and city to keep only that place.
+        {explicitPlace
+          ? "Therapists in this city. Search other cities without leaving this page."
+          : "Search by state and city, or browse listings across Nigeria."}
       </p>
-      <SearchFiltersForm
-        locateTo="explore"
+      <ExploreSearch
+        collapsed={Boolean(explicitPlace || filters.q || filters.location || filters.category)}
         values={{
           q: filters.q,
           state: pathPlace?.state,
