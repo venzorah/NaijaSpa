@@ -3,11 +3,17 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { BrandLogo } from "@/components/shell";
 import { GoogleAuthButton } from "@/components/google-auth-button";
-
-const fieldClass =
-  "min-h-12 w-full rounded-2xl border border-line bg-card px-4 text-base text-ink outline-none focus:border-forest";
+import {
+  AuthHeading,
+  AuthHint,
+  AuthLabel,
+  AuthPassword,
+  AuthScreen,
+  RoleSwitch,
+  authCtaClass,
+  authFieldClass
+} from "@/components/auth-screen";
 
 function RegisterForm() {
   const router = useRouter();
@@ -24,65 +30,29 @@ function RegisterForm() {
   };
 
   return (
-    <div className="mx-auto max-w-md px-4 py-16">
-      <div className="flex justify-center">
-        <BrandLogo className="h-[4.5rem] w-auto object-contain" />
-      </div>
-      <h1 className="mt-5 text-center font-display text-3xl">Create account</h1>
-      <p className="mt-2 text-center text-sm text-ink2">
-        {asVendor ? "List your spa and start taking bookings." : "Book treatments across Nigeria with Paystack."}
-      </p>
+    <AuthScreen>
+      <AuthHeading title="Create Account" subtitle="Join our exclusive wellness community." />
+      <RoleSwitch asVendor={asVendor} onChange={pick} />
+      <AuthHint>
+        {asVendor
+          ? "Create a spa therapist account to list your services, take bookings, and grow your studio."
+          : "Create a client account to browse therapists, book sessions, and access exclusive VIP experiences."}
+      </AuthHint>
 
-      <div
-        role="tablist"
-        aria-label="Account type"
-        className="mt-6 grid grid-cols-2 rounded-full border border-line bg-elev p-1"
-      >
-        <button
-          type="button"
-          role="tab"
-          aria-selected={!asVendor}
-          onClick={() => pick(false)}
-          className={`min-h-11 rounded-full text-sm font-bold transition ${
-            !asVendor ? "bg-gold text-ongold shadow-sm" : "text-ink2"
-          }`}
-        >
-          Customer
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={asVendor}
-          onClick={() => pick(true)}
-          className={`min-h-11 rounded-full text-sm font-bold transition ${
-            asVendor ? "bg-gold text-ongold shadow-sm" : "text-ink2"
-          }`}
-        >
-          Vendor
-        </button>
-      </div>
-
-      <div className="mt-6">
-        <GoogleAuthButton
-          portal={portal}
-          next={next}
-          label={asVendor ? "Create vendor account with Gmail" : "Create customer account with Gmail"}
-        />
-      </div>
-      <p className="my-4 text-center text-xs font-semibold uppercase tracking-[0.16em] text-ink2">or</p>
       <form
-        className="space-y-3"
+        className="mt-5 space-y-4"
         onSubmit={async (e) => {
           e.preventDefault();
           setBusy(true);
           setError("");
           const fd = new FormData(e.currentTarget);
+          const name = `${String(fd.get("firstName") || "").trim()} ${String(fd.get("lastName") || "").trim()}`.trim();
           try {
             const res = await fetch("/api/auth/register", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                name: fd.get("name"),
+                name,
                 email: fd.get("email"),
                 password: fd.get("password"),
                 asVendor
@@ -98,34 +68,85 @@ function RegisterForm() {
           }
         }}
       >
-        <input name="name" required placeholder="Full name" className={fieldClass} />
-        <input name="email" type="email" required placeholder="Email" className={fieldClass} />
-        <input
-          name="password"
-          type="password"
-          required
-          minLength={10}
-          placeholder="Password (10+ chars)"
-          className={fieldClass}
-        />
-        {error && <p className="text-sm text-red-500">{error}</p>}
-        <button
-          disabled={busy}
-          className="min-h-12 w-full rounded-full bg-gold text-base font-bold text-ongold disabled:opacity-60"
-        >
-          {busy ? "Creating…" : asVendor ? "Create vendor account" : "Create customer account"}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <AuthLabel htmlFor="firstName">First Name</AuthLabel>
+            <input
+              id="firstName"
+              name="firstName"
+              required
+              autoComplete="given-name"
+              placeholder="First Name"
+              className={authFieldClass}
+            />
+          </div>
+          <div>
+            <AuthLabel htmlFor="lastName">Last Name</AuthLabel>
+            <input
+              id="lastName"
+              name="lastName"
+              required
+              autoComplete="family-name"
+              placeholder="Last Name"
+              className={authFieldClass}
+            />
+          </div>
+        </div>
+        <div>
+          <AuthLabel htmlFor="email">Email Address</AuthLabel>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            required
+            autoComplete="email"
+            placeholder="Enter your email"
+            className={authFieldClass}
+          />
+        </div>
+        <div>
+          <AuthLabel htmlFor="password">Password</AuthLabel>
+          <AuthPassword />
+        </div>
+        {error ? <p className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
+        <button disabled={busy} className={authCtaClass}>
+          {busy ? "Creating…" : asVendor ? "Create Therapist Account" : "Create Client Account"}
         </button>
       </form>
-      <p className="mt-4 text-center text-sm">
-        Already have an account? <Link href={asVendor ? "/login/vendor" : "/login"}>Log in</Link>
+
+      <p className="mt-4 text-center text-[12px] leading-relaxed text-ink2">
+        By creating an account you agree to our{" "}
+        <Link href="/terms" className="font-semibold text-ink underline decoration-line underline-offset-2">
+          Terms
+        </Link>{" "}
+        &{" "}
+        <Link href="/privacy" className="font-semibold text-ink underline decoration-line underline-offset-2">
+          Privacy Policy
+        </Link>
+        .
       </p>
-    </div>
+
+      <div className="mt-6">
+        <GoogleAuthButton
+          portal={portal}
+          next={next}
+          label={asVendor ? "Create therapist account with Gmail" : "Create client account with Gmail"}
+        />
+      </div>
+
+      <p className="mt-6 text-center text-sm text-ink2">
+        Already have an account?{" "}
+        <Link href={asVendor ? "/login/vendor" : "/login"} className="font-semibold text-ink">
+          Sign in
+        </Link>
+      </p>
+    </AuthScreen>
   );
 }
 
 export default function RegisterPage() {
   return (
-    <Suspense fallback={<div className="mx-auto max-w-md px-4 py-16 text-sm text-ink2">Loading…</div>}>
+    <Suspense fallback={<div className="px-5 py-16 text-center text-sm text-ink2">Loading…</div>}>
       <RegisterForm />
     </Suspense>
   );

@@ -3,11 +3,17 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { BrandLogo } from "@/components/shell";
 import { GoogleAuthButton } from "@/components/google-auth-button";
-
-const fieldClass =
-  "min-h-12 w-full rounded-2xl border border-line bg-card px-4 text-base text-ink outline-none focus:border-forest";
+import {
+  AuthHeading,
+  AuthHint,
+  AuthLabel,
+  AuthPassword,
+  AuthScreen,
+  RoleSwitch,
+  authCtaClass,
+  authFieldClass
+} from "@/components/auth-screen";
 
 export function PortalLogin({
   portal,
@@ -24,6 +30,11 @@ export function PortalLogin({
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [next, setNext] = useState(defaultNext);
+  const [asVendor, setAsVendor] = useState(portal === "vendor");
+  const split = portal !== "admin";
+  const expect = split ? (asVendor ? "vendor" : "customer") : "admin";
+  const heading = split ? "Welcome Back" : title;
+  const sub = split ? "Sign in to your wellness account." : subtitle;
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -32,21 +43,31 @@ export function PortalLogin({
     setNext(params.get("next") || defaultNext);
   }, [defaultNext]);
 
+  const pick = (vendor: boolean) => {
+    setAsVendor(vendor);
+    const params = new URLSearchParams(window.location.search);
+    const q = params.toString();
+    router.replace((vendor ? "/login/vendor" : "/login") + (q ? `?${q}` : ""), { scroll: false });
+  };
+
   return (
-    <div className="mx-auto max-w-md px-4 py-16">
-      <div className="flex justify-center">
-        <BrandLogo className="h-[4.5rem] w-auto object-contain" />
-      </div>
-      <p className="mt-5 text-center text-xs font-bold uppercase tracking-[0.18em] text-goldink">{portal}</p>
-      <h1 className="mt-2 text-center font-display text-3xl">{title}</h1>
-      <p className="mt-2 text-center text-sm text-ink2">{subtitle}</p>
-      {error && <p className="mt-4 text-center text-sm text-red-500">{error}</p>}
-      <div className="mt-6">
-        <GoogleAuthButton portal={portal} next={next} />
-      </div>
-      <p className="my-4 text-center text-xs font-semibold uppercase tracking-[0.16em] text-ink2">or</p>
+    <AuthScreen>
+      <AuthHeading title={heading} subtitle={sub} />
+      {split ? (
+        <>
+          <RoleSwitch asVendor={asVendor} onChange={pick} />
+          <AuthHint>
+            {asVendor
+              ? "Sign in as a spa therapist to manage services, galleries, bookings and earnings."
+              : "Sign in as a client to book sessions, manage appointments and pay with Paystack."}
+          </AuthHint>
+        </>
+      ) : (
+        <p className="mt-6 text-center text-xs font-bold uppercase tracking-[0.18em] text-goldink">Admin</p>
+      )}
+      {error ? <p className="mt-4 text-center text-sm text-red-600 dark:text-red-400">{error}</p> : null}
       <form
-        className="space-y-3"
+        className="mt-5 space-y-4"
         onSubmit={async (e) => {
           e.preventDefault();
           setBusy(true);
@@ -59,7 +80,7 @@ export function PortalLogin({
               body: JSON.stringify({
                 email: fd.get("email"),
                 password: fd.get("password"),
-                expect: portal
+                expect
               })
             });
             const json = (await res.json()) as { error?: string; home?: string };
@@ -67,8 +88,8 @@ export function PortalLogin({
               setError(json.error || "Could not log in.");
               return;
             }
-            const next = new URLSearchParams(window.location.search).get("next") || json.home || defaultNext;
-            router.push(next);
+            const dest = new URLSearchParams(window.location.search).get("next") || json.home || (asVendor ? "/vendor" : defaultNext);
+            router.push(dest);
             router.refresh();
           } catch {
             setError("Could not log in. Check your connection.");
@@ -77,43 +98,59 @@ export function PortalLogin({
           }
         }}
       >
-        <input name="email" type="email" autoComplete="username" required placeholder="Email" className={fieldClass} />
-        <input
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          required
-          placeholder="Password"
-          className={fieldClass}
-        />
-        <button disabled={busy} className="min-h-12 w-full rounded-full bg-gold text-base font-bold text-ongold disabled:opacity-60">
-          {busy ? "Signing in…" : "Log in"}
+        <div>
+          <AuthLabel htmlFor="email">Email Address</AuthLabel>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="username"
+            required
+            placeholder="Enter your email"
+            className={authFieldClass}
+          />
+        </div>
+        <div>
+          <AuthLabel htmlFor="password">Password</AuthLabel>
+          <AuthPassword autoComplete="current-password" minLength={1} placeholder="Enter your password" />
+        </div>
+        <button disabled={busy} className={authCtaClass}>
+          {busy ? "Signing in…" : split ? (asVendor ? "Sign in as Therapist" : "Sign in as Client") : "Sign in"}
         </button>
       </form>
-      {portal === "customer" ? (
-        <p className="mt-4 text-center text-sm">
-          <Link href="/register">Create account</Link> · <Link href="/forgot">Forgot password</Link>
+
+      <div className="mt-6">
+        <GoogleAuthButton
+          portal={expect}
+          next={next}
+          label={expect === "admin" ? "Continue with Gmail" : asVendor ? "Sign in with Gmail as therapist" : "Sign in with Gmail as client"}
+        />
+      </div>
+
+      {split ? (
+        <p className="mt-6 text-center text-sm text-ink2">
+          Don&apos;t have an account?{" "}
+          <Link href={asVendor ? "/register?asVendor=1" : "/register"} className="font-semibold text-ink">
+            Create account
+          </Link>
         </p>
-      ) : portal === "vendor" ? (
-        <p className="mt-4 text-center text-sm">
-          <Link href="/register?asVendor=1">Create account</Link> · <Link href="/forgot">Forgot password</Link>
-        </p>
-      ) : (
-        <p className="mt-4 text-center text-sm">
-          <Link href="/forgot">Forgot password</Link>
-        </p>
-      )}
-      <p className="mt-8 flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs font-semibold text-ink2">
-        <Link href="/login" className={portal === "customer" ? "text-forest" : ""}>
-          Customer
-        </Link>
-        <Link href="/login/vendor" className={portal === "vendor" ? "text-forest" : ""}>
-          Vendor
-        </Link>
-        <Link href="/login/admin" className={portal === "admin" ? "text-forest" : ""}>
-          Admin
+      ) : null}
+      <p className="mt-3 text-center text-sm">
+        <Link href="/forgot" className="text-ink2 underline decoration-line underline-offset-2">
+          Forgot password
         </Link>
       </p>
-    </div>
+      {split ? (
+        <p className="mt-8 text-center text-xs text-ink2">
+          <Link href="/login/admin">Admin sign in</Link>
+        </p>
+      ) : (
+        <p className="mt-8 text-center text-xs text-ink2">
+          <Link href="/login">Client</Link>
+          {" · "}
+          <Link href="/login/vendor">Therapist</Link>
+        </p>
+      )}
+    </AuthScreen>
   );
 }

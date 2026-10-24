@@ -7,21 +7,42 @@ import { useTheme } from "./theme-provider";
 import { InstallPrompt } from "./install-prompt";
 
 export function BrandLogo({
-  className = "h-14 w-auto max-w-[min(14.5rem,68vw)] shrink-0 object-contain object-left sm:h-16 sm:max-w-[18rem]"
+  className = "h-14 w-auto max-w-[min(14.5rem,68vw)] shrink-0 object-contain object-left sm:h-16 sm:max-w-[18rem]",
+  forceDark = false
 }: {
   className?: string;
+  forceDark?: boolean;
 }) {
   return (
     <span className="inline-flex shrink-0 items-center">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/brand/logo-horizontal.png" alt="NaijaSpa" className={`dark:hidden ${className}`} />
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/brand/logo-horizontal-dark.png"
-        alt="NaijaSpa"
-        className={`hidden mix-blend-screen dark:block ${className}`}
-      />
+      {forceDark ? (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/logo-horizontal-dark.png" alt="NaijaSpa" className={`mix-blend-screen ${className}`} />
+        </>
+      ) : (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/logo-horizontal.png" alt="NaijaSpa" className={`dark:hidden ${className}`} />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/brand/logo-horizontal-dark.png"
+            alt="NaijaSpa"
+            className={`hidden mix-blend-screen dark:block ${className}`}
+          />
+        </>
+      )}
     </span>
+  );
+}
+
+function isAuthPath(path: string) {
+  return (
+    path === "/login" ||
+    path.startsWith("/login/") ||
+    path === "/register" ||
+    path === "/forgot" ||
+    path.startsWith("/invite")
   );
 }
 
@@ -99,6 +120,15 @@ export function BottomNav() {
 }
 
 export function CustomerShell({ children }: { children: React.ReactNode }) {
+  const path = usePathname();
+  if (isAuthPath(path)) {
+    return (
+      <div className="relative min-h-dvh min-w-0 bg-bg text-ink">
+        <main className="relative min-w-0 w-full">{children}</main>
+        <InstallPrompt />
+      </div>
+    );
+  }
   return (
     <div className="relative min-h-screen min-w-0 bg-bg text-ink">
       <div aria-hidden className="pointer-events-none fixed inset-0 -z-10">

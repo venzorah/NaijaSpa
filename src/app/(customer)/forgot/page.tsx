@@ -1,14 +1,22 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import {
+  AuthHeading,
+  AuthLabel,
+  AuthScreen,
+  authCtaClass,
+  authFieldClass
+} from "@/components/auth-screen";
 
 export default function ForgotPage() {
   const [msg, setMsg] = useState("");
   return (
-    <div className="mx-auto max-w-md px-4 py-16">
-      <h1 className="font-display text-3xl">Password recovery</h1>
+    <AuthScreen>
+      <AuthHeading title="Password recovery" subtitle="We'll email a reset link if the account exists." />
       <form
-        className="mt-6 space-y-3"
+        className="mt-8 space-y-4"
         onSubmit={async (e) => {
           e.preventDefault();
           const fd = new FormData(e.currentTarget);
@@ -21,10 +29,25 @@ export default function ForgotPage() {
           setMsg(json.message || json.error);
         }}
       >
-        <input name="email" type="email" required className="min-h-12 w-full rounded-2xl border border-line bg-card px-4" />
-        <button className="min-h-12 w-full rounded-full bg-gold font-bold text-ongold">Send reset</button>
+        <div>
+          <AuthLabel htmlFor="email">Email Address</AuthLabel>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            required
+            placeholder="Enter your email"
+            className={authFieldClass}
+          />
+        </div>
+        <button className={authCtaClass}>Send reset</button>
       </form>
-      {msg && <p className="mt-4 text-sm text-ink2">{msg}</p>}
-    </div>
+      {msg ? <p className="mt-4 text-center text-sm text-ink2">{msg}</p> : null}
+      <p className="mt-6 text-center text-sm text-ink2">
+        <Link href="/login" className="font-semibold text-ink">
+          Sign in
+        </Link>
+      </p>
+    </AuthScreen>
   );
 }
