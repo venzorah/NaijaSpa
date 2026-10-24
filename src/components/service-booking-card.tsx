@@ -118,7 +118,7 @@ export function ServiceBookingCard({
         <label className="mt-5 block text-xs font-semibold uppercase tracking-wide text-ink2">
           Treatment
           <select
-            className="mt-2 min-h-12 w-full min-w-0 max-w-full rounded-2xl border border-line bg-bg px-3 text-sm font-medium text-ink"
+            className="mt-2 min-h-12 w-full min-w-0 max-w-full rounded-2xl border border-line bg-card px-3 text-sm font-medium text-ink"
             value={currentSlug}
             onChange={(e) => router.push(`/services/${e.target.value}`)}
           >
@@ -140,7 +140,7 @@ export function ServiceBookingCard({
               <label
                 key={l}
                 className={`flex min-h-12 min-w-0 cursor-pointer items-center justify-between gap-2 rounded-2xl border px-3 text-sm font-semibold sm:gap-3 sm:px-4 ${
-                  locationType === l ? "border-forest bg-forest/10" : "border-line bg-bg"
+                  locationType === l ? "border-forest bg-forest/10" : "border-line bg-card"
                 }`}
               >
                 <span className="flex min-w-0 items-center gap-2 sm:gap-3">
@@ -166,7 +166,7 @@ export function ServiceBookingCard({
               value={details}
               onChange={(e) => setDetails(e.target.value)}
               placeholder={locationType === "hotel" ? "Hotel name and room" : "Home address"}
-              className="mt-3 min-h-24 w-full rounded-2xl border border-line bg-bg p-3 text-sm"
+              className="mt-3 min-h-24 w-full rounded-2xl border border-line bg-card p-3 text-sm"
             />
           )}
         </fieldset>
@@ -183,7 +183,7 @@ export function ServiceBookingCard({
                 type="button"
                 onClick={() => setDay(d.key)}
                 className={`flex min-h-16 min-w-[4.25rem] shrink-0 flex-col items-center justify-center rounded-2xl border px-2 text-xs ${
-                  day === d.key ? "border-forest bg-forest text-white" : "border-line bg-bg"
+                  day === d.key ? "border-forest bg-forest text-white" : "border-line bg-card"
                 }`}
               >
                 <span className="uppercase tracking-wide opacity-80">{d.weekday}</span>
@@ -198,7 +198,7 @@ export function ServiceBookingCard({
                 type="button"
                 onClick={() => setTime(t.value)}
                 className={`min-h-12 rounded-2xl border text-sm font-semibold ${
-                  time === t.value ? "border-forest bg-forest/10" : "border-line bg-bg"
+                  time === t.value ? "border-forest bg-forest/10" : "border-line bg-card"
                 }`}
               >
                 {t.label}

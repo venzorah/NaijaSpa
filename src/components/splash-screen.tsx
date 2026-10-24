@@ -36,9 +36,15 @@ export function SplashScreen() {
   if (!visible) return null;
 
   return (
-    <div className="fixed inset-0 z-[200] grid place-items-center bg-white" role="img" aria-label="NaijaSpa">
+    <div className="fixed inset-0 z-[200] grid place-items-center bg-bg" role="img" aria-label="NaijaSpa">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/brand/splash-logo.png" alt="NaijaSpa" className="w-[min(72vw,18rem)]" />
+      <img src="/brand/splash-logo.png" alt="NaijaSpa" className="w-[min(72vw,18rem)] dark:hidden" />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/brand/logo-horizontal-dark.png"
+        alt="NaijaSpa"
+        className="hidden w-[min(72vw,18rem)] drop-shadow-[0_1px_10px_rgba(212,175,55,0.3)] dark:block"
+      />
     </div>
   );
 }

@@ -34,15 +34,44 @@
 }
 
 html.dark {
-  --c-bg: #101713;
-  --c-bg2: #151e18;
-  --c-card: #1b2720;
-  --c-elev: #243229;
-  --c-ink: #f5f7f5;
-  --c-ink2: #b8c3bb;
-  --c-line: #35443a;
-  --c-goldink: #e3c766;
-  --c-leaf: #5fd3a5;
+  --c-bg: #0c1210;
+  --c-bg2: #141c18;
+  --c-card: #24332b;
+  --c-elev: #30443a;
+  --c-ink: #f7faf7;
+  --c-ink2: #c9d4cd;
+  --c-line: #5a7166;
+  --c-goldink: #f0d57a;
+  --c-leaf: #7ee0b6;
+}
+
+/* Forest is a near-black fill; on dark surfaces use leaf so type and chrome stay readable. */
+html.dark .text-forest {
+  color: var(--c-leaf);
+}
+html.dark .bg-leaf.text-forest,
+html.dark .bg-leaf .text-forest {
+  color: #06281e;
+}
+html.dark [class*="border-forest"] {
+  border-color: color-mix(in srgb, var(--c-leaf) 70%, transparent);
+}
+html.dark [class*="bg-forest/10"],
+html.dark [class*="bg-forest/15"] {
+  background-color: color-mix(in srgb, var(--c-leaf) 18%, transparent);
+}
+html.dark .bg-white {
+  background-color: var(--c-card);
+  color: var(--c-ink);
+}
+html.dark .placeholder\:text-ink2::placeholder,
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #a9b8b0;
+}
+html.dark input[type="radio"],
+html.dark input[type="checkbox"] {
+  accent-color: var(--c-leaf);
 }
 
 html {
@@ -80,6 +109,10 @@ select {
   background-repeat: no-repeat;
   background-position: right 0.75rem center;
   padding-right: 2.25rem;
+}
+
+html.dark select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%237EE0B6' stroke-width='2' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 }
 
 input[type="datetime-local"],

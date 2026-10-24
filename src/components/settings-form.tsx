@@ -139,7 +139,7 @@ export function SettingsForm({
             </button>
           ))}
         </div>
-        <p className="mt-2 text-xs text-ink2">Saved on this device. Light is the default.</p>
+        <p className="mt-2 text-xs text-ink2">Saved on this device. Dark is the default.</p>
 
         <h2 className="mt-6 font-semibold text-ink">Language</h2>
         <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4" role="radiogroup" aria-label="Language">

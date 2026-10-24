@@ -160,11 +160,11 @@ export function SearchFiltersForm({
       </div>
       <div className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)_10.5rem]">
         <label className="min-w-0 md:col-span-2 xl:col-span-1">
-          <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-forest">Treatment or therapist</span>
+          <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-forest dark:text-leaf">Treatment or therapist</span>
           <input name="q" defaultValue={values?.q} placeholder="Swedish, couples, hot stone…" className={fieldClass()} />
         </label>
         <label className="min-w-0">
-          <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-forest">State</span>
+          <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-forest dark:text-leaf">State</span>
           <select name="state" value={place.state} onChange={(e) => setPlace((p) => ({ ...p, state: e.target.value }))} className={fieldClass()}>
             <option value="">All states</option>
             {NIGERIA_STATES.map((state) => (
@@ -175,7 +175,7 @@ export function SearchFiltersForm({
           </select>
         </label>
         <label className="min-w-0">
-          <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-forest">City</span>
+          <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-forest dark:text-leaf">City</span>
           <input
             name="city"
             value={place.city}

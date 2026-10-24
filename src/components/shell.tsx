@@ -20,7 +20,7 @@ export function BrandLogo({
       {forceDark ? (
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/logo-horizontal-dark.png" alt="NaijaSpa" className={`mix-blend-screen ${className}`} />
+          <img src="/brand/logo-horizontal-dark.png" alt="NaijaSpa" className={`drop-shadow-[0_1px_8px_rgba(212,175,55,0.28)] ${className}`} />
         </>
       ) : (
         <>
@@ -30,7 +30,7 @@ export function BrandLogo({
           <img
             src="/brand/logo-horizontal-dark.png"
             alt="NaijaSpa"
-            className={`hidden mix-blend-screen dark:block ${className}`}
+            className={`hidden drop-shadow-[0_1px_8px_rgba(212,175,55,0.28)] dark:block ${className}`}
           />
         </>
       )}
@@ -69,10 +69,10 @@ export function TopBar() {
     ["/account", "Profile"]
   ] as const;
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b border-line/70 bg-bg/85 pt-safe backdrop-blur-xl">
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-line bg-bg/92 pt-safe backdrop-blur-xl dark:bg-bg/95">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-2 px-4 lg:px-8">
         <Link href="/" className="flex min-w-0 shrink-0 items-center" aria-label="NaijaSpa home">
-          <BrandLogo className="h-10 w-auto max-w-[min(9.5rem,42vw)] object-contain object-left sm:h-11 sm:max-w-[14rem]" />
+          <BrandLogo className="h-12 w-auto max-w-[min(12.5rem,52vw)] object-contain object-left sm:h-14 sm:max-w-[16.5rem]" />
         </Link>
         <nav className="ml-6 hidden items-center gap-1 lg:flex" aria-label="Primary">
           {desktopLinks.map(([href, label]) => {
@@ -121,7 +121,7 @@ export function BottomNav() {
     { href: "/account", label: "Profile", icon: User }
   ];
   return (
-    <nav aria-label="Main" className="pb-safe fixed inset-x-0 bottom-0 z-50 border-t border-line/70 bg-bg/90 backdrop-blur-xl lg:hidden">
+    <nav aria-label="Main" className="pb-safe fixed inset-x-0 bottom-0 z-50 border-t border-line bg-bg/95 backdrop-blur-xl lg:hidden">
       <ul className="mx-auto grid max-w-xl grid-cols-5">
         {items.map(({ href, label, icon: Icon }) => {
           const active = href === "/" ? path === "/" || path.startsWith("/in/") : path.startsWith(href);
@@ -170,7 +170,7 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
           alt=""
           className="absolute inset-0 h-full w-full object-cover"
         />
-        <div className="absolute inset-0 bg-bg/86 dark:bg-bg/88" />
+        <div className="absolute inset-0 bg-bg/86 dark:bg-bg/93" />
       </div>
       <TopBar />
       <div aria-hidden className="h-[calc(4rem+env(safe-area-inset-top))]" />
@@ -192,7 +192,7 @@ export function GoldButton({
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & { tone?: "solid" | "outline" }) {
   const look =
     tone === "outline"
-      ? "border border-gold/50 bg-transparent text-goldink hover:bg-gold/10"
+      ? "border border-gold/70 bg-transparent text-goldink hover:bg-gold/10"
       : "bg-gold text-ongold";
   return (
     <button

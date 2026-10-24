@@ -49,7 +49,7 @@ export function LocationHubPicker() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex h-10 max-w-[42vw] items-center gap-1 rounded-full border border-line bg-card px-2.5 text-[13px] font-semibold text-ink hover:bg-elev sm:max-w-none"
+        className="flex h-10 max-w-[42vw] items-center gap-1 rounded-full border border-line bg-card px-2.5 text-[13px] font-semibold text-ink shadow-sm hover:bg-elev sm:max-w-none"
         aria-label={`Location: ${label}. Change location`}
       >
         <MapPin className="h-3.5 w-3.5 shrink-0 text-leaf" aria-hidden />

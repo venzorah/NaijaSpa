@@ -172,7 +172,7 @@ export function PortalChrome({
     <div className="flex h-full flex-col bg-bg2">
       <div className="flex items-center gap-3 border-b border-line px-4 py-4">
         <Link href={home} aria-label="NaijaSpa home" onClick={() => setMenuOpen(false)}>
-          <BrandLogo className="h-10 w-auto max-w-[10rem] object-contain object-left" />
+          <BrandLogo className="h-12 w-auto max-w-[12.5rem] object-contain object-left" />
         </Link>
       </div>
       <p className="px-4 pt-3 text-[11px] text-ink2">{subtitle}</p>

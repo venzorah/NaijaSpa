@@ -41,7 +41,7 @@ export function SiteFooter() {
             <img
               src="/brand/logo-horizontal-dark.png"
               alt=""
-              className="hidden h-12 w-auto max-w-[12rem] object-contain object-left mix-blend-screen dark:block"
+              className="hidden h-12 w-auto max-w-[12rem] object-contain object-left drop-shadow-[0_1px_8px_rgba(212,175,55,0.28)] dark:block"
             />
           </Link>
           <p className="mt-4 max-w-xs text-sm leading-relaxed text-ink2">

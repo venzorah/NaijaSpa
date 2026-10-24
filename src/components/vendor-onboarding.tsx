@@ -7,7 +7,7 @@ import { NIGERIA_STATES, nigeriaStateLabel } from "@/lib/nigeria";
 function LightLogo({ className }: { className?: string }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src="/brand/logo-horizontal-dark.png" alt="NaijaSpa" className={`mix-blend-screen ${className ?? ""}`} />
+    <img src="/brand/logo-horizontal-dark.png" alt="NaijaSpa" className={`drop-shadow-[0_1px_8px_rgba(212,175,55,0.28)] ${className ?? ""}`} />
   );
 }
 
