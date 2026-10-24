@@ -1,5 +1,7 @@
 # NaijaSpa operations
 
+Launch blockers, go-live checklist, and what is already built: **[NAIJASPA-LAUNCH-GUIDE.md](./NAIJASPA-LAUNCH-GUIDE.md)** (download or print to PDF).
+
 NaijaSpa uses **PostgreSQL** for all persistent data (users, vendors, bookings, payments).
 
 ## Local run
