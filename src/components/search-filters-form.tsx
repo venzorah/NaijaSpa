@@ -4,7 +4,7 @@ import { MapPin } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { NIGERIA_STATES, PLACE_COOKIE, nigeriaStateLabel, parsePlaceCookie, type LivePlace } from "@/lib/nigeria";
-import { exploreHref, inHref } from "@/lib/place-urls";
+import { exploreHref } from "@/lib/place-urls";
 import { persistLivePlace } from "@/components/place-sync";
 
 function fieldClass() {
@@ -24,9 +24,7 @@ function readStoredPlace(): LivePlace | null {
 }
 
 export function SearchFiltersForm({
-  values,
-  compact,
-  locateTo = "explore"
+  values
 }: {
   values?: {
     q?: string;
@@ -34,10 +32,7 @@ export function SearchFiltersForm({
     city?: string;
     neighbourhood?: string;
     gender?: string;
-    location?: string;
   };
-  compact?: boolean;
-  locateTo?: "home" | "explore";
 }) {
   const router = useRouter();
   const [locating, setLocating] = useState(false);
@@ -70,25 +65,29 @@ export function SearchFiltersForm({
     }
   }, [values?.state, values?.city, values?.neighbourhood]);
 
-  function go(next: { state: string; city: string; neighbourhood: string }, extra?: { q?: string; gender?: string; location?: string }) {
+  function go(next: { state: string; city: string; neighbourhood: string }, extra?: { q?: string }) {
     persistLivePlace(next);
-    if (locateTo === "home") {
-      router.push(inHref(next));
-      router.refresh();
-      return;
-    }
     router.push(
       exploreHref(next, {
-        q: extra?.q || values?.q,
-        location: extra?.location || values?.location
+        q: extra?.q || values?.q
       })
     );
   }
 
-  async function useMyLocation() {
+  function typedQuery(form?: HTMLFormElement | null) {
+    if (!form) return values?.q;
+    return String(new FormData(form).get("q") || "") || undefined;
+  }
+
+  function useMyLocation(form?: HTMLFormElement | null) {
     if (!("geolocation" in navigator)) {
       setHint("Location is not available on this device.");
       return;
+    }
+    try {
+      sessionStorage.setItem("naijaspa-locate-explore", "1");
+    } catch {
+      /* continue */
     }
     setLocating(true);
     setHint("Finding therapists near you…");
@@ -104,7 +103,7 @@ export function SearchFiltersForm({
           const next = { state: json.state || "", city: json.city || "", neighbourhood: json.neighbourhood || "" };
           setPlace(next);
           setHint([next.neighbourhood, next.city, next.state].filter(Boolean).join(", ") || "Location saved.");
-          go(next);
+          go(next, { q: typedQuery(form) });
         } catch {
           setHint("Could not read your location.");
         } finally {
@@ -130,8 +129,7 @@ export function SearchFiltersForm({
     if (next.state || next.city) persistLivePlace({ ...place, ...next });
     router.push(
       exploreHref(next, {
-        q: String(fd.get("q") || "") || undefined,
-        location: String(fd.get("location") || "") || undefined
+        q: String(fd.get("q") || "") || undefined
       })
     );
   }
@@ -140,7 +138,7 @@ export function SearchFiltersForm({
     <form
       action="/explore"
       onSubmit={onSubmit}
-      className="mt-5 w-full min-w-0 max-w-full overflow-x-clip rounded-[1.75rem] border-2 border-forest bg-white p-4 shadow-[0_16px_40px_rgba(6,78,59,0.14)] dark:bg-card sm:p-5"
+      className="relative z-20 mt-5 w-full min-w-0 max-w-full overflow-x-clip rounded-[1.75rem] border-2 border-forest bg-white p-4 shadow-[0_16px_40px_rgba(6,78,59,0.14)] dark:bg-card sm:p-5"
     >
       <div className="mb-4 flex min-w-0 flex-col gap-3">
         <div className="min-w-0">
@@ -149,15 +147,19 @@ export function SearchFiltersForm({
         </div>
         <button
           type="button"
-          onClick={() => void useMyLocation()}
-          className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border-2 border-gold bg-gold/15 px-4 text-base font-bold text-forest dark:text-gold sm:w-auto"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            void useMyLocation(e.currentTarget.form);
+          }}
+          className="relative z-20 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border-2 border-gold bg-gold/15 px-4 text-base font-bold text-forest dark:text-gold sm:w-auto"
         >
           <MapPin className="h-4 w-4 shrink-0" aria-hidden />
           {locating ? "Locating…" : "Use my location"}
         </button>
       </div>
-      <div className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
-        <label className="min-w-0 md:col-span-2 lg:col-span-2">
+      <div className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)_10.5rem]">
+        <label className="min-w-0 md:col-span-2 xl:col-span-1">
           <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-forest">Treatment or therapist</span>
           <input name="q" defaultValue={values?.q} placeholder="Nuru, Swedish, couples…" className={fieldClass()} />
         </label>
@@ -182,16 +184,7 @@ export function SearchFiltersForm({
             className={fieldClass()}
           />
         </label>
-        <label className="min-w-0">
-          <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-forest">Where</span>
-          <select name="location" defaultValue={values?.location || ""} className={fieldClass()}>
-            <option value="">Spa, hotel or home</option>
-            <option value="spa">Spa/Office</option>
-            <option value="hotel">Hotel</option>
-            <option value="home">Home</option>
-          </select>
-        </label>
-        <div className="flex min-w-0 items-end md:col-span-2 lg:col-span-1">
+        <div className="flex min-w-0 items-end md:col-span-2 xl:col-span-1">
           <button type="submit" className="min-h-12 w-full rounded-full bg-gold text-base font-bold text-ongold">
             Search
           </button>

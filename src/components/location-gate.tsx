@@ -33,7 +33,14 @@ export function LocationGate() {
             neighbourhood: json.neighbourhood || ""
           };
           persistLivePlace(place);
-          if (pathname === "/" && placeHasLocation(place)) {
+          const path = window.location.pathname;
+          if (path.startsWith("/explore")) return;
+          try {
+            if (sessionStorage.getItem("naijaspa-locate-explore")) return;
+          } catch {
+            /* continue */
+          }
+          if (path === "/" && placeHasLocation(place)) {
             router.replace(inHref(place));
             return;
           }

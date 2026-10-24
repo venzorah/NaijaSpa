@@ -263,8 +263,6 @@ export function HeroSlider({
       </div>
 
       <SearchFiltersForm
-        compact
-        locateTo="home"
         values={
           place
             ? { state: place.state, city: place.city, neighbourhood: place.neighbourhood }
