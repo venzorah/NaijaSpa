@@ -6,7 +6,33 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { SearchFiltersForm } from "@/components/search-filters-form";
 import { exploreHref } from "@/lib/place-urls";
 import { HERO_AD_INTERVAL_MS, type HomeHeroAd, type HomeHeroBanner } from "@/lib/home-hero";
+import { PHOTOS } from "@/lib/photos";
 import type { LivePlace } from "@/lib/nigeria";
+
+const HERO_INTERVAL_MS = 7000;
+
+const EXTRA_SLIDES = [
+  {
+    id: "sensual",
+    offer: "Sensual oil hour",
+    title: "Heat, silk gel, quiet hands",
+    subtitle: "",
+    price: "Starting from ₦38,000",
+    cta: "Book now",
+    category: "nuru",
+    image: PHOTOS.hero2
+  },
+  {
+    id: "couples-nuru",
+    offer: "For two",
+    title: "A shared oil ritual",
+    subtitle: "",
+    price: "Starting from ₦72,000",
+    cta: "See couples",
+    category: "couples",
+    image: PHOTOS.hero3
+  }
+] as const;
 
 type Category = { slug: string; name: string };
 
@@ -115,7 +141,40 @@ export function HeroSlider({
   banner: HomeHeroBanner;
   ads?: HomeHeroAd[];
 }) {
+  const [index, setIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
   const navCats = categories.slice(0, 8);
+  const slides = [
+    {
+      id: "featured",
+      offer: banner.kicker,
+      title: banner.title,
+      subtitle: banner.subtitle,
+      price: banner.priceLine,
+      cta: banner.ctaLabel,
+      href: banner.ctaHref,
+      image: banner.imageUrl
+    },
+    ...EXTRA_SLIDES.map((s) => ({
+      ...s,
+      href: exploreHref(place, { category: s.category })
+    }))
+  ];
+  const slide = slides[index] ?? slides[0];
+
+  const goHero = useCallback(
+    (dir: -1 | 1) => {
+      setIndex((i) => (i + dir + slides.length) % slides.length);
+    },
+    [slides.length]
+  );
+
+  useEffect(() => {
+    if (paused) return;
+    if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const id = window.setInterval(() => goHero(1), HERO_INTERVAL_MS);
+    return () => window.clearInterval(id);
+  }, [paused, goHero, index]);
 
   return (
     <section className="mx-auto w-full min-w-0 max-w-7xl px-4 pb-2 pt-5 lg:px-8">
@@ -150,21 +209,53 @@ export function HeroSlider({
           </Link>
         </nav>
 
-        <div className="relative order-1 h-[22rem] overflow-hidden rounded-3xl bg-forest text-white md:h-[26rem] lg:order-2">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={banner.imageUrl} alt="" fetchPriority="high" className="h-full w-full object-cover animate-hero-ken" />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/35 to-black/15" />
+        <div
+          className="relative order-1 h-[22rem] overflow-hidden rounded-3xl bg-forest text-white md:h-[26rem] lg:order-2"
+          aria-roledescription="carousel"
+          aria-label="Featured treatments"
+          onMouseEnter={() => setPaused(true)}
+          onMouseLeave={() => setPaused(false)}
+        >
+          {slides.map((s, i) => (
+            <div
+              key={s.id}
+              className={`absolute inset-0 transition-opacity duration-700 ${i === index ? "opacity-100" : "pointer-events-none opacity-0"}`}
+              aria-hidden={i !== index}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={s.image}
+                alt=""
+                fetchPriority={i === 0 ? "high" : "low"}
+                className={`h-full w-full object-cover ${i === index ? "animate-hero-ken" : ""}`}
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/35 to-black/15" />
+            </div>
+          ))}
           <div className="relative z-10 flex h-full flex-col justify-end p-6 md:p-10">
-            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-gold">{banner.kicker}</p>
-            <h1 className="mt-3 max-w-lg font-display text-4xl font-semibold leading-[1.08] md:text-5xl">{banner.title}</h1>
-            {banner.subtitle ? <p className="mt-3 max-w-md text-sm text-white/85">{banner.subtitle}</p> : null}
-            {banner.priceLine ? <p className="mt-2 text-sm font-semibold text-gold">{banner.priceLine}</p> : null}
+            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-gold">{slide.offer}</p>
+            <h1 className="mt-3 max-w-lg font-display text-4xl font-semibold leading-[1.08] md:text-5xl">{slide.title}</h1>
+            {slide.subtitle ? <p className="mt-3 max-w-md text-sm text-white/85">{slide.subtitle}</p> : null}
+            {slide.price ? <p className="mt-2 text-sm font-semibold text-gold">{slide.price}</p> : null}
             <Link
-              href={banner.ctaHref}
+              href={slide.href}
               className="mt-6 inline-flex w-fit min-h-11 items-center rounded-full bg-gold px-6 text-sm font-bold text-ongold"
             >
-              {banner.ctaLabel} →
+              {slide.cta} →
             </Link>
+            <div className="mt-8 flex items-center gap-2" role="tablist" aria-label="Hero slides">
+              {slides.map((s, i) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={i === index}
+                  aria-label={s.offer}
+                  onClick={() => setIndex(i)}
+                  className={`h-1.5 rounded-full transition-all ${i === index ? "w-8 bg-gold" : "w-2.5 bg-white/40"}`}
+                />
+              ))}
+            </div>
           </div>
         </div>
 
