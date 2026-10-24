@@ -31,7 +31,7 @@ const groups = [
 
 export function SiteFooter() {
   return (
-    <footer className="mt-16 border-t border-line bg-bg2">
+    <footer className="mt-16 hidden border-t border-line bg-bg2 lg:block">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 md:grid-cols-[1.4fr_repeat(3,1fr)] lg:px-8">
         <div>
           <Link href="/" aria-label="NaijaSpa home" className="inline-flex">

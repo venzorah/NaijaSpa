@@ -20,19 +20,10 @@
   --radius-xl: 0.875rem;
 }
 
-:root {
-  --c-bg: #ffffff;
-  --c-bg2: #f7f9f7;
-  --c-card: #ffffff;
-  --c-elev: #f1f5f1;
-  --c-ink: #183127;
-  --c-ink2: #5e6b63;
-  --c-line: #dce5de;
-  --c-goldink: #8a7014;
-  --c-leaf: #064e3b;
-}
-
+/* Dark is the default even before html.dark is present (first paint / no preference). */
+:root,
 html.dark {
+  color-scheme: dark;
   --c-bg: #0c1210;
   --c-bg2: #141c18;
   --c-card: #24332b;
@@ -42,6 +33,19 @@ html.dark {
   --c-line: #5a7166;
   --c-goldink: #f0d57a;
   --c-leaf: #7ee0b6;
+}
+
+html:not(.dark) {
+  color-scheme: light;
+  --c-bg: #ffffff;
+  --c-bg2: #f7f9f7;
+  --c-card: #ffffff;
+  --c-elev: #f1f5f1;
+  --c-ink: #183127;
+  --c-ink2: #5e6b63;
+  --c-line: #dce5de;
+  --c-goldink: #8a7014;
+  --c-leaf: #064e3b;
 }
 
 /* Forest is a near-black fill; on dark surfaces use leaf so type and chrome stay readable. */

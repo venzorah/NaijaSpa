@@ -157,7 +157,7 @@ export async function signInWithGoogle(profile: { googleId: string; email: strin
         emailVerifiedAt: new Date(),
         role,
         locale: "en",
-        theme: "light",
+        theme: "dark",
         customerProfile: role === ROLES.CUSTOMER ? { create: {} } : undefined
       },
       include: { vendorOwned: true, staffMemberships: true }

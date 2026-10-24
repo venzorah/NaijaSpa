@@ -9,19 +9,25 @@ const ThemeCtx = createContext<{ theme: Theme; toggle: () => void; setTheme: (t:
   setTheme: () => {}
 });
 
+function applyDom(next: Theme) {
+  const dark = next === "dark";
+  document.documentElement.classList.toggle("dark", dark);
+  document.documentElement.style.colorScheme = dark ? "dark" : "light";
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>("dark");
 
   useEffect(() => {
-    const saved = localStorage.getItem("naijaspa-theme") as Theme | null;
-    const next = saved === "light" ? "light" : "dark";
+    const saved = localStorage.getItem("naijaspa-theme");
+    const next: Theme = saved === "light" ? "light" : "dark";
     setTheme(next);
-    document.documentElement.classList.toggle("dark", next === "dark");
+    applyDom(next);
   }, []);
 
   const apply = useCallback((next: Theme) => {
     localStorage.setItem("naijaspa-theme", next);
-    document.documentElement.classList.toggle("dark", next === "dark");
+    applyDom(next);
     fetch("/api/account/theme", { method: "POST", body: JSON.stringify({ theme: next }) }).catch(() => {});
     setTheme(next);
   }, []);

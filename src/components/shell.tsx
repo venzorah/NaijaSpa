@@ -106,7 +106,9 @@ export function TopBar({ signedIn = false }: { signedIn?: boolean }) {
           >
             {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </button>
-          {signedIn ? <LogoutButton variant="compact" href="/login" className="h-11 px-3" /> : null}
+          {signedIn ? (
+            <LogoutButton variant="compact" href="/login" className="hidden h-11 px-3 lg:inline-flex" />
+          ) : null}
         </div>
       </div>
     </header>
