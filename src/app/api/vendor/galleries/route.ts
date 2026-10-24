@@ -86,7 +86,7 @@ export async function POST(req: Request) {
         vendorId,
         title,
         caption: body.caption?.trim() ?? "",
-        sortOrder: count
+        sortOrder: named.length
       },
       include: { images: true }
     });
