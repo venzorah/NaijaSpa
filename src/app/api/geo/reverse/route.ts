@@ -14,7 +14,7 @@ export async function GET(req: Request) {
     const res = await fetch(
       `https://nominatim.openstreetmap.org/reverse?lat=${encodeURIComponent(String(lat))}&lon=${encodeURIComponent(String(lng))}&format=json&zoom=14&addressdetails=1`,
       {
-        headers: { "User-Agent": "NaijaSpa/1.0 (concierge@naijaspa.ng)", Accept: "application/json" },
+        headers: { "User-Agent": "NaijaSpa/1.0 (concierge@naijaspa.com)", Accept: "application/json" },
         next: { revalidate: 3600 }
       }
     );

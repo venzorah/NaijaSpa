@@ -22,26 +22,36 @@ npm run dev
 postgresql://naijaspa:naijaspa@localhost:5432/naijaspa
 ```
 
-If Docker is not available, use any Postgres 14+ instance (Neon, Supabase, RDS) and put that URL in `.env`.
+If Docker is not available, install PostgreSQL 14+ locally or on the VPS and put that URL in `.env`.
 
 Demo password for seeded users: `NaijaSpa!dev`
 
 Logins (Postgres must be running and seeded):
 
-- Customer: `/login` — customer@naijaspa.ng
-- Vendor: `/login/vendor` — paid.vendor@naijaspa.ng or free.vendor@naijaspa.ng
-- Admin: `/login/admin` — super.admin@naijaspa.ng
+- Customer: `/login` — customer@naijaspa.com
+- Vendor: `/login/vendor` — paid.vendor@naijaspa.com or free.vendor@naijaspa.com
+- Admin: `/login/admin` — super.admin@naijaspa.com
 
-## Vercel
+## Production (Vercel app + VPS Postgres)
 
-1. Create a Postgres database (Neon is typical with Vercel).
-2. Set `DATABASE_URL` on the Vercel project to the **pooled** `postgresql://` URL.
-3. Set `AUTH_SECRET` (long random string).
-4. Build already runs `prisma generate`. After first deploy, run `npx prisma migrate deploy` and `npx tsx prisma/seed.ts` against that URL (Vercel CLI, GitHub Action, or Neon SQL + a one-off job).
+The Next.js frontend and API stay on **Vercel**. PostgreSQL runs on a **VPS**, not Supabase.
+
+1. Ubuntu VPS: PostgreSQL 14+, SSL, UFW. Do not expose `5432` to the whole internet.
+2. Create database + user. Example URL for Vercel:
+   ```
+   postgresql://naijaspa:STRONG_PASSWORD@VPS_IP:5432/naijaspa?sslmode=require
+   ```
+3. Set on the Vercel project: `DATABASE_URL`, `AUTH_SECRET`, Paystack keys, `APP_URL=https://naijaspa.com`.
+4. From a machine that can reach the VPS:
+   ```bash
+   npx prisma generate
+   npx prisma migrate deploy
+   ```
+5. Point `naijaspa.com` at the Vercel project.
 
 Until `DATABASE_URL` is a `postgres://` / `postgresql://` URL, public pages show **bundled demo listings**. Those listings are removed automatically once Postgres is connected.
 
-Do not use SQLite on Vercel.
+Do not use SQLite in production. Gallery uploads must not rely on Vercel disk — use object storage (or a persistent VPS folder).
 
 ## Environment
 
@@ -49,7 +59,7 @@ See `.env.example`. Never commit real keys.
 
 | Variable | Required for |
 |---|---|
-| `DATABASE_URL` | PostgreSQL. Required for live catalog, auth, bookings. Demo listings stay on Vercel until this is set. |
+| `DATABASE_URL` | PostgreSQL on the VPS (set in Vercel). Required for live catalog, auth, bookings. Demo listings stay until this is set. |
 | `USE_DEMO_LISTINGS` | Optional. `true` forces demo; `false` forces Prisma. |
 | `AUTH_SECRET` | Session JWT |
 | `PAYSTACK_SECRET_KEY` | Live/test payments. Without it, checkout records `initialized` payments and will **not** confirm bookings. |
@@ -70,11 +80,11 @@ See `.env.example`. Never commit real keys.
 
 Paystack only (NGN, kobo). Server `transaction/initialize` → Inline `resumeTransaction(access_code)` with hosted checkout fallback → `/checkout/verify` (Paystack `verify`) and `POST /api/payments/webhook` (`charge.success`, HMAC SHA512). Bookings confirm only after amount and currency match. No card PAN storage. No escrow.
 
-In the Paystack dashboard set the webhook to `https://naijaspa.ng/api/payments/webhook` and enable `charge.success`. Callback URL is generated per transaction (`/checkout/verify?reference=`).
+In the Paystack dashboard set the webhook to `https://naijaspa.com/api/payments/webhook` and enable `charge.success`. Callback URL is generated per transaction (`/checkout/verify?reference=`).
 
 ## Backup
 
-`pg_dump` the Postgres database on a schedule. Store encryption keys and `.env` separately from dumps.
+`pg_dump` the VPS Postgres database on a schedule. Store encryption keys and Vercel env separately from dumps.
 
 ## Magic Patterns
 

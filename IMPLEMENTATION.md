@@ -1,6 +1,6 @@
 # NaijaSpa feature report
 
-No pre-existing application repository was found. https://naijaspa.ng/ is a marketing landing page (VIP/discretion copy, empty catalogues). Darkroom was not implemented.
+No pre-existing application repository was found. https://naijaspa.com/ is a marketing landing page (VIP/discretion copy, empty catalogues). Darkroom was not implemented.
 
 Magic Patterns screen sets were generated first, then this Next.js app was implemented against those layouts and the master spec.
 
@@ -15,7 +15,7 @@ Magic Patterns screen sets were generated first, then this Next.js app was imple
 | Area | Status |
 |---|---|
 | Design system, dark default, light mode, theme persistence | Implemented but not fully verified (needs browser pass) |
-| Customer home, explore, profiles, services | Implemented; Prisma when a live DB is configured, bundled demo listings on Vercel until then |
+| Customer home, explore, profiles, services | Implemented; Prisma when a live DB is configured, bundled demo listings until Vercel `DATABASE_URL` points at VPS Postgres |
 | Auth, account, favourites, bookings | Implemented |
 | Vendor portal, unlimited listings, entitlements | Implemented |
 | Admin vendor invite, commercial config, dashboard | Implemented |
@@ -25,6 +25,6 @@ Magic Patterns screen sets were generated first, then this Next.js app was imple
 | PWA manifest/SW/install copy | Implemented; icon resize needs `sharp` generate |
 | i18n dictionaries EN/FR/DE/ES | Partial (nav/install strings) |
 | Push notifications | Structure only; **blocked** without VAPID keys |
-| PostgreSQL | Prisma provider is `postgresql`. Demo listings on Vercel until `DATABASE_URL` is set. |
+| PostgreSQL | Prisma provider is `postgresql`. Demo listings until Vercel `DATABASE_URL` points at VPS Postgres. |
 | Therapist galleries (vendor + public) | Implemented; admin image limits in SystemConfig; video links paid-plan only |
 | Darkroom | Explicitly not implemented |

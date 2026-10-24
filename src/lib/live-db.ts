@@ -1,6 +1,6 @@
 /**
  * Marketplace records come from PostgreSQL when DATABASE_URL is a postgres connection.
- * On Vercel, until that URL is set, public listings use the bundled demo catalog.
+ * Until that URL is set, public listings use the bundled demo catalog.
  *
  * USE_DEMO_LISTINGS=true  — always demo
  * USE_DEMO_LISTINGS=false — always hit Prisma (requires a reachable DATABASE_URL)

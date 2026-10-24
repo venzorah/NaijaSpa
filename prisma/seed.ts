@@ -96,16 +96,16 @@ async function main() {
   void six;
 
   const roles = [
-    ["super.admin@naijaspa.ng", "Amaka Obi", "super_admin"],
-    ["ops@naijaspa.ng", "Chinedu Bassey", "operations_admin"],
-    ["verify@naijaspa.ng", "Zainab Lawal", "verification_officer"],
-    ["support@naijaspa.ng", "Tola Adeyemi", "support_agent"],
-    ["finance@naijaspa.ng", "Ifeanyi Okonkwo", "finance_officer"],
-    ["content@naijaspa.ng", "Ngozi Eze", "content_manager"],
-    ["marketing@naijaspa.ng", "Halima Bello", "marketing_manager"],
-    ["moderator@naijaspa.ng", "Kunle Salami", "moderator"],
-    ["analyst@naijaspa.ng", "Ruth Danjuma", "analyst"],
-    ["customer@naijaspa.ng", "Adaeze Nwosu", "customer"]
+    ["super.admin@naijaspa.com", "Amaka Obi", "super_admin"],
+    ["ops@naijaspa.com", "Chinedu Bassey", "operations_admin"],
+    ["verify@naijaspa.com", "Zainab Lawal", "verification_officer"],
+    ["support@naijaspa.com", "Tola Adeyemi", "support_agent"],
+    ["finance@naijaspa.com", "Ifeanyi Okonkwo", "finance_officer"],
+    ["content@naijaspa.com", "Ngozi Eze", "content_manager"],
+    ["marketing@naijaspa.com", "Halima Bello", "marketing_manager"],
+    ["moderator@naijaspa.com", "Kunle Salami", "moderator"],
+    ["analyst@naijaspa.com", "Ruth Danjuma", "analyst"],
+    ["customer@naijaspa.com", "Adaeze Nwosu", "customer"]
   ] as const;
 
   const users: Record<string, string> = {};
@@ -235,7 +235,7 @@ async function main() {
   }
 
   const paidV = await makeVendor({
-    email: "paid.vendor@naijaspa.ng",
+    email: "paid.vendor@naijaspa.com",
     name: "Kemi Osun",
     business: "Osun Wellness Spa",
     slug: "osun-wellness",
@@ -245,7 +245,7 @@ async function main() {
     phone: "+2348011111111"
   });
   const freeV = await makeVendor({
-    email: "free.vendor@naijaspa.ng",
+    email: "free.vendor@naijaspa.com",
     name: "Ibrahim Musa",
     business: "Calm House Ikeja",
     slug: "calm-house-ikeja",
@@ -402,7 +402,7 @@ async function main() {
   await prisma.cmsBlock.createMany({
     data: [
       { key: "about", title: "About NaijaSpa", body: "NaijaSpa is a premium spa, massage and wellness marketplace for Nigeria. We connect customers with verified providers." },
-      { key: "contact", title: "Contact", body: "Maitama, Abuja · concierge@naijaspa.ng" },
+      { key: "contact", title: "Contact", body: "Maitama, Abuja · concierge@naijaspa.com" },
       { key: "privacy", title: "Privacy", body: "We store only what we need to run bookings and accounts. You may request account deletion from settings." },
       { key: "terms", title: "Terms", body: "Bookings are confirmed only after verified payment. Historical financial snapshots are not recalculated when plans change." }
     ]

@@ -465,7 +465,7 @@ export const demoCms: Record<string, { title: string; body: string }> = {
     title: "About NaijaSpa",
     body: "NaijaSpa is a premium spa, massage and wellness marketplace for Nigeria. We connect customers with verified providers."
   },
-  contact: { title: "Contact", body: "Maitama, Abuja · concierge@naijaspa.ng" },
+  contact: { title: "Contact", body: "Maitama, Abuja · concierge@naijaspa.com" },
   privacy: {
     title: "Privacy",
     body: "We store only what we need to run bookings and accounts. You may request account deletion from settings."

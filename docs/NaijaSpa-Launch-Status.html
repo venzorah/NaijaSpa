@@ -165,7 +165,7 @@
   <section class="cover">
     <div class="logo-row">
       <div>
-        <div class="kicker">Naijaspa.ng</div>
+        <div class="kicker">Naijaspa.com</div>
         <div style="font-weight:700;color:#064E3B;margin-top:4px;">Wellness marketplace · Nigeria</div>
       </div>
       <div class="brand-mark">N</div>
@@ -177,7 +177,7 @@
     <p class="meta">
       <strong>Date:</strong> 24 October 2026<br />
       <strong>Code:</strong> github.com/venzorah/NaijaSpa<br />
-      <strong>Live target:</strong> naijaspa.ng
+      <strong>Live target:</strong> naijaspa.com on Vercel · Postgres on a VPS
     </p>
     <div class="verdict">
       <div class="card ok">
@@ -186,7 +186,7 @@
       </div>
       <div class="card warn">
         <div class="label">Not live for money yet</div>
-        Real bookings need production Postgres, live Paystack keys, domain HTTPS, legal copy, and at least one real vendor. Until then it is a preview.
+        Real bookings need Vercel env connected to Postgres on the VPS, live Paystack keys, domain HTTPS, legal copy, and at least one real vendor. Until then it is a preview.
       </div>
     </div>
     <p class="cover-foot">Dark Room / 18+ stays a homepage teaser only — it is not a product to launch.</p>
@@ -231,7 +231,7 @@
         </ul>
         <h3>Engine</h3>
         <ul>
-          <li>Next.js 15, Prisma 6, PostgreSQL, amounts in kobo (NGN)</li>
+          <li>Next.js 15 on Vercel, Prisma 6, PostgreSQL on the VPS, amounts in kobo (NGN)</li>
           <li>Bookings confirm only after Paystack verify or signed webhook</li>
           <li>No card numbers stored</li>
         </ul>
@@ -241,7 +241,7 @@
 
   <section class="section">
     <h2>2. Must-do before a real launch</h2>
-    <p class="note">Do these in order. Until they are done, treat the site as a preview — not a live marketplace.</p>
+    <p class="note">The app (pages and API) stays on <strong>Vercel</strong>. The database is PostgreSQL on a <strong>VPS</strong> — not Supabase. Set <em>DATABASE_URL</em> in Vercel to the VPS Postgres host.</p>
     <table>
       <thead>
         <tr>
@@ -252,23 +252,23 @@
       </thead>
       <tbody>
         <tr>
-          <td><strong>Production Postgres</strong></td>
-          <td>Neon / Supabase / RDS URL on Vercel. Run <em>prisma migrate deploy</em>. Demo catalog off.</td>
+          <td><strong>VPS Postgres</strong></td>
+          <td>Install PostgreSQL 14+ on the Ubuntu VPS (not Supabase). Require SSL. Firewall: only Vercel (or a bastion) may reach port 5432. Set Vercel <em>DATABASE_URL</em> to <em>postgresql://USER:PASS@VPS_IP:5432/naijaspa?sslmode=require</em>. Run <em>prisma migrate deploy</em> against that URL. Demo catalog off.</td>
           <td><span class="pill block">Blocked</span></td>
         </tr>
         <tr>
           <td><strong>Secrets &amp; APP_URL</strong></td>
-          <td>Live <em>AUTH_SECRET</em>, <em>APP_URL=https://naijaspa.ng</em>, Paystack live keys. Never commit secrets.</td>
+          <td>Vercel project env: <em>AUTH_SECRET</em>, <em>APP_URL=https://naijaspa.com</em>, Paystack live keys, <em>DATABASE_URL</em>. Never commit secrets.</td>
           <td><span class="pill block">Blocked</span></td>
         </tr>
         <tr>
           <td><strong>Paystack live</strong></td>
-          <td>Approved live account. Webhook <em>/api/payments/webhook</em> for <em>charge.success</em>. One real paid booking confirms.</td>
+          <td>Approved live account. Webhook <em>https://naijaspa.com/api/payments/webhook</em> for <em>charge.success</em>. One real paid booking confirms.</td>
           <td><span class="pill block">Blocked</span></td>
         </tr>
         <tr>
           <td><strong>Domain &amp; HTTPS</strong></td>
-          <td>naijaspa.ng (and www) point at this app. TLS on. Old marketing page replaced.</td>
+          <td>Point naijaspa.com (and www) at the <strong>Vercel</strong> project. TLS is on Vercel. Old marketing page replaced.</td>
           <td><span class="pill block">Blocked</span></td>
         </tr>
         <tr>
@@ -298,7 +298,7 @@
       <tbody>
         <tr>
           <td><strong>Photo storage</strong></td>
-          <td>Gallery uploads sit on the server disk. On Vercel that disk is wiped on redeploy. Use S3, R2, or Vercel Blob.</td>
+          <td>Gallery uploads currently write to server disk. Vercel’s disk is wiped on redeploy, so production photos need S3 / Cloudflare R2 / Vercel Blob (or a dedicated folder on the VPS served over HTTPS).</td>
           <td><span class="pill block">Missing</span></td>
         </tr>
         <tr>
@@ -313,7 +313,7 @@
         </tr>
         <tr>
           <td><strong>Monitoring &amp; backups</strong></td>
-          <td>Error tracking, uptime on home and webhook, scheduled Postgres dump, one restore drill.</td>
+          <td>Error tracking, uptime on home and webhook, Vercel logs, UFW on the VPS, scheduled <em>pg_dump</em> of VPS Postgres, one restore drill.</td>
           <td><span class="pill soon">Ops</span></td>
         </tr>
         <tr>
@@ -378,8 +378,8 @@
   <section class="section">
     <h2>5. You may call it launched when</h2>
     <ul class="check">
-      <li>naijaspa.ng serves this app over HTTPS</li>
-      <li>Postgres is live and the demo catalog is off</li>
+      <li>naijaspa.com serves this app from Vercel over HTTPS</li>
+      <li>Postgres on the VPS is live, Vercel can reach it, and the demo catalog is off</li>
       <li>A new customer can register, search a state, book, pay Paystack, and see <strong>confirmed</strong></li>
       <li>The vendor sees the booking and a pending earning</li>
       <li>Admin sees the payment as success</li>
@@ -392,13 +392,14 @@
   <section class="section">
     <h2>6. Launch-week order of work</h2>
     <ol>
-      <li>Staging: migrate database, Paystack <strong>test</strong> charge end to end.</li>
-      <li>Production database: migrate. Do not seed demo people.</li>
-      <li>Set live keys, webhook, and <em>APP_URL=https://naijaspa.ng</em>.</li>
+      <li>Provision the VPS with PostgreSQL only (SSL on, 5432 firewalled). Not Supabase.</li>
+      <li>Set Vercel env: <em>DATABASE_URL</em>, <em>AUTH_SECRET</em>, Paystack keys, <em>APP_URL=https://naijaspa.com</em>.</li>
+      <li>From a machine that can reach the VPS: <em>prisma migrate deploy</em>. Do not seed demo people.</li>
+      <li>Staging: Paystack <strong>test</strong> charge against a preview deployment.</li>
       <li>Admin: plan prices, commission, gallery limits.</li>
-      <li>Invite 1–3 real vendors; they add services and photos (on durable storage).</li>
+      <li>Invite 1–3 real vendors; they add services and photos (durable object storage, not Vercel disk).</li>
       <li>You book and pay a real ₦ amount; confirm booking and earning.</li>
-      <li>DNS cutover. Watch webhooks and errors for 24 hours. Take a database dump.</li>
+      <li>Point naijaspa.com at Vercel. Watch webhook 200s and Vercel logs for 24 hours. Take a <em>pg_dump</em> on the VPS.</li>
     </ol>
   </section>
 
