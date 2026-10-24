@@ -83,7 +83,18 @@ export default async function ExplorePage({
   const cityRailSubtitle = searchedState
     ? "Therapists cover the whole state. These cities help you browse by area."
     : "Popular cities with listings across Nigeria.";
-  const categories = demoCategories.map((c) => ({ slug: c.slug, name: c.name }));
+  let categories = demoCategories.map((c) => ({ slug: c.slug, name: c.name }));
+  try {
+    const { prisma } = await import("@/lib/db");
+    const rows = await prisma.category.findMany({
+      where: { active: true },
+      orderBy: { sortOrder: "asc" },
+      select: { slug: true, name: true }
+    });
+    if (rows.length) categories = rows;
+  } catch {
+    /* demo list */
+  }
 
   return (
     <div className="mx-auto max-w-7xl px-4 pt-6 lg:px-8">

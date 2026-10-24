@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import {
   BadgeCheck,
@@ -18,6 +19,36 @@ import { getDemoCms, usingDemoListings } from "@/lib/catalog";
 import { PHOTOS } from "@/lib/photos";
 
 export const dynamic = "force-dynamic";
+
+const CORE_SLUGS = ["about", "contact", "privacy", "terms", "faq"] as const;
+
+type CmsView = {
+  title: string;
+  body: string;
+  metaTitle?: string;
+  metaDescription?: string;
+  published?: boolean;
+} | null;
+
+async function loadCms(slug: string): Promise<CmsView> {
+  if (usingDemoListings()) return getDemoCms(slug);
+  try {
+    const { prisma } = await import("@/lib/db");
+    return await prisma.cmsBlock.findUnique({ where: { key: slug } });
+  } catch {
+    return null;
+  }
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const block = await loadCms(slug);
+  const fallback = slug === "faq" ? "Frequently asked questions" : slug.replace(/-/g, " ");
+  return {
+    title: block?.metaTitle || block?.title || fallback,
+    description: block?.metaDescription || (block?.body ? block.body.slice(0, 160) : undefined)
+  };
+}
 
 const LEGAL: Record<string, { title: string; sections: [string, string][] }> = {
   privacy: {
@@ -62,7 +93,18 @@ const LEGAL: Record<string, { title: string; sections: [string, string][] }> = {
 
 export default async function CmsPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  if (!["about", "contact", "privacy", "terms", "faq"].includes(slug)) notFound();
+  const extra = await loadCms(slug);
+  if (!(CORE_SLUGS as readonly string[]).includes(slug)) {
+    if (!extra?.published) notFound();
+    return (
+      <div className="mx-auto max-w-3xl px-4 pt-6 lg:px-8">
+        <PageHeader title={extra.title} />
+        <div className="rounded-3xl border border-line bg-card p-6">
+          <p className="whitespace-pre-wrap text-sm leading-relaxed text-ink2">{extra.body}</p>
+        </div>
+      </div>
+    );
+  }
 
   if (slug === "faq") {
     let faqs: { question: string; answer: string }[] = [];
@@ -101,19 +143,25 @@ export default async function CmsPage({ params }: { params: Promise<{ slug: stri
   if (slug === "about") {
     return (
       <div className="mx-auto max-w-5xl px-4 pt-6 lg:px-8">
-        <PageHeader title="About NaijaSpa" />
+        <PageHeader title={extra?.title || "About NaijaSpa"} />
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={PHOTOS.hero1} alt="" className="h-56 w-full rounded-3xl object-cover md:h-80" />
         <div className="mt-8 grid gap-8 md:grid-cols-[1.2fr_1fr]">
           <div className="space-y-4 leading-relaxed text-ink2">
-            <p>
-              NaijaSpa was built in Lagos with one belief: everyone deserves easy access to trusted, professional wellness. We
-              bring together Nigeria’s spas, massage therapists and beauty studios in one app.
-            </p>
-            <p>
-              Verified partners are reviewed by our team. Reviews come from real, completed bookings. Payments stay on
-              Paystack — we never store card numbers.
-            </p>
+            {extra?.body ? (
+              <p className="whitespace-pre-wrap">{extra.body}</p>
+            ) : (
+              <>
+                <p>
+                  NaijaSpa was built in Lagos with one belief: everyone deserves easy access to trusted, professional wellness. We
+                  bring together Nigeria’s spas, massage therapists and beauty studios in one app.
+                </p>
+                <p>
+                  Verified partners are reviewed by our team. Reviews come from real, completed bookings. Payments stay on
+                  Paystack — we never store card numbers.
+                </p>
+              </>
+            )}
           </div>
           <ul className="grid grid-cols-2 gap-3">
             {[
@@ -152,7 +200,7 @@ export default async function CmsPage({ params }: { params: Promise<{ slug: stri
   if (slug === "contact") {
     return (
       <div className="mx-auto max-w-5xl px-4 pt-6 lg:px-8">
-        <PageHeader title="Contact us" subtitle="We’re here 8 AM – 10 PM, every day." />
+        <PageHeader title={extra?.title || "Contact us"} subtitle="We’re here 8 AM – 10 PM, every day." />
         <div className="grid gap-6 md:grid-cols-[1fr_1.3fr]">
           <ul className="space-y-3">
             {[
@@ -183,18 +231,9 @@ export default async function CmsPage({ params }: { params: Promise<{ slug: stri
 
   const doc = LEGAL[slug];
   if (!doc) notFound();
-  let extra: { title: string; body: string } | null = getDemoCms(slug);
-  if (!usingDemoListings()) {
-    try {
-      const { prisma } = await import("@/lib/db");
-      extra = await prisma.cmsBlock.findUnique({ where: { key: slug } });
-    } catch {
-      extra = null;
-    }
-  }
   return (
     <div className="mx-auto max-w-3xl px-4 pt-6 lg:px-8">
-      <PageHeader title={doc.title} subtitle="Last updated 24 October 2026 · For legal review" />
+      <PageHeader title={extra?.title || doc.title} subtitle="Last updated 24 October 2026 · For legal review" />
       <div className="space-y-6 rounded-3xl border border-line bg-card p-6">
         {doc.sections.map(([h, p], i) => (
           <section key={h}>

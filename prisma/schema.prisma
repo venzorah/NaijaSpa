@@ -197,16 +197,18 @@ model VerificationDoc {
 }
 
 model Category {
-  id          String    @id @default(cuid())
-  slug        String    @unique
-  name        String
-  synonyms    String    @default("")
-  description String    @default("")
-  imageUrl    String?
-  sortOrder   Int       @default(0)
-  active      Boolean   @default(true)
-  archivedAt  DateTime?
-  services    Service[]
+  id              String    @id @default(cuid())
+  slug            String    @unique
+  name            String
+  synonyms        String    @default("")
+  description     String    @default("")
+  metaTitle       String    @default("")
+  metaDescription String    @default("")
+  imageUrl        String?
+  sortOrder       Int       @default(0)
+  active          Boolean   @default(true)
+  archivedAt      DateTime?
+  services        Service[]
 }
 
 model Service {
@@ -544,12 +546,14 @@ model Campaign {
 }
 
 model CmsBlock {
-  id        String  @id @default(cuid())
-  key       String  @unique
-  title     String
-  body      String
-  locale    String  @default("en")
-  published Boolean @default(true)
+  id              String  @id @default(cuid())
+  key             String  @unique
+  title           String
+  body            String
+  metaTitle       String  @default("")
+  metaDescription String  @default("")
+  locale          String  @default("en")
+  published       Boolean @default(true)
 }
 
 model Faq {

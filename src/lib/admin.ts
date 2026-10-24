@@ -99,7 +99,7 @@ export const ADMIN_SCREENS: {
     label: "Categories",
     group: "Marketplace",
     icon: FolderTree,
-    description: "Organise the service taxonomy shown to customers.",
+    description: "Add categories, upload tile images, and set SEO titles and descriptions.",
     view: ["catalog.manage", "cms.manage"],
     edit: ["catalog.manage"]
   },
@@ -169,7 +169,7 @@ export const ADMIN_SCREENS: {
     label: "Site content",
     group: "Content & care",
     icon: Newspaper,
-    description: "Homepage, banners, FAQs, legal, help and SEO.",
+    description: "Pages, hero, FAQs, legal copy and SEO for the public site.",
     view: ["cms.manage"],
     edit: ["cms.manage"]
   },

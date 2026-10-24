@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ArrowLeft, SearchX } from "lucide-react";
 import { searchServices } from "@/lib/search";
@@ -11,17 +12,57 @@ import { CategoryCarousel } from "@/components/category-carousel";
 
 export const dynamic = "force-dynamic";
 
-export default async function CategoryLandingPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
-  let categories = demoCategories.map((c) => ({ slug: c.slug, name: c.name, imageUrl: c.imageUrl as string | null | undefined }));
+type CategoryRow = {
+  slug: string;
+  name: string;
+  imageUrl?: string | null;
+  description?: string;
+  metaTitle?: string;
+  metaDescription?: string;
+};
+
+async function loadCategories(): Promise<CategoryRow[]> {
+  let categories: CategoryRow[] = demoCategories.map((c) => ({
+    slug: c.slug,
+    name: c.name,
+    imageUrl: c.imageUrl,
+    description: "",
+    metaTitle: "",
+    metaDescription: ""
+  }));
   try {
     const { prisma } = await import("@/lib/db");
-    const rows = await prisma.category.findMany({ orderBy: { name: "asc" } });
-    if (rows.length) categories = rows.map((c) => ({ slug: c.slug, name: c.name, imageUrl: c.imageUrl }));
+    const rows = await prisma.category.findMany({ orderBy: { sortOrder: "asc" } });
+    if (rows.length) {
+      categories = rows.map((c) => ({
+        slug: c.slug,
+        name: c.name,
+        imageUrl: c.imageUrl,
+        description: c.description,
+        metaTitle: c.metaTitle,
+        metaDescription: c.metaDescription
+      }));
+    }
   } catch {
     /* demo list */
   }
-  const cat = categories.find((c) => c.slug === slug) || demoCategories.find((c) => c.slug === slug);
+  return categories;
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const cat = (await loadCategories()).find((c) => c.slug === slug);
+  if (!cat) return { title: "Category" };
+  return {
+    title: cat.metaTitle || cat.name,
+    description: cat.metaDescription || cat.description || `Book ${cat.name} with verified therapists on NaijaSpa.`
+  };
+}
+
+export default async function CategoryLandingPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const categories = await loadCategories();
+  const cat = categories.find((c) => c.slug === slug);
   if (!cat) notFound();
   const data = await searchServices({ category: slug, take: 24, sort: "rating" });
   const from = data.results.length ? Math.min(...data.results.map((r) => r.quote.customerTotalKobo)) : 0;
@@ -42,6 +83,7 @@ export default async function CategoryLandingPage({ params }: { params: Promise<
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <h1 className="mt-8 font-display text-5xl font-semibold text-white">{cat.name}</h1>
+          {cat.description ? <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/80">{cat.description}</p> : null}
           {data.total > 0 ? (
             <p className="mt-4 text-sm font-semibold text-[#E3C766]">
               {data.total} treatments · from {formatNgn(from)}

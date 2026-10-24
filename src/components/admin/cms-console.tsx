@@ -17,7 +17,7 @@ export function CmsConsole({
   faqs,
   editable
 }: {
-  blocks: { id: string; key: string; title: string; body: string; published: boolean }[];
+  blocks: { id: string; key: string; title: string; body: string; metaTitle: string; metaDescription: string; published: boolean }[];
   faqs: { id: string; question: string; answer: string; published: boolean }[];
   editable: boolean;
 }) {
@@ -56,6 +56,30 @@ export function CmsConsole({
       {tab === "pages" ? (
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
           <Panel title="Content blocks" className="xl:col-span-2" bodyClassName="p-0">
+            <form
+              className="grid gap-2 border-b border-line p-3"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const form = e.currentTarget;
+                const fd = new FormData(form);
+                await adminJson("/api/admin/cms", {
+                  method: "POST",
+                  body: JSON.stringify({ key: fd.get("key"), title: fd.get("title") })
+                });
+                form.reset();
+                router.refresh();
+              }}
+            >
+              <FormRow label="New page slug" htmlFor="cms-new-key" hint="naijaspa.com/{slug}">
+                <input id="cms-new-key" name="key" required disabled={!editable} placeholder="careers" className={`${adminField} font-mono text-xs`} />
+              </FormRow>
+              <FormRow label="Title" htmlFor="cms-new-title">
+                <input id="cms-new-title" name="title" required disabled={!editable} placeholder="Careers" className={adminField} />
+              </FormRow>
+              <button className={adminBtn} disabled={!editable}>
+                Add page
+              </button>
+            </form>
             <ul className="divide-y divide-line">
               {blocks.map((b) => (
                 <li key={b.id}>
@@ -88,6 +112,8 @@ export function CmsConsole({
                       id: selected.id,
                       title: String(fd.get("title") || ""),
                       body: String(fd.get("body") || ""),
+                      metaTitle: String(fd.get("metaTitle") || ""),
+                      metaDescription: String(fd.get("metaDescription") || ""),
                       published: fd.get("published") === "on"
                     })
                   });
@@ -100,6 +126,13 @@ export function CmsConsole({
                 <FormRow label="Body" htmlFor="cms-body">
                   <textarea id="cms-body" name="body" rows={10} defaultValue={selected.body} disabled={!editable} className={adminField} />
                 </FormRow>
+                <FormRow label="Meta title" htmlFor="cms-meta-title" hint="Search result title. Defaults to the page title.">
+                  <input id="cms-meta-title" name="metaTitle" maxLength={80} defaultValue={selected.metaTitle} disabled={!editable} className={adminField} />
+                </FormRow>
+                <FormRow label="Meta description" htmlFor="cms-meta-desc" hint="Search result snippet.">
+                  <textarea id="cms-meta-desc" name="metaDescription" maxLength={320} rows={3} defaultValue={selected.metaDescription} disabled={!editable} className={adminField} />
+                </FormRow>
+                <p className="text-[11px] text-ink2">Public URL: /{selected.key}</p>
                 <label className="flex items-center gap-2 text-sm">
                   <input name="published" type="checkbox" defaultChecked={selected.published} disabled={!editable} /> Published
                 </label>

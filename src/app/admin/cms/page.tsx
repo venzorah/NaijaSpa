@@ -14,7 +14,15 @@ export default async function Page() {
       <AdminPageHeader screen="cms" />
       <CmsConsole
         editable={editable}
-        blocks={blocks.map((b) => ({ id: b.id, key: b.key, title: b.title, body: b.body, published: b.published }))}
+        blocks={blocks.map((b) => ({
+          id: b.id,
+          key: b.key,
+          title: b.title,
+          body: b.body,
+          metaTitle: b.metaTitle,
+          metaDescription: b.metaDescription,
+          published: b.published
+        }))}
         faqs={faqs.map((f) => ({ id: f.id, question: f.question, answer: f.answer, published: f.published }))}
       />
     </div>

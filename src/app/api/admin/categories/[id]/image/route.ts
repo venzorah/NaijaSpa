@@ -1,0 +1,40 @@
+import { randomUUID } from "node:crypto";
+import { revalidateTag } from "next/cache";
+import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/admin-auth";
+import { audit } from "@/lib/audit";
+import { deleteCategoryImageFile, saveCategoryImageFile } from "@/lib/category-media";
+import { prisma } from "@/lib/db";
+import { jsonError } from "@/lib/http";
+
+export const runtime = "nodejs";
+
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const actor = await requireAdmin("catalog.manage");
+    const { id } = await params;
+    const before = await prisma.category.findUniqueOrThrow({ where: { id } });
+    const fd = await req.formData();
+    const file = fd.get("file");
+    if (!(file instanceof File)) return NextResponse.json({ error: "Choose an image file" }, { status: 400 });
+    const buf = new Uint8Array(await file.arrayBuffer());
+    const saved = await saveCategoryImageFile(`${id}-${randomUUID()}`, buf);
+    await deleteCategoryImageFile(before.imageUrl);
+    const category = await prisma.category.update({
+      where: { id },
+      data: { imageUrl: saved.url }
+    });
+    await audit({
+      actorId: actor.id,
+      action: "category.image",
+      entityType: "Category",
+      entityId: id,
+      before,
+      after: category
+    });
+    revalidateTag("home-catalog");
+    return NextResponse.json({ category });
+  } catch (e) {
+    return jsonError(e);
+  }
+}

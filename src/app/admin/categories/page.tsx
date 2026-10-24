@@ -19,6 +19,10 @@ export default async function CategoriesPage() {
           name: c.name,
           slug: c.slug,
           description: c.description,
+          synonyms: c.synonyms,
+          metaTitle: c.metaTitle,
+          metaDescription: c.metaDescription,
+          imageUrl: c.imageUrl,
           active: c.active,
           services: c.services.length,
           vendors: new Set(c.services.map((s) => s.vendorId)).size
