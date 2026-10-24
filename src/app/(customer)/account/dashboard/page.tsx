@@ -95,7 +95,7 @@ export default async function AccountDashboardPage() {
       <div className="mt-10 grid gap-8 lg:grid-cols-[1.4fr_1fr]">
         <section>
           <div className="mb-3 flex items-end justify-between">
-            <h2 className="font-display text-2xl font-semibold">Upcoming</h2>
+            <h2 className="font-display text-3xl font-semibold">Upcoming</h2>
             <Link href="/account/bookings" className="text-sm font-semibold text-goldink">
               See all
             </Link>
@@ -116,7 +116,7 @@ export default async function AccountDashboardPage() {
             ))}
             {upcoming.length === 0 ? <p className="text-sm text-ink2">No upcoming bookings.</p> : null}
           </ul>
-          <h2 className="mb-3 mt-8 font-display text-2xl font-semibold">Recent bookings</h2>
+          <h2 className="mb-3 mt-8 font-display text-3xl font-semibold">Recent bookings</h2>
           <ul className="space-y-3">
             {recent.map((b) => (
               <li key={b.id}>
@@ -132,7 +132,7 @@ export default async function AccountDashboardPage() {
           </ul>
         </section>
         <section>
-          <h2 className="mb-3 font-display text-2xl font-semibold">Notifications</h2>
+          <h2 className="mb-3 font-display text-3xl font-semibold">Notifications</h2>
           <ul className="space-y-2">
             {notes.map((n) => (
               <li key={n.id} className="flex gap-3 rounded-2xl border border-line bg-card p-4">

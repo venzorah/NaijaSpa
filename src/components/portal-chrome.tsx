@@ -112,7 +112,7 @@ function NavList({
     <nav aria-label="Primary" className="flex-1 overflow-y-auto px-3 py-3">
       {groups.map((group) => (
         <div key={group.label} className="mb-4">
-          <p className="px-2 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-ink2">{group.label}</p>
+          <p className="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-ink2">{group.label}</p>
           <ul className="space-y-0.5">
             {group.items.map((item) => {
               const active = linkActive(path, item.href);
@@ -123,7 +123,7 @@ function NavList({
                     href={item.href}
                     aria-current={active ? "page" : undefined}
                     onClick={onNavigate}
-                    className={`relative flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-[13px] ${
+                    className={`relative flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-sm ${
                       active ? "bg-elev font-medium text-ink" : "text-ink2 hover:bg-elev hover:text-ink"
                     }`}
                   >
@@ -200,8 +200,8 @@ export function PortalChrome({
             {initials(businessName)}
           </span>
           <div className="min-w-0">
-            <p className="truncate text-sm font-medium">{businessName}</p>
-            <p className="flex items-center gap-1 text-xs text-ink2">
+            <p className="truncate text-base font-medium">{businessName}</p>
+            <p className="flex items-center gap-1 text-sm text-ink2">
               <ShieldCheck className="h-3.5 w-3.5 text-goldink" aria-hidden />
               {subtitle}
             </p>

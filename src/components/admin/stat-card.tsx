@@ -23,7 +23,7 @@ export function StatCard({
   return (
     <div className={cn("relative rounded-xl border bg-card p-4 shadow-sm", emphasis === "gold" ? "border-gold/40" : "border-line")}>
       <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-1.5 text-xs font-medium text-ink2">
+        <div className="flex items-center gap-1.5 text-sm font-medium text-ink2">
           {label}
           {definition ? (
             <span className="group relative inline-flex">
@@ -41,8 +41,8 @@ export function StatCard({
         </div>
         {Icon ? <Icon className={cn("h-4 w-4", emphasis === "gold" ? "text-goldink" : "text-ink2")} aria-hidden /> : null}
       </div>
-      <p className="mt-2 text-2xl font-semibold tracking-tight tabular-nums">{value}</p>
-      <div className="mt-1 flex items-center gap-2 text-xs">
+      <p className="mt-2 font-display text-3xl font-semibold tracking-tight tabular-nums md:text-4xl">{value}</p>
+      <div className="mt-1 flex items-center gap-2 text-sm">
         {delta !== undefined ? (
           <span className={cn("inline-flex items-center gap-0.5 font-medium tabular-nums", positive ? "text-forest" : "text-red-600 dark:text-red-300")}>
             {delta >= 0 ? <ArrowUpRight className="h-3 w-3" aria-hidden /> : <ArrowDownRight className="h-3 w-3" aria-hidden />}
