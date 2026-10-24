@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { ExploreSearch } from "@/components/explore-search";
 import { PlaceSync } from "@/components/place-sync";
 import { ExploreResultCard } from "@/components/explore-result-card";
 import { ExploreFilters, ExploreSort } from "@/components/explore-filters";
@@ -98,18 +97,6 @@ export default async function ExplorePage({
         </div>
         <ExploreSort place={pathPlace} values={filters} />
       </div>
-
-      <ExploreSearch
-        collapsed={Boolean(explicitPlace || filters.q || filters.location || filters.category)}
-        values={{
-          q: filters.q,
-          state: pathPlace?.state,
-          city: pathPlace?.city,
-          neighbourhood: pathPlace?.neighbourhood,
-          gender: filters.gender,
-          location: filters.location
-        }}
-      />
 
       <div className="mt-8 grid items-start gap-6 lg:grid-cols-[17.5rem_minmax(0,1fr)]">
         <div className="lg:sticky lg:top-28">
