@@ -7,19 +7,19 @@
 
 This is the launch document. Save or print it (VS Code / GitHub: Download, or browser Print → PDF).
 
-Related: [OPERATIONS.md](./OPERATIONS.md) (day-to-day commands), [IMPLEMENTATION.md](../IMPLEMENTATION.md) (feature status), `.env.example` (secrets list).
+Related: [OPERATIONS.md](./OPERATIONS.md), [SUPABASE.md](./SUPABASE.md), [IMPLEMENTATION.md](../IMPLEMENTATION.md), `.env.example`.
 
 ---
 
 ## 1. Executive snapshot
 
-The customer, vendor, and admin product is **built in code**. Production split: **Vercel hosts the Next.js app** (pages + API); **PostgreSQL runs on a VPS** (not Supabase). You cannot take real money until that database URL, Paystack live keys, production `APP_URL` / domain, and admin commercial prices are connected.
+The customer, vendor, and admin product is **built in code**. Production split: **Vercel hosts the Next.js app** (pages + API); **PostgreSQL is Supabase** (Prisma only — not Supabase Auth). You cannot take real money until that database URL, Paystack live keys, production `APP_URL` / domain, and admin commercial prices are connected.
 
 | Verdict | Meaning |
 |---|---|
 | **Not launch-ready for paying customers** until blockers in §3 are done | Demo catalog + empty Paystack keys cannot confirm live bookings |
 | **Can soft-launch a marketing/PWA preview** today | Public pages work with bundled listings; no real payments |
-| **Target for a real launch** | Vercel app + VPS Postgres + migrated schema + Paystack webhook + domain + legal copy + at least one real vendor |
+| **Target for a real launch** | Vercel app + Supabase Postgres + migrated schema + Paystack webhook + domain + legal copy + at least one real vendor |
 
 Darkroom / 18+ is **explicitly out of scope** and must stay off the product.
 
@@ -61,22 +61,21 @@ Darkroom / 18+ is **explicitly out of scope** and must stay off the product.
 
 Do these in order. Until they are done, treat the site as a **preview**.
 
-### 3.1 VPS PostgreSQL (app stays on Vercel)
-- Follow **[VPS-POSTGRES.md](./VPS-POSTGRES.md)** (`scripts/vps-setup-postgres.sh`).
-- The frontend and API deploy on **Vercel**. The database is **PostgreSQL on an Ubuntu VPS**, not Supabase.
-- Install PostgreSQL 14+ on the VPS. Require SSL. Use a strong password.
-- Do **not** leave port `5432` open to the world. Firewall it to Vercel egress (or a bastion / VPN).
+### 3.1 Supabase PostgreSQL (app stays on Vercel)
+- Follow **[SUPABASE.md](./SUPABASE.md)**.
+- The frontend and API deploy on **Vercel**. The database is **Supabase Postgres**. Do not migrate this app onto Supabase Auth.
 - Set on the Vercel project:
   ```
-  DATABASE_URL="postgresql://naijaspa:STRONG_PASSWORD@VPS_IP:5432/naijaspa?sslmode=require"
+  DATABASE_URL="postgresql://…pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1"
+  DIRECT_URL="postgresql://…pooler.supabase.com:5432/postgres"
   ```
-- From a machine that can reach the VPS, run:
+- From your PC, with those URLs in the environment:
   ```bash
   npx prisma generate
   npx prisma migrate deploy
   ```
 - Confirm public pages are **not** still on bundled demo listings (`USE_DEMO_LISTINGS` unset or `false`).
-- Local Docker default `naijaspa:naijaspa@localhost` has failed with `P1000` in this workspace — production credentials must actually authenticate.
+- Local Docker still uses `naijaspa:naijaspa@localhost` with `DIRECT_URL` set to the same value.
 
 **Migrations that must apply (in order):**
 1. `20241023120000_init`
@@ -85,11 +84,12 @@ Do these in order. Until they are done, treat the site as a **preview**.
 4. `20261023233000_therapist_galleries`
 
 ### 3.2 Secrets and URLs
-Set in the **Vercel** project environment (never commit):
+Set in the **Vercel** project environment (never commit). `DIRECT_URL` is required for migrations:
 
 | Variable | Why |
 |---|---|
-| `DATABASE_URL` | Auth, bookings, live catalog |
+| `DATABASE_URL` | Supabase transaction pooler (auth, bookings, catalog) |
+| `DIRECT_URL` | Supabase session/direct URI for Prisma migrate |
 | `AUTH_SECRET` | Long random JWT secret (not the example string) |
 | `APP_URL` | `https://naijaspa.com` (Paystack callback and cancel URLs) |
 | `PAYSTACK_SECRET_KEY` | Live `sk_live_…` (test `sk_test_…` only for staging) |
@@ -135,7 +135,7 @@ If `DATABASE_URL` is missing, customers see sample Osun / Calm House / Olive Roo
 These will not crash the build, but they will hurt trust, ops, or conversions.
 
 ### 4.1 Durable file storage
-Gallery uploads go to **`uploads/galleries/` on the server disk**. Vercel’s disk is **ephemeral** — files disappear on redeploy. Before vendors upload production photos, put objects on S3 / Cloudflare R2 / Vercel Blob (or serve a persistent folder from the VPS over HTTPS). `/photos/*` bundled assets are fine.
+Gallery uploads go to **`uploads/galleries/` on the server disk**. Vercel’s disk is **ephemeral** — files disappear on redeploy. Before vendors upload production photos, put objects on S3 / Cloudflare R2 / Vercel Blob / Supabase Storage (not wired yet). `/photos/*` bundled assets are fine.
 
 ### 4.2 Email (and later SMS)
 Password reset **does not send email**. It writes an in-app notification with a token (dev-only behaviour). For launch you need:
@@ -154,11 +154,11 @@ Update via Admin CMS or seed, not only demo strings.
 ### 4.4 Object and error monitoring
 - Sentry (or similar) for Next.js server + client.
 - Uptime check on `/` and `/api/payments/webhook`.
-- UFW on the VPS (Postgres port locked down).
 - Vercel logs retained.
+- Supabase project health / disk alerts.
 
 ### 4.5 Backups
-- Scheduled `pg_dump` of VPS Postgres. Object-storage photos have their own backup.
+- Supabase daily backups (Pro) or a manual `pg_dump` via `DIRECT_URL`.
 - Secrets **not** in the dump.
 - Restore drill once.
 
@@ -204,6 +204,7 @@ Seed password `NaijaSpa!dev` is public in operations docs. Disable or rotate eve
 
 ```
 DATABASE_URL=
+DIRECT_URL=
 AUTH_SECRET=
 APP_URL=https://naijaspa.com
 NODE_ENV=production
@@ -227,7 +228,7 @@ Staging should use **Paystack test keys** and a **separate** database.
 
 ```
 Customer / Vendor / Admin  →  Vercel (Next.js 15 pages + API)
-                           →  PostgreSQL on the VPS (not Supabase)
+                           →  Supabase PostgreSQL (Prisma pooler)
                            →  Paystack (initialize, verify, webhook)
                            →  Nominatim (GPS reverse geocode; rate-limited)
                            →  Optional OpenAI (query parse only)
@@ -235,7 +236,7 @@ Customer / Vendor / Admin  →  Vercel (Next.js 15 pages + API)
 
 Paystack never sends card numbers to NaijaSpa. Gallery files must not rely on Vercel local disk.
 
-**Go-live commands (Vercel env already has `DATABASE_URL` pointing at the VPS):**
+**Go-live commands (Vercel env already has Supabase `DATABASE_URL` + `DIRECT_URL`):**
 
 ```bash
 npx prisma generate
@@ -250,8 +251,8 @@ Vercel build already runs `prisma generate && next build`. Migrations are **not*
 
 ## 8. Launch-week runbook
 
-1. Provision VPS Postgres (SSL, firewalled). Not Supabase.  
-2. Set Vercel env: `DATABASE_URL`, `AUTH_SECRET`, Paystack, `APP_URL=https://naijaspa.com`.  
+1. Create the Supabase project. Copy pooler + direct URIs ([SUPABASE.md](./SUPABASE.md)).  
+2. Set Vercel env: `DATABASE_URL`, `DIRECT_URL`, `AUTH_SECRET`, Paystack, `APP_URL=https://naijaspa.com`.  
 3. Staging: migrate + Paystack **test** charge on a preview deployment.  
 4. Production DB: migrate. Do **not** seed demo people if you can avoid it.  
 5. Admin: plan prices, commission, gallery limits.  
@@ -259,7 +260,7 @@ Vercel build already runs `prisma generate && next build`. Migrations are **not*
 7. You book and pay a real ₦ amount; confirm booking status `confirmed` and vendor earning row.  
 8. Point DNS at Vercel.  
 9. Watch webhook 200s and Vercel errors for 24h.  
-10. `pg_dump` the VPS after first real payment.
+10. Confirm Supabase backups after the first real payment.
 
 Rollback: keep the previous Vercel deployment; Paystack webhook can stay; do not rewind DB if payments already succeeded.
 
@@ -286,7 +287,7 @@ Also seeded: ops, verify, support, finance, content, marketing, moderator, analy
 You may call it launched when all of the following are true:
 
 1. `naijaspa.com` serves this app from Vercel over HTTPS.  
-2. Postgres on the VPS is live; Vercel can reach it; demo catalog is off.  
+2. Supabase Postgres is live; Vercel can reach it; demo catalog is off.  
 3. A stranger can register, search a city, book, pay Paystack, and see **confirmed**.  
 4. The vendor sees the booking and a pending earning.  
 5. Admin sees the payment as success.  
@@ -301,4 +302,4 @@ Until then, it is a **preview**.
 ## 11. How to download this file
 
 - Founder PDF: `docs/NaijaSpa-Launch-Status.pdf` (also copy to Downloads)
-- Longer notes: `docs/NAIJASPA-LAUNCH-GUIDE.md`, `docs/OPERATIONS.md`
+- Longer notes: `docs/SUPABASE.md`, `docs/NAIJASPA-LAUNCH-GUIDE.md`, `docs/OPERATIONS.md`

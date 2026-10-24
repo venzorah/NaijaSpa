@@ -1,6 +1,10 @@
-# NaijaSpa — VPS PostgreSQL
+# NaijaSpa — VPS PostgreSQL (not the production path)
 
-The Next.js app stays on **Vercel**. This VPS only runs **PostgreSQL**. It is not Supabase.
+**Production is Supabase Postgres.** See **[SUPABASE.md](./SUPABASE.md)**.
+
+This file stays as an optional alternative if you later self-host Postgres.
+
+The Next.js app stays on **Vercel**. This VPS would only run **PostgreSQL**.
 
 You need: an Ubuntu 22.04/24.04 VPS (2 GB RAM minimum), SSH as root, and the public IP.
 

@@ -159,6 +159,20 @@
       color: #5c7268;
       font-size: 9pt;
     }
+    pre {
+      margin: 6px 0 10px;
+      padding: 10px 12px;
+      background: #064E3B;
+      color: #f4f8f6;
+      border-radius: 10px;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 8.2pt;
+      line-height: 1.4;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    code { font-family: Consolas, "Courier New", monospace; font-size: 9pt; }
+    .setup { page-break-before: always; }
   </style>
 </head>
 <body>
@@ -177,7 +191,7 @@
     <p class="meta">
       <strong>Date:</strong> 24 October 2026<br />
       <strong>Code:</strong> github.com/venzorah/NaijaSpa<br />
-      <strong>Live target:</strong> naijaspa.com on Vercel · Postgres on a VPS
+      <strong>Live target:</strong> naijaspa.com on Vercel · Postgres on Supabase
     </p>
     <div class="verdict">
       <div class="card ok">
@@ -186,7 +200,7 @@
       </div>
       <div class="card warn">
         <div class="label">Not live for money yet</div>
-        Real bookings need Vercel env connected to Postgres on the VPS, live Paystack keys, domain HTTPS, legal copy, and at least one real vendor. Until then it is a preview.
+        Real bookings need Vercel env connected to Supabase Postgres, live Paystack keys, domain HTTPS, legal copy, and at least one real vendor. Until then it is a preview.
       </div>
     </div>
     <p class="cover-foot">Dark Room / 18+ stays a homepage teaser only — it is not a product to launch.</p>
@@ -231,7 +245,7 @@
         </ul>
         <h3>Engine</h3>
         <ul>
-          <li>Next.js 15 on Vercel, Prisma 6, PostgreSQL on the VPS, amounts in kobo (NGN)</li>
+          <li>Next.js 15 on Vercel, Prisma 6, PostgreSQL on Supabase, amounts in kobo (NGN)</li>
           <li>Bookings confirm only after Paystack verify or signed webhook</li>
           <li>No card numbers stored</li>
         </ul>
@@ -241,7 +255,7 @@
 
   <section class="section">
     <h2>2. Must-do before a real launch</h2>
-    <p class="note">The app (pages and API) stays on <strong>Vercel</strong>. The database is PostgreSQL on a <strong>VPS</strong> — not Supabase. Set <em>DATABASE_URL</em> in Vercel to the VPS Postgres host.</p>
+    <p class="note">The app (pages and API) stays on <strong>Vercel</strong>. The database is <strong>Supabase Postgres</strong> via Prisma. Do not switch this product to Supabase Auth.</p>
     <table>
       <thead>
         <tr>
@@ -252,13 +266,13 @@
       </thead>
       <tbody>
         <tr>
-          <td><strong>VPS Postgres</strong></td>
-          <td>Install PostgreSQL 14+ on the Ubuntu VPS (not Supabase). Require SSL. Firewall: only Vercel (or a bastion) may reach port 5432. Set Vercel <em>DATABASE_URL</em> to <em>postgresql://USER:PASS@VPS_IP:5432/naijaspa?sslmode=require</em>. Run <em>prisma migrate deploy</em> against that URL. Demo catalog off.</td>
+          <td><strong>Supabase Postgres</strong></td>
+          <td>Create a Supabase project. Set Vercel <em>DATABASE_URL</em> (pooler :6543) and <em>DIRECT_URL</em> (:5432). Run <em>prisma migrate deploy</em>. Demo catalog off. Do not seed production.</td>
           <td><span class="pill block">Blocked</span></td>
         </tr>
         <tr>
           <td><strong>Secrets &amp; APP_URL</strong></td>
-          <td>Vercel project env: <em>AUTH_SECRET</em>, <em>APP_URL=https://naijaspa.com</em>, Paystack live keys, <em>DATABASE_URL</em>. Never commit secrets.</td>
+          <td>Vercel project env: <em>AUTH_SECRET</em>, <em>APP_URL=https://naijaspa.com</em>, Paystack live keys, <em>DATABASE_URL</em>, <em>DIRECT_URL</em>. Never commit secrets.</td>
           <td><span class="pill block">Blocked</span></td>
         </tr>
         <tr>
@@ -285,8 +299,94 @@
     </table>
   </section>
 
+  <section class="section setup">
+    <h2>3. Supabase PostgreSQL setup</h2>
+    <p>The website stays on <strong>Vercel</strong>. Supabase is the database only. Keep NaijaSpa login, Google, and Paystack as they are.</p>
+
+    <h3>Create the project</h3>
+    <ol>
+      <li>Open supabase.com → New project. Pick a region close to West Africa if you can, otherwise EU.</li>
+      <li>Save the database password. You will not see it again.</li>
+      <li>Wait until the project is healthy. Then <strong>Connect → ORMs → Prisma</strong>.</li>
+    </ol>
+
+    <h3>Two URLs</h3>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:28%">Variable</th>
+          <th>Which URI</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>DATABASE_URL</code></td>
+          <td>Transaction pooler, port <strong>6543</strong>. Add <code>?pgbouncer=true&amp;connection_limit=1</code></td>
+        </tr>
+        <tr>
+          <td><code>DIRECT_URL</code></td>
+          <td>Session pooler or direct, port <strong>5432</strong> (needed for <code>prisma migrate</code>)</td>
+        </tr>
+      </tbody>
+    </table>
+    <pre>DATABASE_URL="postgresql://postgres.xxxx:PASSWORD@aws-0-REGION.pooler.supabase.com:6543/postgres?pgbouncer=true&amp;connection_limit=1"
+DIRECT_URL="postgresql://postgres.xxxx:PASSWORD@aws-0-REGION.pooler.supabase.com:5432/postgres"</pre>
+    <p class="note">URL-encode special characters in the password. If the direct <code>db.xxxx.supabase.co</code> host fails from Windows, use the session pooler on port 5432 as <code>DIRECT_URL</code>.</p>
+
+    <h3>Put this on Vercel</h3>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:36%">Variable</th>
+          <th>Value</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>DATABASE_URL</code></td>
+          <td>Transaction pooler</td>
+        </tr>
+        <tr>
+          <td><code>DIRECT_URL</code></td>
+          <td>Session / direct</td>
+        </tr>
+        <tr>
+          <td><code>AUTH_SECRET</code></td>
+          <td>Long random string (not the example in <code>.env.example</code>)</td>
+        </tr>
+        <tr>
+          <td><code>APP_URL</code></td>
+          <td><code>https://naijaspa.com</code></td>
+        </tr>
+        <tr>
+          <td><code>PAYSTACK_SECRET_KEY</code> / public key</td>
+          <td>Test keys first, live later</td>
+        </tr>
+        <tr>
+          <td><code>USE_DEMO_LISTINGS</code></td>
+          <td>Leave unset</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="note">Redeploy after saving. Never put the Supabase <code>anon</code> or <code>service_role</code> key in the browser.</p>
+
+    <h3>Apply the schema (from your PC)</h3>
+    <pre>$env:DATABASE_URL="postgresql://…:6543/postgres?pgbouncer=true&amp;connection_limit=1"
+$env:DIRECT_URL="postgresql://…:5432/postgres"
+npx prisma migrate deploy</pre>
+    <p><strong>Do not</strong> run <code>npx tsx prisma/seed.ts</code> on production. That seed uses the public demo password. Create a real admin after migrate.</p>
+
+    <h3>Check it worked</h3>
+    <pre>npx prisma migrate status</pre>
+    <p>Open <code>https://naijaspa.com/login</code>. If you still see Osun / Olive / Maitama Hands and cannot log in, Vercel has no live <code>DATABASE_URL</code>.</p>
+    <p>Paystack webhook stays on the app: <code>https://naijaspa.com/api/payments/webhook</code></p>
+
+    <h3>Backups</h3>
+    <p>Turn on daily backups in the Supabase dashboard (Pro). On the free tier, take a manual dump before go-live. Do not edit tables in the SQL editor — Prisma owns the schema.</p>
+  </section>
+
   <section class="section">
-    <h2>3. Strongly recommended before public launch</h2>
+    <h2>4. Strongly recommended before public launch</h2>
     <table>
       <thead>
         <tr>
@@ -298,7 +398,7 @@
       <tbody>
         <tr>
           <td><strong>Photo storage</strong></td>
-          <td>Gallery uploads currently write to server disk. Vercel’s disk is wiped on redeploy, so production photos need S3 / Cloudflare R2 / Vercel Blob (or a dedicated folder on the VPS served over HTTPS).</td>
+          <td>Gallery uploads currently write to server disk. Vercel’s disk is wiped on redeploy, so production photos need S3, R2, Vercel Blob, or Supabase Storage (not wired yet).</td>
           <td><span class="pill block">Missing</span></td>
         </tr>
         <tr>
@@ -313,7 +413,7 @@
         </tr>
         <tr>
           <td><strong>Monitoring &amp; backups</strong></td>
-          <td>Error tracking, uptime on home and webhook, Vercel logs, UFW on the VPS, scheduled <em>pg_dump</em> of VPS Postgres, one restore drill.</td>
+          <td>Error tracking, uptime on home and webhook, Vercel logs, Supabase backup schedule, one restore drill.</td>
           <td><span class="pill soon">Ops</span></td>
         </tr>
         <tr>
@@ -331,7 +431,7 @@
   </section>
 
   <section class="section">
-    <h2>4. After launch — not required on day one</h2>
+    <h2>5. After launch — not required on day one</h2>
     <table>
       <thead>
         <tr>
@@ -376,10 +476,10 @@
   </section>
 
   <section class="section">
-    <h2>5. You may call it launched when</h2>
+    <h2>6. You may call it launched when</h2>
     <ul class="check">
       <li>naijaspa.com serves this app from Vercel over HTTPS</li>
-      <li>Postgres on the VPS is live, Vercel can reach it, and the demo catalog is off</li>
+      <li>Supabase Postgres is live, Vercel can reach it, and the demo catalog is off</li>
       <li>A new customer can register, search a state, book, pay Paystack, and see <strong>confirmed</strong></li>
       <li>The vendor sees the booking and a pending earning</li>
       <li>Admin sees the payment as success</li>
@@ -390,22 +490,21 @@
   </section>
 
   <section class="section">
-    <h2>6. Launch-week order of work</h2>
+    <h2>7. Launch-week order of work</h2>
     <ol>
-      <li>Provision the VPS with PostgreSQL only (SSL on, 5432 firewalled). Not Supabase.</li>
-      <li>Set Vercel env: <em>DATABASE_URL</em>, <em>AUTH_SECRET</em>, Paystack keys, <em>APP_URL=https://naijaspa.com</em>.</li>
-      <li>From a machine that can reach the VPS: <em>prisma migrate deploy</em>. Do not seed demo people.</li>
+      <li>Create the Supabase project and copy pooler + direct URIs (section 3).</li>
+      <li>Set Vercel env: <em>DATABASE_URL</em>, <em>DIRECT_URL</em>, <em>AUTH_SECRET</em>, Paystack keys, <em>APP_URL=https://naijaspa.com</em>.</li>
+      <li>From this PC: <em>prisma migrate deploy</em>. Do not seed demo people.</li>
       <li>Staging: Paystack <strong>test</strong> charge against a preview deployment.</li>
       <li>Admin: plan prices, commission, gallery limits.</li>
       <li>Invite 1–3 real vendors; they add services and photos (durable object storage, not Vercel disk).</li>
       <li>You book and pay a real ₦ amount; confirm booking and earning.</li>
-      <li>Point naijaspa.com at Vercel. Watch webhook 200s and Vercel logs for 24 hours. Take a <em>pg_dump</em> on the VPS.</li>
+      <li>Point naijaspa.com at Vercel. Watch webhook 200s and Vercel logs for 24 hours. Confirm Supabase backups.</li>
     </ol>
   </section>
 
   <p class="note" style="margin-top:18px;border-top:1.5px solid #D4AF37;padding-top:10px;">
-    Longer technical notes live in the repo: <em>docs/NAIJASPA-LAUNCH-GUIDE.md</em>, <em>docs/OPERATIONS.md</em>.
-    This briefing is for go / no-go, not day-to-day commands.
+    Supabase setup: <em>docs/SUPABASE.md</em>. Also <em>docs/NAIJASPA-LAUNCH-GUIDE.md</em> and <em>docs/OPERATIONS.md</em>.
   </p>
 </body>
 </html>

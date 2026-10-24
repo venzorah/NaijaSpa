@@ -22,7 +22,7 @@ npm run dev
 postgresql://naijaspa:naijaspa@localhost:5432/naijaspa
 ```
 
-If Docker is not available, install PostgreSQL 14+ locally or on the VPS and put that URL in `.env`.
+If Docker is not available, install PostgreSQL 14+ locally and set both `DATABASE_URL` and `DIRECT_URL` in `.env`.
 
 Demo password for seeded users: `NaijaSpa!dev`
 
@@ -32,11 +32,9 @@ Logins (Postgres must be running and seeded):
 - Vendor: `/login/vendor` — paid.vendor@naijaspa.com or free.vendor@naijaspa.com
 - Admin: `/login/admin` — super.admin@naijaspa.com
 
-## Production (Vercel app + VPS Postgres)
+## Production (Vercel app + Supabase Postgres)
 
-Step-by-step: **[VPS-POSTGRES.md](./VPS-POSTGRES.md)** (`scripts/vps-setup-postgres.sh` on Ubuntu).
-
-The Next.js frontend and API stay on **Vercel**. PostgreSQL runs on a **VPS**, not Supabase.
+Step-by-step: **[SUPABASE.md](./SUPABASE.md)**. Use Supabase as **hosted Postgres** with Prisma. Do not enable Supabase Auth.
 
 Until `DATABASE_URL` is a working `postgresql://` URL, public pages show **bundled demo listings**.
 
@@ -48,7 +46,8 @@ See `.env.example`. Never commit real keys.
 
 | Variable | Required for |
 |---|---|
-| `DATABASE_URL` | PostgreSQL on the VPS (set in Vercel). Required for live catalog, auth, bookings. Demo listings stay until this is set. |
+| `DATABASE_URL` | Supabase transaction pooler (Vercel). Required for live catalog, auth, bookings. |
+| `DIRECT_URL` | Supabase session/direct URI for `prisma migrate`. Locally, same as `DATABASE_URL`. |
 | `USE_DEMO_LISTINGS` | Optional. `true` forces demo; `false` forces Prisma. |
 | `AUTH_SECRET` | Session JWT |
 | `PAYSTACK_SECRET_KEY` | Live/test payments. Without it, checkout records `initialized` payments and will **not** confirm bookings. |
@@ -73,7 +72,7 @@ In the Paystack dashboard set the webhook to `https://naijaspa.com/api/payments/
 
 ## Backup
 
-`pg_dump` the VPS Postgres database on a schedule. Store encryption keys and Vercel env separately from dumps.
+Use Supabase dashboard backups (or `pg_dump` with `DIRECT_URL`). Store Vercel secrets separately from dumps.
 
 ## Magic Patterns
 
