@@ -4,28 +4,26 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
-  BarChart3,
+  Bell,
   CalendarCheck2,
   ClipboardList,
   Crown,
   Image as ImageIcon,
   LayoutDashboard,
-  LifeBuoy,
-  Megaphone,
   Menu,
   Moon,
   Settings,
   ShieldCheck,
   Sparkles,
-  Store,
   Sun,
-  Users,
   Wallet,
   X
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import { BrandLogo } from "@/components/shell";
+import { ADMIN_SCREEN_GROUPS, ADMIN_SCREENS, accessForScreen, type AdminScreenId } from "@/lib/admin";
 
 export type PortalLink = { href: string; label: string; icon: LucideIcon };
 
@@ -60,40 +58,17 @@ export const VENDOR_NAV: { label: string; items: PortalLink[] }[] = [
   }
 ];
 
-export const ADMIN_NAV: { label: string; items: PortalLink[] }[] = [
-  {
-    label: "Marketplace",
-    items: [
-      { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-      { href: "/admin/users", label: "Customers", icon: Users },
-      { href: "/admin/vendors", label: "Vendors", icon: Store },
-      { href: "/admin/bookings", label: "Bookings", icon: CalendarCheck2 }
-    ]
-  },
-  {
-    label: "Money",
-    items: [
-      { href: "/admin/finance", label: "Finance", icon: Wallet },
-      { href: "/admin/commercial", label: "Commercial", icon: Crown },
-      { href: "/admin/campaigns", label: "Campaigns", icon: Megaphone }
-    ]
-  },
-  {
-    label: "Content",
-    items: [
-      { href: "/admin/cms", label: "CMS", icon: ClipboardList },
-      { href: "/admin/hero", label: "Hero & ads", icon: ImageIcon }
-    ]
-  },
-  {
-    label: "Ops",
-    items: [
-      { href: "/admin/support", label: "Support", icon: LifeBuoy },
-      { href: "/admin/ai", label: "AI", icon: Sparkles },
-      { href: "/admin/audit", label: "Audit", icon: BarChart3 }
-    ]
-  }
-];
+export function adminNavForRole(role: string): { label: string; items: (PortalLink & { viewOnly?: boolean })[] }[] {
+  return ADMIN_SCREEN_GROUPS.map((group) => ({
+    label: group,
+    items: ADMIN_SCREENS.filter((s) => s.group === group && accessForScreen(role, s.id)).map((s) => ({
+      href: s.href,
+      label: s.label,
+      icon: s.icon,
+      viewOnly: accessForScreen(role, s.id) === "view"
+    }))
+  })).filter((g) => g.items.length > 0);
+}
 
 function initials(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -112,7 +87,7 @@ function NavList({
   path,
   onNavigate
 }: {
-  groups: { label: string; items: PortalLink[] }[];
+  groups: { label: string; items: (PortalLink & { viewOnly?: boolean })[] }[];
   path: string;
   onNavigate?: () => void;
 }) {
@@ -138,6 +113,9 @@ function NavList({
                     {active ? <span className="absolute -left-3 top-1.5 h-5 w-0.5 rounded-r bg-gold" aria-hidden /> : null}
                     <Icon className={`h-4 w-4 shrink-0 ${active ? "text-goldink" : ""}`} aria-hidden />
                     <span className="flex-1 truncate">{item.label}</span>
+                    {item.viewOnly ? (
+                      <span className="rounded border border-line px-1 text-[9px] uppercase tracking-wide text-ink2">View</span>
+                    ) : null}
                   </Link>
                 </li>
               );
@@ -154,19 +132,25 @@ export function PortalChrome({
   title,
   subtitle,
   userName,
+  role,
+  alerts = 0,
   children
 }: {
   variant: "vendor" | "admin";
   title: string;
   subtitle: string;
   userName: string;
+  role?: string;
+  alerts?: number;
   children: React.ReactNode;
 }) {
   const path = usePathname();
+  const router = useRouter();
   const { theme, toggle } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
-  const groups = variant === "vendor" ? VENDOR_NAV : ADMIN_NAV;
+  const groups = variant === "vendor" ? VENDOR_NAV : adminNavForRole(role || "");
   const home = variant === "vendor" ? "/vendor" : "/admin";
+  const currentScreen = ADMIN_SCREENS.find((s) => linkActive(path, s.href));
 
   const sidebar = (
     <div className="flex h-full flex-col bg-bg2">
@@ -186,7 +170,7 @@ export function PortalChrome({
             <p className="truncate text-xs font-medium">{userName}</p>
             <p className="flex items-center gap-1 truncate text-[11px] text-ink2">
               <ShieldCheck className="h-3 w-3 text-goldink" aria-hidden />
-              {variant === "admin" ? "Admin console" : "Vendor portal"}
+              {subtitle}
             </p>
           </div>
         </div>
@@ -212,39 +196,76 @@ export function PortalChrome({
         </div>
       ) : null}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-line bg-bg px-4 md:px-8">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-line bg-bg px-3 sm:px-5">
           <button
             type="button"
-            className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-elev lg:hidden"
+            className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-elev lg:hidden"
             aria-label="Open navigation"
             onClick={() => setMenuOpen(true)}
           >
-            <Menu className="h-5 w-5" />
+            <Menu className="h-4 w-4" />
           </button>
-          <div className="lg:hidden">
-            <BrandLogo className="h-9 w-auto max-w-[8rem] object-contain object-left" />
-          </div>
-          <p className="hidden min-w-0 truncate text-sm text-ink2 lg:block">
-            {title} <span className="mx-1.5 text-line">/</span>
-            <span className="text-ink">
-              {groups.flatMap((g) => g.items).find((i) => linkActive(path, i.href))?.label ?? "Dashboard"}
+          {variant === "admin" ? (
+            <div className="flex min-w-0 items-center gap-2">
+              <label htmlFor="admin-screen-switcher" className="hidden text-[11px] font-medium uppercase tracking-wide text-ink2 md:block">
+                Screen
+              </label>
+              <select
+                id="admin-screen-switcher"
+                value={currentScreen?.id ?? "dashboard"}
+                onChange={(e) => {
+                  const next = ADMIN_SCREENS.find((s) => s.id === (e.target.value as AdminScreenId));
+                  if (next) router.push(next.href);
+                }}
+                className="h-8 w-40 rounded-md border border-line bg-elev px-2 text-xs sm:w-56"
+              >
+                {groups.map((group) => (
+                  <optgroup key={group.label} label={group.label}>
+                    {group.items.map((item) => (
+                      <option key={item.href} value={ADMIN_SCREENS.find((s) => s.href === item.href)?.id ?? item.href}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <p className="hidden min-w-0 truncate text-sm text-ink2 lg:block">
+              {title} <span className="mx-1.5 text-line">/</span>
+              <span className="text-ink">{groups.flatMap((g) => g.items).find((i) => linkActive(path, i.href))?.label ?? "Dashboard"}</span>
+            </p>
+          )}
+          {variant === "admin" ? (
+            <span className="ml-1 hidden items-center gap-1.5 rounded-full border border-forest/30 bg-forest/10 px-2 py-0.5 text-[11px] font-medium text-forest xl:inline-flex">
+              <span className="h-1.5 w-1.5 rounded-full bg-forest" aria-hidden /> Production · Lagos (WAT)
             </span>
-          </p>
+          ) : null}
           <div className="ml-auto flex items-center gap-1">
             <button
               type="button"
               onClick={toggle}
               aria-label={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
-              className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-elev"
+              className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-elev"
             >
-              {theme === "dark" ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
+              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
+            {variant === "admin" ? (
+              <Link
+                href="/admin/support"
+                aria-label={alerts ? `Notifications, ${alerts} open tickets` : "Notifications"}
+                className="relative flex h-9 w-9 items-center justify-center rounded-full hover:bg-elev"
+              >
+                <Bell className="h-4 w-4" />
+                {alerts > 0 ? <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-gold" aria-hidden /> : null}
+              </Link>
+            ) : null}
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-forest/10 text-xs font-semibold text-forest">
               {initials(userName)}
             </span>
           </div>
         </header>
-        <main className="mx-auto w-full max-w-[1320px] flex-1 px-4 pb-16 pt-6 md:px-8 md:pt-8">{children}</main>
+        <main className="mx-auto w-full max-w-[1480px] flex-1 px-3 pb-16 pt-5 sm:px-6">{children}</main>
       </div>
     </div>
   );

@@ -2,7 +2,7 @@ import crypto from "crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSession, hashPassword, requireUser } from "@/lib/auth";
-import { assertPermission } from "@/lib/rbac";
+import { assertAnyPermission, assertPermission } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { jsonError } from "@/lib/http";
@@ -10,7 +10,7 @@ import { jsonError } from "@/lib/http";
 export async function GET() {
   try {
     const user = requireUser(await getSession());
-    assertPermission(user.role, "vendors.manage");
+    assertAnyPermission(user.role, ["vendors.manage", "vendors.verify"]);
     const vendors = await prisma.vendor.findMany({ include: { owner: true, subscriptions: { include: { plan: true } } } });
     return NextResponse.json({ vendors });
   } catch (e) {

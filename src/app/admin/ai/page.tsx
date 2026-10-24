@@ -1,18 +1,49 @@
+import { requireAdminScreen } from "@/lib/admin-auth";
 import { prisma } from "@/lib/db";
+import { AdminPageHeader } from "@/components/admin/page-header";
+import { Panel } from "@/components/admin/panel";
+import { AdminStatusPill } from "@/components/admin/status-pill";
 
 export default async function Page() {
-  const logs = await prisma.aiSearchLog.findMany({ orderBy: { createdAt: "desc" }, take: 30 });
+  await requireAdminScreen("ai");
+  const logs = await prisma.aiSearchLog.findMany({ orderBy: { createdAt: "desc" }, take: 40 });
+  const openai = Boolean(process.env.OPENAI_API_KEY);
   return (
     <div>
-      <h1 className="font-display text-3xl">AI search</h1>
-      <p className="text-sm text-ink2">Provider keys stay in environment variables. OPENAI_API_KEY is {process.env.OPENAI_API_KEY ? "set" : "not set — local parser in use"}.</p>
-      <ul className="mt-4 space-y-2 text-sm">
-        {logs.map((l) => (
-          <li key={l.id} className="rounded-xl border border-line bg-card p-3">
-            {l.query} · {l.resultCount} hits · fallback {String(l.usedFallback)}
-          </li>
-        ))}
-      </ul>
+      <AdminPageHeader screen="ai" />
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <Panel title="Provider" description="Keys stay in environment variables, never in the database.">
+          <dl className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <dt className="text-ink2">OPENAI_API_KEY</dt>
+              <dd>
+                <AdminStatusPill status={openai ? "Set" : "Not set"} />
+              </dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-ink2">Parser</dt>
+              <dd>{openai ? "OpenAI" : "Local fallback"}</dd>
+            </div>
+          </dl>
+        </Panel>
+        <Panel title="Recent queries" className="xl:col-span-2" bodyClassName="p-0">
+          <ul className="divide-y divide-line">
+            {logs.map((l) => (
+              <li key={l.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                <div className="min-w-0">
+                  <p className="truncate">{l.query}</p>
+                  <p className="text-[11px] text-ink2">{l.createdAt.toLocaleString("en-NG")}</p>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="tabular-nums">{l.resultCount} hits</span>
+                  <AdminStatusPill status={l.usedFallback ? "Fallback" : "Live"} />
+                </div>
+              </li>
+            ))}
+            {logs.length === 0 ? <p className="px-4 py-8 text-sm text-ink2">No AI searches logged yet.</p> : null}
+          </ul>
+        </Panel>
+      </div>
     </div>
   );
 }

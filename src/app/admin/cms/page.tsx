@@ -1,18 +1,22 @@
+import { requireAdminScreen } from "@/lib/admin-auth";
 import { prisma } from "@/lib/db";
+import { AdminPageHeader } from "@/components/admin/page-header";
+import { CmsConsole } from "@/components/admin/cms-console";
 
 export default async function Page() {
-  const blocks = await prisma.cmsBlock.findMany();
+  const { editable } = await requireAdminScreen("cms");
+  const [blocks, faqs] = await Promise.all([
+    prisma.cmsBlock.findMany({ orderBy: { title: "asc" } }),
+    prisma.faq.findMany({ orderBy: { sortOrder: "asc" } })
+  ]);
   return (
     <div>
-      <h1 className="font-display text-3xl">CMS</h1>
-      <ul className="mt-4 space-y-2">
-        {blocks.map((b) => (
-          <li key={b.id} className="rounded-xl border border-line bg-card p-3">
-            <p className="font-semibold">{b.title}</p>
-            <p className="text-sm text-ink2">{b.body}</p>
-          </li>
-        ))}
-      </ul>
+      <AdminPageHeader screen="cms" />
+      <CmsConsole
+        editable={editable}
+        blocks={blocks.map((b) => ({ id: b.id, key: b.key, title: b.title, body: b.body, published: b.published }))}
+        faqs={faqs.map((f) => ({ id: f.id, question: f.question, answer: f.answer, published: f.published }))}
+      />
     </div>
   );
 }

@@ -17,6 +17,19 @@ export function formatNgn(kobo: number, locale = "en"): string {
   }).format(nairaFromKobo(kobo));
 }
 
+export function formatNgnCompact(kobo: number): string {
+  return new Intl.NumberFormat("en-NG", {
+    style: "currency",
+    currency: "NGN",
+    notation: "compact",
+    maximumFractionDigits: 1
+  }).format(nairaFromKobo(kobo));
+}
+
+export function formatCount(n: number): string {
+  return new Intl.NumberFormat("en-NG").format(n);
+}
+
 export function applyBps(amountKobo: number, bps: number): number {
   return Math.round((amountKobo * bps) / 10_000);
 }

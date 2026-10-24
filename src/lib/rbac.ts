@@ -26,6 +26,7 @@ export type Permission =
   | "commercial.manage"
   | "bookings.manage"
   | "cms.manage"
+  | "catalog.manage"
   | "support.manage"
   | "campaigns.manage"
   | "ai.manage"
@@ -44,6 +45,7 @@ const ALL_ADMIN: Permission[] = [
   "commercial.manage",
   "bookings.manage",
   "cms.manage",
+  "catalog.manage",
   "support.manage",
   "campaigns.manage",
   "ai.manage",
@@ -61,16 +63,24 @@ const MATRIX: Record<string, Permission[]> = {
     "vendors.verify",
     "vendors.invite",
     "bookings.manage",
+    "catalog.manage",
     "support.manage",
     "audit.view",
     "analytics.view"
   ],
   [ROLES.VERIFICATION]: ["admin.access", "vendors.verify", "audit.view"],
-  [ROLES.SUPPORT]: ["admin.access", "support.manage", "users.manage"],
-  [ROLES.FINANCE]: ["admin.access", "finance.view", "finance.manage", "analytics.view", "audit.view"],
-  [ROLES.CONTENT]: ["admin.access", "cms.manage"],
+  [ROLES.SUPPORT]: ["admin.access", "support.manage", "users.manage", "bookings.manage"],
+  [ROLES.FINANCE]: [
+    "admin.access",
+    "finance.view",
+    "finance.manage",
+    "commercial.manage",
+    "analytics.view",
+    "audit.view"
+  ],
+  [ROLES.CONTENT]: ["admin.access", "cms.manage", "catalog.manage"],
   [ROLES.MARKETING]: ["admin.access", "campaigns.manage", "cms.manage", "analytics.view"],
-  [ROLES.MODERATOR]: ["admin.access", "support.manage"],
+  [ROLES.MODERATOR]: ["admin.access", "support.manage", "catalog.manage", "users.manage"],
   [ROLES.ANALYST]: ["admin.access", "analytics.view", "finance.view", "audit.view"]
 };
 
@@ -94,6 +104,14 @@ export function hasPermission(role: string, permission: Permission): boolean {
 
 export function assertPermission(role: string, permission: Permission) {
   if (!hasPermission(role, permission)) {
+    const err = new Error("Forbidden");
+    (err as Error & { status: number }).status = 403;
+    throw err;
+  }
+}
+
+export function assertAnyPermission(role: string, permissions: Permission[]) {
+  if (!permissions.some((permission) => hasPermission(role, permission))) {
     const err = new Error("Forbidden");
     (err as Error & { status: number }).status = 403;
     throw err;

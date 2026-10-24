@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { DEFAULT_MARKETPLACE_HUBS } from "@/lib/hubs";
 import { NIGERIA_STATES } from "@/lib/nigeria";
+import { AdminPageHeader } from "@/components/admin/page-header";
+import { Panel } from "@/components/admin/panel";
 
 type Payload = {
   config?: Record<string, number | string>;
@@ -21,12 +23,11 @@ export default function CommercialPage() {
   }, []);
   return (
     <div>
-      <h1 className="font-display text-3xl">Commercial config</h1>
-      <p className="text-sm text-ink2">
-        Free plan is ₦0 / 10% commission. Paid plan prices are not hardcoded — set them here. Hotel and Home extras are
-        vendor-set per service (Spa/Office is always ₦0 extra). Keep platform surcharges at ₦0 unless you need a platform
-        fee on top. Therapist gallery image limits and home-feed item counts are stored in SystemConfig.
-      </p>
+      <AdminPageHeader screen="commercial" />
+      <Panel
+        title="Plans, extras and marketplace hubs"
+        description="Free plan is ₦0 / 10% commission. Paid plan prices are set here. Hotel and Home extras are vendor-set per service. Spa/Office is always ₦0 extra."
+      >
       <form
         key={data.config ? "loaded" : "loading"}
         className="mt-6 grid max-w-xl gap-3"
@@ -179,6 +180,7 @@ export default function CommercialPage() {
         </div>
         <button className="min-h-11 rounded-full bg-gold font-bold text-ongold">Save</button>
       </form>
+      </Panel>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSession, requireUser } from "@/lib/auth";
-import { assertPermission } from "@/lib/rbac";
+import { assertAnyPermission, assertPermission } from "@/lib/rbac";
 import { getCommercialConfig, getGalleryConfig, getHomeFeedConfig, setConfig, prisma } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { jsonError } from "@/lib/http";
@@ -17,7 +17,7 @@ import { MARKETPLACE_HUBS_KEY, extraHubFromState, parseMarketplaceHubs } from "@
 export async function GET() {
   try {
     const user = requireUser(await getSession());
-    assertPermission(user.role, "finance.view");
+    assertAnyPermission(user.role, ["finance.view", "commercial.manage", "analytics.view"]);
     const [config, galleryConfig, homeFeedConfig, plans, hubsRow] = await Promise.all([
       getCommercialConfig(),
       getGalleryConfig(),

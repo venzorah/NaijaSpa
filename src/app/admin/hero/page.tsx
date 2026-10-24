@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AdminPageHeader } from "@/components/admin/page-header";
 
 type VendorOpt = { id: string; businessName: string; slug: string };
 type AdRow = {
@@ -48,7 +49,8 @@ export default function HeroAdsPage() {
 
   return (
     <div className="max-w-3xl">
-      <h1 className="font-display text-3xl">Homepage hero &amp; ads</h1>
+      <AdminPageHeader screen="cms" />
+      <h2 className="font-display text-2xl">Homepage hero &amp; ads</h2>
       <p className="mt-2 text-sm text-ink2">
         Change the main banner image and copy, then post premium vendor ads for the compact carousel beside it. The
         carousel shows one ad at a time and rotates every 3 seconds unless a visitor clicks the arrows or dots. You
