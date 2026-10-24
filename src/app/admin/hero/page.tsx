@@ -109,7 +109,7 @@ export default function HeroAdsPage() {
           Banner image URL
           <input name="imageUrl" required defaultValue={banner?.imageUrl} className={field} />
         </label>
-        <p className="text-xs text-ink2">Use a local photo such as /photos/hero-1.jpg, /photos/hero-2.jpg, or /photos/nuru.jpg.</p>
+        <p className="text-xs text-ink2">Use a local photo such as /photos/hero-1.jpg or /photos/hero-2.jpg.</p>
         <label className="text-sm">
           Ads to display
           <input

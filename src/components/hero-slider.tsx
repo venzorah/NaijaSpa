@@ -19,11 +19,11 @@ const EXTRA_SLIDES = [
     subtitle: "",
     price: "Starting from ₦38,000",
     cta: "Book now",
-    category: "nuru",
+    category: "massage",
     image: PHOTOS.hero2
   },
   {
-    id: "couples-nuru",
+    id: "couples",
     offer: "For two",
     title: "A shared oil ritual",
     subtitle: "",

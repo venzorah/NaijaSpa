@@ -36,12 +36,12 @@ export const DEFAULT_HERO_AD_DISPLAY_LIMIT = 2;
 export const HERO_AD_INTERVAL_MS = 3000;
 
 export const DEFAULT_HOME_HERO: HomeHeroBanner = {
-  kicker: "Nuru silk ritual",
+  kicker: "Signature oil hour",
   title: "Warm oil, a slower glide",
   subtitle: "Verified therapists, private suites, and prices in Naira.",
   priceLine: "Starting from ₦45,000",
-  ctaLabel: "Explore Nuru",
-  ctaHref: "/explore?category=nuru",
+  ctaLabel: "Explore massage",
+  ctaHref: "/explore?category=massage",
   imageUrl: PHOTOS.hero1
 };
 

@@ -161,7 +161,7 @@ export function SearchFiltersForm({
       <div className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)_10.5rem]">
         <label className="min-w-0 md:col-span-2 xl:col-span-1">
           <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-forest">Treatment or therapist</span>
-          <input name="q" defaultValue={values?.q} placeholder="Nuru, Swedish, couples…" className={fieldClass()} />
+          <input name="q" defaultValue={values?.q} placeholder="Swedish, couples, hot stone…" className={fieldClass()} />
         </label>
         <label className="min-w-0">
           <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-forest">State</span>

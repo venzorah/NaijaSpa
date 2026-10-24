@@ -12,7 +12,7 @@ type Result = {
 };
 
 const EXAMPLES = [
-  "Nuru massage",
+  "Swedish massage",
   "Treatments in Ikeja",
   "Couples treatments",
   "A highly rated spa in Lekki under ₦30,000",
@@ -80,7 +80,7 @@ export default function AskAiPage() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             className="min-h-12 flex-1 bg-transparent px-4 text-sm outline-none placeholder:text-ink2"
-            placeholder="Nuru in Lekki, couples in Lagos, Ikeja facials…"
+            placeholder="Swedish in Lekki, couples in Lagos, Ikeja facials…"
           />
           <button
             type="submit"
