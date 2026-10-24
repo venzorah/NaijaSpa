@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { CalendarDays, Compass, Heart, Home, Moon, Sparkles, Sun, User } from "lucide-react";
 import { useTheme } from "./theme-provider";
 import { InstallPrompt } from "./install-prompt";
+import { LocationHubPicker } from "./location-hub-picker";
 
 export function BrandLogo({
   className = "h-14 w-auto max-w-[min(14.5rem,68vw)] shrink-0 object-contain object-left sm:h-16 sm:max-w-[18rem]",
@@ -48,34 +49,48 @@ function isAuthPath(path: string) {
 
 export function TopBar() {
   const { theme, toggle } = useTheme();
+  const path = usePathname();
+  const desktopLinks = [
+    ["/", "Home"],
+    ["/explore", "Explore"],
+    ["/account/bookings", "Bookings"],
+    ["/account/favourites", "Favourites"],
+    ["/account", "Profile"]
+  ] as const;
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b border-line/70 bg-bg/92 pt-safe backdrop-blur-xl">
-      <div className="mx-auto flex h-[5.5rem] max-w-7xl items-center gap-2 px-4 lg:px-8">
-        <Link href="/" className="flex shrink-0 items-center" aria-label="NaijaSpa home">
-          <BrandLogo />
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-line/70 bg-bg/85 pt-safe backdrop-blur-xl">
+      <div className="mx-auto flex h-16 max-w-7xl items-center gap-2 px-4 lg:px-8">
+        <Link href="/" className="flex min-w-0 shrink-0 items-center" aria-label="NaijaSpa home">
+          <BrandLogo className="h-10 w-auto max-w-[min(9.5rem,42vw)] object-contain object-left sm:h-11 sm:max-w-[14rem]" />
         </Link>
-        <nav className="ml-8 hidden items-center gap-1 lg:flex" aria-label="Primary">
-          {[
-            ["/", "Home"],
-            ["/explore", "Explore"],
-            ["/account/bookings", "Bookings"],
-            ["/account/favourites", "Favourites"],
-            ["/account", "Profile"]
-          ].map(([href, label]) => (
-            <Link key={href} href={href} className="rounded-full px-4 py-2 text-sm font-semibold text-ink2 hover:text-ink">
-              {label}
-            </Link>
-          ))}
+        <nav className="ml-6 hidden items-center gap-1 lg:flex" aria-label="Primary">
+          {desktopLinks.map(([href, label]) => {
+            const active = href === "/" ? path === "/" || path.startsWith("/in/") : path.startsWith(href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${active ? "bg-elev text-ink" : "text-ink2 hover:text-ink"}`}
+              >
+                {label}
+              </Link>
+            );
+          })}
         </nav>
-        <div className="ml-auto flex items-center gap-1">
-          <Link href="/ai" aria-label="Ask NaijaSpa AI" className="flex h-11 w-10 items-center justify-center rounded-full text-goldink hover:bg-elev">
+        <div className="ml-auto flex items-center gap-0.5">
+          <LocationHubPicker />
+          <Link
+            href="/ai"
+            aria-label="Ask NaijaSpa AI"
+            className="ml-0.5 flex h-11 w-9 items-center justify-center rounded-full text-goldink hover:bg-elev sm:w-10"
+          >
             <Sparkles className="h-5 w-5" />
           </Link>
           <button
             type="button"
             onClick={toggle}
             aria-label={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
-            className="flex h-11 w-10 items-center justify-center rounded-full text-ink hover:bg-elev"
+            className="flex h-11 w-9 items-center justify-center rounded-full text-ink hover:bg-elev sm:w-10"
           >
             {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </button>
@@ -141,7 +156,7 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
         <div className="absolute inset-0 bg-bg/86 dark:bg-bg/88" />
       </div>
       <TopBar />
-      <div aria-hidden className="h-[calc(5.5rem+env(safe-area-inset-top))]" />
+      <div aria-hidden className="h-[calc(4rem+env(safe-area-inset-top))]" />
       <main className="relative min-w-0 w-full pb-[calc(7.5rem+env(safe-area-inset-bottom))] lg:pb-8">
         {children}
       </main>

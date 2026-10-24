@@ -12,18 +12,26 @@ import {
   HOME_FEED_LIMIT_MAX,
   HOME_FEED_LIMIT_MIN
 } from "@/lib/home-types";
+import { MARKETPLACE_HUBS_KEY, extraHubFromState, parseMarketplaceHubs } from "@/lib/hubs";
 
 export async function GET() {
   try {
     const user = requireUser(await getSession());
     assertPermission(user.role, "finance.view");
-    const [config, galleryConfig, homeFeedConfig, plans] = await Promise.all([
+    const [config, galleryConfig, homeFeedConfig, plans, hubsRow] = await Promise.all([
       getCommercialConfig(),
       getGalleryConfig(),
       getHomeFeedConfig(),
-      prisma.subscriptionPlan.findMany()
+      prisma.subscriptionPlan.findMany(),
+      prisma.systemConfig.findUnique({ where: { key: MARKETPLACE_HUBS_KEY } })
     ]);
-    return NextResponse.json({ config, galleryConfig, homeFeedConfig, plans });
+    return NextResponse.json({
+      config,
+      galleryConfig,
+      homeFeedConfig,
+      plans,
+      hubs: parseMarketplaceHubs(hubsRow?.value)
+    });
   } catch (e) {
     return jsonError(e);
   }
@@ -51,7 +59,8 @@ export async function PUT(req: Request) {
         homeFeedNearbyLimit: z.number().int().min(HOME_FEED_LIMIT_MIN).max(HOME_FEED_LIMIT_MAX).optional(),
         plans: z
           .array(z.object({ code: z.string(), priceKobo: z.number().int().nonnegative() }))
-          .optional()
+          .optional(),
+        extraStates: z.array(z.string()).optional()
       })
       .parse(await req.json());
     for (const key of ["spaSurchargeKobo", "hotelSurchargeKobo", "homeSurchargeKobo", "surchargeRecipient", "freeCommissionBps", "paidCommissionBps", "graceDays"] as const) {
@@ -81,6 +90,11 @@ export async function PUT(req: Request) {
         HOME_FEED_CONFIG_KEYS[rail],
         String(clampInt(value, HOME_FEED_LIMIT_MIN, HOME_FEED_LIMIT_MAX, DEFAULT_HOME_FEED_CONFIG[rail]))
       );
+    }
+    if (body.extraStates) {
+      const extras = body.extraStates.map((s) => extraHubFromState(s)).filter((h): h is NonNullable<typeof h> => Boolean(h));
+      const unique = extras.filter((h, i) => extras.findIndex((x) => x.state === h.state) === i);
+      await setConfig(MARKETPLACE_HUBS_KEY, JSON.stringify(unique.map((h) => ({ id: h.id, label: h.label, state: h.state, city: h.city }))));
     }
     if (body.plans) {
       for (const p of body.plans) {

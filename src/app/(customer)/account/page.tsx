@@ -1,57 +1,146 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import {
+  CalendarDays,
+  ChevronRight,
+  CreditCard,
+  Crown,
+  FileText,
+  Heart,
+  HelpCircle,
+  Info,
+  Mail,
+  Settings,
+  Smartphone,
+  Star,
+  Store
+} from "lucide-react";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { formatNgn } from "@/lib/money";
 import { LogoutButton } from "@/components/logout-button";
+
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return "NS";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+}
+
+const sections: { title: string; items: { href: string; label: string; icon: typeof Heart; hint?: string }[] }[] = [
+  {
+    title: "My NaijaSpa",
+    items: [
+      { href: "/account/bookings", label: "Bookings", icon: CalendarDays },
+      { href: "/account/favourites", label: "Favourites", icon: Heart },
+      { href: "/account/membership", label: "Membership & rewards", icon: Crown },
+      { href: "/account/payments", label: "Payments & receipts", icon: CreditCard },
+      { href: "/account/reviews", label: "Reviews", icon: Star }
+    ]
+  },
+  {
+    title: "Help & settings",
+    items: [
+      { href: "/account/support", label: "Support tickets", icon: HelpCircle },
+      { href: "/account/settings", label: "Account settings", icon: Settings },
+      { href: "/install", label: "Install the app", icon: Smartphone },
+      { href: "/contact", label: "Contact us", icon: Mail }
+    ]
+  },
+  {
+    title: "More",
+    items: [
+      { href: "/vendor/onboarding", label: "Become a vendor", icon: Store },
+      { href: "/about", label: "About NaijaSpa", icon: Info },
+      { href: "/privacy", label: "Privacy policy", icon: FileText },
+      { href: "/terms", label: "Terms of service", icon: FileText }
+    ]
+  }
+];
 
 export default async function AccountPage() {
   const user = await getSession();
-  if (!user) redirect("/login?next=/account");
-  const [bookings, notes, membership] = await Promise.all([
-    prisma.booking.findMany({ where: { customerId: user.id }, include: { service: true }, orderBy: { startsAt: "desc" }, take: 5 }),
-    prisma.notification.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 5 }),
-    prisma.customerMembership.findFirst({ where: { userId: user.id, status: "active" }, include: { plan: true } })
-  ]);
-  return (
-    <div className="mx-auto max-w-4xl px-4 py-8">
-      <h1 className="font-display text-3xl">Hello, {user.name}</h1>
-      <p className="text-ink2">{user.email}</p>
-      <div className="mt-6 grid gap-3 sm:grid-cols-2">
-        {[
-          ["/account/bookings", "Bookings"],
-          ["/account/favourites", "Favourites"],
-          ["/account/membership", "Membership"],
-          ["/account/payments", "Payments"],
-          ["/account/reviews", "Reviews"],
-          ["/account/support", "Support"],
-          ["/account/settings", "Settings"],
-          ["/install", "Install the app"]
-        ].map(([href, label]) => (
-          <Link key={href} href={href} className="rounded-2xl border border-line bg-card p-4 font-semibold">
-            {label}
-          </Link>
+  if (!user) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 pt-6 lg:px-8">
+        <div className="rounded-3xl border border-gold/40 bg-card p-6 text-center">
+          <h1 className="font-display text-3xl font-semibold text-ink">Your wellness, in one place</h1>
+          <p className="mt-1 text-sm text-ink2">Sign in to see bookings, favourites and rewards.</p>
+          <div className="mt-5 flex gap-2">
+            <Link href="/login?next=/account" className="inline-flex min-h-11 flex-1 items-center justify-center rounded-full bg-gold text-sm font-bold text-ongold">
+              Sign in
+            </Link>
+            <Link href="/register" className="inline-flex min-h-11 flex-1 items-center justify-center rounded-full border border-gold/50 text-sm font-bold text-goldink">
+              Register
+            </Link>
+          </div>
+        </div>
+        {sections.map((s) => (
+          <HubSection key={s.title} title={s.title} items={s.items} />
         ))}
       </div>
-      <h2 className="mt-8 font-display text-2xl">Upcoming</h2>
-      <ul className="mt-3 space-y-2">
-        {bookings.map((b) => (
-          <li key={b.id} className="rounded-2xl border border-line bg-card p-3 text-sm">
-            {b.service.name} · {b.status} · {formatNgn(b.customerTotalKobo)}
-          </li>
-        ))}
-      </ul>
-      <h2 className="mt-8 font-display text-2xl">Notifications</h2>
-      <ul className="mt-3 space-y-2 text-sm">
-        {notes.map((n) => (
-          <li key={n.id} className="rounded-2xl border border-line bg-card p-3">
-            <p className="font-semibold">{n.title}</p>
-            <p className="text-ink2">{n.body}</p>
-          </li>
-        ))}
-      </ul>
-      {membership && <p className="mt-6 text-sm">Membership: {membership.plan.name}</p>}
+    );
+  }
+
+  const [bookingCount, membership] = await Promise.all([
+    prisma.booking.count({
+      where: { customerId: user.id, status: { in: ["confirmed", "pending", "awaiting_payment", "in_progress"] } }
+    }),
+    prisma.customerMembership.findFirst({ where: { userId: user.id, status: "active" }, include: { plan: true } })
+  ]);
+
+  return (
+    <div className="mx-auto max-w-3xl px-4 pt-6 lg:px-8">
+      <div className="flex items-center gap-4 rounded-3xl border border-line bg-card p-5">
+        <span className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-gold/60 bg-forest font-display text-2xl font-bold text-gold" aria-hidden>
+          {initials(user.name)}
+        </span>
+        <div className="min-w-0 flex-1">
+          <h1 className="font-display text-3xl font-semibold text-ink">{user.name}</h1>
+          <p className="truncate text-sm text-ink2">{user.email}</p>
+          {membership ? (
+            <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-gold/15 px-2.5 py-0.5 text-xs font-semibold text-goldink">
+              <Crown className="h-3 w-3" aria-hidden />
+              {membership.plan.name} member
+            </span>
+          ) : null}
+        </div>
+      </div>
+      <HubSection
+        title="My NaijaSpa"
+        items={sections[0].items.map((item) =>
+          item.href === "/account/bookings" ? { ...item, hint: bookingCount ? `${bookingCount} open` : undefined } : item
+        )}
+      />
+      {sections.slice(1).map((s) => (
+        <HubSection key={s.title} title={s.title} items={s.items} />
+      ))}
       <LogoutButton />
+      <p className="mt-6 pb-4 text-center text-xs text-ink2">NaijaSpa · naijaspa.com</p>
     </div>
+  );
+}
+
+function HubSection({
+  title,
+  items
+}: {
+  title: string;
+  items: { href: string; label: string; icon: typeof Heart; hint?: string }[];
+}) {
+  return (
+    <section className="mt-6">
+      <h2 className="mb-2 px-1 text-[11px] font-bold uppercase tracking-[0.18em] text-goldink">{title}</h2>
+      <ul className="divide-y divide-line overflow-hidden rounded-3xl border border-line bg-card">
+        {items.map(({ href, label, icon: Icon, hint }) => (
+          <li key={href}>
+            <Link href={href} className="flex min-h-[56px] w-full items-center gap-3 px-4 text-left hover:bg-elev">
+              <Icon className="h-5 w-5 text-leaf" aria-hidden />
+              <span className="flex-1 text-[15px] font-medium text-ink">{label}</span>
+              {hint ? <span className="text-xs text-ink2">{hint}</span> : null}
+              <ChevronRight className="h-4 w-4 text-ink2" aria-hidden />
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

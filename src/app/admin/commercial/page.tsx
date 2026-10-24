@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { DEFAULT_MARKETPLACE_HUBS } from "@/lib/hubs";
+import { NIGERIA_STATES } from "@/lib/nigeria";
 
 type Payload = {
   config?: Record<string, number | string>;
   galleryConfig?: { maxImagesPerGallery: number; maxImageBytes: number };
   homeFeedConfig?: { featured: number; premium: number; promo: number; nearby: number };
   plans?: Array<{ code: string; priceKobo: number; commissionBps: number }>;
+  hubs?: Array<{ id: string; label: string; state: string; locked?: boolean }>;
 };
 
 export default function CommercialPage() {
@@ -43,6 +46,7 @@ export default function CommercialPage() {
               homeFeedPremiumLimit: Number(fd.get("homePremium")),
               homeFeedPromoLimit: Number(fd.get("homePromo")),
               homeFeedNearbyLimit: Number(fd.get("homeNearby")),
+              extraStates: fd.getAll("extraState").map(String),
               plans: [
                 { code: "WEEKLY", priceKobo: Number(fd.get("weekly")) * 100 },
                 { code: "MONTHLY", priceKobo: Number(fd.get("monthly")) * 100 },
@@ -151,6 +155,28 @@ export default function CommercialPage() {
             className="ml-2 rounded-xl bg-elev px-2"
           />
         </label>
+        <h2 className="mt-4 font-display text-xl">Marketplace locations</h2>
+        <p className="text-xs text-ink2">
+          Lagos, Abuja, Port Harcourt, Delta and Anambra stay in the top-bar city picker. Tick extra states to add them.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {(data.hubs ?? DEFAULT_MARKETPLACE_HUBS).filter((h) => h.locked).map((h) => (
+            <span key={h.id} className="rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-xs font-semibold text-goldink">
+              {h.label}
+            </span>
+          ))}
+        </div>
+        <div className="grid max-h-48 grid-cols-2 gap-1 overflow-y-auto rounded-2xl border border-line p-3 text-sm sm:grid-cols-3">
+          {NIGERIA_STATES.filter((s) => !["Lagos", "FCT", "Rivers", "Delta", "Anambra"].includes(s)).map((state) => {
+            const on = Boolean(data.hubs?.some((h) => h.state === state && !h.locked));
+            return (
+              <label key={state} className="flex min-h-10 items-center gap-2">
+                <input type="checkbox" name="extraState" value={state} defaultChecked={on} />
+                {state}
+              </label>
+            );
+          })}
+        </div>
         <button className="min-h-11 rounded-full bg-gold font-bold text-ongold">Save</button>
       </form>
     </div>
