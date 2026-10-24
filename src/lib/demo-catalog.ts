@@ -23,6 +23,7 @@ import type { SearchFilters } from "./search-types";
 import { CATEGORY_SYNONYMS, listingHaystack, queryMatchesListing, tokenHitCount } from "./query-match";
 import { collectExploreCities, type ExploreCityFilters } from "./explore-cities";
 import { filterByServiceArea, sortByPlace, vendorMatchesPlace, type LivePlace } from "./nigeria";
+import { nextLabelFor } from "./next-slot";
 
 const paidEnt: Entitlement = {
   planCode: "MONTHLY",
@@ -548,6 +549,7 @@ export function demoSearch(filters: SearchFilters) {
       .map((t) => ({ id: t.id, name: t.name, gender: t.gender })),
     sponsored: s.vendor.entitlement.sponsoredEligible,
     enhanced: s.vendor.entitlement.enhancedVisibility,
+    nextLabel: nextLabelFor(s.id),
     quote: quoteBooking({
       basePriceKobo: s.basePriceKobo,
       location: loc,
@@ -562,14 +564,6 @@ export function demoSearch(filters: SearchFilters) {
 export function demoExploreCities(opts: ExploreCityFilters = {}) {
   const vendors = demoVendors.filter((v) => v.therapists.some((t) => t.available));
   return collectExploreCities(vendors, opts);
-}
-
-const NEXT_SLOTS = ["Today, 4:30 PM", "Tomorrow, 9:00 AM", "Fri, 11:00 AM", "Today, 7:00 PM"];
-
-function nextLabelFor(id: string) {
-  let n = 0;
-  for (let i = 0; i < id.length; i++) n += id.charCodeAt(i);
-  return `Next: ${NEXT_SLOTS[n % NEXT_SLOTS.length]}`;
 }
 
 function tagsFor(s: { categoryName?: string; spaEnabled?: boolean; hotelEnabled?: boolean; homeEnabled?: boolean }) {

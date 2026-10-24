@@ -4,9 +4,11 @@ import { redirect } from "next/navigation";
 import { ExploreSearch } from "@/components/explore-search";
 import { PlaceSync } from "@/components/place-sync";
 import { ExploreResultCard } from "@/components/explore-result-card";
+import { ExploreFilters, ExploreSort } from "@/components/explore-filters";
 import { CityCarousel } from "@/components/service-carousel";
 import { listExploreCities, searchServices } from "@/lib/search";
 import { PLACE_COOKIE, nigeriaStateLabel, parsePlaceCookie, serviceAreaState } from "@/lib/nigeria";
+import { demoCategories } from "@/lib/demo-catalog";
 import type { LocationType } from "@/lib/commercial";
 import type { TherapistGender } from "@/lib/nigeria";
 import {
@@ -58,6 +60,7 @@ export default async function ExplorePage({
     publicContact: filters.whatsapp === "1",
     sort: (filters.sort as "price" | "rating" | "relevance") || "relevance",
     page: filters.page ? Number(filters.page) : 1,
+    take: 24,
     rankPlace
   });
   const siblingCities = await listExploreCities({
@@ -67,6 +70,7 @@ export default async function ExplorePage({
   });
   const label = [pathPlace?.neighbourhood, pathPlace?.city, pathPlace?.state].filter(Boolean).join(", ");
   const stateLabel = searchedState ? nigeriaStateLabel(searchedState) : "";
+  const around = label || stateLabel;
   const emptyCopy = explicitPlace
     ? `No therapist available yet in ${stateLabel || label}.`
     : "No services match those filters.";
@@ -78,16 +82,23 @@ export default async function ExplorePage({
   const cityRailSubtitle = searchedState
     ? "Therapists cover the whole state. These cities help you browse by area."
     : "Popular cities with listings across Nigeria.";
+  const categories = demoCategories.map((c) => ({ slug: c.slug, name: c.name }));
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 lg:px-8">
       <PlaceSync place={pathPlace} />
-      <h1 className="font-display text-3xl">{label ? `Explore ${label}` : "Explore"}</h1>
-      <p className="mt-2 text-sm text-ink2">
-        {explicitPlace
-          ? "Every therapist in this state, with your area shown first. Search other states without leaving this page."
-          : "Search by state — listings cover the whole state, not only your live area."}
-      </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="font-display text-4xl">Discover providers</h1>
+          <p className="mt-2 text-sm text-ink2">
+            {data.total} {data.total === 1 ? "provider" : "providers"}
+            {around ? ` around ${around}` : " across Nigeria"}
+            {explicitPlace ? " · whole state, closest first" : ""}
+          </p>
+        </div>
+        <ExploreSort place={pathPlace} values={filters} />
+      </div>
+
       <ExploreSearch
         collapsed={Boolean(explicitPlace || filters.q || filters.location || filters.category)}
         values={{
@@ -99,30 +110,45 @@ export default async function ExplorePage({
           location: filters.location
         }}
       />
-      <div className="mt-2 flex gap-2 text-xs">
-        <Link className="underline" href="/explore">
-          Clear all
-        </Link>
-        <Link className="underline" href="/ai">
-          Try Ask NaijaSpa AI
-        </Link>
-      </div>
-      {data.results.length === 0 ? (
-        <div className="mt-10 rounded-3xl border border-line bg-card px-5 py-8">
-          <p className="font-display text-2xl">{emptyCopy}</p>
-          {siblingCities.length > 0 ? (
-            <p className="mt-2 text-sm text-ink2">See therapists in other cities below.</p>
-          ) : null}
+
+      <div className="mt-8 grid items-start gap-6 lg:grid-cols-[17.5rem_minmax(0,1fr)]">
+        <div className="lg:sticky lg:top-28">
+          <details className="lg:hidden" open={!explicitPlace}>
+            <summary className="cursor-pointer list-none rounded-full bg-elev px-4 py-3 text-sm font-bold">
+              Filters
+            </summary>
+            <div className="mt-3">
+              <ExploreFilters place={pathPlace} values={filters} categories={categories} />
+            </div>
+          </details>
+          <div className="hidden lg:block">
+            <ExploreFilters place={pathPlace} values={filters} categories={categories} />
+          </div>
         </div>
-      ) : (
-        <ul className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {data.results.map((r) => (
-            <li key={r.service.id}>
-              <ExploreResultCard result={r} />
-            </li>
-          ))}
-        </ul>
-      )}
+
+        <div>
+          {data.results.length === 0 ? (
+            <div className="rounded-3xl border border-line bg-card px-5 py-8">
+              <p className="font-display text-2xl">{emptyCopy}</p>
+              {siblingCities.length > 0 ? (
+                <p className="mt-2 text-sm text-ink2">See therapists in other cities below.</p>
+              ) : null}
+              <Link href="/ai" className="mt-4 inline-block text-sm font-semibold text-goldink">
+                Try Ask NaijaSpa AI
+              </Link>
+            </div>
+          ) : (
+            <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {data.results.map((r) => (
+                <li key={r.service.id}>
+                  <ExploreResultCard result={r} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+
       <CityCarousel
         id="explore-cities"
         title={cityRailTitle}

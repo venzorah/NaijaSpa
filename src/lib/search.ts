@@ -4,6 +4,7 @@ import { PHOTOS, firstWellnessPhoto, publicWellnessPhoto } from "./photos";
 import { usingDemoListings } from "./live-db";
 import { placeRank, prismaServiceAreaFilter, serviceAreaState, vendorMatchesPlace } from "./nigeria";
 import { tokenizeSearch } from "./query-match";
+import { nextLabelFor } from "./next-slot";
 export type { SearchFilters } from "./search-types";
 export type { ExploreCityCard, ExploreCityFilters } from "./explore-cities";
 import type { SearchFilters, SearchTherapist } from "./search-types";
@@ -186,6 +187,7 @@ async function searchLive(filters: SearchFilters) {
       therapists,
       sponsored: ent.sponsoredEligible,
       enhanced: ent.enhancedVisibility,
+      nextLabel: nextLabelFor(row.id),
       quote
     });
   }
