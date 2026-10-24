@@ -1,10 +1,12 @@
-import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { PlaceSync } from "@/components/place-sync";
 import { ExploreResultCard } from "@/components/explore-result-card";
 import { ExploreFilters, ExploreSort } from "@/components/explore-filters";
 import { CityCarousel } from "@/components/service-carousel";
+import { ExploreSearchBar } from "@/components/explore-search-bar";
+import { EmptyState } from "@/components/empty-state";
+import { SearchX } from "lucide-react";
 import { listExploreCities, searchServices } from "@/lib/search";
 import { PLACE_COOKIE, nigeriaStateLabel, parsePlaceCookie, serviceAreaState } from "@/lib/nigeria";
 import { demoCategories } from "@/lib/demo-catalog";
@@ -84,17 +86,16 @@ export default async function ExplorePage({
   const categories = demoCategories.map((c) => ({ slug: c.slug, name: c.name }));
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 lg:px-8">
+    <div className="mx-auto max-w-7xl px-4 pt-6 lg:px-8">
       <PlaceSync place={pathPlace} />
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="font-display text-4xl">Discover providers</h1>
-          <p className="mt-2 text-sm text-ink2">
-            {data.total} {data.total === 1 ? "provider" : "providers"}
-            {around ? ` around ${around}` : " across Nigeria"}
-            {explicitPlace ? " · whole state, closest first" : ""}
-          </p>
-        </div>
+      <h1 className="font-display text-[34px] font-semibold text-ink md:text-4xl">Explore</h1>
+      <p className="text-sm text-ink2">Find the right treatment, therapist and setting.</p>
+      <ExploreSearchBar place={pathPlace} values={filters} />
+      <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="font-display text-2xl font-semibold text-ink">
+          {data.total} {data.total === 1 ? "treatment" : "treatments"}
+          {around ? ` around ${around}` : ""}
+        </h2>
         <ExploreSort place={pathPlace} values={filters} />
       </div>
 
@@ -115,15 +116,13 @@ export default async function ExplorePage({
 
         <div>
           {data.results.length === 0 ? (
-            <div className="rounded-3xl border border-line bg-card px-5 py-8">
-              <p className="font-display text-2xl">{emptyCopy}</p>
-              {siblingCities.length > 0 ? (
-                <p className="mt-2 text-sm text-ink2">See therapists in other cities below.</p>
-              ) : null}
-              <Link href="/ai" className="mt-4 inline-block text-sm font-semibold text-goldink">
-                Try Ask NaijaSpa AI
-              </Link>
-            </div>
+            <EmptyState
+              icon={SearchX}
+              title={emptyCopy}
+              text={siblingCities.length > 0 ? "See therapists in other cities below, or try Ask NaijaSpa AI." : "Try widening your price range or removing a filter."}
+              actionHref="/ai"
+              actionLabel="Ask NaijaSpa AI"
+            />
           ) : (
             <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
               {data.results.map((r) => (

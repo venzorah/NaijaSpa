@@ -6,6 +6,7 @@ import { HeroSlider } from "@/components/hero-slider";
 import { ParallaxBand } from "@/components/parallax-band";
 import { ServiceCarousel, VendorCarousel } from "@/components/service-carousel";
 import { PlaceSync } from "@/components/place-sync";
+import { HomeExtras } from "@/components/home-extras";
 import { exploreHref } from "@/lib/place-urls";
 import type { HomeHeroAd, HomeHeroBanner } from "@/lib/home-hero";
 import type { HomeCard, NearbyVendor } from "@/lib/home-types";
@@ -104,22 +105,7 @@ export function CustomerHome({
 
       <VendorCarousel title="Spas & studios in your state" vendors={nearby} />
 
-      <section className="mx-auto mt-10 max-w-7xl px-4 lg:px-8">
-        <h2 className="font-display text-2xl">How NaijaSpa works</h2>
-        <ol className="mt-4 grid gap-3 md:grid-cols-3">
-          {["Search verified providers", "Choose location and time", "Pay securely — confirmed only after verification"].map(
-            (s, i) => (
-              <li key={s} className="rounded-3xl border border-line bg-card p-5">
-                <p className="text-goldink">{i + 1}</p>
-                <p className="mt-2 font-semibold">{s}</p>
-              </li>
-            )
-          )}
-        </ol>
-        <Link href="/vendor/onboarding" className="mt-6 inline-flex rounded-full border border-gold/50 px-5 py-3 text-sm font-bold text-goldink">
-          Become a vendor
-        </Link>
-      </section>
+      <HomeExtras />
 
       <DarkRoomTeaser />
 
@@ -135,18 +121,6 @@ export function CustomerHome({
         </dl>
       </section>
 
-      <footer className="mx-auto mt-16 max-w-7xl px-4 pb-10 text-sm text-ink2 lg:px-8">
-        <div className="flex flex-wrap gap-4">
-          <Link href="/about">About</Link>
-          <Link href="/contact">Contact</Link>
-          <Link href="/privacy">Privacy</Link>
-          <Link href="/terms">Terms</Link>
-          <Link href="/login">Customer login</Link>
-          <Link href="/login/vendor">Vendor login</Link>
-          <Link href="/login/admin">Admin login</Link>
-        </div>
-        <p className="mt-4">© {new Date().getFullYear()} NaijaSpa · WELLNESS · BEAUTY · RELAXATION · MORE</p>
-      </footer>
     </div>
   );
 }

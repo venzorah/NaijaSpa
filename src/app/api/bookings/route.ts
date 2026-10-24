@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSession, requireUser } from "@/lib/auth";
-import { createBooking } from "@/lib/booking";
+import { createBooking, requestCancellation } from "@/lib/booking";
 import { jsonError } from "@/lib/http";
 import { prisma } from "@/lib/db";
 
@@ -46,6 +46,23 @@ export async function POST(req: Request) {
       promoCode: body.promoCode
     });
     return NextResponse.json(booking);
+  } catch (e) {
+    return jsonError(e);
+  }
+}
+
+export async function PATCH(req: Request) {
+  try {
+    const user = requireUser(await getSession());
+    const body = z
+      .object({
+        id: z.string(),
+        action: z.literal("cancel"),
+        reason: z.string().min(2).max(200)
+      })
+      .parse(await req.json());
+    const booking = await requestCancellation(body.id, user.id, body.reason);
+    return NextResponse.json({ booking });
   } catch (e) {
     return jsonError(e);
   }

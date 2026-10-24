@@ -8,6 +8,7 @@ import {
   Heart,
   HelpCircle,
   Info,
+  LayoutDashboard,
   Mail,
   Settings,
   Smartphone,
@@ -29,6 +30,7 @@ const sections: { title: string; items: { href: string; label: string; icon: typ
   {
     title: "My NaijaSpa",
     items: [
+      { href: "/account/dashboard", label: "Overview", icon: LayoutDashboard },
       { href: "/account/bookings", label: "Bookings", icon: CalendarDays },
       { href: "/account/favourites", label: "Favourites", icon: Heart },
       { href: "/account/membership", label: "Membership & rewards", icon: Crown },
@@ -42,13 +44,14 @@ const sections: { title: string; items: { href: string; label: string; icon: typ
       { href: "/account/support", label: "Support tickets", icon: HelpCircle },
       { href: "/account/settings", label: "Account settings", icon: Settings },
       { href: "/install", label: "Install the app", icon: Smartphone },
+      { href: "/faq", label: "FAQs", icon: Info },
       { href: "/contact", label: "Contact us", icon: Mail }
     ]
   },
   {
     title: "More",
     items: [
-      { href: "/vendor/onboarding", label: "Become a vendor", icon: Store },
+      { href: "/become-a-vendor", label: "Become a vendor", icon: Store },
       { href: "/about", label: "About NaijaSpa", icon: Info },
       { href: "/privacy", label: "Privacy policy", icon: FileText },
       { href: "/terms", label: "Terms of service", icon: FileText }

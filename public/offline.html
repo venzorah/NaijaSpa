@@ -2,17 +2,69 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Offline · NaijaSpa</title>
     <style>
-      body { font-family: sans-serif; background: #ffffff; color: #183127; display: grid; min-height: 100vh; place-items: center; }
+      :root { color-scheme: light dark; }
+      body {
+        font-family: system-ui, sans-serif;
+        background: #f6f3ee;
+        color: #183127;
+        min-height: 100vh;
+        margin: 0;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+      }
+      main { max-width: 26rem; text-align: center; }
+      h1 { font-size: 2rem; margin: 1.25rem 0 0.5rem; }
+      p { color: #5c6b63; line-height: 1.5; }
+      .mark { position: relative; display: inline-block; }
+      .badge {
+        position: absolute; right: -6px; bottom: -4px;
+        width: 36px; height: 36px; border-radius: 999px;
+        background: #d4af37; color: #1a1405;
+        display: grid; place-items: center; font-size: 18px;
+        border: 2px solid #f6f3ee;
+      }
+      .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 1.75rem; }
+      a, button {
+        min-height: 72px;
+        border-radius: 16px;
+        border: 1px solid #d9d3c8;
+        background: #fff;
+        color: #183127;
+        text-decoration: none;
+        display: grid;
+        place-content: center;
+        font-weight: 600;
+        font-size: 14px;
+      }
+      button.retry {
+        min-height: 44px;
+        margin-top: 1.25rem;
+        border-radius: 999px;
+        background: #d4af37;
+        border: 0;
+        color: #1a1405;
+        padding: 0 20px;
+        width: 100%;
+      }
     </style>
   </head>
   <body>
     <main>
-      <img src="/brand/splash-logo.png" alt="NaijaSpa" width="220" />
+      <div class="mark">
+        <img src="/brand/icon-green.png" alt="" width="88" height="88" />
+        <span class="badge" aria-hidden="true">✕</span>
+      </div>
       <h1>You’re offline</h1>
-      <p>NaijaSpa cannot confirm bookings or payments without a connection.</p>
+      <p>No connection right now. Saved bookings and favourites may still be available, and we’ll sync as soon as you’re back.</p>
+      <button class="retry" type="button" onclick="location.reload()">Try again</button>
+      <div class="actions">
+        <a href="/account/bookings">Saved bookings</a>
+        <a href="/account/favourites">Favourites</a>
+      </div>
     </main>
   </body>
 </html>

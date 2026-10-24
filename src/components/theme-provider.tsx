@@ -3,7 +3,11 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 
 type Theme = "dark" | "light";
-const ThemeCtx = createContext<{ theme: Theme; toggle: () => void }>({ theme: "light", toggle: () => {} });
+const ThemeCtx = createContext<{ theme: Theme; toggle: () => void; setTheme: (t: Theme) => void }>({
+  theme: "light",
+  toggle: () => {},
+  setTheme: () => {}
+});
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>("light");
@@ -15,17 +19,18 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     document.documentElement.classList.toggle("dark", next === "dark");
   }, []);
 
-  const toggle = useCallback(() => {
-    setTheme((prev) => {
-      const next = prev === "dark" ? "light" : "dark";
-      localStorage.setItem("naijaspa-theme", next);
-      document.documentElement.classList.toggle("dark", next === "dark");
-      fetch("/api/account/theme", { method: "POST", body: JSON.stringify({ theme: next }) }).catch(() => {});
-      return next;
-    });
+  const apply = useCallback((next: Theme) => {
+    localStorage.setItem("naijaspa-theme", next);
+    document.documentElement.classList.toggle("dark", next === "dark");
+    fetch("/api/account/theme", { method: "POST", body: JSON.stringify({ theme: next }) }).catch(() => {});
+    setTheme(next);
   }, []);
 
-  return <ThemeCtx.Provider value={{ theme, toggle }}>{children}</ThemeCtx.Provider>;
+  const toggle = useCallback(() => {
+    apply(theme === "dark" ? "light" : "dark");
+  }, [apply, theme]);
+
+  return <ThemeCtx.Provider value={{ theme, toggle, setTheme: apply }}>{children}</ThemeCtx.Provider>;
 }
 
 export function useTheme() {

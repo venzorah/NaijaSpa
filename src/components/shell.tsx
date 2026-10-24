@@ -6,6 +6,7 @@ import { CalendarDays, Compass, Heart, Home, Moon, Sparkles, Sun, User } from "l
 import { useTheme } from "./theme-provider";
 import { InstallPrompt } from "./install-prompt";
 import { LocationHubPicker } from "./location-hub-picker";
+import { SiteFooter } from "./site-footer";
 
 export function BrandLogo({
   className = "h-14 w-auto max-w-[min(14.5rem,68vw)] shrink-0 object-contain object-left sm:h-16 sm:max-w-[18rem]",
@@ -44,6 +45,16 @@ function isAuthPath(path: string) {
     path === "/register" ||
     path === "/forgot" ||
     path.startsWith("/invite")
+  );
+}
+
+function hideSiteFooter(path: string) {
+  return (
+    isAuthPath(path) ||
+    path === "/ai" ||
+    path === "/offline" ||
+    path.startsWith("/book/") ||
+    path.startsWith("/checkout")
   );
 }
 
@@ -146,6 +157,12 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
   }
   return (
     <div className="relative min-h-screen min-w-0 bg-bg text-ink">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[100] focus:rounded-full focus:bg-gold focus:px-4 focus:py-2 focus:text-ongold"
+      >
+        Skip to content
+      </a>
       <div aria-hidden className="pointer-events-none fixed inset-0 -z-10">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -157,8 +174,9 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
       </div>
       <TopBar />
       <div aria-hidden className="h-[calc(4rem+env(safe-area-inset-top))]" />
-      <main className="relative min-w-0 w-full pb-[calc(7.5rem+env(safe-area-inset-bottom))] lg:pb-8">
+      <main id="main" className="relative min-w-0 w-full pb-[calc(7.5rem+env(safe-area-inset-bottom))] lg:pb-8">
         {children}
+        {hideSiteFooter(path) ? null : <SiteFooter />}
       </main>
       <BottomNav />
       <InstallPrompt />
@@ -166,11 +184,20 @@ export function CustomerShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function GoldButton({ children, className = "", ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+export function GoldButton({
+  children,
+  className = "",
+  tone = "solid",
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & { tone?: "solid" | "outline" }) {
+  const look =
+    tone === "outline"
+      ? "border border-gold/50 bg-transparent text-goldink hover:bg-gold/10"
+      : "bg-gold text-ongold";
   return (
     <button
       {...props}
-      className={`inline-flex min-h-11 items-center justify-center rounded-full bg-gold px-5 text-sm font-bold text-ongold disabled:opacity-50 ${className}`}
+      className={`inline-flex min-h-11 items-center justify-center rounded-full px-5 text-sm font-bold disabled:opacity-50 ${look} ${className}`}
     >
       {children}
     </button>

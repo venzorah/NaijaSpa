@@ -1,28 +1,26 @@
-"use client";
+import { redirect } from "next/navigation";
+import { getSession } from "@/lib/auth";
+import { prisma } from "@/lib/db";
+import { SettingsForm } from "@/components/settings-form";
 
-import { useTheme } from "@/components/theme-provider";
-
-export default function SettingsPage() {
-  const { theme, toggle } = useTheme();
+export default async function SettingsPage() {
+  const user = await getSession();
+  if (!user) redirect("/login?next=/account/settings");
+  const row = await prisma.user.findUnique({
+    where: { id: user.id },
+    include: { customerProfile: true }
+  });
+  if (!row) redirect("/login?next=/account/settings");
+  const [first, ...rest] = row.name.split(" ");
   return (
-    <div className="mx-auto max-w-lg px-4 py-8">
-      <h1 className="font-display text-3xl">Settings</h1>
-      <button type="button" onClick={toggle} className="mt-6 min-h-12 rounded-full border border-line px-5">
-        {theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
-      </button>
-      <form
-        className="mt-8 space-y-3"
-        onSubmit={async (e) => {
-          e.preventDefault();
-          const fd = new FormData(e.currentTarget);
-          await fetch("/api/auth/forgot", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: fd.get("email") }) });
-          alert("If the account exists, a reset was queued.");
-        }}
-      >
-        <p className="text-sm font-semibold">Request account deletion</p>
-        <input name="email" type="email" required placeholder="Confirm email" className="min-h-11 w-full rounded-2xl border border-line bg-card px-3" />
-        <button className="text-sm underline">Submit deletion request via support</button>
-      </form>
-    </div>
+    <SettingsForm
+      firstName={first || ""}
+      lastName={rest.join(" ")}
+      email={row.email}
+      phone={row.phone || ""}
+      city={row.customerProfile?.city || ""}
+      neighbourhood={row.customerProfile?.neighbourhood || ""}
+      locale={row.locale || "en"}
+    />
   );
 }
