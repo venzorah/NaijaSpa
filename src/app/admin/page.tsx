@@ -106,12 +106,13 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
         </h2>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatCard
+            href="/admin/users"
             label="Customers"
             value={formatCount(customers.length)}
             sub={`${formatCount(customers.filter((c) => c.status === "active").length)} active`}
             icon={Users}
           />
-          <div className="rounded-xl border border-line bg-card p-4 shadow-sm">
+          <Link href="/admin/vendors" className="rounded-xl border border-line bg-card p-4 shadow-sm transition hover:border-gold/50">
             <div className="flex items-center justify-between text-xs font-medium text-ink2">
               Vendors <Store className="h-4 w-4" aria-hidden />
             </div>
@@ -121,8 +122,8 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
               <span className="rounded bg-gold/15 px-1.5 py-0.5 text-goldink tabular-nums">{pending} pending</span>
               <span className="rounded bg-red-500/10 px-1.5 py-0.5 text-red-700 tabular-nums dark:text-red-300">{suspended} suspended</span>
             </div>
-          </div>
-          <div className="rounded-xl border border-line bg-card p-4 shadow-sm">
+          </Link>
+          <Link href="/admin/bookings" className="rounded-xl border border-line bg-card p-4 shadow-sm transition hover:border-gold/50">
             <div className="flex items-center justify-between text-xs font-medium text-ink2">
               Bookings <CalendarCheck className="h-4 w-4" aria-hidden />
             </div>
@@ -131,8 +132,8 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
               <span className="text-forest">{formatCount(completed)} completed</span> · <span className="text-red-600 dark:text-red-300">{formatCount(cancelled)} cancelled</span>
             </p>
             <p className="mt-0.5 text-[11px] text-ink2">{completionRate.toFixed(0)}% completion rate</p>
-          </div>
-          <StatCard label="Active vendor subscriptions" value={formatCount(subscriptions)} sub="Weekly · Monthly · 6-Month" icon={Crown} emphasis="gold" />
+          </Link>
+          <StatCard href="/admin/commercial" label="Active vendor subscriptions" value={formatCount(subscriptions)} sub="Weekly · Monthly · 6-Month" icon={Crown} emphasis="gold" />
         </div>
       </section>
 

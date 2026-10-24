@@ -59,6 +59,17 @@ function hideSiteFooter(path: string) {
   );
 }
 
+function customerNavActive(path: string, href: string) {
+  if (href === "/") return path === "/" || path.startsWith("/in/");
+  if (href === "/explore") return path === "/explore" || path.startsWith("/explore/");
+  if (href === "/account") {
+    if (path === "/account") return true;
+    if (!path.startsWith("/account/")) return false;
+    return !path.startsWith("/account/bookings") && !path.startsWith("/account/favourites");
+  }
+  return path === href || path.startsWith(`${href}/`);
+}
+
 export function TopBar({ signedIn = false }: { signedIn?: boolean }) {
   const { theme, toggle } = useTheme();
   const path = usePathname();
@@ -77,7 +88,7 @@ export function TopBar({ signedIn = false }: { signedIn?: boolean }) {
         </Link>
         <nav className="ml-6 hidden items-center gap-1 lg:flex" aria-label="Primary">
           {desktopLinks.map(([href, label]) => {
-            const active = href === "/" ? path === "/" || path.startsWith("/in/") : path.startsWith(href);
+            const active = customerNavActive(path, href);
             return (
               <Link
                 key={href}
@@ -128,7 +139,7 @@ export function BottomNav() {
     <nav aria-label="Main" className="pb-safe fixed inset-x-0 bottom-0 z-50 border-t border-line bg-bg/95 backdrop-blur-xl lg:hidden">
       <ul className="mx-auto grid max-w-xl grid-cols-5">
         {items.map(({ href, label, icon: Icon }) => {
-          const active = href === "/" ? path === "/" || path.startsWith("/in/") : path.startsWith(href);
+          const active = customerNavActive(path, href);
           return (
             <li key={href}>
               <Link

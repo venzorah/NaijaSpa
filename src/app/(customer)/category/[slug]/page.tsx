@@ -9,6 +9,9 @@ import { ExploreResultCard } from "@/components/explore-result-card";
 import { EmptyState } from "@/components/empty-state";
 import { formatNgn } from "@/lib/money";
 import { CategoryCarousel } from "@/components/category-carousel";
+import { cookies } from "next/headers";
+import { PLACE_COOKIE, parsePlaceCookie } from "@/lib/nigeria";
+import { exploreHref } from "@/lib/place-urls";
 
 export const dynamic = "force-dynamic";
 
@@ -64,6 +67,8 @@ export default async function CategoryLandingPage({ params }: { params: Promise<
   const categories = await loadCategories();
   const cat = categories.find((c) => c.slug === slug);
   if (!cat) notFound();
+  const place = parsePlaceCookie((await cookies()).get(PLACE_COOKIE)?.value);
+  const exploreWithCategory = exploreHref(place, { category: slug });
   const data = await searchServices({ category: slug, take: 24, sort: "rating" });
   const from = data.results.length ? Math.min(...data.results.map((r) => r.quote.customerTotalKobo)) : 0;
   const providers = [...new Map(data.results.map((r) => [r.vendor.slug, r.vendor])).values()];
@@ -76,7 +81,7 @@ export default async function CategoryLandingPage({ params }: { params: Promise<
         <div className="absolute inset-0 -z-10 bg-[#0B120E]/70" aria-hidden />
         <div className="mx-auto max-w-7xl px-4 pb-10 pt-6 lg:px-8 lg:pb-16">
           <Link
-            href="/explore"
+            href={exploreHref(place)}
             aria-label="Go back"
             className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur hover:bg-white/20"
           >
@@ -92,14 +97,14 @@ export default async function CategoryLandingPage({ params }: { params: Promise<
         </div>
       </section>
       <div className="mx-auto max-w-7xl px-4 lg:px-8">
-        <CategoryCarousel categories={categories} />
+        <CategoryCarousel categories={categories} place={place} />
         <section className="mt-10">
           <div className="mb-4 flex items-end justify-between">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-goldink">Treatments</p>
               <h2 className="font-display text-2xl font-semibold text-ink">Top {cat.name.toLowerCase()}</h2>
             </div>
-            <Link href={`/explore?category=${cat.slug}`} className="text-sm font-semibold text-goldink">
+            <Link href={exploreWithCategory} className="text-sm font-semibold text-goldink">
               Filter
             </Link>
           </div>

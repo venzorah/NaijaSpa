@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ArrowDownRight, ArrowUpRight, Info } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -9,7 +10,8 @@ export function StatCard({
   delta,
   icon: Icon,
   definition,
-  emphasis
+  emphasis,
+  href
 }: {
   label: string;
   value: string;
@@ -18,10 +20,11 @@ export function StatCard({
   icon?: LucideIcon;
   definition?: string;
   emphasis?: "gold" | "none";
+  href?: string;
 }) {
   const positive = delta !== undefined && delta >= 0;
-  return (
-    <div className={cn("relative rounded-xl border bg-card p-4 shadow-sm", emphasis === "gold" ? "border-gold/40" : "border-line")}>
+  const body = (
+    <div className={cn("relative rounded-xl border bg-card p-4 shadow-sm", emphasis === "gold" ? "border-gold/40" : "border-line", href && "transition hover:border-gold/50")}>
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-1.5 text-sm font-medium text-ink2">
           {label}
@@ -52,5 +55,11 @@ export function StatCard({
         {sub ? <span className="truncate text-ink2">{sub}</span> : null}
       </div>
     </div>
+  );
+  if (!href) return body;
+  return (
+    <Link href={href} className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/50">
+      {body}
+    </Link>
   );
 }

@@ -82,9 +82,9 @@ export default async function VendorHome() {
       />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Today’s bookings" value={formatCount(bookings.length)} icon={CalendarCheck2} sub="On the calendar from midnight" />
-        <StatCard label="Occupancy today" value={`${occupancy}%`} icon={Gauge} sub={hoursToday ? `${hoursToday.toFixed(0)} therapist-hours on the roster` : "Add availability to measure occupancy"} />
-        <StatCard label="Payable this week" value={formatNgnCompact(weekPayable)} icon={Wallet} sub={paid ? "0% commission" : `after ${ent.commissionBps / 100}% commission`} emphasis="gold" />
+        <StatCard href="/vendor/bookings" label="Today’s bookings" value={formatCount(bookings.length)} icon={CalendarCheck2} sub="On the calendar from midnight" />
+        <StatCard href="/vendor/availability" label="Occupancy today" value={`${occupancy}%`} icon={Gauge} sub={hoursToday ? `${hoursToday.toFixed(0)} therapist-hours on the roster` : "Add availability to measure occupancy"} />
+        <StatCard href="/vendor/earnings" label="Payable this week" value={formatNgnCompact(weekPayable)} icon={Wallet} sub={paid ? "0% commission" : `after ${ent.commissionBps / 100}% commission`} emphasis="gold" />
         <StatCard label="Rating" value={vendor.ratingAvg.toFixed(1)} icon={Star} sub={`${vendor.reviewCount} reviews`} />
       </div>
 
