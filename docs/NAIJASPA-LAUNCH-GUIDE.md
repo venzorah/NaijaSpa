@@ -62,6 +62,7 @@ Darkroom / 18+ is **explicitly out of scope** and must stay off the product.
 Do these in order. Until they are done, treat the site as a **preview**.
 
 ### 3.1 VPS PostgreSQL (app stays on Vercel)
+- Follow **[VPS-POSTGRES.md](./VPS-POSTGRES.md)** (`scripts/vps-setup-postgres.sh`).
 - The frontend and API deploy on **Vercel**. The database is **PostgreSQL on an Ubuntu VPS**, not Supabase.
 - Install PostgreSQL 14+ on the VPS. Require SSL. Use a strong password.
 - Do **not** leave port `5432` open to the world. Firewall it to Vercel egress (or a bastion / VPN).

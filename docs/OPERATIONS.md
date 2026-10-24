@@ -34,24 +34,13 @@ Logins (Postgres must be running and seeded):
 
 ## Production (Vercel app + VPS Postgres)
 
+Step-by-step: **[VPS-POSTGRES.md](./VPS-POSTGRES.md)** (`scripts/vps-setup-postgres.sh` on Ubuntu).
+
 The Next.js frontend and API stay on **Vercel**. PostgreSQL runs on a **VPS**, not Supabase.
 
-1. Ubuntu VPS: PostgreSQL 14+, SSL, UFW. Do not expose `5432` to the whole internet.
-2. Create database + user. Example URL for Vercel:
-   ```
-   postgresql://naijaspa:STRONG_PASSWORD@VPS_IP:5432/naijaspa?sslmode=require
-   ```
-3. Set on the Vercel project: `DATABASE_URL`, `AUTH_SECRET`, Paystack keys, `APP_URL=https://naijaspa.com`.
-4. From a machine that can reach the VPS:
-   ```bash
-   npx prisma generate
-   npx prisma migrate deploy
-   ```
-5. Point `naijaspa.com` at the Vercel project.
+Until `DATABASE_URL` is a working `postgresql://` URL, public pages show **bundled demo listings**.
 
-Until `DATABASE_URL` is a `postgres://` / `postgresql://` URL, public pages show **bundled demo listings**. Those listings are removed automatically once Postgres is connected.
-
-Do not use SQLite in production. Gallery uploads must not rely on Vercel disk — use object storage (or a persistent VPS folder).
+Do not use SQLite in production. Do not seed production with `prisma/seed.ts`. Gallery uploads must not rely on Vercel disk.
 
 ## Environment
 
