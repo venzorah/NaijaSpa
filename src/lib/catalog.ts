@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { usingDemoListings } from "./live-db";
+import { withTimeout } from "./timeout";
 import {
   quoteBooking,
   sanitizePublicVendor,
@@ -101,13 +102,16 @@ export async function getHomeCatalog(place?: LivePlace | null) {
 }
 
 async function loadHomeCatalog(place: LivePlace | null) {
-  const [limits, hero] = await Promise.all([resolveHomeFeedLimits(), resolveHomeHero()]);
+  const [limits, hero] = await withTimeout(Promise.all([resolveHomeFeedLimits(), resolveHomeHero()]), 4000).catch(
+    (): [HomeFeedConfig, HomeHeroPayload] => [DEFAULT_HOME_FEED_CONFIG, demoHomeHero()]
+  );
   if (usingDemoListings()) return demoHomePayload(limits, place, hero);
   try {
   const { prisma } = await import("./db");
   const { vendorEntitlements } = await import("./entitlements");
   const now = new Date();
-  const [categories, services, faqs, campaigns] = await Promise.all([
+  const [categories, services, faqs, campaigns] = await withTimeout(
+    Promise.all([
     prisma.category.findMany({
       where: { active: true },
       orderBy: { sortOrder: "asc" },
@@ -157,9 +161,14 @@ async function loadHomeCatalog(place: LivePlace | null) {
       select: { vendorId: true, serviceId: true, placement: true },
       orderBy: { priority: "desc" }
     })
-  ]);
+    ]),
+    6000
+  );
 
-  const entitlements = await vendorEntitlements([...services.map((s) => s.vendorId), ...campaigns.map((c) => c.vendorId)]);
+  const entitlements = await withTimeout(
+    vendorEntitlements([...services.map((s) => s.vendorId), ...campaigns.map((c) => c.vendorId)]),
+    4000
+  ).catch(() => new Map());
 
   const cardFromService = (s: (typeof services)[number], badge?: string, sponsored?: boolean): HomeCard => {
     const ent = entitlements.get(s.vendorId) ?? FREE_ENTITLEMENT;

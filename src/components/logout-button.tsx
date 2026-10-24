@@ -5,7 +5,7 @@ import { cn } from "@/lib/cn";
 
 async function signOut(href: string) {
   await fetch("/api/auth/logout", { method: "POST" });
-  location.href = href;
+  location.replace(href);
 }
 
 export function LogoutButton({

@@ -3,6 +3,7 @@ import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
 import { prisma } from "./db";
 import { ROLES, type Role } from "./rbac";
+import { withTimeout } from "./timeout";
 
 const COOKIE = "naijaspa_session";
 
@@ -50,8 +51,10 @@ export async function createSession(user: SessionUser) {
 export async function destroySession() {
   const jar = await cookies();
   const token = jar.get(COOKIE)?.value;
-  if (token) await prisma.session.deleteMany({ where: { token } });
   jar.delete(COOKIE);
+  if (token) {
+    await withTimeout(prisma.session.deleteMany({ where: { token } }), 2500).catch(() => undefined);
+  }
 }
 
 export async function hasSessionCookie(): Promise<boolean> {
@@ -64,25 +67,28 @@ export async function getSession(): Promise<SessionUser | null> {
   if (!token) return null;
   try {
     await jwtVerify(token, secret());
-    const row = await prisma.session.findUnique({
-      where: { token },
-      select: {
-        expiresAt: true,
-        user: {
-          select: {
-            id: true,
-            email: true,
-            name: true,
-            role: true,
-            locale: true,
-            theme: true,
-            status: true,
-            vendorOwned: { select: { id: true } },
-            staffMemberships: { select: { vendorId: true }, take: 1 }
+    const row = await withTimeout(
+      prisma.session.findUnique({
+        where: { token },
+        select: {
+          expiresAt: true,
+          user: {
+            select: {
+              id: true,
+              email: true,
+              name: true,
+              role: true,
+              locale: true,
+              theme: true,
+              status: true,
+              vendorOwned: { select: { id: true } },
+              staffMemberships: { select: { vendorId: true }, take: 1 }
+            }
           }
         }
-      }
-    });
+      }),
+      4000
+    );
     if (!row || row.expiresAt < new Date()) return null;
     const user = row.user;
     if (!user || user.status !== "active") return null;

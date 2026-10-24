@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { Building2, Eye, EyeOff, Moon, Sun, User } from "lucide-react";
 import { BrandLogo } from "@/components/shell";
@@ -16,24 +16,16 @@ const selectedTab =
   "bg-forest text-white shadow-sm dark:bg-leaf dark:text-forest";
 
 export function AuthScreen({ children }: { children: ReactNode }) {
-  const router = useRouter();
   const { theme, toggle } = useTheme();
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-5 pb-10 pt-[max(0.75rem,env(safe-area-inset-top))]">
       <div className="flex items-center justify-between">
-        <button
-          type="button"
-          onClick={() => {
-            if (typeof window !== "undefined" && window.history.length > 1) router.back();
-            else router.push("/");
-          }}
-          className="inline-flex min-h-11 w-fit items-center gap-1 text-sm font-semibold text-ink2"
-        >
+        <Link href="/" className="inline-flex min-h-11 w-fit items-center gap-1 text-sm font-semibold text-ink2">
           <span aria-hidden className="text-lg">
             ←
           </span>
-          Back
-        </button>
+          NaijaSpa home
+        </Link>
         <button
           type="button"
           onClick={toggle}
@@ -44,7 +36,9 @@ export function AuthScreen({ children }: { children: ReactNode }) {
         </button>
       </div>
       <div className="mt-1 flex justify-center">
-        <BrandLogo className="h-10 w-auto object-contain" />
+        <Link href="/" aria-label="NaijaSpa home">
+          <BrandLogo className="h-10 w-auto object-contain" />
+        </Link>
       </div>
       {children}
     </div>

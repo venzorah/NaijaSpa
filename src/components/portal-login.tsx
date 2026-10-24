@@ -146,6 +146,8 @@ export function PortalLogin({
         </p>
       ) : (
         <p className="mt-8 text-center text-xs text-ink2">
+          <Link href="/">NaijaSpa home</Link>
+          {" · "}
           <Link href="/login">Client</Link>
           {" · "}
           <Link href="/login/vendor">Therapist</Link>
