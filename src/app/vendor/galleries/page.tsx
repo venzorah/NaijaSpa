@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { isProfileGalleryTitle, PROFILE_GALLERY_MAX_IMAGES } from "@/lib/galleries";
 
 type ImageRow = { id: string; url: string; caption: string; therapistName: string };
 type GalleryRow = { id: string; title: string; caption: string; images: ImageRow[] };
@@ -11,6 +12,7 @@ export default function VendorGalleriesPage() {
   const [videoLinks, setVideoLinks] = useState<VideoRow[]>([]);
   const [maxGalleries, setMaxGalleries] = useState(7);
   const [maxImages, setMaxImages] = useState(10);
+  const [profileMax, setProfileMax] = useState(PROFILE_GALLERY_MAX_IMAGES);
   const [maxBytes, setMaxBytes] = useState(2 * 1024 * 1024);
   const [videosOk, setVideosOk] = useState(false);
   const [planCode, setPlanCode] = useState("FREE");
@@ -28,6 +30,7 @@ export default function VendorGalleriesPage() {
         setVideoLinks(j.videoLinks || []);
         setMaxGalleries(j.config?.maxGalleries ?? 7);
         setMaxImages(j.config?.maxImagesPerGallery ?? 10);
+        setProfileMax(j.config?.profileMaxImages ?? PROFILE_GALLERY_MAX_IMAGES);
         setMaxBytes(j.config?.maxImageBytes ?? 2 * 1024 * 1024);
         setVideosOk(Boolean(j.videoLinksAllowed));
         setPlanCode(j.planCode || "FREE");
@@ -131,18 +134,92 @@ export default function VendorGalleriesPage() {
     load();
   };
 
+  const profileGallery = galleries.find((g) => isProfileGalleryTitle(g.title));
+  const namedGalleries = galleries.filter((g) => !isProfileGalleryTitle(g.title));
+
+  const renderGallery = (g: GalleryRow, limit: number, canDelete: boolean) => (
+    <li key={g.id} className="rounded-2xl border border-line bg-card p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="font-semibold">{g.title}</p>
+          {g.caption ? <p className="text-xs text-ink2">{g.caption}</p> : null}
+          <p className="text-xs text-ink2">
+            {g.images.length}/{limit} photos · {Math.round(maxBytes / 1024)} KB max
+          </p>
+        </div>
+        {canDelete ? (
+          <button type="button" onClick={() => removeGallery(g.id)} className="text-xs font-semibold text-ink2">
+            Delete
+          </button>
+        ) : null}
+      </div>
+      <ul className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {g.images.map((img) => (
+          <li key={img.id} className="overflow-hidden rounded-xl border border-line">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={img.url} alt={img.therapistName || img.caption} className="h-28 w-full object-cover" />
+            <p className="px-2 py-1 text-[11px] text-ink2">{img.therapistName || img.caption || "Photo"}</p>
+            <button type="button" className="px-2 pb-2 text-[11px]" onClick={() => removeImage(img.id)}>
+              Remove
+            </button>
+          </li>
+        ))}
+      </ul>
+      {g.images.length < limit ? (
+        <form
+          className="mt-4 grid gap-2 sm:grid-cols-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            uploadImage(g.id, e.currentTarget);
+          }}
+        >
+          <input name="file" type="file" accept="image/jpeg,image/png,image/webp,image/gif" required className="text-base" />
+          <input name="therapistName" placeholder="Therapist name" className="min-h-12 rounded-xl border border-line bg-elev px-3 text-base" />
+          <input name="caption" placeholder="Caption" className="min-h-12 rounded-xl border border-line bg-elev px-3 text-base" />
+          <button type="submit" className="min-h-12 rounded-full bg-gold px-4 font-bold text-ongold">
+            Upload photo
+          </button>
+        </form>
+      ) : null}
+      {g.images.length < limit ? (
+        <form
+          className="mt-3 grid gap-2 sm:grid-cols-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const fd = new FormData(e.currentTarget);
+            addImageUrl(
+              g.id,
+              String(fd.get("url") || ""),
+              String(fd.get("therapistName") || ""),
+              String(fd.get("caption") || "")
+            );
+            e.currentTarget.reset();
+          }}
+        >
+          <input name="url" placeholder="https image URL (optional)" className="min-h-12 rounded-xl border border-line bg-elev px-3 text-base sm:col-span-2" />
+          <input name="therapistName" placeholder="Therapist name" className="min-h-12 rounded-xl border border-line bg-elev px-3 text-base" />
+          <input name="caption" placeholder="Caption" className="min-h-12 rounded-xl border border-line bg-elev px-3 text-base" />
+          <button type="submit" className="min-h-12 rounded-full border border-line px-4 text-sm font-semibold">
+            Add image URL
+          </button>
+        </form>
+      ) : null}
+    </li>
+  );
+
   return (
     <div>
-      <h1 className="font-display text-3xl">Therapist galleries</h1>
+      <h1 className="font-display text-3xl">Galleries</h1>
       <p className="mt-2 max-w-2xl text-sm text-ink2">
-        Up to {maxGalleries} named galleries. Each gallery can hold {maxImages} photos (max{" "}
-        {Math.round(maxBytes / 1024)} KB each). Video links are for paid plans only.
+        Profile photos show as a two-up swipe gallery on your public listing (up to {profileMax} images,{" "}
+        {Math.round(maxBytes / 1024)} KB each — the system size). You can also add up to {maxGalleries} named therapist
+        galleries ({maxImages} photos each). Video links are for paid plans only.
       </p>
       {message ? <p className="mt-3 text-sm font-medium text-forest">{message}</p> : null}
 
       <form onSubmit={createGallery} className="mt-6 grid max-w-xl gap-3 rounded-2xl border border-line bg-card p-4">
         <p className="font-semibold">
-          New gallery ({galleries.length}/{maxGalleries})
+          New therapist gallery ({namedGalleries.length}/{maxGalleries})
         </p>
         <label className="text-sm">
           Name
@@ -164,82 +241,18 @@ export default function VendorGalleriesPage() {
         </label>
         <button
           type="submit"
-          disabled={galleries.length >= maxGalleries}
+          disabled={namedGalleries.length >= maxGalleries}
           className="min-h-11 rounded-full bg-gold px-5 font-bold text-ongold disabled:opacity-50"
         >
           Add gallery
         </button>
       </form>
 
-      <ul className="mt-6 space-y-4">
-        {galleries.map((g) => (
-          <li key={g.id} className="rounded-2xl border border-line bg-card p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="font-semibold">{g.title}</p>
-                {g.caption ? <p className="text-xs text-ink2">{g.caption}</p> : null}
-                <p className="text-xs text-ink2">
-                  {g.images.length}/{maxImages} photos
-                </p>
-              </div>
-              <button type="button" onClick={() => removeGallery(g.id)} className="text-xs font-semibold text-ink2">
-                Delete
-              </button>
-            </div>
-            <ul className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {g.images.map((img) => (
-                <li key={img.id} className="overflow-hidden rounded-xl border border-line">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={img.url} alt={img.therapistName || img.caption} className="h-24 w-full object-cover" />
-                  <p className="px-2 py-1 text-[11px] text-ink2">{img.therapistName || img.caption || "Photo"}</p>
-                  <button type="button" className="px-2 pb-2 text-[11px]" onClick={() => removeImage(img.id)}>
-                    Remove
-                  </button>
-                </li>
-              ))}
-            </ul>
-            {g.images.length < maxImages ? (
-              <form
-                className="mt-4 grid gap-2 sm:grid-cols-2"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  uploadImage(g.id, e.currentTarget);
-                }}
-              >
-                <input name="file" type="file" accept="image/jpeg,image/png,image/webp,image/gif" required className="text-sm" />
-                <input name="therapistName" placeholder="Therapist name" className="min-h-11 rounded-xl border border-line bg-elev px-3 text-sm" />
-                <input name="caption" placeholder="Caption" className="min-h-11 rounded-xl border border-line bg-elev px-3 text-sm" />
-                <button type="submit" className="min-h-11 rounded-full bg-gold px-4 font-bold text-ongold">
-                  Upload photo
-                </button>
-              </form>
-            ) : null}
-            {g.images.length < maxImages ? (
-              <form
-                className="mt-3 grid gap-2 sm:grid-cols-2"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const fd = new FormData(e.currentTarget);
-                  addImageUrl(
-                    g.id,
-                    String(fd.get("url") || ""),
-                    String(fd.get("therapistName") || ""),
-                    String(fd.get("caption") || "")
-                  );
-                  e.currentTarget.reset();
-                }}
-              >
-                <input name="url" placeholder="https image URL (optional)" className="min-h-11 rounded-xl border border-line bg-elev px-3 text-sm sm:col-span-2" />
-                <input name="therapistName" placeholder="Therapist name" className="min-h-11 rounded-xl border border-line bg-elev px-3 text-sm" />
-                <input name="caption" placeholder="Caption" className="min-h-11 rounded-xl border border-line bg-elev px-3 text-sm" />
-                <button type="submit" className="min-h-11 rounded-full border border-line px-4 text-sm font-semibold">
-                  Add image URL
-                </button>
-              </form>
-            ) : null}
-          </li>
-        ))}
-      </ul>
+      {profileGallery ? (
+        <ul className="mt-6 space-y-4">{renderGallery(profileGallery, profileMax, false)}</ul>
+      ) : null}
+
+      <ul className="mt-6 space-y-4">{namedGalleries.map((g) => renderGallery(g, maxImages, true))}</ul>
 
       <section className="mt-10 max-w-xl rounded-2xl border border-line bg-card p-4">
         <h2 className="font-display text-2xl">Video links</h2>

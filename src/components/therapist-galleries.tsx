@@ -1,11 +1,7 @@
-import { PHOTOS, publicWellnessPhoto } from "@/lib/photos";
+import { VendorProfileGallery, type ProfileGalleryImage } from "@/components/vendor-profile-gallery";
+import { extraNamedGalleries, profileImagesFromGalleries } from "@/lib/galleries";
 
-export type PublicGalleryImage = {
-  id: string;
-  url: string;
-  caption: string;
-  therapistName: string;
-};
+export type PublicGalleryImage = ProfileGalleryImage;
 
 export type PublicGallery = {
   id: string;
@@ -27,32 +23,16 @@ export function TherapistGalleries({
   galleries: PublicGallery[];
   videoLinks: PublicVideoLink[];
 }) {
-  if (galleries.length === 0 && videoLinks.length === 0) return null;
+  const profileImages = profileImagesFromGalleries(galleries);
+  const named = extraNamedGalleries(galleries);
+  if (profileImages.length === 0 && named.length === 0 && videoLinks.length === 0) return null;
   return (
-    <section className="mt-10 space-y-8">
-      {galleries.map((g) => (
+    <section className="mt-6 space-y-8">
+      <VendorProfileGallery images={profileImages} />
+      {named.map((g) => (
         <div key={g.id}>
-          <h2 className="font-display text-2xl">{g.title}</h2>
-          {g.caption ? <p className="mt-1 text-sm text-ink2">{g.caption}</p> : null}
-          <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {g.images.map((img) => (
-              <li key={img.id} className="overflow-hidden rounded-2xl border border-line bg-card">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={publicWellnessPhoto(img.url, PHOTOS.spa)}
-                  alt={img.therapistName || img.caption || g.title}
-                  className="h-40 w-full object-cover"
-                />
-                {(img.therapistName || img.caption) && (
-                  <p className="px-3 py-2 text-xs text-ink2">
-                    {img.therapistName}
-                    {img.therapistName && img.caption ? " · " : ""}
-                    {img.caption}
-                  </p>
-                )}
-              </li>
-            ))}
-          </ul>
+          {g.caption ? <p className="-mb-6 mt-2 text-sm text-ink2">{g.caption}</p> : null}
+          <VendorProfileGallery images={g.images} heading={g.title} />
         </div>
       ))}
       {videoLinks.length > 0 ? (

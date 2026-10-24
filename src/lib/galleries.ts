@@ -2,6 +2,8 @@ import type { Entitlement } from "./commercial";
 
 export const MAX_VENDOR_GALLERIES = 7;
 export const MAX_VIDEO_LINKS = 20;
+export const PROFILE_GALLERY_TITLE = "Profile photos";
+export const PROFILE_GALLERY_MAX_IMAGES = 6;
 
 export interface GalleryConfig {
   maxImagesPerGallery: number;
@@ -41,6 +43,14 @@ export function assertGalleryTitle(title: string) {
   return t;
 }
 
+export function isProfileGalleryTitle(title: string) {
+  return title.trim().toLowerCase() === PROFILE_GALLERY_TITLE.toLowerCase();
+}
+
+export function profileGalleryImageLimit(config: GalleryConfig) {
+  return Math.min(PROFILE_GALLERY_MAX_IMAGES, config.maxImagesPerGallery);
+}
+
 export function assertCanCreateGallery(existingCount: number) {
   if (existingCount >= MAX_VENDOR_GALLERIES) {
     throw Object.assign(new Error(`You can create at most ${MAX_VENDOR_GALLERIES} therapist galleries`), {
@@ -49,9 +59,15 @@ export function assertCanCreateGallery(existingCount: number) {
   }
 }
 
-export function assertCanAddImage(existingCount: number, config: GalleryConfig, byteSize: number) {
-  if (existingCount >= config.maxImagesPerGallery) {
-    throw Object.assign(new Error(`This gallery may contain at most ${config.maxImagesPerGallery} images`), {
+export function assertCanAddImage(
+  existingCount: number,
+  config: GalleryConfig,
+  byteSize: number,
+  options?: { profile?: boolean }
+) {
+  const maxImages = options?.profile ? profileGalleryImageLimit(config) : config.maxImagesPerGallery;
+  if (existingCount >= maxImages) {
+    throw Object.assign(new Error(`This gallery may contain at most ${maxImages} images`), {
       status: 400
     });
   }
@@ -140,4 +156,16 @@ export function assertVideoLinksAllowed(entitlement: Entitlement) {
 
 export function publicVideoLinks<T>(links: T[], entitlement: Entitlement): T[] {
   return videoLinksAllowed(entitlement) ? links : [];
+}
+
+export function profileImagesFromGalleries<T extends { title: string; images: unknown[] }>(galleries: T[]): T["images"] {
+  const profile = galleries.find((g) => isProfileGalleryTitle(g.title));
+  if (profile?.images.length) return profile.images.slice(0, PROFILE_GALLERY_MAX_IMAGES);
+  return galleries.flatMap((g) => g.images).slice(0, PROFILE_GALLERY_MAX_IMAGES);
+}
+
+export function extraNamedGalleries<T extends { title: string; images: unknown[] }>(galleries: T[]): T[] {
+  const hasProfile = galleries.some((g) => isProfileGalleryTitle(g.title) && g.images.length);
+  if (!hasProfile) return [];
+  return galleries.filter((g) => !isProfileGalleryTitle(g.title) && g.images.length);
 }

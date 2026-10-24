@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSession, requireUser } from "@/lib/auth";
 import { getGalleryConfig, prisma } from "@/lib/db";
-import { assertCanAddImage, assertImageUrl } from "@/lib/galleries";
+import { assertCanAddImage, assertImageUrl, isProfileGalleryTitle } from "@/lib/galleries";
 import { jsonError } from "@/lib/http";
 
 function requireVendorId(user: { vendorId?: string | null }) {
@@ -35,7 +35,9 @@ export async function POST(req: Request) {
       const gallery = await ownedGallery(vendorId, galleryId);
       if (!gallery) return NextResponse.json({ error: "Gallery not found" }, { status: 404 });
       const buf = new Uint8Array(await file.arrayBuffer());
-      assertCanAddImage(gallery.images.length, config, buf.byteLength);
+      assertCanAddImage(gallery.images.length, config, buf.byteLength, {
+        profile: isProfileGalleryTitle(gallery.title)
+      });
       const { randomUUID } = await import("node:crypto");
       const { saveGalleryImageFile } = await import("@/lib/gallery-media");
       const saved = await saveGalleryImageFile(vendorId, randomUUID(), buf);
@@ -62,7 +64,7 @@ export async function POST(req: Request) {
       .parse(await req.json());
     const gallery = await ownedGallery(vendorId, body.galleryId);
     if (!gallery) return NextResponse.json({ error: "Gallery not found" }, { status: 404 });
-    assertCanAddImage(gallery.images.length, config, 0);
+    assertCanAddImage(gallery.images.length, config, 0, { profile: isProfileGalleryTitle(gallery.title) });
     const image = await prisma.therapistGalleryImage.create({
       data: {
         galleryId: gallery.id,

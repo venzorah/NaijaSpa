@@ -3,15 +3,20 @@ import { FREE_ENTITLEMENT, entitlementFromPlan } from "../src/lib/commercial";
 import { demoVendorBySlug } from "../src/lib/demo-catalog";
 import {
   MAX_VENDOR_GALLERIES,
+  PROFILE_GALLERY_MAX_IMAGES,
+  PROFILE_GALLERY_TITLE,
   assertCanAddImage,
   assertCanCreateGallery,
   assertImageUrl,
   assertVideoLinksAllowed,
   assertVideoUrl,
   detectImageMime,
+  extraNamedGalleries,
   parseGalleryConfig,
-  publicVideoLinks,
-  videoLinksAllowed
+  profileGalleryImageLimit,
+  profileImagesFromGalleries,
+  videoLinksAllowed,
+  publicVideoLinks
 } from "../src/lib/galleries";
 
 const paid = entitlementFromPlan(
@@ -45,6 +50,9 @@ describe("therapist galleries", () => {
     expect(cfg.maxImageBytes).toBe(512000);
     expect(() => assertCanAddImage(4, cfg, 100)).toThrow(/at most 4/);
     expect(() => assertCanAddImage(1, cfg, 600000)).toThrow(/at most 500 KB/);
+    expect(profileGalleryImageLimit(cfg)).toBe(4);
+    expect(() => assertCanAddImage(6, parseGalleryConfig({}), 100, { profile: true })).toThrow(/at most 6/);
+    expect(PROFILE_GALLERY_MAX_IMAGES).toBe(6);
   });
 
   it("detects jpeg magic bytes", () => {
@@ -72,7 +80,9 @@ describe("therapist galleries", () => {
 
   it("shows demo galleries and paid-only public video links", () => {
     const paidVendor = demoVendorBySlug("osun-wellness");
-    expect(paidVendor?.galleries[0]?.title).toBe("Lekki therapists");
+    expect(paidVendor?.galleries[0]?.title).toBe(PROFILE_GALLERY_TITLE);
+    expect(profileImagesFromGalleries(paidVendor?.galleries || []).length).toBe(6);
+    expect(extraNamedGalleries(paidVendor?.galleries || [])[0]?.title).toBe("Lekki therapists");
     expect(paidVendor?.videoLinks.length).toBeGreaterThan(0);
     const freeVendor = demoVendorBySlug("calm-house-ikeja");
     expect(freeVendor?.galleries.length).toBeGreaterThan(0);

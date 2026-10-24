@@ -7,7 +7,7 @@ import {
   type Entitlement,
   type LocationType
 } from "./commercial";
-import { publicVideoLinks } from "./galleries";
+import { PROFILE_GALLERY_TITLE, publicVideoLinks } from "./galleries";
 import { CATEGORY_IMAGES } from "./category-images";
 import { PHOTOS, firstWellnessPhoto, publicWellnessPhoto } from "./photos";
 import {
@@ -45,6 +45,17 @@ export const demoCategories = [
   { id: "c7", slug: "beauty", name: "Beauty and relaxation", imageUrl: CATEGORY_IMAGES.beauty }
 ];
 
+const PROFILE_STOCK = [PHOTOS.massage, PHOTOS.spa, PHOTOS.facials, PHOTOS.body, PHOTOS.couples, PHOTOS.beauty];
+
+function demoProfileGallery(id: string, urls: string[] = PROFILE_STOCK) {
+  return {
+    id: `${id}-profile`,
+    title: PROFILE_GALLERY_TITLE,
+    caption: "Two-up swipe gallery on this listing.",
+    images: urls.map((url, i) => ({ id: `${id}-p${i}`, url, therapistName: "", caption: "" }))
+  };
+}
+
 const osun = {
   id: "v-osun",
   slug: "osun-wellness",
@@ -64,6 +75,7 @@ const osun = {
   cancellationPolicy: "Free cancellation up to 12 hours before the appointment.",
   entitlement: paidEnt,
   galleries: [
+    demoProfileGallery("osun"),
     {
       id: "g-osun-1",
       title: "Lekki therapists",
@@ -96,6 +108,7 @@ const calm = {
   cancellationPolicy: "Free cancellation up to 12 hours before the appointment.",
   entitlement: FREE_ENTITLEMENT,
   galleries: [
+    demoProfileGallery("calm", [PHOTOS.facials, PHOTOS.body, PHOTOS.spa, PHOTOS.beauty, PHOTOS.packages, PHOTOS.hero2]),
     {
       id: "g-calm-1",
       title: "Ikeja team",
@@ -124,7 +137,7 @@ const olive = {
   privateWhatsapp: "+2348033333333",
   cancellationPolicy: "Free cancellation up to 24 hours before the appointment.",
   entitlement: paidEnt,
-  galleries: [],
+  galleries: [demoProfileGallery("olive", [PHOTOS.bg, PHOTOS.spa, PHOTOS.couples, PHOTOS.massage, PHOTOS.body, PHOTOS.hero3])],
   videoLinks: []
 };
 
@@ -146,7 +159,7 @@ const maitama = {
   privateWhatsapp: "+2348044444444",
   cancellationPolicy: "Free cancellation up to 12 hours before the appointment.",
   entitlement: paidEnt,
-  galleries: [],
+  galleries: [demoProfileGallery("maitama", [PHOTOS.spa, PHOTOS.massage, PHOTOS.body, PHOTOS.hero1, PHOTOS.packages, PHOTOS.nuru])],
   videoLinks: []
 };
 

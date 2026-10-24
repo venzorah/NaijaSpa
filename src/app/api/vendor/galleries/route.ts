@@ -6,7 +6,10 @@ import { vendorEntitlement } from "@/lib/entitlements";
 import {
   assertCanCreateGallery,
   assertGalleryTitle,
+  isProfileGalleryTitle,
   MAX_VENDOR_GALLERIES,
+  PROFILE_GALLERY_MAX_IMAGES,
+  PROFILE_GALLERY_TITLE,
   videoLinksAllowed
 } from "@/lib/galleries";
 import { jsonError } from "@/lib/http";
@@ -21,7 +24,7 @@ export async function GET() {
     const user = requireUser(await getSession());
     const vendorId = requireVendorId(user);
     if (!vendorId) return NextResponse.json({ error: "Not a vendor" }, { status: 403 });
-    const [galleries, videoLinks, config, entitlement] = await Promise.all([
+    const [existing, videoLinks, config, entitlement] = await Promise.all([
       prisma.therapistGallery.findMany({
         where: { vendorId },
         include: { images: { orderBy: { sortOrder: "asc" } } },
@@ -34,10 +37,30 @@ export async function GET() {
       getGalleryConfig(),
       vendorEntitlement(vendorId)
     ]);
+    let galleries = existing;
+    if (!galleries.some((g) => isProfileGalleryTitle(g.title))) {
+      await prisma.therapistGallery.create({
+        data: {
+          vendorId,
+          title: PROFILE_GALLERY_TITLE,
+          caption: "Shown as a two-up gallery on your public profile.",
+          sortOrder: 0
+        }
+      });
+      galleries = await prisma.therapistGallery.findMany({
+        where: { vendorId },
+        include: { images: { orderBy: { sortOrder: "asc" } } },
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }]
+      });
+    }
     return NextResponse.json({
       galleries,
       videoLinks,
-      config: { ...config, maxGalleries: MAX_VENDOR_GALLERIES },
+      config: {
+        ...config,
+        maxGalleries: MAX_VENDOR_GALLERIES,
+        profileMaxImages: Math.min(PROFILE_GALLERY_MAX_IMAGES, config.maxImagesPerGallery)
+      },
       videoLinksAllowed: videoLinksAllowed(entitlement),
       planCode: entitlement.planCode
     });
@@ -53,8 +76,11 @@ export async function POST(req: Request) {
     if (!vendorId) return NextResponse.json({ error: "Not a vendor" }, { status: 403 });
     const body = z.object({ title: z.string(), caption: z.string().max(240).optional() }).parse(await req.json());
     const title = assertGalleryTitle(body.title);
-    const count = await prisma.therapistGallery.count({ where: { vendorId } });
-    assertCanCreateGallery(count);
+    if (isProfileGalleryTitle(title)) {
+      return NextResponse.json({ error: "Profile photos already exist on this listing." }, { status: 409 });
+    }
+    const named = await prisma.therapistGallery.findMany({ where: { vendorId }, select: { title: true } });
+    assertCanCreateGallery(named.filter((g) => !isProfileGalleryTitle(g.title)).length);
     const gallery = await prisma.therapistGallery.create({
       data: {
         vendorId,
@@ -84,6 +110,9 @@ export async function PATCH(req: Request) {
       .parse(await req.json());
     const existing = await prisma.therapistGallery.findFirst({ where: { id: body.id, vendorId } });
     if (!existing) return NextResponse.json({ error: "Gallery not found" }, { status: 404 });
+    if (isProfileGalleryTitle(existing.title) && body.title && !isProfileGalleryTitle(body.title)) {
+      return NextResponse.json({ error: "The profile gallery name cannot be changed." }, { status: 400 });
+    }
     const gallery = await prisma.therapistGallery.update({
       where: { id: existing.id },
       data: {
@@ -109,6 +138,9 @@ export async function DELETE(req: Request) {
       include: { images: true }
     });
     if (!existing) return NextResponse.json({ error: "Gallery not found" }, { status: 404 });
+    if (isProfileGalleryTitle(existing.title)) {
+      return NextResponse.json({ error: "Profile photos cannot be deleted. Remove individual images instead." }, { status: 400 });
+    }
     const { deleteGalleryImageFile } = await import("@/lib/gallery-media");
     await prisma.therapistGallery.delete({ where: { id: existing.id } });
     await Promise.all(existing.images.map((img) => deleteGalleryImageFile(img.url)));

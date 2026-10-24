@@ -17,7 +17,8 @@ export default async function ProviderPage({ params }: { params: Promise<{ slug:
       <p className="text-ink2">
         {vendor.neighbourhood}, {vendor.city} {vendor.verificationStatus === "verified" ? "· Verified" : ""}
       </p>
-      <p className="mt-4 max-w-2xl text-sm">{description}</p>
+      <TherapistGalleries galleries={galleries} videoLinks={videoLinks} />
+      <p className="mt-6 max-w-2xl text-sm">{description}</p>
       {vendor.publicPhone || vendor.publicWhatsapp ? (
         <p className="mt-3 text-sm">
           {vendor.publicPhone} {vendor.publicWhatsapp && <a href={vendor.publicWhatsapp}>WhatsApp</a>}
@@ -25,7 +26,6 @@ export default async function ProviderPage({ params }: { params: Promise<{ slug:
       ) : (
         <p className="mt-3 text-xs text-ink2">Contact details are not public for this listing.</p>
       )}
-      <TherapistGalleries galleries={galleries} videoLinks={videoLinks} />
       <ul className="mt-8 space-y-3">
         {services.map((s) => (
           <li key={s.id} className="flex items-center justify-between rounded-2xl border border-line bg-card p-4">

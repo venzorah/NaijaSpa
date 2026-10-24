@@ -339,6 +339,7 @@ export async function getPublicService(slug: string) {
 
 export async function getPublicVendor(slug: string) {
   if (usingDemoListings()) return demoVendorBySlug(slug);
+  try {
   const { prisma } = await import("./db");
   const { vendorEntitlement } = await import("./entitlements");
   const vendor = await prisma.vendor.findUnique({
@@ -377,6 +378,9 @@ export async function getPublicVendor(slug: string) {
       ent
     )
   };
+  } catch {
+    return demoVendorBySlug(slug);
+  }
 }
 
 export async function quotePublicService(serviceId: string, location: LocationType) {
