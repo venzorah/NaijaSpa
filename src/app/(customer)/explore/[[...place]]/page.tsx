@@ -47,6 +47,7 @@ export default async function ExplorePage({
   const searchedCity = pathPlace?.city || undefined;
   const searchedState = serviceAreaState(pathPlace) || undefined;
   const rankPlace = pathPlace && explicitPlace ? pathPlace : stored;
+  const filterPlace = explicitPlace ? pathPlace : stored;
   const data = await searchServices({
     q: filters.q,
     state: searchedState,
@@ -101,13 +102,13 @@ export default async function ExplorePage({
       <PlaceSync place={pathPlace} />
       <h1 className="font-display text-[34px] font-semibold text-ink md:text-4xl">Explore</h1>
       <p className="text-sm text-ink2">Find the right treatment, therapist and setting.</p>
-      <ExploreSearchBar place={pathPlace} values={filters} />
+      <ExploreSearchBar place={filterPlace} values={filters} />
       <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-display text-2xl font-semibold text-ink">
           {data.total} {data.total === 1 ? "treatment" : "treatments"}
           {around ? ` around ${around}` : ""}
         </h2>
-        <ExploreSort place={pathPlace} values={filters} />
+        <ExploreSort place={filterPlace} values={filters} />
       </div>
 
       <div className="mt-8 grid items-start gap-6 lg:grid-cols-[17.5rem_minmax(0,1fr)]">
@@ -117,11 +118,11 @@ export default async function ExplorePage({
               Filters
             </summary>
             <div className="mt-3">
-              <ExploreFilters place={pathPlace} values={filters} categories={categories} />
+              <ExploreFilters place={filterPlace} values={filters} categories={categories} />
             </div>
           </details>
           <div className="hidden lg:block">
-            <ExploreFilters place={pathPlace} values={filters} categories={categories} />
+            <ExploreFilters place={filterPlace} values={filters} categories={categories} />
           </div>
         </div>
 

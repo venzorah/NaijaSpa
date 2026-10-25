@@ -34,6 +34,7 @@ export function ConfirmAction({
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
   const blocked = requireReason && reason.trim().length < 5;
   const trigger =
     triggerVariant === "default" ? adminBtn : triggerVariant === "ghost" ? adminBtnGhost : adminBtnOutline;
@@ -65,6 +66,7 @@ export function ConfirmAction({
                 ))}
               </ul>
             ) : null}
+            {error ? <p className="mt-3 text-sm text-red-600 dark:text-red-300">{error}</p> : null}
             {requireReason ? (
               <label className="mt-3 block text-xs font-medium">
                 Reason <span className="text-ink2">(recorded in audit log)</span>
@@ -87,10 +89,13 @@ export function ConfirmAction({
                 className={adminBtn}
                 onClick={async () => {
                   setBusy(true);
+                  setError("");
                   try {
                     await onConfirm(reason);
                     setOpen(false);
                     setReason("");
+                  } catch (err) {
+                    setError(err instanceof Error ? err.message : "That action did not complete.");
                   } finally {
                     setBusy(false);
                   }

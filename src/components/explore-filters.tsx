@@ -30,7 +30,8 @@ export function ExploreFilters({
   const [rate, setRate] = useState(Number.isFinite(maxNaira) && maxNaira > 0 ? maxNaira : RATE_MAX);
 
   function go(patch: FilterQuery & { state?: string }) {
-    const nextState = patch.state ?? place?.state;
+    const nextState = patch.state !== undefined ? patch.state : place?.state;
+    const { state: _state, ...filterPatch } = patch;
     router.push(
       exploreHref(
         {
@@ -39,12 +40,9 @@ export function ExploreFilters({
           neighbourhood: patch.state && patch.state !== place?.state ? "" : place?.neighbourhood
         },
         {
-          q: patch.q !== undefined ? patch.q : values.q,
-          category: patch.category !== undefined ? patch.category : values.category,
-          location: patch.location !== undefined ? patch.location : values.location,
-          maxPrice: patch.maxPrice !== undefined ? patch.maxPrice : values.maxPrice,
-          verified: patch.verified !== undefined ? patch.verified : values.verified,
-          sort: patch.sort !== undefined ? patch.sort : values.sort
+          ...values,
+          ...filterPatch,
+          page: undefined
         }
       )
     );

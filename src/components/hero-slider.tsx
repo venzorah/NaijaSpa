@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { SearchFiltersForm } from "@/components/search-filters-form";
-import { exploreHref } from "@/lib/place-urls";
+import { exploreHref, FILTER_QUERY_KEYS, type FilterQuery } from "@/lib/place-urls";
 import { HERO_AD_INTERVAL_MS, type HomeHeroAd, type HomeHeroBanner } from "@/lib/home-hero";
 import { PHOTOS } from "@/lib/photos";
 import type { LivePlace } from "@/lib/nigeria";
@@ -35,6 +35,18 @@ const EXTRA_SLIDES = [
 ] as const;
 
 type Category = { slug: string; name: string };
+
+function placeAwareHref(href: string, place: LivePlace | null) {
+  if (!href.startsWith("/explore")) return href;
+  const queryIndex = href.indexOf("?");
+  const params = new URLSearchParams(queryIndex >= 0 ? href.slice(queryIndex + 1) : "");
+  const query: FilterQuery = {};
+  for (const key of FILTER_QUERY_KEYS) {
+    const value = params.get(key);
+    if (value) query[key] = value;
+  }
+  return exploreHref(place, query);
+}
 
 function PremiumAdCarousel({ ads }: { ads: HomeHeroAd[] }) {
   const [index, setIndex] = useState(0);
@@ -152,7 +164,7 @@ export function HeroSlider({
       subtitle: banner.subtitle,
       price: banner.priceLine,
       cta: banner.ctaLabel,
-      href: banner.ctaHref,
+      href: placeAwareHref(banner.ctaHref, place),
       image: banner.imageUrl
     },
     ...EXTRA_SLIDES.map((s) => ({
@@ -259,7 +271,9 @@ export function HeroSlider({
           </div>
         </div>
 
-        {ads.length ? <PremiumAdCarousel ads={ads} /> : null}
+        {ads.length ? (
+          <PremiumAdCarousel ads={ads.map((ad) => ({ ...ad, ctaHref: placeAwareHref(ad.ctaHref, place) }))} />
+        ) : null}
       </div>
 
       <SearchFiltersForm

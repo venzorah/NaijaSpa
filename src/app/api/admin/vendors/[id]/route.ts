@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { z } from "zod";
 import { getSession, requireUser } from "@/lib/auth";
 import { assertPermission } from "@/lib/rbac";
@@ -21,6 +22,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       .parse(await req.json());
     const vendor = await prisma.vendor.update({ where: { id }, data: body });
     await audit({ actorId: actor.id, action: "vendor.update", entityType: "Vendor", entityId: id, before, after: vendor });
+    revalidateTag("home-catalog");
     return NextResponse.json({ vendor });
   } catch (e) {
     return jsonError(e);

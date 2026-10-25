@@ -42,7 +42,6 @@ async function liveExploreCities(filters: ExploreCityFilters) {
       visibility: "public",
       applicationStatus: "approved",
       ...(serviceAreaState(filters) ? prismaServiceAreaFilter(serviceAreaState(filters)) : {}),
-      staff: { some: { active: true } },
       services: { some: { active: true } }
     },
     select: { state: true, city: true, neighbourhood: true, coverUrl: true }
@@ -103,8 +102,8 @@ async function searchLive(filters: SearchFilters) {
   if (filters.locationType === "spa") where.spaEnabled = true;
   if (filters.locationType === "hotel") where.hotelEnabled = true;
   if (filters.locationType === "home") where.homeEnabled = true;
-  if (filters.gender || filters.state || filters.city || filters.neighbourhood) {
-    where.staff = { some: { staff: { active: true } } };
+  if (filters.gender) {
+    where.staff = { some: { staff: { active: true, gender: filters.gender } } };
   }
 
   const orderBy =
@@ -170,7 +169,10 @@ async function searchLive(filters: SearchFilters) {
         name: person.name,
         gender: "gender" in person ? String(person.gender ?? "") : ""
       }));
-    if (therapists.length === 0) continue;
+    if (therapists.length === 0) {
+      if (filters.gender) continue;
+      therapists.push({ id: row.vendor.id, name: row.vendor.businessName, gender: "" });
+    }
     results.push({
       service: {
         id: row.id,

@@ -112,17 +112,25 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
             sub={`${formatCount(customers.filter((c) => c.status === "active").length)} active`}
             icon={Users}
           />
-          <Link href="/admin/vendors" className="rounded-xl border border-line bg-card p-4 shadow-sm transition hover:border-gold/50">
-            <div className="flex items-center justify-between text-xs font-medium text-ink2">
+          <div className="rounded-xl border border-line bg-card p-4 shadow-sm">
+            <Link href="/admin/vendors" className="flex items-center justify-between text-xs font-medium text-ink2 transition hover:text-goldink">
               Vendors <Store className="h-4 w-4" aria-hidden />
-            </div>
-            <p className="mt-2 text-2xl font-semibold tabular-nums tracking-tight">{formatCount(vendorsTotal)}</p>
+            </Link>
+            <Link href="/admin/vendors" className="mt-2 block text-2xl font-semibold tabular-nums tracking-tight">
+              {formatCount(vendorsTotal)}
+            </Link>
             <div className="mt-2 grid grid-cols-3 gap-1 text-[11px]">
-              <span className="rounded bg-forest/10 px-1.5 py-0.5 text-forest tabular-nums">{formatCount(approved)} approved</span>
-              <span className="rounded bg-gold/15 px-1.5 py-0.5 text-goldink tabular-nums">{pending} pending</span>
-              <span className="rounded bg-red-500/10 px-1.5 py-0.5 text-red-700 tabular-nums dark:text-red-300">{suspended} suspended</span>
+              <Link href="/admin/vendors" className="rounded bg-forest/10 px-1.5 py-0.5 text-forest tabular-nums hover:bg-forest/20">
+                {formatCount(approved)} approved
+              </Link>
+              <Link href="/admin/applications" className="rounded bg-gold/15 px-1.5 py-0.5 text-goldink tabular-nums hover:bg-gold/25">
+                {pending} pending
+              </Link>
+              <Link href="/admin/vendors" className="rounded bg-red-500/10 px-1.5 py-0.5 text-red-700 tabular-nums hover:bg-red-500/20 dark:text-red-300">
+                {suspended} suspended
+              </Link>
             </div>
-          </Link>
+          </div>
           <Link href="/admin/bookings" className="rounded-xl border border-line bg-card p-4 shadow-sm transition hover:border-gold/50">
             <div className="flex items-center justify-between text-xs font-medium text-ink2">
               Bookings <CalendarCheck className="h-4 w-4" aria-hidden />

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/admin-auth";
 import { audit } from "@/lib/audit";
@@ -31,6 +32,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       before,
       after: { ...service, note: body.note }
     });
+    revalidateTag("home-catalog");
     return NextResponse.json({ service });
   } catch (e) {
     return jsonError(e);

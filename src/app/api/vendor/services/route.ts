@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { z } from "zod";
 import { getSession, requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -47,6 +48,7 @@ export async function POST(req: Request) {
         ...body
       }
     });
+    revalidateTag("home-catalog");
     return NextResponse.json({ service });
   } catch (e) {
     return jsonError(e);
@@ -77,6 +79,7 @@ export async function PATCH(req: Request) {
     if (body.location && body.locationEnabled !== undefined) {
       const field = body.location === "spa" ? "spaEnabled" : body.location === "hotel" ? "hotelEnabled" : "homeEnabled";
       await prisma.service.updateMany({ where: { vendorId: user.vendorId }, data: { [field]: body.locationEnabled } });
+      revalidateTag("home-catalog");
       return NextResponse.json({ ok: true });
     }
     if (!body.id) return NextResponse.json({ error: "Service id required" }, { status: 400 });
@@ -86,6 +89,7 @@ export async function PATCH(req: Request) {
     if (!existing) return NextResponse.json({ error: "Service not found" }, { status: 404 });
     const { id, location, locationEnabled, ...data } = body;
     const service = await prisma.service.update({ where: { id }, data });
+    revalidateTag("home-catalog");
     return NextResponse.json({ service });
   } catch (e) {
     return jsonError(e);

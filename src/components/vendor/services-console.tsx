@@ -141,11 +141,16 @@ export function VendorServicesConsole({
         title="Services"
         description="Create, price and organise everything you offer."
         actions={
-          <button type="button" className={adminBtn} onClick={startNew}>
+          <button type="button" className={adminBtn} disabled={!categories.length} onClick={startNew}>
             <Plus className="h-4 w-4" /> New service
           </button>
         }
       />
+      {!categories.length ? (
+        <p className="mb-4 rounded-2xl border border-line bg-card px-4 py-3 text-sm text-ink2">
+          Categories are not live yet. Ask NaijaSpa admin to publish at least one category before you add treatments.
+        </p>
+      ) : null}
       <div className="mb-5 grid gap-3 sm:grid-cols-3">
         <Panel>
           <p className="text-sm text-ink2">Total services</p>
