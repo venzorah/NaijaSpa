@@ -100,17 +100,23 @@ function ServiceFeedCard({ card }: { card: HomeCard }) {
     logoUrl: vendor.logoUrl
   });
 
+  const href = `/services/${encodeURIComponent(service.slug)}`;
+
   return (
     <article className="flex w-[18.5rem] shrink-0 snap-start flex-col overflow-hidden rounded-[1.35rem] border border-line bg-card shadow-sm sm:w-[19.5rem]">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={cover} alt="" className="h-40 w-full object-cover" />
+      <Link href={href} className="block">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={cover} alt="" className="h-40 w-full object-cover" />
+      </Link>
       <div className="flex flex-1 flex-col p-4">
       <div className="flex items-start gap-3">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={photo} alt="" className="h-14 w-14 shrink-0 rounded-full object-cover" />
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="font-semibold leading-snug">{vendor.businessName}</h3>
+            <Link href={href} className="font-semibold leading-snug hover:text-goldink">
+              {vendor.businessName}
+            </Link>
             <Heart className="mt-0.5 h-4 w-4 shrink-0 text-ink2" aria-hidden />
           </div>
           <p className="mt-0.5 line-clamp-2 text-xs text-ink2">{service.name}</p>
@@ -169,10 +175,10 @@ function ServiceFeedCard({ card }: { card: HomeCard }) {
           <span className="ml-1 text-xs font-normal text-ink2">/ {service.durationMin} min</span>
         </p>
         <Link
-          href={`/services/${service.slug}`}
+          href={href}
           className="inline-flex min-h-10 items-center rounded-full bg-ink px-4 text-xs font-bold text-bg"
         >
-          View & book
+          View spa service
         </Link>
       </div>
       </div>
@@ -300,7 +306,7 @@ export function VendorCarousel({
         {vendors.map((v) => (
           <Link
             key={v.slug}
-            href={`/providers/${v.slug}`}
+            href={`/providers/${encodeURIComponent(v.slug)}`}
             className="w-[16.75rem] shrink-0 snap-start overflow-hidden rounded-3xl border border-line bg-card"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}

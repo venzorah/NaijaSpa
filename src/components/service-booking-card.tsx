@@ -120,7 +120,7 @@ export function ServiceBookingCard({
           <select
             className="mt-2 min-h-12 w-full min-w-0 max-w-full rounded-2xl border border-line bg-card px-3 text-sm font-medium text-ink"
             value={currentSlug}
-            onChange={(e) => router.push(`/services/${e.target.value}`)}
+            onChange={(e) => router.push(`/services/${encodeURIComponent(e.target.value)}`)}
           >
             {treatments.map((t) => (
               <option key={t.id} value={t.slug}>

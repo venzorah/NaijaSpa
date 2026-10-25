@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Plus, Star, Store } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
@@ -177,6 +178,9 @@ export function VendorsConsole({ rows, editable }: { rows: AdminVendorRow[]; edi
                 ]}
               />
               <div className="mt-4 flex flex-wrap gap-2 border-t border-line pt-4">
+                <Link href={`/providers/${encodeURIComponent(selected.slug)}`} className={adminBtnOutline} target="_blank" rel="noreferrer">
+                  View spa page
+                </Link>
                 <ConfirmAction
                   triggerLabel="Approve"
                   triggerVariant="default"

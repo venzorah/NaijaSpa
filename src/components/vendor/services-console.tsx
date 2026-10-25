@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Infinity as InfinityIcon, Pencil, Plus, Search } from "lucide-react";
 import { VendorPageHeader } from "@/components/vendor/page-header";
@@ -14,6 +15,7 @@ import { cn } from "@/lib/cn";
 
 type Row = {
   id: string;
+  slug: string;
   name: string;
   description: string;
   category: string;
@@ -209,6 +211,13 @@ export function VendorServicesConsole({
                         <input type="checkbox" checked={s.active} onChange={(e) => toggle(s, e.target.checked)} />
                         Live
                       </label>
+                      <Link
+                        href={`/services/${encodeURIComponent(s.slug)}`}
+                        className={adminBtnOutline}
+                        aria-label={`View ${s.name} on site`}
+                      >
+                        View spa service
+                      </Link>
                       <button type="button" className={adminBtnOutline} aria-label={`Edit ${s.name}`} onClick={() => startEdit(s)}>
                         <Pencil className="h-3.5 w-3.5" />
                       </button>

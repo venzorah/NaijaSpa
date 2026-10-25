@@ -145,7 +145,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
               </ul>
             )}
             <p className="mt-4 text-sm">
-              <Link href={`/providers/${vendor.slug}`} className="font-semibold text-leaf">
+              <Link href={`/providers/${encodeURIComponent(vendor.slug)}`} className="font-semibold text-leaf">
                 View provider
               </Link>
               {vendor.publicPhone || vendor.publicWhatsapp ? (

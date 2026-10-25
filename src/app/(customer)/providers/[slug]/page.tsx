@@ -109,8 +109,8 @@ export default async function ProviderPage({ params }: { params: Promise<{ slug:
                     {formatNgn(s.basePriceKobo)} · {s.durationMin} min
                   </p>
                 </div>
-                <Link href={`/services/${s.slug}`} className="rounded-full bg-gold px-4 py-2 text-sm font-bold text-ongold">
-                  View
+                <Link href={`/services/${encodeURIComponent(s.slug)}`} className="rounded-full bg-gold px-4 py-2 text-sm font-bold text-ongold">
+                  View spa service
                 </Link>
               </li>
             ))}
@@ -137,8 +137,8 @@ export default async function ProviderPage({ params }: { params: Promise<{ slug:
             <div className="rounded-3xl border border-line bg-card p-5">
               <p className="text-xs text-ink2">From</p>
               <p className="font-display text-3xl font-semibold text-goldink">{formatNgn(from)}</p>
-              <Link href={`/services/${first.slug}`} className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-full bg-gold text-sm font-bold text-ongold">
-                Book now
+              <Link href={`/services/${encodeURIComponent(first.slug)}`} className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-full bg-gold text-sm font-bold text-ongold">
+                View spa service
               </Link>
             </div>
           </aside>
@@ -151,8 +151,8 @@ export default async function ProviderPage({ params }: { params: Promise<{ slug:
               <p className="text-xs text-ink2">From</p>
               <p className="font-bold text-goldink">{formatNgn(from)}</p>
             </div>
-            <Link href={`/services/${first.slug}`} className="inline-flex min-h-11 items-center rounded-full bg-gold px-5 text-sm font-bold text-ongold">
-              Book now
+            <Link href={`/services/${encodeURIComponent(first.slug)}`} className="inline-flex min-h-11 items-center rounded-full bg-gold px-5 text-sm font-bold text-ongold">
+              View spa service
             </Link>
           </div>
         </div>

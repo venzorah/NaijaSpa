@@ -32,7 +32,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
         <div className="space-y-4 p-5">
           <div>
             <h2 className="font-display text-3xl font-semibold text-ink">{booking.service.name}</h2>
-            <Link href={`/providers/${booking.vendor.slug}`} className="text-sm font-semibold text-leaf hover:underline">
+            <Link href={`/providers/${encodeURIComponent(booking.vendor.slug)}`} className="text-sm font-semibold text-leaf hover:underline">
               {booking.vendor.businessName}
             </Link>
           </div>
@@ -97,7 +97,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
         ) : null}
         {booking.status === "completed" ? (
           <Link
-            href={`/services/${booking.service.slug}`}
+            href={`/services/${encodeURIComponent(booking.service.slug)}`}
             className="inline-flex min-h-11 items-center justify-center rounded-full border border-gold/50 px-5 text-sm font-semibold text-goldink"
           >
             Book again

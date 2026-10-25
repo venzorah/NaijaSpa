@@ -17,6 +17,7 @@ export default async function ServicesPage() {
         editable={editable}
         rows={services.map((s) => ({
           id: s.id,
+          slug: s.slug,
           name: s.name,
           description: s.description,
           imageUrl: s.imageUrl,

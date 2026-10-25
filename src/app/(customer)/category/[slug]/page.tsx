@@ -133,7 +133,7 @@ export default async function CategoryLandingPage({ params }: { params: Promise<
             <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {providers.map((p) => (
                 <li key={p.slug}>
-                  <Link href={`/providers/${p.slug}`} className="block overflow-hidden rounded-3xl border border-line bg-card">
+                  <Link href={`/providers/${encodeURIComponent(p.slug)}`} className="block overflow-hidden rounded-3xl border border-line bg-card">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={p.coverUrl || "/photos/spa.jpg"} alt="" className="h-36 w-full object-cover" />
                     <div className="p-4">

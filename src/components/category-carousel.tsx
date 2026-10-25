@@ -66,7 +66,7 @@ export function CategoryCarousel({
           {categories.map((c) => (
             <Link
               key={c.slug}
-              href={`/category/${c.slug}`}
+              href={`/category/${encodeURIComponent(c.slug)}`}
               className="w-[3.6rem] shrink-0 snap-start sm:w-[7.75rem] md:w-[9.25rem]"
             >
               <div className="aspect-square overflow-hidden rounded-full border border-line bg-elev sm:rounded-2xl sm:shadow-sm sm:transition sm:hover:border-gold/50 sm:hover:shadow-md">

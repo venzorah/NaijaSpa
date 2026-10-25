@@ -374,6 +374,7 @@ function demoPublicService(slug: string) {
 }
 
 export async function getPublicService(slug: string) {
+  slug = decodeURIComponent(slug);
   if (usingDemoListings()) return demoPublicService(slug);
   try {
   const { prisma, getCommercialConfig } = await import("./db");
@@ -394,7 +395,8 @@ export async function getPublicService(slug: string) {
       staff: { include: { staff: true } }
     }
   });
-  if (!service || !service.active) return null;
+  if (!service) return demoPublicService(slug);
+  if (!service.active) return null;
   const ent = await vendorEntitlement(service.vendorId);
   const vendor = sanitizePublicVendor(
     { ...service.vendor, coverUrl: publicWellnessPhoto(service.vendor.coverUrl, PHOTOS.bandSpa) },
@@ -441,6 +443,7 @@ export async function getPublicService(slug: string) {
 }
 
 export async function getPublicVendor(slug: string) {
+  slug = decodeURIComponent(slug);
   if (usingDemoListings()) return demoVendorBySlug(slug);
   try {
   const { prisma } = await import("./db");
@@ -453,7 +456,8 @@ export async function getPublicVendor(slug: string) {
       videoLinks: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] }
     }
   });
-  if (!vendor || vendor.visibility !== "public") return null;
+  if (!vendor) return demoVendorBySlug(slug);
+  if (vendor.visibility !== "public") return null;
   const ent = await vendorEntitlement(vendor.id);
   return {
     vendor: sanitizePublicVendor(

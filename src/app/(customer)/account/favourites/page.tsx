@@ -22,7 +22,7 @@ export default async function FavPage() {
     .filter((i) => i.service)
     .map((i) => ({
       id: i.id,
-      href: `/services/${i.service!.slug}`,
+      href: `/services/${encodeURIComponent(i.service!.slug)}`,
       name: i.service!.name,
       subtitle: i.service!.vendor.businessName,
       image: publicWellnessPhoto(i.service!.imageUrl, PHOTOS.massage),
@@ -32,7 +32,7 @@ export default async function FavPage() {
     const v = vendorMap.get(id);
     return {
       id,
-      href: v ? `/providers/${v.slug}` : "/explore",
+      href: v ? `/providers/${encodeURIComponent(v.slug)}` : "/explore",
       name: v?.businessName || "Saved spa",
       subtitle: [v?.neighbourhood, v?.city].filter(Boolean).join(", "),
       image: publicWellnessPhoto(v?.coverUrl, PHOTOS.spa)

@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, CheckCircle2, Clock, MapPin, PencilLine, ShieldCheck, XCircle } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { ConfirmAction } from "@/components/admin/confirm-action";
 import { FilterChips } from "@/components/admin/filter-chips";
-import { adminBtn } from "@/components/admin/form-row";
+import { adminBtn, adminBtnOutline } from "@/components/admin/form-row";
 import { Panel } from "@/components/admin/panel";
 import { AdminStatusPill } from "@/components/admin/status-pill";
 import { adminJson } from "@/components/admin/json";
@@ -15,6 +16,7 @@ import { cn } from "@/lib/cn";
 
 export type AdminServiceRow = {
   id: string;
+  slug: string;
   name: string;
   description: string;
   imageUrl: string | null;
@@ -128,6 +130,14 @@ export function ServicesConsole({ rows, editable }: { rows: AdminServiceRow[]; e
                 </p>
               )}
               <div className="mt-4 flex flex-wrap justify-end gap-2 border-t border-line pt-4">
+                <Link
+                  href={`/services/${encodeURIComponent(selected.slug)}`}
+                  className={adminBtn}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  View spa service
+                </Link>
                 <ConfirmAction
                   triggerLabel="Hide / reject"
                   triggerIcon={XCircle}

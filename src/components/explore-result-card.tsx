@@ -94,7 +94,9 @@ export function ExploreResultCard({ result: r }: { result: ExploreResult }) {
         <img src={avatar} alt="" className="h-14 w-14 shrink-0 rounded-full object-cover" />
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
-            <h2 className="font-display text-xl leading-tight">{title}</h2>
+            <Link href={`/services/${encodeURIComponent(r.service.slug)}`} className="font-display text-xl leading-tight hover:text-goldink">
+              {title}
+            </Link>
             <button
               type="button"
               aria-label={saved ? "Saved" : "Save provider"}
@@ -157,10 +159,10 @@ export function ExploreResultCard({ result: r }: { result: ExploreResult }) {
           <span className="text-sm text-ink2"> / session</span>
         </p>
         <Link
-          href={`/services/${r.service.slug}`}
+          href={`/services/${encodeURIComponent(r.service.slug)}`}
           className="inline-flex min-h-10 items-center rounded-full bg-ink px-4 text-sm font-bold text-bg"
         >
-          View & book
+          View spa service
         </Link>
       </div>
     </article>
