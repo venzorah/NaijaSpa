@@ -48,7 +48,7 @@ export function AuthScreen({ children }: { children: ReactNode }) {
 export function AuthHeading({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <>
-      <h1 className="mt-6 text-center font-display text-[2.15rem] leading-tight text-ink">{title}</h1>
+      <h1 className="mt-6 text-center font-display text-xl font-semibold leading-snug text-ink">{title}</h1>
       <p className="mt-2 text-center text-sm text-ink2">{subtitle}</p>
     </>
   );

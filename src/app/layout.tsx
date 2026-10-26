@@ -1,19 +1,13 @@
 import type { Metadata, Viewport } from "next";
-import { Cormorant_Garamond, Manrope } from "next/font/google";
+import { Montserrat } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 
-const manrope = Manrope({
+const montserrat = Montserrat({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-manrope"
-});
-
-const cormorant = Cormorant_Garamond({
-  subsets: ["latin"],
-  weight: ["600", "700"],
-  display: "swap",
-  variable: "--font-cormorant"
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-montserrat"
 });
 
 export const metadata: Metadata = {
@@ -42,7 +36,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`dark ${manrope.variable} ${cormorant.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`dark ${montserrat.variable}`} suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -52,7 +46,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="icon" href="/icon.png" type="image/png" />
         <link rel="apple-touch-icon" href="/apple-icon.png" />
       </head>
-      <body className={manrope.className}>
+      <body className={montserrat.className}>
         <ThemeProvider>
           {children}
         </ThemeProvider>

@@ -12,7 +12,7 @@ export function AdminPageHeader({
   return (
     <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
       <div className="min-w-0">
-        <h1 className="font-display text-4xl font-semibold tracking-tight md:text-5xl">{def?.label ?? screen}</h1>
+        <h1 className="font-display text-xl font-semibold tracking-tight">{def?.label ?? screen}</h1>
         {def?.description ? <p className="mt-1 text-base text-ink2">{def.description}</p> : null}
       </div>
       {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}

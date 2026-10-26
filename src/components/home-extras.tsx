@@ -21,7 +21,7 @@ export function HomeExtras() {
               <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.22em] text-[#E3C766]">
                 <Crown className="h-4 w-4" aria-hidden /> NaijaSpa Membership
               </p>
-              <h2 id="membership-teaser" className="mt-2 font-display text-4xl font-semibold leading-tight">
+              <h2 id="membership-teaser" className="mt-2 font-display text-lg font-semibold leading-snug">
                 Wellness that rewards you back.
               </h2>
               <p className="mt-3 max-w-md text-sm leading-relaxed text-white/80">
@@ -46,13 +46,13 @@ export function HomeExtras() {
 
       <section className="mx-auto mt-14 max-w-7xl px-4 lg:px-8" aria-labelledby="how-it-works">
         <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.2em] text-goldink">Simple & secure</p>
-        <h2 id="how-it-works" className="font-display text-[26px] font-semibold text-ink md:text-3xl">
+        <h2 id="how-it-works" className="font-display text-lg font-semibold text-ink">
           How NaijaSpa works
         </h2>
         <ol className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {STEPS.map((s, i) => (
             <li key={s.title} className="rounded-3xl border border-line bg-card p-5">
-              <span className="font-display text-4xl font-semibold text-goldink">0{i + 1}</span>
+              <span className="font-display text-lg font-semibold text-goldink">0{i + 1}</span>
               <h3 className="mt-2 font-semibold text-ink">{s.title}</h3>
               <p className="mt-1 text-sm leading-relaxed text-ink2">{s.text}</p>
             </li>
@@ -66,7 +66,7 @@ export function HomeExtras() {
           <img src={PHOTOS.packages} alt="" className="h-48 w-full object-cover md:h-full" />
           <div className="p-6 md:p-10">
             <Store className="h-7 w-7 text-leaf" aria-hidden />
-            <h2 id="vendor-cta" className="mt-3 font-display text-3xl font-semibold text-ink">
+            <h2 id="vendor-cta" className="mt-3 font-display text-lg font-semibold text-ink">
               Run a spa or mobile practice?
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-ink2">

@@ -246,7 +246,7 @@ export function HeroSlider({
           ))}
           <div className="relative z-10 flex h-full flex-col justify-end p-6 md:p-10">
             <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-gold">{slide.offer}</p>
-            <h1 className="mt-3 max-w-lg font-display text-4xl font-semibold leading-[1.08] md:text-5xl">{slide.title}</h1>
+            <h1 className="mt-2 max-w-lg font-display text-xl font-semibold leading-snug">{slide.title}</h1>
             {slide.subtitle ? <p className="mt-3 max-w-md text-sm text-white/85">{slide.subtitle}</p> : null}
             {slide.price ? <p className="mt-2 text-sm font-semibold text-gold">{slide.price}</p> : null}
             <Link

@@ -56,7 +56,7 @@ export function PageHeader({
         </button>
       )}
       <div className="min-w-0 flex-1">
-        <h1 className="font-display text-[30px] font-semibold leading-tight text-ink md:text-4xl">{title}</h1>
+        <h1 className="font-display text-xl font-semibold leading-snug text-ink">{title}</h1>
         {subtitle ? <p className="mt-1 text-sm text-ink2">{subtitle}</p> : null}
       </div>
       {right}
