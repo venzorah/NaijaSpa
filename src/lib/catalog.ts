@@ -413,10 +413,10 @@ export async function getPublicService(slug: string) {
       orderBy: { durationMin: "asc" }
     }),
     prisma.review.findMany({
-      where: { vendorId: service.vendorId, status: "published" },
+      where: { status: "published", booking: { serviceId: service.id } },
       include: { user: { select: { name: true } } },
       orderBy: { createdAt: "desc" },
-      take: 8
+      take: 20
     })
   ]);
   return {

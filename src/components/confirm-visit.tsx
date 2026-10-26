@@ -21,7 +21,7 @@ export function ConfirmVisit({ bookingId }: { bookingId: string }) {
             const res = await fetch(`/api/account/bookings/${bookingId}/complete`, { method: "POST" });
             const json = await res.json();
             if (!res.ok) setError(json.error || "Could not confirm this visit.");
-            else router.refresh();
+            else router.push(`/account/bookings/${bookingId}/review`);
           } catch {
             setError("Could not confirm this visit.");
           } finally {

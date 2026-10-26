@@ -4,6 +4,7 @@ import { BadgeCheck, Heart, MapPin, Star } from "lucide-react";
 import { getPublicService } from "@/lib/catalog";
 import { publicWellnessPhoto } from "@/lib/photos";
 import { formatReviewDate, locationLabel } from "@/lib/booking-ui";
+import { StarRating } from "@/components/star-rating";
 import { ServiceBookingCard } from "@/components/service-booking-card";
 import { VendorProfileGallery } from "@/components/vendor-profile-gallery";
 import { collectProfileGalleryImages } from "@/lib/galleries";
@@ -167,9 +168,9 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
           </section>
 
           <section>
-            <h2 className="font-display text-3xl">Reviews {reviews.length ? `(${vendor.reviewCount || reviews.length})` : ""}</h2>
+            <h2 className="font-display text-xl font-semibold">Reviews {reviews.length ? `(${reviews.length})` : ""}</h2>
             {reviews.length === 0 ? (
-              <p className="mt-3 text-sm text-ink2">No published reviews yet for this provider.</p>
+              <p className="mt-3 text-sm text-ink2">No published reviews yet for this service. Reviews unlock after a customer confirms they received it.</p>
             ) : (
               <ul className="mt-5 space-y-4">
                 {reviews.map((r) => (
@@ -177,10 +178,9 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="font-semibold">{r.author}</p>
-                        <p className="mt-0.5 inline-flex items-center gap-1 text-sm">
-                          <Star className="h-3.5 w-3.5 fill-gold text-gold" aria-hidden />
-                          {r.rating.toFixed(1)}
-                        </p>
+                        <div className="mt-1">
+                          <StarRating value={Math.round(r.rating)} readOnly size="sm" />
+                        </div>
                       </div>
                       <p className="text-sm text-ink2">{formatReviewDate(r.createdAt)}</p>
                     </div>

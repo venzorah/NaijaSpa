@@ -95,8 +95,19 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
           </Link>
         ) : null}
         {booking.status === "completed" && !booking.review ? (
-          <Link href="/account/reviews" className="inline-flex min-h-11 items-center justify-center rounded-full bg-gold px-5 text-sm font-bold text-ongold">
+          <Link
+            href={`/account/bookings/${booking.id}/review`}
+            className="inline-flex min-h-11 items-center justify-center rounded-full bg-gold px-5 text-sm font-bold text-ongold"
+          >
             <Star className="mr-1.5 h-4 w-4" aria-hidden /> Write a review
+          </Link>
+        ) : null}
+        {booking.status === "completed" && booking.review ? (
+          <Link
+            href={`/account/bookings/${booking.id}/review`}
+            className="inline-flex min-h-11 items-center justify-center rounded-full border border-line px-5 text-sm font-semibold"
+          >
+            <Star className="mr-1.5 h-4 w-4 fill-gold text-gold" aria-hidden /> Your review
           </Link>
         ) : null}
         {booking.status === "completed" ? (
