@@ -9,10 +9,11 @@ export async function refreshVendorRating(vendorId: string) {
     _avg: { rating: true },
     _count: { _all: true }
   });
+  const avg = Number(agg._avg.rating ?? 0);
   await prisma.vendor.update({
     where: { id: vendorId },
     data: {
-      ratingAvg: Math.round((agg._avg.rating ?? 0) * 10) / 10,
+      ratingAvg: Number.isFinite(avg) ? Math.round(avg * 10) / 10 : 0,
       reviewCount: agg._count._all
     }
   });
@@ -39,5 +40,10 @@ export async function createBookingReview(input: { userId: string; bookingId: st
     }
   });
   await refreshVendorRating(booking.vendorId);
-  return { review, serviceSlug: booking.service.slug, serviceName: booking.service.name };
+  return {
+    ok: true,
+    reviewId: review.id,
+    serviceSlug: booking.service.slug,
+    serviceName: booking.service.name
+  };
 }

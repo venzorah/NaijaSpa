@@ -3,7 +3,7 @@ import Link from "next/link";
 import { BadgeCheck, Heart, MapPin, Star } from "lucide-react";
 import { getPublicService } from "@/lib/catalog";
 import { publicWellnessPhoto } from "@/lib/photos";
-import { formatReviewDate, locationLabel } from "@/lib/booking-ui";
+import { formatRating, formatReviewDate, locationLabel } from "@/lib/booking-ui";
 import { StarRating } from "@/components/star-rating";
 import { ServiceBookingCard } from "@/components/service-booking-card";
 import { VendorProfileGallery } from "@/components/vendor-profile-gallery";
@@ -28,6 +28,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
   );
   const locationLine = [vendor.neighbourhood, vendor.city].filter(Boolean).join(", ");
   const offered = quotes.map((q) => locationLabel(q.l)).join(" · ");
+  const ratingLabel = formatRating(vendor.ratingAvg);
 
   return (
     <div className="bg-bg2">
@@ -74,15 +75,15 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
                 </Link>
               </div>
               <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink2">
-                {typeof vendor.ratingAvg === "number" && vendor.ratingAvg > 0 && (
+                {ratingLabel ? (
                   <span className="inline-flex items-center gap-1 font-semibold text-ink">
                     <Star className="h-4 w-4 fill-gold text-gold" aria-hidden />
-                    {vendor.ratingAvg.toFixed(1)}
+                    {ratingLabel}
                     {vendor.reviewCount ? (
                       <span className="font-normal text-ink2">({vendor.reviewCount})</span>
                     ) : null}
                   </span>
-                )}
+                ) : null}
                 {locationLine && (
                   <span className="inline-flex items-center gap-1">
                     <MapPin className="h-4 w-4" aria-hidden />
@@ -122,7 +123,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
             <div>
               <dt className="text-[11px] font-bold uppercase tracking-wide text-ink2">Rating</dt>
               <dd className="mt-1 font-display text-3xl">
-                {vendor.ratingAvg ? vendor.ratingAvg.toFixed(1) : "—"}
+                {ratingLabel || "—"}
               </dd>
             </div>
             <div>
@@ -151,7 +152,15 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
                 View provider
               </Link>
               {hasPublicVendorContact(vendor) ? (
-                <PublicVendorContact vendor={vendor} variant="inline" />
+                <PublicVendorContact
+                  vendor={{
+                    publicPhone: vendor.publicPhone,
+                    publicWhatsapp: vendor.publicWhatsapp,
+                    publicEmail: vendor.publicEmail,
+                    publicInstagram: vendor.publicInstagram
+                  }}
+                  variant="inline"
+                />
               ) : (
                 <span className="ml-2 text-xs text-ink2">Free listings keep contact private until you pay. Paid providers show WhatsApp, email and Instagram.</span>
               )}
@@ -164,13 +173,13 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
               <p className="mt-3 text-sm text-ink2">No published reviews yet for this service. Reviews unlock after a customer confirms they received it.</p>
             ) : (
               <ul className="mt-5 space-y-4">
-                {reviews.map((r) => (
-                  <li key={`${r.author}-${r.createdAt}`} className="rounded-[1.4rem] border border-line bg-card p-5">
+                {reviews.map((r, i) => (
+                  <li key={`${r.author}-${r.createdAt || i}`} className="rounded-[1.4rem] border border-line bg-card p-5">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="font-semibold">{r.author}</p>
+                        <p className="font-semibold">{r.author || "Guest"}</p>
                         <div className="mt-1">
-                          <StarRating value={Math.round(r.rating)} readOnly size="sm" />
+                          <StarRating value={Math.round(Number(r.rating) || 0)} readOnly size="sm" />
                         </div>
                       </div>
                       <p className="text-sm text-ink2">{formatReviewDate(r.createdAt)}</p>

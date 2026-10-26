@@ -26,8 +26,15 @@ export function formatNairaPlain(kobo: number) {
   return `₦${n.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
 }
 
-export function formatReviewDate(iso: string) {
-  const d = new Date(iso);
+export function formatReviewDate(iso: string | Date | null | undefined) {
+  if (!iso) return "";
+  const d = iso instanceof Date ? iso : new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
   return d.toLocaleDateString("en-GB", { month: "short", year: "numeric" });
+}
+
+export function formatRating(value: unknown, digits = 1) {
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n) || n <= 0) return "";
+  return n.toFixed(digits);
 }

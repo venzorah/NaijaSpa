@@ -46,15 +46,17 @@ export default async function Page() {
       <ul className="mt-4 space-y-3">
         {reviews.map((r) => (
           <li key={r.id} className="rounded-3xl border border-line bg-card p-5">
-            <p className="font-semibold text-ink">{r.booking.vendor.businessName}</p>
-            <p className="text-xs text-ink2">{r.booking.service.name}</p>
+            <p className="font-semibold text-ink">{r.booking?.vendor.businessName ?? "NaijaSpa"}</p>
+            <p className="text-xs text-ink2">{r.booking?.service.name ?? "Treatment"}</p>
             <div className="mt-1">
-              <StarRating value={r.rating} readOnly size="sm" />
+              <StarRating value={Number(r.rating) || 0} readOnly size="sm" />
             </div>
             <p className="mt-2 text-sm leading-relaxed text-ink">{r.body}</p>
-            <Link href={`/services/${encodeURIComponent(r.booking.service.slug)}`} className="mt-3 inline-block text-sm font-semibold text-leaf">
-              View on service page
-            </Link>
+            {r.booking?.service.slug ? (
+              <Link href={`/services/${encodeURIComponent(r.booking.service.slug)}`} className="mt-3 inline-block text-sm font-semibold text-leaf">
+                View on service page
+              </Link>
+            ) : null}
           </li>
         ))}
         {reviews.length === 0 ? <p className="text-sm text-ink2">No reviews posted yet.</p> : null}

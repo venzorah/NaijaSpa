@@ -28,7 +28,7 @@ export default async function WriteReviewPage({ params }: { params: Promise<{ id
         <div className="rounded-3xl border border-line bg-card p-5">
           <p className="text-sm font-semibold text-ink">You already reviewed this visit.</p>
           <div className="mt-2">
-            <StarRating value={booking.review.rating} readOnly size="sm" />
+            <StarRating value={Number(booking.review.rating) || 0} readOnly size="sm" />
           </div>
           <p className="mt-3 text-sm leading-relaxed text-ink">{booking.review.body}</p>
           <Link

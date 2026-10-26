@@ -4,6 +4,7 @@ import { BadgeCheck, Info, MapPin, Star } from "lucide-react";
 import { getPublicVendor } from "@/lib/catalog";
 import { hasPublicVendorContact, PublicVendorContact } from "@/components/public-vendor-contact";
 import { formatNgn } from "@/lib/money";
+import { formatRating } from "@/lib/booking-ui";
 import { TherapistGalleries } from "@/components/therapist-galleries";
 import { usingDemoListings } from "@/lib/live-db";
 import { demoReviewsForVendor } from "@/lib/demo-catalog";
@@ -30,14 +31,15 @@ export default async function ProviderPage({ params }: { params: Promise<{ slug:
         take: 8
       });
       reviews = rows.map((r) => ({
-        author: r.user.name.split(" ")[0] || "Guest",
-        rating: r.rating,
-        body: r.body
+        author: String(r.user?.name ?? "Guest").split(" ")[0] || "Guest",
+        rating: Number(r.rating) || 0,
+        body: String(r.body ?? "")
       }));
     } catch {
       reviews = [];
     }
   }
+  const ratingLabel = formatRating(vendor.ratingAvg);
   const first = services[0];
 
   return (
@@ -60,10 +62,10 @@ export default async function ProviderPage({ params }: { params: Promise<{ slug:
           </div>
           <h1 className="mt-1 font-display text-[34px] font-semibold leading-tight text-ink md:text-4xl">{vendor.businessName}</h1>
           <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
-            {typeof vendor.ratingAvg === "number" && vendor.ratingAvg > 0 ? (
+            {ratingLabel ? (
               <span className="inline-flex items-center gap-1 font-semibold text-ink">
                 <Star className="h-4 w-4 fill-gold text-gold" aria-hidden />
-                {vendor.ratingAvg.toFixed(1)}
+                {ratingLabel}
                 {vendor.reviewCount ? <span className="font-normal text-ink2">({vendor.reviewCount})</span> : null}
               </span>
             ) : null}

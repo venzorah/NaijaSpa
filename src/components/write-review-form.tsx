@@ -43,7 +43,7 @@ export function WriteReviewForm({
             setError(json.error || "Could not send your review.");
             return;
           }
-          router.push(`/services/${encodeURIComponent(json.serviceSlug || serviceSlug)}`);
+          router.replace(`/account/bookings/${encodeURIComponent(bookingId)}/review`);
           router.refresh();
         } catch {
           setError("Could not send your review.");

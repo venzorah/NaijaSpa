@@ -301,8 +301,8 @@ async function loadHomeCatalog(place: LivePlace | null) {
   }
 }
 
-function initialsName(name: string) {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
+function initialsName(name: string | null | undefined) {
+  const parts = String(name ?? "").trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return "Guest";
   if (parts.length === 1) return parts[0];
   return `${parts[0]} ${parts[parts.length - 1][0]}.`;
@@ -407,19 +407,29 @@ export async function getPublicService(slug: string) {
     ent
   );
   const cfg = await getCommercialConfig();
-  const [treatments, reviewRows] = await Promise.all([
-    prisma.service.findMany({
-      where: { vendorId: service.vendorId, active: true },
-      select: { id: true, slug: true, name: true, durationMin: true, basePriceKobo: true },
-      orderBy: { durationMin: "asc" }
-    }),
-    prisma.review.findMany({
+  const treatments = await prisma.service.findMany({
+    where: { vendorId: service.vendorId, active: true },
+    select: { id: true, slug: true, name: true, durationMin: true, basePriceKobo: true },
+    orderBy: { durationMin: "asc" }
+  });
+  let reviews: Array<{ vendorId: string; author: string; rating: number; createdAt: string; body: string }> = [];
+  try {
+    const reviewRows = await prisma.review.findMany({
       where: { status: "published", booking: { serviceId: service.id } },
       include: { user: { select: { name: true } } },
       orderBy: { createdAt: "desc" },
       take: 20
-    })
-  ]);
+    });
+    reviews = reviewRows.map((r) => ({
+      vendorId: r.vendorId,
+      author: initialsName(r.user?.name),
+      rating: Number(r.rating) || 0,
+      createdAt: r.createdAt instanceof Date ? r.createdAt.toISOString() : String(r.createdAt ?? ""),
+      body: String(r.body ?? "")
+    }));
+  } catch {
+    reviews = [];
+  }
   return {
     demo: false,
     service: { ...service, imageUrl: publicWellnessPhoto(service.imageUrl, PHOTOS.massage) },
@@ -427,13 +437,7 @@ export async function getPublicService(slug: string) {
     galleries: mapPublicGalleries(service.vendor.galleries),
     quotes: locationQuotes(service, ent, cfg),
     treatments,
-    reviews: reviewRows.map((r) => ({
-      vendorId: r.vendorId,
-      author: initialsName(r.user.name),
-      rating: r.rating,
-      createdAt: r.createdAt.toISOString(),
-      body: r.body
-    })),
+    reviews,
     tags: [
       service.category?.name,
       service.spaEnabled && "Spa/Office",
