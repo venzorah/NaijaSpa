@@ -65,6 +65,12 @@ export const LEGACY_VENDOR_PLAN_CODES: Record<string, string> = {
   SIX_MONTH: "PLATINUM"
 };
 
+export function canonicalVendorPlanCode(code: string) {
+  const raw = code.trim();
+  const upper = raw.toUpperCase();
+  return LEGACY_VENDOR_PLAN_CODES[upper] ?? upper;
+}
+
 export type VendorPlanBilling = "none" | "weekly" | "monthly" | "yearly";
 
 export function durationDaysFromBilling(billing: VendorPlanBilling) {

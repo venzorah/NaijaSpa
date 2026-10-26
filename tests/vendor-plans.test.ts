@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { vendorPlanCta, vendorPlanPerks } from "../src/lib/vendor-plans";
+import { canonicalVendorPlanCode, vendorPlanCta, vendorPlanPerks } from "../src/lib/vendor-plans";
 
 const free = {
   code: "FREE",
@@ -29,6 +29,12 @@ describe("vendor listing plans", () => {
   it("keeps Free contact private and paid contact public", () => {
     expect(vendorPlanPerks(free).some((p) => /private/i.test(p))).toBe(true);
     expect(vendorPlanPerks(gold).some((p) => /Instagram/i.test(p))).toBe(true);
+  });
+
+  it("maps legacy weekly/monthly codes onto live paid plans", () => {
+    expect(canonicalVendorPlanCode("weekly")).toBe("SILVER");
+    expect(canonicalVendorPlanCode("MONTHLY")).toBe("GOLD");
+    expect(canonicalVendorPlanCode("platinum")).toBe("PLATINUM");
   });
 
   it("labels subscribe vs upgrade vs current", () => {

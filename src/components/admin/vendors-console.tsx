@@ -15,6 +15,8 @@ import { AdminStatusPill } from "@/components/admin/status-pill";
 import { adminJson } from "@/components/admin/json";
 import { vendorStatusLabel } from "@/lib/admin";
 import { cn } from "@/lib/cn";
+import { formatNgn } from "@/lib/money";
+import { vendorPlanBillingLabel } from "@/lib/vendor-plans";
 
 export type AdminVendorRow = {
   id: string;
@@ -41,7 +43,7 @@ export function VendorsConsole({
 }: {
   rows: AdminVendorRow[];
   editable: boolean;
-  listingPlans: Array<{ code: string; name: string }>;
+  listingPlans: Array<{ code: string; name: string; priceKobo: number; durationDays: number; active: boolean }>;
 }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -190,26 +192,42 @@ export function VendorsConsole({
                 onSubmit={async (e) => {
                   e.preventDefault();
                   const fd = new FormData(e.currentTarget);
-                  await adminJson(`/api/admin/vendors/${selected.id}`, {
-                    method: "PATCH",
-                    body: JSON.stringify({ planCode: fd.get("planCode") })
-                  });
-                  setMsg("Listing plan updated.");
-                  router.refresh();
+                  const planCode = String(fd.get("planCode") || "");
+                  setMsg("");
+                  try {
+                    await adminJson(`/api/admin/vendors/${selected.id}`, {
+                      method: "PATCH",
+                      body: JSON.stringify({ planCode })
+                    });
+                    const granted = listingPlans.find((p) => p.code === planCode);
+                    setMsg(
+                      granted && granted.priceKobo > 0
+                        ? `${granted.name} granted for one billing period. Paystack is not charged.`
+                        : "Listing plan updated."
+                    );
+                    router.refresh();
+                  } catch (err) {
+                    setMsg(err instanceof Error ? err.message : "Could not update listing plan.");
+                  }
                 }}
               >
-                <FormRow label="Listing plan" htmlFor="vendor-plan">
+                <FormRow label="Grant listing plan" htmlFor="vendor-plan">
                   <select id="vendor-plan" name="planCode" defaultValue={selected.planCode} disabled={!editable} className={adminField} key={selected.id + selected.planCode}>
                     {listingPlans.map((p) => (
                       <option key={p.code} value={p.code}>
                         {p.name}
+                        {p.priceKobo > 0 ? ` · ${formatNgn(p.priceKobo)} · ${vendorPlanBillingLabel(p.durationDays, p.priceKobo)}` : " · ₦0"}
+                        {p.active ? "" : " (paused)"}
                       </option>
                     ))}
                   </select>
                 </FormRow>
                 <button className={adminBtn} disabled={!editable}>
-                  Apply plan
+                  Grant plan
                 </button>
+                <p className="sm:col-span-2 text-xs text-ink2">
+                  Upgrade to Silver, Gold, Platinum, or any extra package from Commercial config. This is an admin grant — the vendor is not billed on Paystack.
+                </p>
               </form>
               <div className="mt-4 flex flex-wrap gap-2 border-t border-line pt-4">
                 <Link href={`/providers/${encodeURIComponent(selected.slug)}`} className={adminBtnOutline} target="_blank" rel="noreferrer">

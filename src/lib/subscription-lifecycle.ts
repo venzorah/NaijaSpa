@@ -1,4 +1,5 @@
 import { prisma, getCommercialConfig } from "./db";
+import { resolveVendorListingPlan } from "./vendor-plans-live";
 import { queueMail, sendMail, brandedEmailHtml } from "./mail";
 import { appUrl } from "./payments";
 import { formatNgn } from "./money";
@@ -39,9 +40,11 @@ export async function lapsePaidSubscriptionToFree(vendorId: string, paidSubId: s
 }
 
 export async function grantVendorPlan(vendorId: string, planCode: string, source = "admin_grant", at = new Date()) {
-  const plan = await prisma.subscriptionPlan.findUnique({ where: { code: planCode } });
+  const plan = await resolveVendorListingPlan(planCode);
   if (!plan) throw Object.assign(new Error("Unknown listing plan."), { status: 404 });
-  if (!plan.active) throw Object.assign(new Error("That listing plan is paused."), { status: 400 });
+  if (!plan.active && source !== "admin_grant") {
+    throw Object.assign(new Error("That listing plan is paused."), { status: 400 });
+  }
   await prisma.vendorSubscription.updateMany({
     where: { vendorId, status: { in: ["active", "grace"] } },
     data: { status: "expired" }

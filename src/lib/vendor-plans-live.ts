@@ -1,5 +1,10 @@
 import { prisma } from "@/lib/db";
-import { LEGACY_VENDOR_PLAN_CODES, LIVE_VENDOR_PLANS, type VendorListingPlanView } from "@/lib/vendor-plans";
+import {
+  canonicalVendorPlanCode,
+  LEGACY_VENDOR_PLAN_CODES,
+  LIVE_VENDOR_PLANS,
+  type VendorListingPlanView
+} from "@/lib/vendor-plans";
 
 export async function ensureLiveVendorPlans() {
   for (const [legacy, next] of Object.entries(LEGACY_VENDOR_PLAN_CODES)) {
@@ -49,6 +54,20 @@ export async function ensureLiveVendorPlans() {
       }
     });
   }
+}
+
+export async function resolveVendorListingPlan(code: string) {
+  await ensureLiveVendorPlans();
+  const canonical = canonicalVendorPlanCode(code);
+  return prisma.subscriptionPlan.findFirst({
+    where: { OR: [{ code: canonical }, { code: code.trim() }] }
+  });
+}
+
+export async function listAdminGrantableVendorPlans() {
+  await ensureLiveVendorPlans();
+  const rows = await prisma.subscriptionPlan.findMany({ orderBy: { priceKobo: "asc" } });
+  return rows.filter((p) => !LEGACY_VENDOR_PLAN_CODES[p.code]);
 }
 
 export async function listPublicVendorPlans(): Promise<VendorListingPlanView[]> {

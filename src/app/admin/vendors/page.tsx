@@ -2,6 +2,7 @@ import { requireAdminScreen } from "@/lib/admin-auth";
 import { prisma } from "@/lib/db";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { VendorsConsole } from "@/components/admin/vendors-console";
+import { listAdminGrantableVendorPlans } from "@/lib/vendor-plans-live";
 
 export default async function AdminVendorsPage() {
   const { editable } = await requireAdminScreen("vendors");
@@ -19,14 +20,20 @@ export default async function AdminVendorsPage() {
       },
       orderBy: { createdAt: "desc" }
     }),
-    prisma.subscriptionPlan.findMany({ where: { active: true }, orderBy: { priceKobo: "asc" } })
+    listAdminGrantableVendorPlans()
   ]);
   return (
     <div>
       <AdminPageHeader screen="vendors" />
       <VendorsConsole
         editable={editable}
-        listingPlans={listingPlans.map((p) => ({ code: p.code, name: p.name }))}
+        listingPlans={listingPlans.map((p) => ({
+          code: p.code,
+          name: p.name,
+          priceKobo: p.priceKobo,
+          durationDays: p.durationDays,
+          active: p.active
+        }))}
         rows={vendors.map((v) => ({
           id: v.id,
           businessName: v.businessName,

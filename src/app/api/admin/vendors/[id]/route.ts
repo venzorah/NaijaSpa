@@ -23,7 +23,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       })
       .parse(await req.json());
     if (body.planCode) {
-      await grantVendorPlan(id, body.planCode.toUpperCase(), "admin_grant");
+      await grantVendorPlan(id, String(body.planCode), "admin_grant");
     }
     const vendor = await prisma.vendor.update({
       where: { id },
