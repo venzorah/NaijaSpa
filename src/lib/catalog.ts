@@ -94,6 +94,46 @@ function placeCacheKey(place?: LivePlace | null) {
   return `${place?.state ?? ""}|${place?.city ?? ""}|${place?.neighbourhood ?? ""}`;
 }
 
+export type PublicCategory = {
+  slug: string;
+  name: string;
+  imageUrl: string | null;
+  description: string;
+  metaTitle: string;
+  metaDescription: string;
+};
+
+/** Public category tiles and landings. Never select imagePayload — that column 404s the page on hosts without the migration. */
+export async function getPublicCategories(): Promise<PublicCategory[]> {
+  const demo: PublicCategory[] = demoCategories.map((c) => ({
+    slug: c.slug,
+    name: c.name,
+    imageUrl: c.imageUrl,
+    description: "",
+    metaTitle: "",
+    metaDescription: ""
+  }));
+  if (usingDemoListings()) return demo;
+  try {
+    const { prisma } = await import("./db");
+    const rows = await prisma.category.findMany({
+      where: { active: true },
+      orderBy: { sortOrder: "asc" },
+      select: {
+        slug: true,
+        name: true,
+        imageUrl: true,
+        description: true,
+        metaTitle: true,
+        metaDescription: true
+      }
+    });
+    return rows.length ? rows : demo;
+  } catch {
+    return demo;
+  }
+}
+
 export async function getHomeCatalog(place?: LivePlace | null) {
   return unstable_cache(() => loadHomeCatalog(place ?? null), ["home-catalog", placeCacheKey(place)], {
     revalidate: 30,

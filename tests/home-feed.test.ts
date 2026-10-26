@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { categoryImage } from "../src/lib/category-images";
+import { categoryHref, categoryImage, matchCategory, normalizeCategorySlug } from "../src/lib/category-images";
 import { PHOTOS, publicWellnessPhoto } from "../src/lib/photos";
 import { demoHomeRails, demoNearbyVendors } from "../src/lib/demo-catalog";
 import {
@@ -54,5 +54,13 @@ describe("public wellness photos", () => {
     );
     expect(publicWellnessPhoto("/photos/massage.jpg")).toBe("/photos/massage.jpg");
     expect(categoryImage("massage", "https://images.unsplash.com/photo-1544161515-4ab6ce6db874")).toBe(PHOTOS.massage);
+  });
+});
+
+describe("category URLs", () => {
+  it("links live slugs to /category/... and matches them case-insensitively", () => {
+    expect(normalizeCategorySlug("Body-Treatment-Massage")).toBe("body-treatment-massage");
+    expect(categoryHref("body-treatment-massage")).toBe("/category/body-treatment-massage");
+    expect(matchCategory([{ slug: "nuru-massage", name: "Nuru" }], "Nuru-Massage")?.name).toBe("Nuru");
   });
 });

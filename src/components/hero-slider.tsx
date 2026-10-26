@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { SearchFiltersForm } from "@/components/search-filters-form";
+import { categoryHref } from "@/lib/category-images";
 import { exploreHref, FILTER_QUERY_KEYS, type FilterQuery } from "@/lib/place-urls";
 import { HERO_AD_INTERVAL_MS, type HomeHeroAd, type HomeHeroBanner } from "@/lib/home-hero";
 import { PHOTOS } from "@/lib/photos";
@@ -169,7 +170,7 @@ export function HeroSlider({
     },
     ...EXTRA_SLIDES.map((s) => ({
       ...s,
-      href: exploreHref(place, { category: s.category })
+      href: categoryHref(s.category)
     }))
   ];
   const slide = slides[index] ?? slides[0];
@@ -205,7 +206,7 @@ export function HeroSlider({
           {navCats.map((c) => (
             <Link
               key={c.slug}
-              href={exploreHref(place, { category: c.slug })}
+              href={categoryHref(c.slug)}
               className="flex min-h-11 items-center justify-between gap-2 rounded-2xl px-3 text-sm font-medium text-ink hover:bg-elev"
             >
               {c.name}

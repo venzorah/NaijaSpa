@@ -1,10 +1,10 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import { ArrowLeft, SearchX } from "lucide-react";
 import { searchServices } from "@/lib/search";
-import { demoCategories } from "@/lib/demo-catalog";
-import { categoryImage } from "@/lib/category-images";
+import { getPublicCategories } from "@/lib/catalog";
+import { categoryImage, matchCategory } from "@/lib/category-images";
 import { ExploreResultCard } from "@/components/explore-result-card";
 import { EmptyState } from "@/components/empty-state";
 import { formatNgn } from "@/lib/money";
@@ -15,47 +15,9 @@ import { exploreHref } from "@/lib/place-urls";
 
 export const dynamic = "force-dynamic";
 
-type CategoryRow = {
-  slug: string;
-  name: string;
-  imageUrl?: string | null;
-  description?: string;
-  metaTitle?: string;
-  metaDescription?: string;
-};
-
-async function loadCategories(): Promise<CategoryRow[]> {
-  let categories: CategoryRow[] = demoCategories.map((c) => ({
-    slug: c.slug,
-    name: c.name,
-    imageUrl: c.imageUrl,
-    description: "",
-    metaTitle: "",
-    metaDescription: ""
-  }));
-  try {
-    const { prisma } = await import("@/lib/db");
-    const rows = await prisma.category.findMany({ orderBy: { sortOrder: "asc" } });
-    if (rows.length) {
-      categories = rows.map((c) => ({
-        slug: c.slug,
-        name: c.name,
-        imageUrl: c.imageUrl,
-        description: c.description,
-        metaTitle: c.metaTitle,
-        metaDescription: c.metaDescription
-      }));
-    }
-  } catch {
-    /* demo list */
-  }
-  return categories;
-}
-
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug: rawSlug } = await params;
-  const slug = decodeURIComponent(rawSlug);
-  const cat = (await loadCategories()).find((c) => c.slug === slug);
+  const cat = matchCategory(await getPublicCategories(), rawSlug);
   if (!cat) return { title: "Category" };
   return {
     title: cat.metaTitle || cat.name,
@@ -65,13 +27,12 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function CategoryLandingPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug: rawSlug } = await params;
-  const slug = decodeURIComponent(rawSlug);
-  const categories = await loadCategories();
-  const cat = categories.find((c) => c.slug === slug);
-  if (!cat) notFound();
+  const categories = await getPublicCategories();
+  const cat = matchCategory(categories, rawSlug);
   const place = placeFromCookieOrDefault((await cookies()).get(PLACE_COOKIE)?.value);
-  const exploreWithCategory = exploreHref(place, { category: slug });
-  const data = await searchServices({ category: slug, take: 24, sort: "rating", rankPlace: place });
+  if (!cat) redirect(exploreHref(place, { category: rawSlug }));
+  const exploreWithCategory = exploreHref(place, { category: cat.slug });
+  const data = await searchServices({ category: cat.slug, take: 24, sort: "rating", rankPlace: place });
   const from = data.results.length ? Math.min(...data.results.map((r) => r.quote.customerTotalKobo)) : 0;
   const providers = [...new Map(data.results.map((r) => [r.vendor.slug, r.vendor])).values()];
 
@@ -123,7 +84,7 @@ export default async function CategoryLandingPage({ params }: { params: Promise<
               icon={SearchX}
               title="Coming soon"
               text={`We’re onboarding ${cat.name.toLowerCase()} providers in your city. Check back shortly.`}
-              actionHref="/explore"
+              actionHref={exploreHref(place)}
               actionLabel="Explore all"
             />
           )}

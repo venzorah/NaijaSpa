@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import {
   BadgeCheck,
   CalendarCheck,
@@ -95,6 +95,7 @@ const LEGAL: Record<string, { title: string; sections: [string, string][] }> = {
 
 export default async function CmsPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
+  if (slug === "category" || slug === "categories") redirect("/explore");
   const extra = await loadCms(slug);
   if (!(CORE_SLUGS as readonly string[]).includes(slug)) {
     if (!extra?.published) notFound();

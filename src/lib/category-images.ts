@@ -13,7 +13,27 @@ export const CATEGORY_IMAGES: Record<string, string> = {
 };
 
 export function categoryImage(slug: string, imageUrl?: string | null) {
-  const fallback = CATEGORY_IMAGES[slug] || "/brand/icon-green.png";
+  const fallback = CATEGORY_IMAGES[normalizeCategorySlug(slug)] || CATEGORY_IMAGES[slug] || "/brand/icon-green.png";
   if (imageUrl) return publicWellnessPhoto(imageUrl, fallback);
   return fallback;
+}
+
+export function normalizeCategorySlug(slug: string) {
+  let value = slug.trim();
+  try {
+    value = decodeURIComponent(value);
+  } catch {
+    /* already decoded */
+  }
+  return value.replace(/^\/+|\/+$/g, "").toLowerCase();
+}
+
+export function categoryHref(slug: string) {
+  const value = normalizeCategorySlug(slug);
+  return value ? `/category/${encodeURIComponent(value)}` : "/explore";
+}
+
+export function matchCategory<T extends { slug: string }>(rows: T[], slug: string): T | undefined {
+  const want = normalizeCategorySlug(slug);
+  return rows.find((row) => normalizeCategorySlug(row.slug) === want);
 }

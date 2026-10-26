@@ -73,7 +73,9 @@ async function searchLive(filters: SearchFilters) {
         ...(areaState ? [prismaServiceAreaFilter(areaState)] : [])
       ]
     },
-    ...(filters.category ? { category: { slug: filters.category } } : {}),
+    ...(filters.category
+      ? { category: { slug: { equals: filters.category, mode: "insensitive" as const } } }
+      : {}),
     ...(filters.minPrice != null ? { basePriceKobo: { gte: filters.minPrice } } : {}),
     ...(filters.maxPrice != null ? { basePriceKobo: { lte: filters.maxPrice } } : {}),
     ...(filters.durationMin ? { durationMin: { lte: filters.durationMin + 15, gte: filters.durationMin - 15 } } : {})

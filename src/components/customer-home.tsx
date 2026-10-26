@@ -7,6 +7,7 @@ import { ParallaxBand } from "@/components/parallax-band";
 import { ServiceCarousel, VendorCarousel } from "@/components/service-carousel";
 import { PlaceSync } from "@/components/place-sync";
 import { HomeExtras } from "@/components/home-extras";
+import { categoryHref } from "@/lib/category-images";
 import { exploreHref } from "@/lib/place-urls";
 import type { HomeHeroAd, HomeHeroBanner } from "@/lib/home-hero";
 import type { HomeCard, NearbyVendor } from "@/lib/home-types";
@@ -74,7 +75,7 @@ export function CustomerHome({
         kicker="At your pace"
         title="Heat, stone and silence."
         body="Hot stone, hammam and deep tissue — book the hour your body has been asking for."
-        href={browse({ category: "spa" })}
+        href={categoryHref("spa")}
         cta="Browse spa treatments"
       />
 
@@ -99,7 +100,7 @@ export function CustomerHome({
         kicker="Together"
         title="Two tables. One still room."
         body="Couples rituals with two therapists, private suites, and prices in Naira."
-        href={browse({ category: "couples" })}
+        href={categoryHref("couples")}
         cta="See couples bookings"
       />
 
