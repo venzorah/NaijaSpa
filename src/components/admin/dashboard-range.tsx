@@ -9,7 +9,7 @@ export function DashboardRange({ value }: { value: "7d" | "30d" | "90d" }) {
     <FilterChips
       label="Date range"
       value={value}
-      onChange={(v) => router.push(v === "30d" ? "/admin" : `/admin?range=${v}`)}
+      onChange={(v) => router.push(v === "30d" ? "/admin/dashboard" : `/admin/dashboard?range=${v}`)}
       options={[
         { value: "7d", label: "7 days" },
         { value: "30d", label: "30 days" },

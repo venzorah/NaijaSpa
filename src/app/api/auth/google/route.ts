@@ -29,7 +29,7 @@ export async function GET(req: Request) {
         new URL(`${back}${sep}error=${encodeURIComponent("Gmail sign-in is not configured yet.")}`, url.origin)
       );
     }
-    const fallback = portal === "vendor" ? "/vendor/onboarding" : portal === "admin" ? portalHome("super_admin") : "/account";
+    const fallback = portal === "vendor" ? "/vendor/onboarding" : portal === "admin" ? portalHome("super_admin") : "/account/dashboard";
     const next = safeNext(url.searchParams.get("next"), fallback);
     const nonce = crypto.randomUUID();
     const redirectUri = googleCallbackUrlFor(requestOrigin(req));

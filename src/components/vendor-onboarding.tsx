@@ -270,7 +270,7 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
       <section className="flex min-h-0 flex-col bg-[#0b1f18] px-5 py-6 sm:px-10 sm:py-8">
         <div className="mb-6 flex items-center justify-between gap-3 lg:hidden">
           <LightLogo className="h-10 w-auto object-contain object-left" />
-          <Link href="/vendor" className="text-xs font-semibold text-gold">
+          <Link href="/vendor/dashboard" className="text-xs font-semibold text-gold">
             Dashboard
           </Link>
         </div>
@@ -278,7 +278,7 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
         <div className="mb-8">
           <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.16em] text-gold">
             <span>{done ? "Application" : current.kicker}</span>
-            <Link href="/vendor" className="hidden text-white/60 hover:text-gold lg:inline">
+            <Link href="/vendor/dashboard" className="hidden text-white/60 hover:text-gold lg:inline">
               Exit
             </Link>
           </div>
@@ -307,7 +307,7 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
                 Status: <span className="font-semibold text-gold">{status.replace("_", " ")}</span>. We will email you when the listing is approved.
               </p>
               <div className="mt-8 flex flex-col items-center gap-3">
-                <Link href="/vendor" className="inline-flex min-h-12 items-center rounded-full bg-gold px-8 text-base font-bold text-ongold">
+                <Link href="/vendor/dashboard" className="inline-flex min-h-12 items-center rounded-full bg-gold px-8 text-base font-bold text-ongold">
                   Go to dashboard
                 </Link>
                 <Link

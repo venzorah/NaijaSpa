@@ -39,7 +39,7 @@ export const VENDOR_NAV: { label: string; items: PortalLink[] }[] = [
   {
     label: "Overview",
     items: [
-      { href: "/vendor", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/vendor/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { href: "/vendor/bookings", label: "Bookings", icon: CalendarCheck2 },
       { href: "/vendor/availability", label: "Availability", icon: CalendarDays }
     ]
@@ -97,7 +97,8 @@ function initials(name: string) {
 }
 
 function linkActive(path: string, href: string) {
-  if (href === "/vendor" || href === "/admin") return path === href;
+  if (href === "/vendor/dashboard") return path === "/vendor" || path === "/vendor/dashboard";
+  if (href === "/admin/dashboard") return path === "/admin" || path === "/admin/dashboard" || path.startsWith("/admin/dashboard?");
   return path === href || path.startsWith(`${href}/`);
 }
 
@@ -186,7 +187,7 @@ export function PortalChrome({
           items: g.items.map((item) => (item.href === "/vendor/bookings" && bookingBadge ? { ...item, badge: bookingBadge } : item))
         }))
       : adminNavForRole(role || "");
-  const home = variant === "vendor" ? "/vendor" : "/admin";
+  const home = variant === "vendor" ? "/vendor/dashboard" : "/admin/dashboard";
   const currentScreen = ADMIN_SCREENS.find((s) => linkActive(path, s.href));
 
   const sidebar = (

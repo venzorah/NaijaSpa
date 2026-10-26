@@ -10,13 +10,13 @@ export default async function VendorLoginPage({
 }) {
   const [user, sp] = await Promise.all([getSession(), searchParams]);
   const next = typeof sp.next === "string" ? sp.next : undefined;
-  if (user) redirect(safeNext(next, "/vendor"));
+  if (user) redirect(safeNext(next, "/vendor/dashboard"));
   return (
     <PortalLogin
       portal="vendor"
       title="Vendor portal"
       subtitle="Manage services, galleries, bookings and earnings."
-      defaultNext="/vendor"
+      defaultNext="/vendor/dashboard"
     />
   );
 }

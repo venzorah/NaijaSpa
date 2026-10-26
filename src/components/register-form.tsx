@@ -22,7 +22,7 @@ export function RegisterForm() {
   const [error, setError] = useState(search.get("error") || "");
   const [busy, setBusy] = useState(false);
   const portal = asVendor ? "vendor" : "customer";
-  const next = asVendor ? "/vendor/onboarding" : "/account";
+  const next = asVendor ? "/vendor/onboarding" : "/account/dashboard";
 
   const pick = (vendor: boolean) => {
     setAsVendor(vendor);
@@ -60,7 +60,7 @@ export function RegisterForm() {
             });
             const json = await res.json();
             if (!res.ok) setError(json.error);
-            else router.push(asVendor ? "/vendor/onboarding" : "/account");
+            else router.push(asVendor ? "/vendor/onboarding" : "/account/dashboard");
           } catch {
             setError("Could not create account. Check your connection.");
           } finally {

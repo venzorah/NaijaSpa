@@ -88,7 +88,7 @@ export function PortalLogin({
               setError(json.error || "Could not log in.");
               return;
             }
-            const dest = new URLSearchParams(window.location.search).get("next") || json.home || (asVendor ? "/vendor" : defaultNext);
+            const dest = new URLSearchParams(window.location.search).get("next") || json.home || (asVendor ? "/vendor/dashboard" : defaultNext);
             router.replace(dest.startsWith("/") && !dest.startsWith("//") ? dest : defaultNext);
             router.refresh();
           } catch {

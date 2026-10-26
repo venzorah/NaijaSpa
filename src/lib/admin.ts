@@ -55,7 +55,7 @@ export const ADMIN_SCREENS: {
 }[] = [
   {
     id: "dashboard",
-    href: "/admin",
+    href: "/admin/dashboard",
     label: "Dashboard",
     group: "Overview",
     icon: LayoutDashboard,

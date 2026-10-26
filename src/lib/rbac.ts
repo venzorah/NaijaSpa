@@ -94,10 +94,14 @@ export function isVendorRole(role: string): boolean {
   return role === ROLES.VENDOR_OWNER || role === ROLES.VENDOR_STAFF;
 }
 
+export const CUSTOMER_DASHBOARD = "/account/dashboard";
+export const VENDOR_DASHBOARD = "/vendor/dashboard";
+export const ADMIN_DASHBOARD = "/admin/dashboard";
+
 export function portalHome(role: string) {
-  if (isAdminRole(role)) return "/admin";
-  if (isVendorRole(role)) return "/vendor";
-  return "/account";
+  if (isAdminRole(role)) return ADMIN_DASHBOARD;
+  if (isVendorRole(role)) return VENDOR_DASHBOARD;
+  return CUSTOMER_DASHBOARD;
 }
 
 export function hasPermission(role: string, permission: Permission): boolean {

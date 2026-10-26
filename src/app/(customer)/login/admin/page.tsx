@@ -10,13 +10,13 @@ export default async function AdminLoginPage({
 }) {
   const [user, sp] = await Promise.all([getSession(), searchParams]);
   const next = typeof sp.next === "string" ? sp.next : undefined;
-  if (user) redirect(safeNext(next, "/admin"));
+  if (user) redirect(safeNext(next, "/admin/dashboard"));
   return (
     <PortalLogin
       portal="admin"
       title="Admin console"
       subtitle="Vendors, commercial rules, finance and support. Invite-only accounts."
-      defaultNext="/admin"
+      defaultNext="/admin/dashboard"
     />
   );
 }

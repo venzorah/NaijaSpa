@@ -10,13 +10,13 @@ export default async function CustomerLoginPage({
 }) {
   const [user, sp] = await Promise.all([getSession(), searchParams]);
   const next = typeof sp.next === "string" ? sp.next : undefined;
-  if (user) redirect(safeNext(next, "/"));
+  if (user) redirect(safeNext(next, "/account/dashboard"));
   return (
     <PortalLogin
       portal="customer"
       title="Welcome back"
       subtitle="Book treatments, manage appointments and pay with Paystack."
-      defaultNext="/account"
+      defaultNext="/account/dashboard"
     />
   );
 }

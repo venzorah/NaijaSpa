@@ -17,9 +17,9 @@ export async function requireAdmin(permissions: Permission | Permission[] = "adm
 
 export async function requireAdminScreen(screen: AdminScreenId) {
   const user = await getSession();
-  if (!user) redirect("/login/admin?next=/admin");
-  if (!isAdminRole(user.role)) redirect("/account");
+  if (!user) redirect("/login/admin?next=/admin/dashboard");
+  if (!isAdminRole(user.role)) redirect("/account/dashboard");
   const access = accessForScreen(user.role, screen);
-  if (!access) redirect("/admin");
+  if (!access) redirect("/admin/dashboard");
   return { user, editable: access === "full" };
 }
