@@ -39,7 +39,9 @@ export default function ForgotPage() {
           subtitle={`We sent a 6-digit code to ${email}. Enter it here, then choose a new password.`}
         />
         <form
+          key="otp-form"
           className="mt-8 space-y-4"
+          autoComplete="off"
           onSubmit={async (e) => {
             e.preventDefault();
             setBusy(true);
@@ -67,16 +69,21 @@ export default function ForgotPage() {
         >
           <div>
             <AuthLabel htmlFor="otp">6-digit code</AuthLabel>
+            <input type="text" name="username" value={email} readOnly tabIndex={-1} autoComplete="username" className="sr-only" aria-hidden />
             <input
               id="otp"
               name="otp"
+              type="text"
               inputMode="numeric"
               autoComplete="one-time-code"
-              pattern="[0-9]*"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              pattern="[0-9]{6}"
               maxLength={6}
               required
-              placeholder="000000"
-              className={`${authFieldClass} tracking-[0.4em] text-center text-lg`}
+              placeholder="6-digit code"
+              className={`${authFieldClass} tracking-[0.35em] text-center text-lg`}
             />
           </div>
           <div>

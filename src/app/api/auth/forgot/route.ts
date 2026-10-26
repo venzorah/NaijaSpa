@@ -3,7 +3,7 @@ import { z } from "zod";
 import { generateResetOtp, hashResetOtp, RESET_OTP_MINUTES } from "@/lib/auth-reset";
 import { prisma } from "@/lib/db";
 import { jsonError, rateLimit } from "@/lib/http";
-import { queueMail, sendPasswordResetEmail } from "@/lib/mail";
+import { sendPasswordResetEmail } from "@/lib/mail";
 
 export async function POST(req: Request) {
   try {
@@ -25,18 +25,22 @@ export async function POST(req: Request) {
           expiresAt: new Date(Date.now() + RESET_OTP_MINUTES * 60_000)
         }
       });
-      queueMail(sendPasswordResetEmail({ to: user.email, code: otp }));
+      try {
+        await sendPasswordResetEmail({ to: user.email, code: otp });
+      } catch (err) {
+        console.error("[mail] password reset OTP failed", err);
+      }
       await prisma.notification.create({
         data: {
           userId: user.id,
           title: "Password reset",
-          body: "We emailed a 6-digit code from admin@naijaspa.ng. Enter it in the app. It expires in 15 minutes."
+          body: "We emailed a 6-digit code from noreply@naijaspa.ng. Enter it in the app. It expires in 15 minutes."
         }
       });
     }
     return NextResponse.json({
       ok: true,
-      message: "If that email is on NaijaSpa, we sent a 6-digit code from admin@naijaspa.ng."
+      message: "If that email is on NaijaSpa, we sent a 6-digit code from noreply@naijaspa.ng."
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "";

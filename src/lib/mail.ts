@@ -1,10 +1,14 @@
 import { appUrl } from "./payments";
 
-export const MAIL_FROM_ADDRESS = "admin@naijaspa.ng";
+export const MAIL_FROM_ADDRESS = "noreply@naijaspa.ng";
 export const MAIL_FROM_NAME = "NaijaSpa";
 
 export function mailFrom() {
   return process.env.MAIL_FROM?.trim() || `${MAIL_FROM_NAME} <${MAIL_FROM_ADDRESS}>`;
+}
+
+export function mailReplyTo() {
+  return process.env.MAIL_REPLY_TO?.trim() || MAIL_FROM_ADDRESS;
 }
 
 export function brandLogoUrl() {
@@ -12,7 +16,7 @@ export function brandLogoUrl() {
 }
 
 export function mailConfigured() {
-  return Boolean(process.env.RESEND_API_KEY?.trim() || process.env.SMTP_HOST?.trim());
+  return Boolean(process.env.SMTP_HOST?.trim() || process.env.RESEND_API_KEY?.trim());
 }
 
 export function brandedEmailHtml({
@@ -128,36 +132,42 @@ export function vendorInviteEmail({ businessName, setupUrl }: { businessName: st
   };
 }
 
-export async function sendMail({ to, subject, html }: { to: string; subject: string; html: string }) {
+export async function sendMail({ to, subject, html, text }: { to: string; subject: string; html: string; text?: string }) {
   const from = mailFrom();
+  const host = process.env.SMTP_HOST?.trim();
+  if (host) {
+    const nodemailer = await import("nodemailer");
+    const port = Number(process.env.SMTP_PORT || 587);
+    const secure = process.env.SMTP_SECURE === "true" || port === 465;
+    const user = process.env.SMTP_USER?.trim() || MAIL_FROM_ADDRESS;
+    const transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure,
+      requireTLS: !secure && port === 587,
+      auth: { user, pass: process.env.SMTP_PASS || "" },
+      connectionTimeout: 15_000,
+      greetingTimeout: 15_000,
+      socketTimeout: 20_000
+    });
+    await transporter.sendMail({ from, to, subject, html, text, replyTo: mailReplyTo() });
+    return;
+  }
   const resend = process.env.RESEND_API_KEY?.trim();
   if (resend) {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${resend}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from, to, subject, html, reply_to: MAIL_FROM_ADDRESS })
+      body: JSON.stringify({ from, to, subject, html, text, reply_to: mailReplyTo() })
     });
     if (!res.ok) throw new Error(`Resend ${res.status}: ${await res.text()}`);
     return;
   }
-  const host = process.env.SMTP_HOST?.trim();
-  if (!host) {
-    const preview = `[mail] ${subject} → ${to} (from ${from})`;
-    if (process.env.NODE_ENV === "production") console.error(`${preview}; set SMTP_HOST or RESEND_API_KEY`);
-    else console.info(preview);
-    return;
+  const preview = `[mail] ${subject} → ${to} (from ${from})`;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(`${preview}; set SMTP_HOST, SMTP_USER and SMTP_PASS for cPanel`);
   }
-  const nodemailer = await import("nodemailer");
-  const port = Number(process.env.SMTP_PORT || 587);
-  const secure = process.env.SMTP_SECURE === "true" || port === 465;
-  const user = process.env.SMTP_USER?.trim();
-  const transporter = nodemailer.createTransport({
-    host,
-    port,
-    secure,
-    auth: user ? { user, pass: process.env.SMTP_PASS || "" } : undefined
-  });
-  await transporter.sendMail({ from, to, subject, html, replyTo: MAIL_FROM_ADDRESS });
+  console.info(preview);
 }
 
 export function queueMail(task: Promise<unknown>) {
@@ -171,7 +181,11 @@ export async function sendWelcomeEmail({ to, name, asVendor }: { to: string; nam
 
 export async function sendPasswordResetEmail({ to, code }: { to: string; code: string }) {
   const mail = passwordResetEmail({ code });
-  await sendMail({ to, ...mail });
+  await sendMail({
+    to,
+    ...mail,
+    text: `Your NaijaSpa password reset code is ${code}. Enter it in the app. It expires in 15 minutes.`
+  });
 }
 
 export async function sendVendorInviteEmail({

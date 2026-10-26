@@ -10,9 +10,9 @@ import {
 } from "../src/lib/mail";
 
 describe("branded transactional mail", () => {
-  it("sends from admin@naijaspa.ng and includes the logo", () => {
-    expect(MAIL_FROM_ADDRESS).toBe("admin@naijaspa.ng");
-    expect(mailFrom()).toContain("admin@naijaspa.ng");
+  it("sends from noreply@naijaspa.ng and includes the logo", () => {
+    expect(MAIL_FROM_ADDRESS).toBe("noreply@naijaspa.ng");
+    expect(mailFrom()).toContain("noreply@naijaspa.ng");
     const html = brandedEmailHtml({
       title: "Hello",
       intro: "Intro",

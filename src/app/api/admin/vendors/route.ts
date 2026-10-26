@@ -74,7 +74,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       vendorId: vendor.id,
       setupUrl: `/invite/${token}`,
-      note: "Temporary password is not returned. We emailed the setup link from admin@naijaspa.ng."
+      note: "Temporary password is not returned. We emailed the setup link from noreply@naijaspa.ng."
     });
   } catch (e) {
     return jsonError(e);
