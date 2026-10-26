@@ -19,7 +19,7 @@ function durationFromBody(body: { billing?: VendorPlanBilling; durationDays?: nu
 
 export async function GET() {
   try {
-    const actor = await requireAdmin(["commercial.manage", "finance.view", "vendors.manage"]);
+    const actor = await requireAdmin(["commercial.manage", "memberships.manage", "finance.view", "vendors.manage"]);
     await ensureLiveVendorPlans();
     const [plans, counts] = await Promise.all([
       prisma.subscriptionPlan.findMany({ orderBy: { priceKobo: "asc" } }),
@@ -31,7 +31,7 @@ export async function GET() {
     ]);
     const subscriberCount = Object.fromEntries(counts.map((c) => [c.planId, c._count._all]));
     return NextResponse.json({
-      canEdit: hasPermission(actor.role, "commercial.manage"),
+      canEdit: hasPermission(actor.role, "commercial.manage") || hasPermission(actor.role, "memberships.manage"),
       plans: plans.map((p) => ({ ...p, subscriberCount: subscriberCount[p.id] ?? 0 }))
     });
   } catch (e) {
@@ -41,7 +41,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const actor = await requireAdmin("commercial.manage");
+    const actor = await requireAdmin(["commercial.manage", "memberships.manage"]);
     const body = z
       .object({
         name: z.string().min(2).max(80),
@@ -86,7 +86,7 @@ export async function POST(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
-    const actor = await requireAdmin("commercial.manage");
+    const actor = await requireAdmin(["commercial.manage", "memberships.manage"]);
     const body = z
       .object({
         id: z.string(),

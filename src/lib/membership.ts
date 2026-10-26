@@ -1,11 +1,18 @@
-export const MEMBERSHIP_INTERVALS = ["monthly", "yearly"] as const;
+export const MEMBERSHIP_INTERVALS = ["none", "weekly", "monthly", "yearly"] as const;
 export type MembershipInterval = (typeof MEMBERSHIP_INTERVALS)[number];
 
 export const LIVE_MEMBERSHIP_PLANS = [
   {
+    code: "FREE",
+    name: "Free",
+    interval: "none" as const,
+    priceKobo: 0,
+    benefits: ["No weekly, monthly or annual fee", "Standard booking rates"]
+  },
+  {
     code: "SILVER_MONTHLY",
     name: "Silver",
-    interval: "monthly" as const,
+    interval: "weekly" as const,
     priceKobo: 500_000,
     benefits: ["5% off bookings", "Free rescheduling"]
   },
@@ -52,12 +59,25 @@ export function planCodeFromName(name: string, interval: string) {
     .replace(/[^A-Z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "")
     .slice(0, 24);
-  const suffix = interval === "yearly" ? "YEARLY" : "MONTHLY";
+  if (interval === "none" || (!interval && name.trim().toLowerCase() === "free")) {
+    return base || "FREE";
+  }
+  const suffix = interval === "yearly" ? "YEARLY" : interval === "weekly" ? "WEEKLY" : "MONTHLY";
   return base ? `${base}_${suffix}` : suffix;
 }
 
+export function membershipIntervalLabel(interval: string, priceKobo = 1) {
+  if (interval === "none" || priceKobo <= 0) return "No subscription fee";
+  if (interval === "weekly") return "Weekly";
+  if (interval === "yearly") return "Yearly";
+  if (interval === "monthly") return "Monthly";
+  return interval;
+}
+
 export function monthlyRecurringKobo(priceKobo: number, interval: string) {
+  if (interval === "none" || priceKobo <= 0) return 0;
   if (interval === "yearly") return Math.round(priceKobo / 12);
+  if (interval === "weekly") return Math.round((priceKobo * 52) / 12);
   return priceKobo;
 }
 

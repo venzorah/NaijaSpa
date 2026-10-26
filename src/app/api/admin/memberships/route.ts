@@ -54,12 +54,13 @@ export async function POST(req: Request) {
     const exists = await prisma.membershipPlan.findUnique({ where: { code } });
     if (exists) return NextResponse.json({ error: "A plan with that code already exists." }, { status: 409 });
     const benefits = serializeBenefits(Array.isArray(body.benefits) ? body.benefits : parseLines(body.benefits));
+    const priceKobo = body.interval === "none" ? 0 : body.priceKobo;
     const plan = await prisma.membershipPlan.create({
       data: {
         code,
         name: body.name.trim(),
         interval: body.interval,
-        priceKobo: body.priceKobo,
+        priceKobo,
         benefits,
         active: true
       }
@@ -81,7 +82,7 @@ export async function PATCH(req: Request) {
         active: z.boolean().optional(),
         benefits: z.union([z.string(), z.array(z.string())]).optional(),
         name: z.string().min(2).max(80).optional(),
-        interval: z.enum(["monthly", "yearly", "weekly"]).optional()
+        interval: intervalSchema.optional()
       })
       .parse(await req.json());
     const before = await prisma.membershipPlan.findUniqueOrThrow({ where: { id: body.id } });
@@ -89,14 +90,16 @@ export async function PATCH(req: Request) {
       body.benefits == null
         ? undefined
         : serializeBenefits(Array.isArray(body.benefits) ? body.benefits : parseLines(body.benefits));
+    const interval = body.interval;
+    const priceKobo = interval === "none" ? 0 : body.priceKobo;
     const plan = await prisma.membershipPlan.update({
       where: { id: body.id },
       data: {
-        priceKobo: body.priceKobo,
+        priceKobo,
         active: body.active,
         benefits,
         name: body.name?.trim(),
-        interval: body.interval
+        interval
       }
     });
     await audit({ actorId: actor.id, action: "membership.update", entityType: "MembershipPlan", entityId: body.id, before, after: plan });

@@ -4,7 +4,7 @@ import { Check, Crown } from "lucide-react";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { formatNgn } from "@/lib/money";
-import { parseBenefits } from "@/lib/membership";
+import { membershipIntervalLabel, parseBenefits } from "@/lib/membership";
 import { ensureLiveMembershipPlans } from "@/lib/membership-live";
 import { PageHeader } from "@/components/page-header";
 
@@ -40,7 +40,10 @@ export default async function Page() {
                 <h3 className="font-display text-2xl font-semibold text-ink">{p.name}</h3>
                 <p className="mt-1">
                   <span className="text-3xl font-bold text-ink">{formatNgn(p.priceKobo)}</span>{" "}
-                  <span className="text-sm text-ink2">/ {p.interval}</span>
+                  <span className="text-sm text-ink2">
+                    {p.priceKobo <= 0 || p.interval === "none" ? "" : "/ "}
+                    {membershipIntervalLabel(p.interval, p.priceKobo).toLowerCase()}
+                  </span>
                 </p>
                 <ul className="mt-4 flex-1 space-y-2">
                   {parseBenefits(p.benefits).map((perk) => (

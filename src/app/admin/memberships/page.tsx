@@ -8,7 +8,8 @@ import { AdminStatusPill } from "@/components/admin/status-pill";
 import { adminBtn, adminBtnOutline, adminField, FormRow } from "@/components/admin/form-row";
 import { adminJson } from "@/components/admin/json";
 import { formatCount, formatNgn } from "@/lib/money";
-import { MEMBERSHIP_INTERVALS, monthlyRecurringKobo, parseBenefits } from "@/lib/membership";
+import { MEMBERSHIP_INTERVALS, membershipIntervalLabel, monthlyRecurringKobo, parseBenefits } from "@/lib/membership";
+import { VendorPlansConsole } from "@/components/admin/vendor-plans-console";
 
 type Plan = {
   id: string;
@@ -56,13 +57,15 @@ export default function MembershipsPage() {
     <div>
       <AdminPageHeader screen="memberships" />
       <p className="mb-3 text-sm text-ink2">
-        Customer booking club and promo codes only. Therapist listing fees (Free 10% commission, Silver weekly, Gold monthly, Platinum yearly) are on{" "}
-        <a className="font-semibold text-goldink underline" href="/admin/commercial">
-          Commercial config
-        </a>
-        .
+        Live admin can edit every price, billing period and benefit. Paid packages bill weekly, monthly or yearly. Free has no subscription fee.
       </p>
       {error ? <p className="mb-3 text-sm text-red-400">{error}</p> : null}
+      <h2 className="mb-3 font-display text-xl">Therapist listing plans</h2>
+      <p className="mb-3 text-sm text-ink2">
+        Free: ₦0 and commission on successful bookings. Silver weekly, Gold monthly, Platinum yearly — live amounts, fully editable. Create extra packages below.
+      </p>
+      <VendorPlansConsole />
+      <h2 className="mb-3 font-display text-xl">Customer booking club</h2>
       {!canEdit ? (
         <p className="mb-3 text-sm text-ink2">View only. Price, billing, benefits and promo codes are edited by the live admin.</p>
       ) : null}
@@ -116,6 +119,7 @@ export default function MembershipsPage() {
                       method: "PATCH",
                       body: JSON.stringify({
                         id: p.id,
+                        name: fd.get("name"),
                         priceKobo: Math.round(Number(fd.get("price") || 0) * 100),
                         interval: fd.get("interval"),
                         benefits: String(fd.get("benefits") || "")
@@ -127,6 +131,9 @@ export default function MembershipsPage() {
                   }
                 }}
               >
+                <FormRow label="Name" htmlFor={`name-${p.id}`}>
+                  <input id={`name-${p.id}`} name="name" defaultValue={p.name} disabled={!canEdit} className={adminField} />
+                </FormRow>
                 <FormRow label="Price (₦)" htmlFor={`price-${p.id}`}>
                   <input
                     id={`price-${p.id}`}
@@ -139,14 +146,12 @@ export default function MembershipsPage() {
                   />
                 </FormRow>
                 <FormRow label="Billing" htmlFor={`int-${p.id}`}>
-                  <select id={`int-${p.id}`} name="interval" defaultValue={p.interval} disabled={!canEdit} className={adminField}>
-                    {[...MEMBERSHIP_INTERVALS, ...(MEMBERSHIP_INTERVALS.includes(p.interval as (typeof MEMBERSHIP_INTERVALS)[number]) ? [] : [p.interval])].map(
-                      (i) => (
-                        <option key={i} value={i}>
-                          {i === "yearly" ? "Yearly" : i === "monthly" ? "Monthly" : i}
-                        </option>
-                      )
-                    )}
+                  <select id={`int-${p.id}`} name="interval" defaultValue={p.interval === "none" || p.priceKobo <= 0 ? "none" : p.interval} disabled={!canEdit} className={adminField}>
+                    {MEMBERSHIP_INTERVALS.map((i) => (
+                      <option key={i} value={i}>
+                        {membershipIntervalLabel(i)}
+                      </option>
+                    ))}
                   </select>
                 </FormRow>
                 <div className="col-span-2">
@@ -170,7 +175,7 @@ export default function MembershipsPage() {
         })}
         {canEdit ? (
         <Panel title="Create plan">
-          <p className="text-sm text-ink2">Same pattern as vendor subscriptions: name, billing interval, price in naira, then publish. Customers see active plans on Membership.</p>
+          <p className="text-sm text-ink2">Add Free (₦0, no billing) or a paid weekly, monthly or yearly club plan. Customers see active plans on Membership.</p>
           <form
             className="mt-3 grid gap-2"
             onSubmit={async (e) => {
@@ -198,7 +203,7 @@ export default function MembershipsPage() {
             <FormRow label="Name" htmlFor="new-name">
               <input id="new-name" name="name" required placeholder="Silver" className={adminField} />
             </FormRow>
-            <FormRow label="Code (optional)" htmlFor="new-code" hint="Letters and numbers. Blank uses NAME_MONTHLY.">
+            <FormRow label="Code (optional)" htmlFor="new-code" hint="Letters and numbers. Blank uses NAME plus billing, or FREE.">
               <input id="new-code" name="code" placeholder="SILVER_MONTHLY" className={adminField} />
             </FormRow>
             <div className="grid grid-cols-2 gap-2">
@@ -207,6 +212,8 @@ export default function MembershipsPage() {
               </FormRow>
               <FormRow label="Billing" htmlFor="new-int">
                 <select id="new-int" name="interval" defaultValue="monthly" className={adminField}>
+                  <option value="none">No subscription fee (Free)</option>
+                  <option value="weekly">Weekly</option>
                   <option value="monthly">Monthly</option>
                   <option value="yearly">Yearly</option>
                 </select>
