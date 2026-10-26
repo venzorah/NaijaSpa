@@ -137,7 +137,7 @@ export async function sendMail({ to, subject, html, text }: { to: string; subjec
   const host = process.env.SMTP_HOST?.trim();
   if (host) {
     const nodemailer = await import("nodemailer");
-    const port = Number(process.env.SMTP_PORT || 587);
+    const port = Number(process.env.SMTP_PORT || 465);
     const secure = process.env.SMTP_SECURE === "true" || port === 465;
     const user = process.env.SMTP_USER?.trim() || MAIL_FROM_ADDRESS;
     const transporter = nodemailer.createTransport({
