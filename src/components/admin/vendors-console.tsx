@@ -14,7 +14,6 @@ import { SearchInput } from "@/components/admin/search-input";
 import { AdminStatusPill } from "@/components/admin/status-pill";
 import { adminJson } from "@/components/admin/json";
 import { vendorStatusLabel } from "@/lib/admin";
-import { formatNgn } from "@/lib/money";
 import { cn } from "@/lib/cn";
 
 export type AdminVendorRow = {
@@ -31,10 +30,19 @@ export type AdminVendorRow = {
   ownerName: string;
   ownerEmail: string;
   plan: string;
+  planCode: string;
   services: number;
 };
 
-export function VendorsConsole({ rows, editable }: { rows: AdminVendorRow[]; editable: boolean }) {
+export function VendorsConsole({
+  rows,
+  editable,
+  listingPlans
+}: {
+  rows: AdminVendorRow[];
+  editable: boolean;
+  listingPlans: Array<{ code: string; name: string }>;
+}) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | "Approved" | "Pending" | "Suspended">("all");
@@ -177,6 +185,32 @@ export function VendorsConsole({ rows, editable }: { rows: AdminVendorRow[]; edi
                   { label: "Plan", value: selected.plan }
                 ]}
               />
+              <form
+                className="mt-4 grid gap-2 border-t border-line pt-4 sm:grid-cols-[1fr_auto] sm:items-end"
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const fd = new FormData(e.currentTarget);
+                  await adminJson(`/api/admin/vendors/${selected.id}`, {
+                    method: "PATCH",
+                    body: JSON.stringify({ planCode: fd.get("planCode") })
+                  });
+                  setMsg("Listing plan updated.");
+                  router.refresh();
+                }}
+              >
+                <FormRow label="Listing plan" htmlFor="vendor-plan">
+                  <select id="vendor-plan" name="planCode" defaultValue={selected.planCode} disabled={!editable} className={adminField} key={selected.id + selected.planCode}>
+                    {listingPlans.map((p) => (
+                      <option key={p.code} value={p.code}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </FormRow>
+                <button className={adminBtn} disabled={!editable}>
+                  Apply plan
+                </button>
+              </form>
               <div className="mt-4 flex flex-wrap gap-2 border-t border-line pt-4">
                 <Link href={`/providers/${encodeURIComponent(selected.slug)}`} className={adminBtnOutline} target="_blank" rel="noreferrer">
                   View spa page

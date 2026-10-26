@@ -15,10 +15,6 @@ export async function ensureLiveVendorPlans() {
           name: def.name,
           durationDays: def.durationDays,
           priceKobo: old.priceKobo > 0 ? old.priceKobo : def.priceKobo,
-          commissionBps: def.commissionBps,
-          publicDirectContact: def.publicDirectContact,
-          enhancedVisibility: def.enhancedVisibility,
-          sponsoredEligible: def.sponsoredEligible,
           active: true
         }
       });
@@ -30,20 +26,9 @@ export async function ensureLiveVendorPlans() {
   for (const plan of LIVE_VENDOR_PLANS) {
     const existing = await prisma.subscriptionPlan.findUnique({ where: { code: plan.code } });
     if (existing) {
-      await prisma.subscriptionPlan.update({
-        where: { code: plan.code },
-        data: {
-          name: plan.name,
-          durationDays: plan.durationDays,
-          publicDirectContact: plan.publicDirectContact,
-          enhancedVisibility: plan.enhancedVisibility,
-          sponsoredEligible: plan.sponsoredEligible,
-          unlimitedListings: true,
-          active: true,
-          ...(existing.priceKobo === 0 && plan.priceKobo > 0 ? { priceKobo: plan.priceKobo } : {}),
-          ...(plan.code === "FREE" ? { priceKobo: 0, commissionBps: existing.commissionBps || plan.commissionBps } : {})
-        }
-      });
+      if (plan.code === "FREE" && existing.priceKobo !== 0) {
+        await prisma.subscriptionPlan.update({ where: { code: "FREE" }, data: { priceKobo: 0 } });
+      }
       continue;
     }
     await prisma.subscriptionPlan.create({

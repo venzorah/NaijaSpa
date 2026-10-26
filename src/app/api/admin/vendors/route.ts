@@ -6,6 +6,8 @@ import { assertAnyPermission, assertPermission } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { jsonError } from "@/lib/http";
+import { grantVendorPlan } from "@/lib/subscription-lifecycle";
+import { ensureLiveVendorPlans } from "@/lib/vendor-plans-live";
 import { appUrl } from "@/lib/payments";
 import { queueMail, sendVendorInviteEmail } from "@/lib/mail";
 
@@ -63,6 +65,8 @@ export async function POST(req: Request) {
       entityId: vendor.id,
       after: { email: body.email, businessName: body.businessName }
     });
+    await ensureLiveVendorPlans();
+    await grantVendorPlan(vendor.id, "FREE", "default");
     const setupUrl = `${appUrl()}/invite/${token}`;
     queueMail(
       sendVendorInviteEmail({

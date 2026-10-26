@@ -5,6 +5,7 @@ import { DEFAULT_MARKETPLACE_HUBS } from "@/lib/hubs";
 import { NIGERIA_STATES } from "@/lib/nigeria";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { Panel } from "@/components/admin/panel";
+import { VendorPlansConsole } from "@/components/admin/vendor-plans-console";
 
 type Payload = {
   config?: Record<string, number | string>;
@@ -24,9 +25,11 @@ export default function CommercialPage() {
   return (
     <div>
       <AdminPageHeader screen="commercial" />
+      <h2 className="mb-3 font-display text-xl">Therapist listing plans</h2>
+      <VendorPlansConsole />
       <Panel
-        title="Plans, extras and marketplace hubs"
-        description="Free vendors pay 10% (or the % you set) on each successful booking — no weekly, monthly or annual fee. Paid packages: Silver weekly, Gold monthly, Platinum yearly. Missed renewal after the grace period returns the listing to Free."
+        title="Extras, grace and marketplace hubs"
+        description="Location extras, galleries, home feed and cities. Listing plan prices are saved on each plan card above."
       >
       <form
         key={data.config ? "loaded" : "loading"}
@@ -48,15 +51,7 @@ export default function CommercialPage() {
               homeFeedPromoLimit: Number(fd.get("homePromo")),
               homeFeedNearbyLimit: Number(fd.get("homeNearby")),
               extraStates: fd.getAll("extraState").map(String),
-              freeCommissionBps: Math.round(Number(fd.get("freeCommission") || 10) * 100),
-              paidCommissionBps: Math.round(Number(fd.get("paidCommission") || 0) * 100),
-              graceDays: Number(fd.get("graceDays") || 3),
-              plans: [
-                { code: "FREE", priceKobo: 0, commissionBps: Math.round(Number(fd.get("freeCommission") || 10) * 100) },
-                { code: "SILVER", priceKobo: Number(fd.get("silver")) * 100 },
-                { code: "GOLD", priceKobo: Number(fd.get("gold")) * 100 },
-                { code: "PLATINUM", priceKobo: Number(fd.get("platinum")) * 100 }
-              ]
+              graceDays: Number(fd.get("graceDays") || 3)
             })
           });
           alert("Saved and audited.");
@@ -74,50 +69,12 @@ export default function CommercialPage() {
           Home surcharge ₦
           <input name="home" type="number" defaultValue={Number(data.config?.homeSurchargeKobo || 0) / 100} className="ml-2 rounded-xl bg-elev px-2" />
         </label>
-        <h2 className="mt-4 font-display text-xl">Vendor listing plans</h2>
-        <label className="text-sm">
-          Free plan commission %
-          <input
-            name="freeCommission"
-            type="number"
-            min={0}
-            max={100}
-            step={0.1}
-            defaultValue={(data.plans?.find((p) => p.code === "FREE")?.commissionBps ?? Number(data.config?.freeCommissionBps || 1000)) / 100}
-            className="ml-2 rounded-xl bg-elev px-2"
-          />
-        </label>
-        <label className="text-sm">
-          Paid plan commission %
-          <input
-            name="paidCommission"
-            type="number"
-            min={0}
-            max={100}
-            step={0.1}
-            defaultValue={(data.plans?.find((p) => p.code === "GOLD")?.commissionBps ?? Number(data.config?.paidCommissionBps || 0)) / 100}
-            className="ml-2 rounded-xl bg-elev px-2"
-          />
-        </label>
-        <label className="text-sm">
-          Silver (weekly) ₦
-          <input name="silver" type="number" min={0} defaultValue={(data.plans?.find((p) => p.code === "SILVER")?.priceKobo || 5_000_000) / 100} className="ml-2 rounded-xl bg-elev px-2" />
-        </label>
-        <label className="text-sm">
-          Gold (monthly) ₦
-          <input name="gold" type="number" min={0} defaultValue={(data.plans?.find((p) => p.code === "GOLD")?.priceKobo || 18_000_000) / 100} className="ml-2 rounded-xl bg-elev px-2" />
-        </label>
-        <label className="text-sm">
-          Platinum (yearly) ₦
-          <input name="platinum" type="number" min={0} defaultValue={(data.plans?.find((p) => p.code === "PLATINUM")?.priceKobo || 51_000_000) / 100} className="ml-2 rounded-xl bg-elev px-2" />
-        </label>
+        <h2 className="mt-4 font-display text-xl">Renewal grace</h2>
         <label className="text-sm">
           Grace days after plan end
           <input name="graceDays" type="number" min={0} max={30} defaultValue={Number(data.config?.graceDays ?? 3)} className="ml-2 rounded-xl bg-elev px-2" />
         </label>
-        <p className="text-xs text-ink2">
-          Renewal notices: Silver 2/1/0 days, Gold 7/3/1 days, Platinum 30/14/7/1 days before the end date. After grace, unpaid listings go back to Free.
-        </p>
+        <p className="text-xs text-ink2">After grace, unpaid Silver, Gold or Platinum listings return to Free. Notices follow each package length.</p>
         <h2 className="mt-4 font-display text-xl">Therapist galleries</h2>
         <p className="text-xs text-ink2">Vendors may create at most 7 galleries. Image count and file size are editable here.</p>
         <label className="text-sm">

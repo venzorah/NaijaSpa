@@ -5,19 +5,28 @@ import { VendorsConsole } from "@/components/admin/vendors-console";
 
 export default async function AdminVendorsPage() {
   const { editable } = await requireAdminScreen("vendors");
-  const vendors = await prisma.vendor.findMany({
-    include: {
-      owner: { select: { name: true, email: true } },
-      subscriptions: { include: { plan: true }, orderBy: { createdAt: "desc" }, take: 1 },
-      _count: { select: { services: true } }
-    },
-    orderBy: { createdAt: "desc" }
-  });
+  const [vendors, listingPlans] = await Promise.all([
+    prisma.vendor.findMany({
+      include: {
+        owner: { select: { name: true, email: true } },
+        subscriptions: {
+          where: { status: { in: ["active", "grace"] } },
+          include: { plan: true },
+          orderBy: { endsAt: "desc" },
+          take: 1
+        },
+        _count: { select: { services: true } }
+      },
+      orderBy: { createdAt: "desc" }
+    }),
+    prisma.subscriptionPlan.findMany({ where: { active: true }, orderBy: { priceKobo: "asc" } })
+  ]);
   return (
     <div>
       <AdminPageHeader screen="vendors" />
       <VendorsConsole
         editable={editable}
+        listingPlans={listingPlans.map((p) => ({ code: p.code, name: p.name }))}
         rows={vendors.map((v) => ({
           id: v.id,
           businessName: v.businessName,
@@ -32,6 +41,7 @@ export default async function AdminVendorsPage() {
           ownerName: v.owner.name,
           ownerEmail: v.owner.email,
           plan: v.subscriptions[0]?.plan.name ?? "Free",
+          planCode: v.subscriptions[0]?.plan.code ?? "FREE",
           services: v._count.services
         }))}
       />

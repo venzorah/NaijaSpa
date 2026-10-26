@@ -55,6 +55,13 @@ export default function MembershipsPage() {
   return (
     <div>
       <AdminPageHeader screen="memberships" />
+      <p className="mb-3 text-sm text-ink2">
+        Customer booking club and promo codes only. Therapist listing fees (Free 10% commission, Silver weekly, Gold monthly, Platinum yearly) are on{" "}
+        <a className="font-semibold text-goldink underline" href="/admin/commercial">
+          Commercial config
+        </a>
+        .
+      </p>
       {error ? <p className="mb-3 text-sm text-red-400">{error}</p> : null}
       {!canEdit ? (
         <p className="mb-3 text-sm text-ink2">View only. Price, billing, benefits and promo codes are edited by the live admin.</p>

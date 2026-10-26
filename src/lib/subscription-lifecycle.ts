@@ -38,6 +38,30 @@ export async function lapsePaidSubscriptionToFree(vendorId: string, paidSubId: s
   return { lapsed: true, freeId: created.id };
 }
 
+export async function grantVendorPlan(vendorId: string, planCode: string, source = "admin_grant", at = new Date()) {
+  const plan = await prisma.subscriptionPlan.findUnique({ where: { code: planCode } });
+  if (!plan) throw Object.assign(new Error("Unknown listing plan."), { status: 404 });
+  if (!plan.active) throw Object.assign(new Error("That listing plan is paused."), { status: 400 });
+  await prisma.vendorSubscription.updateMany({
+    where: { vendorId, status: { in: ["active", "grace"] } },
+    data: { status: "expired" }
+  });
+  const endsAt =
+    plan.code === "FREE" || plan.priceKobo <= 0 || plan.durationDays >= 3650
+      ? new Date("9999-12-31")
+      : new Date(at.getTime() + plan.durationDays * 86_400_000);
+  return prisma.vendorSubscription.create({
+    data: {
+      vendorId,
+      planId: plan.id,
+      status: "active",
+      source,
+      startsAt: at,
+      endsAt
+    }
+  });
+}
+
 export async function processVendorPlanLifecycle(now = new Date()) {
   const config = await getCommercialConfig();
   const paid = await prisma.vendorSubscription.findMany({

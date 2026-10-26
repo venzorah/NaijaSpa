@@ -52,9 +52,26 @@ export const LEGACY_VENDOR_PLAN_CODES: Record<string, string> = {
   SIX_MONTH: "PLATINUM"
 };
 
+export type VendorPlanBilling = "none" | "weekly" | "monthly" | "yearly";
+
+export function durationDaysFromBilling(billing: VendorPlanBilling) {
+  if (billing === "weekly") return 7;
+  if (billing === "monthly") return 30;
+  if (billing === "yearly") return 365;
+  return 36500;
+}
+
+export function billingFromDurationDays(durationDays: number, priceKobo: number): VendorPlanBilling {
+  if (priceKobo <= 0 || durationDays >= 3650) return "none";
+  if (durationDays <= 8) return "weekly";
+  if (durationDays <= 45) return "monthly";
+  return "yearly";
+}
+
 export function vendorPlanBillingLabel(durationDays: number, priceKobo: number) {
-  if (priceKobo <= 0 || durationDays >= 3650) return "No subscription fee";
-  if (durationDays <= 8) return "Billed weekly";
-  if (durationDays <= 45) return "Billed monthly";
+  const billing = billingFromDurationDays(durationDays, priceKobo);
+  if (billing === "none") return "No subscription fee";
+  if (billing === "weekly") return "Billed weekly";
+  if (billing === "monthly") return "Billed monthly";
   return "Billed yearly";
 }

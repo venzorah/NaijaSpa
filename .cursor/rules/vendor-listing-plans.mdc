@@ -14,7 +14,7 @@ Vendor (therapist) listing plans on Commercial config and `/vendor/subscriptions
 - **Gold** — billed **monthly**, default **₦180,000**, admin-set.
 - **Platinum** — billed **yearly**, default **₦510,000**, admin-set.
 
-Codes: `FREE`, `SILVER`, `GOLD`, `PLATINUM`. Prices live on `SubscriptionPlan.priceKobo` and are edited only in Admin → Commercial config. Seed/ensure must not overwrite a non-zero price the admin already saved.
+Codes: `FREE`, `SILVER`, `GOLD`, `PLATINUM`. Prices live on `SubscriptionPlan.priceKobo`. The live admin fully manages them on Admin → Commercial config (name, ₦, billing, commission %, flags, pause, create extra packages) and can grant a plan on Admin → Vendors. Seed/ensure must not overwrite a price, commission or name the admin already saved.
 
 Renewal notices (email + in-app) follow the package length, not a single global reminder:
 
