@@ -6,6 +6,8 @@ import { assertAnyPermission, assertPermission } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { jsonError } from "@/lib/http";
+import { appUrl } from "@/lib/payments";
+import { queueMail, sendVendorInviteEmail } from "@/lib/mail";
 
 export async function GET() {
   try {
@@ -61,10 +63,18 @@ export async function POST(req: Request) {
       entityId: vendor.id,
       after: { email: body.email, businessName: body.businessName }
     });
+    const setupUrl = `${appUrl()}/invite/${token}`;
+    queueMail(
+      sendVendorInviteEmail({
+        to: body.email.toLowerCase(),
+        businessName: body.businessName,
+        setupUrl
+      })
+    );
     return NextResponse.json({
       vendorId: vendor.id,
       setupUrl: `/invite/${token}`,
-      note: "Temporary password is not returned. Vendor must use the setup link."
+      note: "Temporary password is not returned. We emailed the setup link from admin@naijaspa.ng."
     });
   } catch (e) {
     return jsonError(e);

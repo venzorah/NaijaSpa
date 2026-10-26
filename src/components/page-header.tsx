@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
 function isAuthPath(pathname: string) {
-  return /^\/(login|register|forgot)(\/|$)/.test(pathname);
+  return /^\/(login|register|forgot|reset)(\/|$)/.test(pathname);
 }
 
 export function PageHeader({

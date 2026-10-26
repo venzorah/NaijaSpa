@@ -3,6 +3,7 @@ import { appUrl } from "./payments";
 import { isAdminRole, isVendorRole, portalHome, ROLES, type Role } from "./rbac";
 import { prisma } from "./db";
 import { createSession } from "./auth";
+import { queueMail, sendWelcomeEmail } from "./mail";
 
 export const GOOGLE_OAUTH_COOKIE = "naijaspa_oauth";
 
@@ -195,6 +196,10 @@ export async function signInWithGoogle(profile: { googleId: string; email: strin
     theme: user.theme,
     vendorId: user.vendorOwned?.id ?? user.staffMemberships[0]?.vendorId
   });
+
+  if (isNew && portal !== "admin") {
+    queueMail(sendWelcomeEmail({ to: user.email, name: user.name, asVendor: portal === "vendor" }));
+  }
 
   const home = isNew && portal === "vendor" ? "/vendor/onboarding" : portalHome(user.role);
   return { home, isNew };

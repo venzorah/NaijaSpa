@@ -45,6 +45,7 @@ function isAuthPath(path: string) {
     path.startsWith("/login/") ||
     path === "/register" ||
     path === "/forgot" ||
+    path === "/reset" ||
     path.startsWith("/invite")
   );
 }

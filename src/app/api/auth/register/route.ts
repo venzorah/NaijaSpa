@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { createSession, hashPassword } from "@/lib/auth";
 import { ROLES } from "@/lib/rbac";
 import { jsonError, rateLimit } from "@/lib/http";
+import { queueMail, sendWelcomeEmail } from "@/lib/mail";
 
 export async function POST(req: Request) {
   try {
@@ -45,6 +46,7 @@ export async function POST(req: Request) {
       locale: "en",
       theme: "dark"
     });
+    queueMail(sendWelcomeEmail({ to: user.email, name: user.name, asVendor: Boolean(body.asVendor) }));
     return NextResponse.json({ ok: true });
   } catch (e) {
     return jsonError(e);
