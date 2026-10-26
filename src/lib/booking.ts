@@ -2,7 +2,7 @@ import { prisma, getCommercialConfig } from "./db";
 import { locationAddonKobo, quoteBooking, type LocationType } from "./commercial";
 import { vendorEntitlement } from "./entitlements";
 import { audit } from "./audit";
-import { membershipPerks } from "./membership";
+import { CUSTOMER_MEMBERSHIP_ENABLED, membershipPerks } from "./membership";
 
 export const BOOKING_STATES = [
   "pending",
@@ -65,10 +65,12 @@ export async function createBooking(input: {
       .filter((a) => input.addonIds?.includes(a.id))
       .reduce((s, a) => s + a.priceKobo, 0);
     const now = new Date();
-    const membership = await tx.customerMembership.findFirst({
-      where: { userId: input.customerId, status: "active", endsAt: { gte: now } },
-      include: { plan: true }
-    });
+    const membership = CUSTOMER_MEMBERSHIP_ENABLED
+      ? await tx.customerMembership.findFirst({
+          where: { userId: input.customerId, status: "active", endsAt: { gte: now } },
+          include: { plan: true }
+        })
+      : null;
     const perks = membership && membership.plan.active ? membershipPerks(membership.plan.benefits) : null;
     let locationAddon = locationAddonKobo(loc, service);
     if (perks?.waiveAllSurcharges) locationAddon = 0;

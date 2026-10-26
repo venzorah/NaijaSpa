@@ -35,7 +35,7 @@ export default async function Page() {
     <div>
       <VendorPageHeader
         title="Listing plans"
-        description="These packages are for therapists, not customer booking memberships. Start on Free, then subscribe or upgrade when you want public contact and lower commission."
+        description="Start on Free, then subscribe or upgrade when you want public contact and lower commission."
       />
       {showRenewal && paidCurrent && daysLeft != null ? (
         <Panel className="mb-4 border-gold/40" title="Renewal notice">

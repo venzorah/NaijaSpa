@@ -146,10 +146,10 @@ export const ADMIN_SCREENS: {
   {
     id: "memberships",
     href: "/admin/memberships",
-    label: "Memberships & promos",
+    label: "Promo codes",
     group: "Revenue",
     icon: Crown,
-    description: "Customer booking club plans and promo codes. Therapist listing plans live on Commercial config.",
+    description: "Booking promo codes. Therapist listing plans live on Commercial config.",
     view: ["memberships.manage", "campaigns.manage", "finance.view"],
     edit: ["memberships.manage"]
   },
@@ -247,7 +247,7 @@ export const ADMIN_PERMISSION_ROWS: { area: string; action: string; permission: 
   { area: "Finance", action: "View ledgers and reports", permission: "finance.view" },
   { area: "Finance", action: "Approve refunds and release payouts", permission: "finance.manage" },
   { area: "Finance", action: "Edit plan prices and surcharges", permission: "commercial.manage" },
-  { area: "Growth", action: "Edit live membership plans and promo codes", permission: "memberships.manage" },
+  { area: "Growth", action: "Edit promo codes", permission: "memberships.manage" },
   { area: "Growth", action: "Manage sponsored campaigns", permission: "campaigns.manage" },
   { area: "Content", action: "Publish site content, hero and legal", permission: "cms.manage" },
   { area: "Support", action: "Resolve tickets and moderate reviews", permission: "support.manage" },

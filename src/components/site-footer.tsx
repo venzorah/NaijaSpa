@@ -7,8 +7,7 @@ const groups = [
     title: "Discover",
     links: [
       { label: "Explore spas", href: "/explore" },
-      { label: "Ask NaijaSpa AI", href: "/ai" },
-      { label: "Membership", href: "/account/membership" }
+      { label: "Ask NaijaSpa AI", href: "/ai" }
     ]
   },
   {

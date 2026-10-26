@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Bell, Crown, Sparkles } from "lucide-react";
+import { Bell, Sparkles } from "lucide-react";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { formatNgn } from "@/lib/money";
@@ -19,7 +19,7 @@ export default async function AccountDashboardPage() {
   const user = await getSession();
   if (!user) redirect("/login?next=/account/dashboard");
   const now = new Date();
-  const [upcoming, recent, notes, membership] = await Promise.all([
+  const [upcoming, recent, notes] = await Promise.all([
     prisma.booking.findMany({
       where: { customerId: user.id, startsAt: { gte: now }, status: { in: ["confirmed", "in_progress", "awaiting_payment", "pending"] } },
       include: { service: true, vendor: true },
@@ -32,8 +32,7 @@ export default async function AccountDashboardPage() {
       orderBy: { startsAt: "desc" },
       take: 3
     }),
-    prisma.notification.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 5 }),
-    prisma.customerMembership.findFirst({ where: { userId: user.id, status: "active" }, include: { plan: true } })
+    prisma.notification.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 5 })
   ]);
   const next = upcoming[0];
   const first = user.name.split(" ")[0] || "there";
@@ -45,8 +44,8 @@ export default async function AccountDashboardPage() {
         subtitle="Here’s what’s coming up on your wellness calendar."
         right={<LogoutButton variant="compact" href="/login" />}
       />
-      <div className="grid gap-4 lg:grid-cols-3">
-        <section className="relative overflow-hidden rounded-3xl border border-gold/40 bg-forest p-5 text-white lg:col-span-2">
+      <div className="grid gap-4">
+        <section className="relative overflow-hidden rounded-3xl border border-gold/40 bg-forest p-5 text-white">
           <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full border border-gold/30" aria-hidden />
           <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#E3C766]">Next appointment</p>
           {next ? (
@@ -79,17 +78,6 @@ export default async function AccountDashboardPage() {
               </Link>
             </>
           )}
-        </section>
-        <section className="rounded-3xl border border-line bg-card p-5">
-          <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.2em] text-goldink">
-            <Crown className="h-4 w-4" aria-hidden />
-            Membership
-          </p>
-          <p className="mt-3 font-display text-4xl font-semibold text-ink">{membership?.plan.name ?? "Free"}</p>
-          <p className="mt-2 text-xs text-ink2">{membership ? "Active plan" : "No paid membership yet."}</p>
-          <Link href="/account/membership" className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-full border border-line text-sm font-semibold">
-            Manage membership
-          </Link>
         </section>
       </div>
       <div className="mt-10 grid gap-8 lg:grid-cols-[1.4fr_1fr]">

@@ -26,7 +26,6 @@ export type AdminCustomer = {
   lastActive: string;
   bookings: number;
   spend: number;
-  membership: string | null;
   deletionRequested: string | null;
   tickets: { id: string; subject: string; status: string; createdAt: string }[];
 };
@@ -131,7 +130,6 @@ export function CustomersConsole({ rows, editable }: { rows: AdminCustomer[]; ed
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="text-base font-semibold">{selected.name}</h2>
                     <AdminStatusPill status={selected.status} />
-                    {selected.membership ? <AdminStatusPill status={`${selected.membership} member`} tone="gold" dot={false} /> : null}
                   </div>
                   <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-ink2">
                     <span className="inline-flex items-center gap-1">

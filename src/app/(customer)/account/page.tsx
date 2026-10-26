@@ -3,7 +3,6 @@ import {
   CalendarDays,
   ChevronRight,
   CreditCard,
-  Crown,
   FileText,
   Heart,
   HelpCircle,
@@ -33,7 +32,6 @@ const sections: { title: string; items: { href: string; label: string; icon: typ
       { href: "/account/dashboard", label: "Overview", icon: LayoutDashboard },
       { href: "/account/bookings", label: "Bookings", icon: CalendarDays },
       { href: "/account/favourites", label: "Favourites", icon: Heart },
-      { href: "/account/membership", label: "Membership & rewards", icon: Crown },
       { href: "/account/payments", label: "Payments & receipts", icon: CreditCard },
       { href: "/account/reviews", label: "Reviews", icon: Star }
     ]
@@ -66,7 +64,7 @@ export default async function AccountPage() {
       <div className="mx-auto max-w-3xl px-4 pt-6 lg:px-8">
         <div className="rounded-3xl border border-gold/40 bg-card p-6 text-center">
           <h1 className="font-display text-3xl font-semibold text-ink">Your wellness, in one place</h1>
-          <p className="mt-1 text-sm text-ink2">Sign in to see bookings, favourites and rewards.</p>
+          <p className="mt-1 text-sm text-ink2">Sign in to see bookings and favourites.</p>
           <div className="mt-5 flex gap-2">
             <Link href="/login?next=/account" className="inline-flex min-h-11 flex-1 items-center justify-center rounded-full bg-gold text-sm font-bold text-ongold">
               Sign in
@@ -83,12 +81,9 @@ export default async function AccountPage() {
     );
   }
 
-  const [bookingCount, membership] = await Promise.all([
-    prisma.booking.count({
-      where: { customerId: user.id, status: { in: ["confirmed", "pending", "awaiting_payment", "in_progress"] } }
-    }),
-    prisma.customerMembership.findFirst({ where: { userId: user.id, status: "active" }, include: { plan: true } })
-  ]);
+  const bookingCount = await prisma.booking.count({
+    where: { customerId: user.id, status: { in: ["confirmed", "pending", "awaiting_payment", "in_progress"] } }
+  });
 
   return (
     <div className="mx-auto max-w-3xl px-4 pt-6 lg:px-8">
@@ -99,12 +94,6 @@ export default async function AccountPage() {
         <div className="min-w-0 flex-1">
           <h1 className="font-display text-3xl font-semibold text-ink">{user.name}</h1>
           <p className="truncate text-sm text-ink2">{user.email}</p>
-          {membership ? (
-            <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-gold/15 px-2.5 py-0.5 text-xs font-semibold text-goldink">
-              <Crown className="h-3 w-3" aria-hidden />
-              {membership.plan.name} member
-            </span>
-          ) : null}
         </div>
       </div>
       <HubSection

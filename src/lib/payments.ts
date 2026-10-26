@@ -35,6 +35,9 @@ export async function initPayment(input: {
   callbackPath?: string;
   metadata?: Record<string, string>;
 }) {
+  if (input.purpose === "membership") {
+    throw Object.assign(new Error("Customer memberships are not offered."), { status: 410 });
+  }
   if (input.amountKobo < 100) {
     throw Object.assign(new Error("Amount is too small to charge"), { status: 400 });
   }

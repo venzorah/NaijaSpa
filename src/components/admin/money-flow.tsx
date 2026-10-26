@@ -8,7 +8,6 @@ export function MoneyFlow({
   commission,
   refunds,
   subscriptionRevenue,
-  membershipRevenue,
   sponsoredRevenue
 }: {
   gbv: number;
@@ -16,16 +15,15 @@ export function MoneyFlow({
   commission: number;
   refunds: number;
   subscriptionRevenue: number;
-  membershipRevenue: number;
   sponsoredRevenue: number;
 }) {
-  const platformRevenue = commission + subscriptionRevenue + membershipRevenue + sponsoredRevenue;
+  const platformRevenue = commission + subscriptionRevenue + sponsoredRevenue;
   const vendorPayable = collected - commission - refunds;
   const steps = [
     { label: "Gross booking value", tag: "GBV · not revenue", value: gbv, text: "Total value of bookings placed, including extras. Activity measure only." },
     { label: "Collected funds", tag: "Cash in · verified", value: collected, text: "Payments marked success by Paystack. Mostly owed to vendors." },
     { label: "Vendor payable", tag: "Liability", value: vendorPayable, text: "Collected booking funds minus commission and refunds." },
-    { label: "Recognised platform revenue", tag: "Revenue", value: platformRevenue, text: "Commission + subscriptions + memberships + sponsored placements.", emphasis: true }
+    { label: "Recognised platform revenue", tag: "Revenue", value: platformRevenue, text: "Commission + vendor subscriptions + sponsored placements.", emphasis: true }
   ];
   return (
     <ol className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4" aria-label="Money flow from bookings to revenue">

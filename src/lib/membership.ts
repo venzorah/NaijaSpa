@@ -1,3 +1,6 @@
+/** Customer booking club is retired from the public product. Vendor listing plans are separate. */
+export const CUSTOMER_MEMBERSHIP_ENABLED = false;
+
 export const MEMBERSHIP_INTERVALS = ["none", "weekly", "monthly", "yearly"] as const;
 export type MembershipInterval = (typeof MEMBERSHIP_INTERVALS)[number];
 

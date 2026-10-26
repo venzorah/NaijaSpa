@@ -25,7 +25,7 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
   const canSeeCampaigns = hasPermission(user.role, "campaigns.manage") || hasPermission(user.role, "analytics.view");
   const canSeeAudit = hasPermission(user.role, "audit.view");
 
-  const [customers, vendorGroups, bookings, payments, audits, subscriptions, campaigns, memberships, refunds, payouts] =
+  const [customers, vendorGroups, bookings, payments, audits, subscriptions, campaigns, refunds, payouts] =
     await Promise.all([
       prisma.user.findMany({ where: { role: "customer" }, select: { createdAt: true, status: true } }),
       prisma.vendor.groupBy({ by: ["applicationStatus"], _count: true }),
@@ -34,7 +34,6 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
       prisma.auditLog.findMany({ orderBy: { createdAt: "desc" }, take: 8, include: { actor: { select: { name: true } } } }),
       prisma.vendorSubscription.count({ where: { status: "active" } }),
       prisma.campaign.findMany({ include: { vendor: { select: { businessName: true } } }, take: 8 }),
-      prisma.payment.aggregate({ where: { status: "success", purpose: "membership", createdAt: { gte: since } }, _sum: { amountKobo: true } }),
       prisma.refund.aggregate({ where: { createdAt: { gte: since } }, _sum: { amountKobo: true } }),
       prisma.payout.aggregate({ where: { createdAt: { gte: since } }, _sum: { amountKobo: true } })
     ]);
@@ -51,7 +50,6 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
   const commission = periodBookings.reduce((s, b) => s + b.commissionKobo, 0);
   const collected = periodPayments.filter((p) => p.purpose === "booking").reduce((s, p) => s + p.amountKobo, 0);
   const subscriptionRevenue = periodPayments.filter((p) => p.purpose === "subscription").reduce((s, p) => s + p.amountKobo, 0);
-  const membershipRevenue = memberships._sum.amountKobo ?? 0;
   const sponsoredRevenue = 0;
   const refundsKobo = refunds._sum.amountKobo ?? 0;
   const payoutsKobo = payouts._sum.amountKobo ?? 0;
@@ -154,14 +152,12 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
               commission={commission}
               refunds={refundsKobo}
               subscriptionRevenue={subscriptionRevenue}
-              membershipRevenue={membershipRevenue}
               sponsoredRevenue={sponsoredRevenue}
             />
           </Panel>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
             <StatCard label="Commission revenue" value={formatNgnCompact(commission)} icon={CircleDollarSign} emphasis="gold" definition="Commission earned on bookings in this range." />
             <StatCard label="Subscription revenue" value={formatNgnCompact(subscriptionRevenue)} icon={Crown} definition="Verified vendor plan payments." />
-            <StatCard label="Membership revenue" value={formatNgnCompact(membershipRevenue)} icon={Users} definition="Verified customer membership payments." />
             <StatCard label="Sponsored revenue" value={formatNgnCompact(sponsoredRevenue)} icon={Megaphone} definition="Campaign fees are not billed as a separate payment purpose yet." />
             <StatCard label="Refunds issued" value={formatNgnCompact(refundsKobo)} icon={CircleDollarSign} />
             <StatCard label="Vendor payouts" value={formatNgnCompact(payoutsKobo)} icon={CircleDollarSign} />
@@ -182,10 +178,9 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
             <Panel title="Revenue mix" description="Recognised platform revenue · this range">
               {[
                 { label: "Commission", value: commission },
-                { label: "Subscriptions", value: subscriptionRevenue },
-                { label: "Memberships", value: membershipRevenue }
+                { label: "Subscriptions", value: subscriptionRevenue }
               ].map((row) => {
-                const total = commission + subscriptionRevenue + membershipRevenue || 1;
+                const total = commission + subscriptionRevenue || 1;
                 return (
                   <div key={row.label} className="mb-3">
                     <div className="flex justify-between text-xs">

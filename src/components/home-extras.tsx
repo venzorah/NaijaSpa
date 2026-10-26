@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Crown, Headphones, MessageCircle, Store } from "lucide-react";
+import { ArrowRight, Headphones, MessageCircle, Store } from "lucide-react";
 import { PHOTOS } from "@/lib/photos";
 
 const STEPS = [
@@ -12,38 +12,6 @@ const STEPS = [
 export function HomeExtras() {
   return (
     <>
-      <section className="mx-auto mt-14 max-w-7xl px-4 lg:px-8" aria-labelledby="membership-teaser">
-        <div className="relative overflow-hidden rounded-[32px] border border-gold/40 bg-forest p-6 text-white md:p-10">
-          <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full border border-gold/30" aria-hidden />
-          <div className="absolute -right-6 -top-6 h-36 w-36 rounded-full border border-gold/20" aria-hidden />
-          <div className="relative grid gap-6 md:grid-cols-[1.4fr_1fr] md:items-center">
-            <div>
-              <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.22em] text-[#E3C766]">
-                <Crown className="h-4 w-4" aria-hidden /> NaijaSpa Membership
-              </p>
-              <h2 id="membership-teaser" className="mt-2 font-display text-lg font-semibold leading-snug">
-                Wellness that rewards you back.
-              </h2>
-              <p className="mt-3 max-w-md text-sm leading-relaxed text-white/80">
-                Paid members save on bookings and earn rewards. Plans are published by NaijaSpa — compare them in your
-                account.
-              </p>
-            </div>
-            <div className="flex flex-col gap-2 sm:flex-row md:flex-col">
-              <Link href="/account/membership" className="inline-flex min-h-11 items-center justify-center rounded-full bg-gold px-5 text-sm font-bold text-ongold">
-                Compare plans
-              </Link>
-              <Link
-                href="/account/membership"
-                className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/30 px-5 text-sm font-bold text-white hover:bg-white/10"
-              >
-                See rewards
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
       <section className="mx-auto mt-14 max-w-7xl px-4 lg:px-8" aria-labelledby="how-it-works">
         <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.2em] text-goldink">Simple & secure</p>
         <h2 id="how-it-works" className="font-display text-lg font-semibold text-ink">

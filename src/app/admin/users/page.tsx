@@ -12,8 +12,7 @@ export default async function UsersPage() {
     include: {
       customerProfile: true,
       bookings: { select: { customerTotalKobo: true, status: true, createdAt: true } },
-      tickets: { select: { id: true, subject: true, status: true, createdAt: true }, take: 8, orderBy: { createdAt: "desc" } },
-      memberships: { include: { plan: true }, orderBy: { endsAt: "desc" }, take: 1 }
+      tickets: { select: { id: true, subject: true, status: true, createdAt: true }, take: 8, orderBy: { createdAt: "desc" } }
     }
   });
   const rows = users.map((u) => ({
@@ -27,7 +26,6 @@ export default async function UsersPage() {
     lastActive: (u.bookings[0]?.createdAt ?? u.createdAt).toLocaleDateString("en-NG"),
     bookings: u.bookings.length,
     spend: u.bookings.reduce((s, b) => s + b.customerTotalKobo, 0),
-    membership: u.memberships[0]?.status === "active" ? u.memberships[0].plan.name : null,
     deletionRequested: u.deletionRequestedAt ? u.deletionRequestedAt.toLocaleDateString("en-NG") : null,
     tickets: u.tickets.map((t) => ({
       id: t.id,

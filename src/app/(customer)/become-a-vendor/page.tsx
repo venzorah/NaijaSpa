@@ -14,7 +14,7 @@ export default async function BecomeVendorPage() {
   }
   return (
     <div className="mx-auto max-w-6xl px-4 pt-6 lg:px-8">
-      <PageHeader title="Become a vendor" subtitle="Therapist listing plans for spas and independent practitioners. These are not customer booking memberships." />
+      <PageHeader title="Become a vendor" subtitle="Therapist listing plans for spas and independent practitioners." />
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {[
           [Users, "Reach new clients", "Wellness seekers in Lagos, Abuja, Port Harcourt, Delta and Anambra."],
