@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { jsonError } from "@/lib/http";
-import { listPayoutBanks, maskAccountNumber, saveVendorPayoutAccount } from "@/lib/payouts";
+import { listPayoutBanks, maskAccountNumber, resolvePayoutAccount, saveVendorPayoutAccount } from "@/lib/payouts";
 import { requireVendor } from "@/lib/vendor-auth";
 import { prisma } from "@/lib/db";
+import { ROLES } from "@/lib/rbac";
 
 export async function GET() {
   try {
@@ -27,7 +28,7 @@ export async function GET() {
         bankName: vendor.payoutBankName,
         accountNumberMasked: maskAccountNumber(vendor.payoutAccountNumber),
         accountName: vendor.payoutAccountName,
-        ready: Boolean(vendor.payoutRecipientCode || vendor.payoutAccountNumber)
+        ready: Boolean(vendor.payoutRecipientCode)
       },
       banks
     });
@@ -39,7 +40,20 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const user = await requireVendor();
-    const body = z.object({ bankCode: z.string().min(1), accountNumber: z.string().min(8) }).parse(await req.json());
+    if (user.role !== ROLES.VENDOR_OWNER) {
+      return NextResponse.json({ error: "Only the spa owner can set the payout account." }, { status: 403 });
+    }
+    const body = z
+      .object({ bankCode: z.string().min(1), accountNumber: z.string().min(8), verifyOnly: z.boolean().optional() })
+      .parse(await req.json());
+    if (body.verifyOnly) {
+      const resolved = await resolvePayoutAccount(body.bankCode, body.accountNumber);
+      return NextResponse.json({
+        accountName: resolved.accountName,
+        bankName: resolved.bank.name,
+        accountNumberMasked: maskAccountNumber(resolved.nuban)
+      });
+    }
     const saved = await saveVendorPayoutAccount(user.vendorId, body.bankCode, body.accountNumber);
     return NextResponse.json({
       account: {
@@ -47,7 +61,7 @@ export async function POST(req: Request) {
         bankName: saved.payoutBankName,
         accountNumberMasked: maskAccountNumber(saved.payoutAccountNumber),
         accountName: saved.payoutAccountName,
-        ready: Boolean(saved.payoutRecipientCode || saved.payoutAccountNumber)
+        ready: Boolean(saved.payoutRecipientCode)
       }
     });
   } catch (e) {

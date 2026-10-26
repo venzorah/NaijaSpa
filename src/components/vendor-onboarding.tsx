@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { NIGERIA_STATES, nigeriaStateLabel } from "@/lib/nigeria";
+import { ListingPlanCard } from "@/components/listing-plan-card";
+import { LIVE_VENDOR_PLANS, type VendorListingPlanView } from "@/lib/vendor-plans";
 
 function LightLogo({ className }: { className?: string }) {
   return (
@@ -23,12 +25,13 @@ const PROVIDERS = [
 ] as const;
 
 const STEPS = [
-  { id: "type", title: "Choose your space", kicker: "Step 1 of 6" },
-  { id: "business", title: "Your business", kicker: "Step 2 of 6" },
-  { id: "contact", title: "Private contact", kicker: "Step 3 of 6" },
-  { id: "address", title: "Where you operate", kicker: "Step 4 of 6" },
-  { id: "hours", title: "Hours & policy", kicker: "Step 5 of 6" },
-  { id: "submit", title: "Review & submit", kicker: "Step 6 of 6" }
+  { id: "type", title: "Choose your space", kicker: "Step 1 of 7" },
+  { id: "business", title: "Your business", kicker: "Step 2 of 7" },
+  { id: "contact", title: "Contact details", kicker: "Step 3 of 7" },
+  { id: "address", title: "Where you operate", kicker: "Step 4 of 7" },
+  { id: "hours", title: "Hours & policy", kicker: "Step 5 of 7" },
+  { id: "plan", title: "Listing plan", kicker: "Step 6 of 7" },
+  { id: "submit", title: "Review & submit", kicker: "Step 7 of 7" }
 ] as const;
 
 type Form = {
@@ -37,6 +40,7 @@ type Form = {
   description: string;
   privatePhone: string;
   privateWhatsapp: string;
+  instagramUrl: string;
   state: string;
   city: string;
   neighbourhood: string;
@@ -44,6 +48,9 @@ type Form = {
   openTime: string;
   closeTime: string;
   cancellationPolicy: string;
+  planCode: string;
+  payoutBankCode: string;
+  payoutAccountNumber: string;
 };
 
 const empty: Form = {
@@ -52,13 +59,17 @@ const empty: Form = {
   description: "",
   privatePhone: "",
   privateWhatsapp: "",
+  instagramUrl: "",
   state: "Lagos",
   city: "",
   neighbourhood: "",
   address: "",
   openTime: "09:00",
   closeTime: "18:00",
-  cancellationPolicy: "Free cancellation up to 12 hours before the appointment."
+  cancellationPolicy: "Free cancellation up to 12 hours before the appointment.",
+  planCode: "FREE",
+  payoutBankCode: "",
+  payoutAccountNumber: ""
 };
 
 function hoursJson(open: string, close: string) {
@@ -73,10 +84,38 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
+  const [banks, setBanks] = useState<Array<{ code: string; name: string }>>([]);
+  const [plans, setPlans] = useState<VendorListingPlanView[]>(
+    LIVE_VENDOR_PLANS.map((p) => ({
+      code: p.code,
+      name: p.name,
+      priceKobo: p.priceKobo,
+      durationDays: p.durationDays,
+      commissionBps: p.commissionBps,
+      publicDirectContact: p.publicDirectContact,
+      enhancedVisibility: p.enhancedVisibility,
+      sponsoredEligible: p.sponsoredEligible
+    }))
+  );
 
   useEffect(() => {
     void (async () => {
       try {
+        fetch("/api/vendor/payout-account")
+          .then((r) => r.json())
+          .then((json: { banks?: Array<{ code: string; name: string }>; account?: { bankCode?: string | null } }) => {
+            if (json.banks?.length) setBanks(json.banks);
+            if (json.account?.bankCode) {
+              setForm((prev) => ({ ...prev, payoutBankCode: json.account?.bankCode || prev.payoutBankCode }));
+            }
+          })
+          .catch(() => undefined);
+        fetch("/api/listing-plans")
+          .then((r) => r.json())
+          .then((json: { plans?: VendorListingPlanView[] }) => {
+            if (json.plans?.length) setPlans(json.plans);
+          })
+          .catch(() => undefined);
         const res = await fetch("/api/vendor/onboarding");
         if (!res.ok) return;
         const json = (await res.json()) as { vendor?: Partial<Form> & { hoursJson?: string; applicationStatus?: string } };
@@ -102,6 +141,7 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
           description: v.description || "",
           privatePhone: v.privatePhone || "",
           privateWhatsapp: v.privateWhatsapp || "",
+          instagramUrl: v.instagramUrl || "",
           state: v.state || "Lagos",
           city: v.city || "",
           neighbourhood: v.neighbourhood || "",
@@ -149,6 +189,7 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
           description: form.description,
           privatePhone: form.privatePhone,
           privateWhatsapp: form.privateWhatsapp,
+          instagramUrl: form.instagramUrl,
           state: form.state,
           city: form.city || "Lagos",
           neighbourhood: form.neighbourhood,
@@ -164,6 +205,19 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
         return false;
       }
       if (json.applicationStatus) setStatus(json.applicationStatus);
+      if (form.payoutBankCode && form.payoutAccountNumber.length === 10) {
+        const pay = await fetch("/api/vendor/payout-account", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ bankCode: form.payoutBankCode, accountNumber: form.payoutAccountNumber })
+        });
+        if (!pay.ok) {
+          const payJson = (await pay.json()) as { error?: string };
+          setError(payJson.error || "Profile saved, but the payout account could not be verified. You can retry on Earnings.");
+          if (submit) setDone(true);
+          return true;
+        }
+      }
       if (submit) setDone(true);
       return true;
     } catch {
@@ -247,7 +301,7 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
           </div>
         </div>
 
-        <div className="mx-auto flex w-full max-w-lg flex-1 flex-col">
+        <div className={`mx-auto flex w-full flex-1 flex-col ${step === 5 ? "max-w-3xl" : "max-w-lg"}`}>
           {done ? (
             <div className="my-auto rounded-[2rem] border border-gold/30 bg-white/[0.04] p-8 text-center">
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-gold">Submitted</p>
@@ -255,9 +309,21 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
               <p className="mt-3 text-sm text-white/70">
                 Status: <span className="font-semibold text-gold">{status.replace("_", " ")}</span>. We will email you when the listing is approved.
               </p>
-              <Link href="/vendor" className="mt-8 inline-flex min-h-12 items-center rounded-full bg-gold px-8 text-base font-bold text-ongold">
-                Go to dashboard
-              </Link>
+              <div className="mt-8 flex flex-col items-center gap-3">
+                <Link href="/vendor" className="inline-flex min-h-12 items-center rounded-full bg-gold px-8 text-base font-bold text-ongold">
+                  Go to dashboard
+                </Link>
+                <Link
+                  href={
+                    form.planCode === "FREE"
+                      ? "/vendor/subscriptions"
+                      : `/vendor/subscriptions/checkout?plan=${encodeURIComponent(form.planCode)}`
+                  }
+                  className="inline-flex min-h-12 items-center rounded-full border border-white/20 px-8 text-base font-semibold"
+                >
+                  {form.planCode === "FREE" ? "View listing plans" : `Pay for ${plans.find((p) => p.code === form.planCode)?.name || "your listing plan"}`}
+                </Link>
+              </div>
             </div>
           ) : (
             <>
@@ -304,7 +370,7 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
 
                 {step === 2 && (
                   <>
-                    <p className="text-sm text-white/65">These stay private. Customers only see them if your plan allows public contact.</p>
+                    <p className="text-sm text-white/65">Paid listing plans show WhatsApp, email (your login) and Instagram on Explore. Free listings keep them private until a customer pays for a booking.</p>
                     <label>
                       <span className={labelClass}>Phone</span>
                       <input className={fieldClass} inputMode="tel" value={form.privatePhone} onChange={(e) => set("privatePhone", e.target.value)} />
@@ -312,6 +378,33 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
                     <label>
                       <span className={labelClass}>WhatsApp</span>
                       <input className={fieldClass} inputMode="tel" value={form.privateWhatsapp} onChange={(e) => set("privateWhatsapp", e.target.value)} />
+                    </label>
+                    <label>
+                      <span className={labelClass}>Instagram</span>
+                      <input className={fieldClass} value={form.instagramUrl} onChange={(e) => set("instagramUrl", e.target.value)} placeholder="@yourspa or instagram.com/yourspa" />
+                    </label>
+                    <p className="pt-2 text-sm text-white/65">Payout account — confirmed visits pay this NUBAN. You can add it later under Earnings.</p>
+                    <label>
+                      <span className={labelClass}>Payout bank</span>
+                      <select className={fieldClass} value={form.payoutBankCode} onChange={(e) => set("payoutBankCode", e.target.value)}>
+                        <option value="">Select bank</option>
+                        {banks.map((b) => (
+                          <option key={b.code} value={b.code}>
+                            {b.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      <span className={labelClass}>Account number</span>
+                      <input
+                        className={fieldClass}
+                        inputMode="numeric"
+                        maxLength={10}
+                        value={form.payoutAccountNumber}
+                        onChange={(e) => set("payoutAccountNumber", e.target.value.replace(/\D/g, "").slice(0, 10))}
+                        placeholder="10-digit NUBAN"
+                      />
                     </label>
                   </>
                 )}
@@ -377,6 +470,19 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
                 )}
 
                 {step === 5 && (
+                  <>
+                    <p className="text-sm text-white/65">Therapist listing packages only. Start on Free, or pick Silver, Gold or Platinum and subscribe after you submit.</p>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {plans.map((plan) => (
+                        <button key={plan.code} type="button" onClick={() => set("planCode", plan.code)} className="text-left">
+                          <ListingPlanCard plan={plan} selected={form.planCode === plan.code} tone="dark" badge={form.planCode === plan.code ? "Selected" : undefined} />
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {step === 6 && (
                   <div className="space-y-3 rounded-[1.75rem] border border-white/10 bg-white/[0.04] p-5 text-sm text-white/80">
                     <p>
                       <span className="text-gold">Provider</span> · {PROVIDERS.find((p) => p.id === form.providerType)?.title}
@@ -390,7 +496,14 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
                     <p>
                       <span className="text-gold">Hours</span> · {form.openTime} – {form.closeTime}
                     </p>
-                    <p className="text-white/60">Next: add services, therapist photos, and a subscription from the vendor dashboard after review.</p>
+                    <p>
+                      <span className="text-gold">Listing plan</span> · {plans.find((p) => p.code === form.planCode)?.name || "Free"}
+                    </p>
+                    <p className="text-white/60">
+                      {form.planCode === "FREE"
+                        ? "You start on Free. After approval you can subscribe or upgrade from Listing plans."
+                        : `After you submit, open Listing plans to subscribe to ${plans.find((p) => p.code === form.planCode)?.name || form.planCode}.`}
+                    </p>
                   </div>
                 )}
               </div>

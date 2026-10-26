@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { LEGACY_VENDOR_PLAN_CODES, LIVE_VENDOR_PLANS } from "@/lib/vendor-plans";
+import { LEGACY_VENDOR_PLAN_CODES, LIVE_VENDOR_PLANS, type VendorListingPlanView } from "@/lib/vendor-plans";
 
 export async function ensureLiveVendorPlans() {
   for (const [legacy, next] of Object.entries(LEGACY_VENDOR_PLAN_CODES)) {
@@ -26,8 +26,11 @@ export async function ensureLiveVendorPlans() {
   for (const plan of LIVE_VENDOR_PLANS) {
     const existing = await prisma.subscriptionPlan.findUnique({ where: { code: plan.code } });
     if (existing) {
-      if (plan.code === "FREE" && existing.priceKobo !== 0) {
-        await prisma.subscriptionPlan.update({ where: { code: "FREE" }, data: { priceKobo: 0 } });
+      if (plan.code === "FREE" && (existing.priceKobo !== 0 || existing.publicDirectContact)) {
+        await prisma.subscriptionPlan.update({
+          where: { code: "FREE" },
+          data: { priceKobo: 0, publicDirectContact: false }
+        });
       }
       continue;
     }
@@ -46,4 +49,22 @@ export async function ensureLiveVendorPlans() {
       }
     });
   }
+}
+
+export async function listPublicVendorPlans(): Promise<VendorListingPlanView[]> {
+  await ensureLiveVendorPlans();
+  const rows = await prisma.subscriptionPlan.findMany({
+    where: { active: true },
+    orderBy: { priceKobo: "asc" }
+  });
+  return rows.map((p) => ({
+    code: p.code,
+    name: p.name,
+    priceKobo: p.priceKobo,
+    durationDays: p.durationDays,
+    commissionBps: p.commissionBps,
+    publicDirectContact: p.publicDirectContact,
+    enhancedVisibility: p.enhancedVisibility,
+    sponsoredEligible: p.sponsoredEligible
+  }));
 }

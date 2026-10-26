@@ -107,7 +107,7 @@ async function searchLive(filters: SearchFilters) {
   const rows = await prisma.service.findMany({
     where,
     include: {
-      vendor: true,
+      vendor: { include: { owner: { select: { email: true } } } },
       category: { select: { name: true, slug: true } },
       staff: { include: { staff: true } }
     },
@@ -140,7 +140,9 @@ async function searchLive(filters: SearchFilters) {
         logoUrl: publicWellnessPhoto(row.vendor.logoUrl, ""),
         coverUrl: firstWellnessPhoto(row.vendor.coverUrl, PHOTOS.bandSpa),
         privatePhone: row.vendor.privatePhone,
-        privateWhatsapp: row.vendor.privateWhatsapp
+        privateWhatsapp: row.vendor.privateWhatsapp,
+        instagramUrl: row.vendor.instagramUrl,
+        owner: { email: row.vendor.owner?.email ?? "" }
       },
       ent
     );

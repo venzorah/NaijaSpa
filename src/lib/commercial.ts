@@ -160,6 +160,12 @@ export function publicContactAllowed(entitlement: Entitlement): boolean {
   return entitlement.publicDirectContact && entitlement.activePaid;
 }
 
+/** Phone/WhatsApp unlock only after a successful booking payment. */
+export function bookingUnlocksVendorContact(status: string, paymentSucceeded: boolean) {
+  if (!paymentSucceeded) return false;
+  return status === "confirmed" || status === "in_progress" || status === "completed";
+}
+
 export function toWhatsAppLink(raw: string | null | undefined): string | null {
   if (!raw) return null;
   const digits = raw.replace(/[^\d]/g, "");
@@ -171,20 +177,40 @@ export function toWhatsAppLink(raw: string | null | undefined): string | null {
   return `https://wa.me/${intl}`;
 }
 
-export function sanitizePublicVendor<T extends { privatePhone?: string | null; privateWhatsapp?: string | null }>(
-  vendor: T,
-  entitlement: Entitlement
-) {
-  const allow = publicContactAllowed(entitlement);
-  const phone = allow ? vendor.privatePhone ?? null : null;
-  const whatsapp = allow ? toWhatsAppLink(vendor.privateWhatsapp) : null;
-  const { privatePhone: _p, privateWhatsapp: _w, entitlement: _e, ...rest } = vendor as T & {
+export function toInstagramLink(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const value = raw.trim();
+  if (!value) return null;
+  const lower = value.toLowerCase();
+  if (lower.startsWith("javascript:") || lower.startsWith("data:")) return null;
+  const handle = value.replace(/^https?:\/\/(www\.)?instagram\.com\//i, "").replace(/^@/, "").replace(/\/$/, "").split(/[?#]/)[0];
+  if (!handle || !/^[\w.]+$/.test(handle)) {
+    if (/^https:\/\/(www\.)?instagram\.com\//i.test(value)) return value.split(/[?#]/)[0];
+    return null;
+  }
+  return `https://www.instagram.com/${handle}`;
+}
+
+export function sanitizePublicVendor<T extends {
+  privatePhone?: string | null;
+  privateWhatsapp?: string | null;
+  instagramUrl?: string | null;
+  owner?: { email?: string | null } | null;
+}>(vendor: T, entitlement?: Entitlement) {
+  const allow = entitlement ? publicContactAllowed(entitlement) : false;
+  const { privatePhone, privateWhatsapp, instagramUrl, owner, entitlement: _e, ...rest } = vendor as T & {
     entitlement?: unknown;
   };
+  const phone = allow ? privatePhone ?? null : null;
+  const whatsapp = allow ? toWhatsAppLink(privateWhatsapp) : null;
+  const email = allow ? owner?.email?.trim() || null : null;
+  const instagram = allow ? toInstagramLink(instagramUrl) : null;
   return {
     ...rest,
-    publicPhone: phone && allow ? phone : null,
+    publicPhone: phone,
     publicWhatsapp: whatsapp,
-    publicDirectContact: Boolean(phone || whatsapp)
+    publicEmail: email,
+    publicInstagram: instagram,
+    publicDirectContact: Boolean(phone || whatsapp || email || instagram)
   };
 }

@@ -56,7 +56,7 @@ export const VENDOR_NAV: { label: string; items: PortalLink[] }[] = [
     label: "Money",
     items: [
       { href: "/vendor/earnings", label: "Earnings & payouts", icon: Wallet },
-      { href: "/vendor/subscriptions", label: "Subscription", icon: Crown }
+      { href: "/vendor/subscriptions", label: "Listing plans", icon: Crown }
     ]
   },
   {
@@ -335,7 +335,7 @@ export function PortalChrome({
               </form>
             ) : null}
             {variant === "vendor" ? (
-              <Link href="/vendor/subscriptions" className="hidden sm:block" aria-label="Subscription status">
+              <Link href="/vendor/subscriptions" className="hidden sm:block" aria-label="Listing plan status">
                 <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${planPaid ? "bg-gold/15 text-goldink" : "bg-elev text-ink2"}`}>
                   {planPaid ? "Paid · 0%" : "Free · 10%"}
                 </span>

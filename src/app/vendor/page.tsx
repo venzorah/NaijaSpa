@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, BadgeCheck, CalendarCheck2, Crown, Gauge, Lock, MessageCircle, Phone, Star, Wallet } from "lucide-react";
+import { ArrowRight, BadgeCheck, CalendarCheck2, Crown, Gauge, Instagram, Lock, Mail, MessageCircle, Phone, Star, Wallet } from "lucide-react";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { vendorEntitlement } from "@/lib/entitlements";
@@ -9,6 +9,9 @@ import { Panel } from "@/components/admin/panel";
 import { StatCard } from "@/components/admin/stat-card";
 import { AdminStatusPill } from "@/components/admin/status-pill";
 import { MiniBars } from "@/components/admin/bar-chart";
+import { ListingPlanCard } from "@/components/listing-plan-card";
+import { vendorPlanCta } from "@/lib/vendor-plans";
+import { listPublicVendorPlans } from "@/lib/vendor-plans-live";
 
 function greeting() {
   const hour = (new Date().getUTCHours() + 1) % 24;
@@ -24,7 +27,7 @@ export default async function VendorHome() {
   const start = new Date();
   start.setHours(0, 0, 0, 0);
   const weekAgo = new Date(Date.now() - 7 * 864e5);
-  const [vendor, bookings, weekBookings, earnings, pendingBookings, hiddenServices, docs] = await Promise.all([
+  const [vendor, bookings, weekBookings, earnings, pendingBookings, hiddenServices, docs, listingPlans] = await Promise.all([
     prisma.vendor.findUniqueOrThrow({ where: { id: vendorId } }),
     prisma.booking.findMany({
       where: { vendorId, startsAt: { gte: start } },
@@ -39,13 +42,16 @@ export default async function VendorHome() {
     prisma.vendorEarning.findMany({ where: { vendorId } }),
     prisma.booking.count({ where: { vendorId, status: { in: ["awaiting_payment", "pending", "cancellation_requested"] } } }),
     prisma.service.count({ where: { vendorId, active: false } }),
-    prisma.verificationDoc.findMany({ where: { vendorId } })
+    prisma.verificationDoc.findMany({ where: { vendorId } }),
+    listPublicVendorPlans().catch(() => [])
   ]);
   const ent = await vendorEntitlement(vendorId);
   const payable = earnings.reduce((s, e) => s + e.payableKobo, 0);
   const weekPayable = weekBookings.reduce((s, b) => s + b.vendorPayableKobo, 0);
   const firstName = user?.name.split(" ")[0] || "there";
   const paid = ent.activePaid;
+  const currentListing = listingPlans.find((p) => p.code === ent.planCode);
+  const currentPlan = { code: ent.planCode, priceKobo: currentListing?.priceKobo ?? 0 };
   const later = Math.max(0, bookings.length - 8);
   const shown = bookings.slice(0, 8);
   const slots = await prisma.availabilitySlot.findMany({ where: { vendorId } });
@@ -151,7 +157,7 @@ export default async function VendorHome() {
               </div>
             </div>
             <Link href="/vendor/subscriptions" className="mt-4 inline-flex min-h-10 items-center rounded-full border border-line px-4 text-sm font-semibold">
-              {paid ? "Manage subscription" : "Compare paid plans"}
+              {paid ? "Upgrade or switch" : "Subscribe to a listing plan"}
             </Link>
           </Panel>
           <Panel>
@@ -177,24 +183,74 @@ export default async function VendorHome() {
             <div className="mt-3 space-y-2">
               {[
                 { icon: Phone, label: "Phone", value: vendor.privatePhone },
-                { icon: MessageCircle, label: "WhatsApp", value: vendor.privateWhatsapp }
+                { icon: MessageCircle, label: "WhatsApp", value: vendor.privateWhatsapp },
+                { icon: Mail, label: "Email", value: user?.email },
+                { icon: Instagram, label: "Instagram", value: vendor.instagramUrl }
               ].map((c) => (
                 <div key={c.label} className="flex items-center gap-3 rounded-lg bg-elev px-3 py-2">
                   <c.icon className="h-4 w-4 text-ink2" aria-hidden />
                   <span className="text-xs text-ink2">{c.label}</span>
-                  <span className="ml-auto font-mono text-xs">{ent.publicDirectContact ? c.value || "Not set" : "+234 ••• ••• ••••"}</span>
+                  <span className="ml-auto max-w-[55%] truncate font-mono text-xs">
+                    {ent.publicDirectContact
+                      ? c.value || "Not set"
+                      : c.label === "Email"
+                        ? "••••@••••"
+                        : c.label === "Instagram"
+                          ? "@••••"
+                          : "+234 ••• ••• ••••"}
+                  </span>
                   {!ent.publicDirectContact ? <Lock className="h-3.5 w-3.5 text-ink2" aria-hidden /> : null}
                 </div>
               ))}
             </div>
             {!paid ? (
               <Link href="/vendor/subscriptions" className="mt-3 inline-flex min-h-10 items-center rounded-full bg-gold px-4 text-sm font-bold text-ongold">
-                Unlock public contact
+                Pay to unlock public contact
               </Link>
-            ) : null}
+            ) : (
+              <Link href="/vendor/onboarding" className="mt-3 inline-flex min-h-10 items-center text-sm font-semibold text-leaf">
+                Edit Instagram and WhatsApp
+              </Link>
+            )}
           </Panel>
         </div>
       </div>
+      {listingPlans.length ? (
+        <div className="mt-6">
+          <div className="mb-3 flex items-end justify-between gap-3">
+            <div>
+              <h2 className="font-display text-xl">Listing plans</h2>
+              <p className="text-sm text-ink2">Therapist packages only. Subscribe from Free, or upgrade when you want public contact and lower commission.</p>
+            </div>
+            <Link href="/vendor/subscriptions" className="text-sm font-semibold text-leaf">
+              {paid ? "Upgrade" : "Subscribe"}
+            </Link>
+          </div>
+          <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {listingPlans.map((plan) => {
+              const cta = vendorPlanCta(plan, currentPlan);
+              return (
+                <li key={plan.code}>
+                  <ListingPlanCard plan={plan} selected={cta.kind === "current"} badge={cta.kind === "current" ? "Current" : cta.kind === "upgrade" ? "Upgrade" : undefined}>
+                    <Link
+                      href={
+                        cta.kind === "current" || cta.kind === "free"
+                          ? "/vendor/subscriptions"
+                          : `/vendor/subscriptions/checkout?plan=${encodeURIComponent(plan.code)}`
+                      }
+                      className={`mt-4 inline-flex min-h-10 w-full items-center justify-center rounded-full text-sm font-bold ${
+                        cta.kind === "current" ? "border border-line" : "bg-gold text-ongold"
+                      }`}
+                    >
+                      {cta.label}
+                    </Link>
+                  </ListingPlanCard>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ) : null}
       <p className="sr-only">Lifetime payable {formatNgn(payable)}</p>
     </div>
   );

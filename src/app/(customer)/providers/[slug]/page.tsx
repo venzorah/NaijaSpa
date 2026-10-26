@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { BadgeCheck, Info, MapPin, MessageCircle, Phone, Star } from "lucide-react";
+import { BadgeCheck, Info, MapPin, Star } from "lucide-react";
 import { getPublicVendor } from "@/lib/catalog";
+import { hasPublicVendorContact, PublicVendorContact } from "@/components/public-vendor-contact";
 import { formatNgn } from "@/lib/money";
 import { TherapistGalleries } from "@/components/therapist-galleries";
 import { usingDemoListings } from "@/lib/live-db";
@@ -72,29 +73,12 @@ export default async function ProviderPage({ params }: { params: Promise<{ slug:
             </span>
           </div>
           <div className="mt-5">
-            {vendor.publicPhone || vendor.publicWhatsapp ? (
-              <div className="grid grid-cols-2 gap-2">
-                {vendor.publicPhone ? (
-                  <a
-                    href={`tel:${vendor.publicPhone.replace(/\s/g, "")}`}
-                    className="flex h-12 items-center justify-center gap-2 rounded-full border border-line bg-card text-sm font-semibold text-ink hover:bg-elev"
-                  >
-                    <Phone className="h-4 w-4 text-leaf" aria-hidden /> Call
-                  </a>
-                ) : null}
-                {vendor.publicWhatsapp ? (
-                  <a
-                    href={vendor.publicWhatsapp}
-                    className="flex h-12 items-center justify-center gap-2 rounded-full border border-line bg-card text-sm font-semibold text-ink hover:bg-elev"
-                  >
-                    <MessageCircle className="h-4 w-4 text-leaf" aria-hidden /> WhatsApp
-                  </a>
-                ) : null}
-              </div>
+            {hasPublicVendorContact(vendor) ? (
+              <PublicVendorContact vendor={vendor} />
             ) : (
               <p className="flex items-start gap-2 rounded-2xl bg-bg2 px-4 py-3 text-xs text-ink2">
                 <Info className="mt-0.5 h-4 w-4 shrink-0 text-leaf" aria-hidden />
-                Book through NaijaSpa to message this provider. Your booking details and payment stay protected.
+                Contact stays private on Free listings until you pay for a booking. Paid providers show WhatsApp, email and Instagram here.
               </p>
             )}
           </div>

@@ -1,19 +1,40 @@
 import { describe, expect, it } from "vitest";
-import { billingFromDurationDays, durationDaysFromBilling, vendorPlanBillingLabel } from "../src/lib/vendor-plans";
+import { vendorPlanCta, vendorPlanPerks } from "../src/lib/vendor-plans";
+
+const free = {
+  code: "FREE",
+  name: "Free",
+  priceKobo: 0,
+  durationDays: 36500,
+  commissionBps: 1000,
+  publicDirectContact: false,
+  enhancedVisibility: false,
+  sponsoredEligible: false
+};
+
+const gold = {
+  code: "GOLD",
+  name: "Gold",
+  priceKobo: 18_000_000,
+  durationDays: 30,
+  commissionBps: 0,
+  publicDirectContact: true,
+  enhancedVisibility: true,
+  sponsoredEligible: true
+};
+
+const platinum = { ...gold, code: "PLATINUM", name: "Platinum", priceKobo: 51_000_000, durationDays: 365 };
 
 describe("vendor listing plans", () => {
-  it("maps admin billing to package length", () => {
-    expect(durationDaysFromBilling("none")).toBe(36500);
-    expect(durationDaysFromBilling("weekly")).toBe(7);
-    expect(durationDaysFromBilling("monthly")).toBe(30);
-    expect(durationDaysFromBilling("yearly")).toBe(365);
+  it("keeps Free contact private and paid contact public", () => {
+    expect(vendorPlanPerks(free).some((p) => /private/i.test(p))).toBe(true);
+    expect(vendorPlanPerks(gold).some((p) => /Instagram/i.test(p))).toBe(true);
   });
 
-  it("labels Silver weekly Gold monthly Platinum yearly", () => {
-    expect(vendorPlanBillingLabel(7, 5_000_000)).toBe("Billed weekly");
-    expect(vendorPlanBillingLabel(30, 18_000_000)).toBe("Billed monthly");
-    expect(vendorPlanBillingLabel(365, 51_000_000)).toBe("Billed yearly");
-    expect(vendorPlanBillingLabel(36500, 0)).toBe("No subscription fee");
-    expect(billingFromDurationDays(7, 5_000_000)).toBe("weekly");
+  it("labels subscribe vs upgrade vs current", () => {
+    expect(vendorPlanCta(free, { code: "FREE", priceKobo: 0 }).kind).toBe("current");
+    expect(vendorPlanCta(gold, { code: "FREE", priceKobo: 0 }).kind).toBe("subscribe");
+    expect(vendorPlanCta(platinum, { code: "GOLD", priceKobo: gold.priceKobo }).kind).toBe("upgrade");
+    expect(vendorPlanCta(gold, { code: "GOLD", priceKobo: gold.priceKobo }).kind).toBe("current");
   });
 });

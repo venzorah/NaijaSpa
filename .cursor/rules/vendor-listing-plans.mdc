@@ -9,10 +9,10 @@ Do not confuse these with **customer Memberships & promos** (booking discounts o
 
 Vendor (therapist) listing plans on Commercial config and `/vendor/subscriptions`:
 
-- **Free** — ₦0, no weekly/monthly/annual fee. NaijaSpa takes **10% commission** on every successfully booked service, or the % the live admin sets (`freeCommissionBps` / Free plan `commissionBps`).
-- **Silver** — billed **weekly**, default **₦50,000**, admin-set. Paid-plan commission default **0%** (or admin `paidCommissionBps`).
-- **Gold** — billed **monthly**, default **₦180,000**, admin-set.
-- **Platinum** — billed **yearly**, default **₦510,000**, admin-set.
+- **Free** — ₦0, no weekly/monthly/annual fee. NaijaSpa takes **10% commission** on every successfully booked service, or the % the live admin sets (`freeCommissionBps` / Free plan `commissionBps`). **No public phone, WhatsApp, email or Instagram** on Explore/provider pages. Customers still see contact on a paid booking after Paystack confirms.
+- **Silver** — billed **weekly**, default **₦50,000**, admin-set. Paid-plan commission default **0%** (or admin `paidCommissionBps`). Paid listings may show phone, WhatsApp, login email and Instagram publicly.
+- **Gold** — billed **monthly**, default **₦180,000**, admin-set. Same public contact as other paid plans.
+- **Platinum** — billed **yearly**, default **₦510,000**, admin-set. Same public contact as other paid plans.
 
 Codes: `FREE`, `SILVER`, `GOLD`, `PLATINUM`. Prices live on `SubscriptionPlan.priceKobo`. The live admin fully manages them on Admin → Commercial config (name, ₦, billing, commission %, flags, pause, create extra packages) and can grant a plan on Admin → Vendors. Seed/ensure must not overwrite a price, commission or name the admin already saved.
 

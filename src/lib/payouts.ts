@@ -73,57 +73,91 @@ export async function listPayoutBanks() {
   }
 }
 
-export async function saveVendorPayoutAccount(vendorId: string, bankCode: string, accountNumber: string) {
+export function transferOutcome(status: string | null | undefined) {
+  const value = String(status || "").toLowerCase();
+  if (value === "success" || value === "received") return { payoutStatus: "paid", earningPaid: true as const };
+  if (value === "failed" || value === "reversed" || value === "abandoned") {
+    return { payoutStatus: "failed", earningPaid: false as const };
+  }
+  return { payoutStatus: value === "otp" ? "otp" : "pending", earningPaid: false as const };
+}
+
+export async function resolvePayoutAccount(bankCode: string, accountNumber: string) {
   const nuban = assertNuban(accountNumber);
   const code = bankCode.trim();
   if (!code) throw Object.assign(new Error("Choose a bank"), { status: 400 });
   const banks = await listPayoutBanks();
   const bank = banks.find((b) => b.code === code);
   if (!bank) throw Object.assign(new Error("Unknown bank"), { status: 400 });
-
-  let accountName = "";
-  let recipientCode: string | null = null;
-  if (paystackConfigured()) {
-    const resolved = await paystackJson(`/bank/resolve?account_number=${nuban}&bank_code=${encodeURIComponent(code)}`);
-    const data = resolved.data as { account_name?: string } | undefined;
-    if (!resolved.status || !data?.account_name) {
-      throw Object.assign(new Error(resolved.message || "Could not verify that account"), { status: 400 });
-    }
-    accountName = data.account_name;
-    const recipient = await paystackJson("/transferrecipient", {
-      method: "POST",
-      body: JSON.stringify({
-        type: "nuban",
-        name: accountName,
-        account_number: nuban,
-        bank_code: code,
-        currency: "NGN"
-      })
-    });
-    const rec = recipient.data as { recipient_code?: string } | undefined;
-    if (!recipient.status || !rec?.recipient_code) {
-      throw Object.assign(new Error(recipient.message || "Could not save Paystack recipient"), { status: 502 });
-    }
-    recipientCode = rec.recipient_code;
+  if (!paystackConfigured()) {
+    return { nuban, bank, accountName: "", recipientCode: null as string | null };
   }
+  const resolved = await paystackJson(`/bank/resolve?account_number=${nuban}&bank_code=${encodeURIComponent(code)}`);
+  const data = resolved.data as { account_name?: string } | undefined;
+  if (!resolved.status || !data?.account_name) {
+    throw Object.assign(new Error(resolved.message || "Could not verify that account"), { status: 400 });
+  }
+  const recipient = await paystackJson("/transferrecipient", {
+    method: "POST",
+    body: JSON.stringify({
+      type: "nuban",
+      name: data.account_name,
+      account_number: nuban,
+      bank_code: code,
+      currency: "NGN"
+    })
+  });
+  const rec = recipient.data as { recipient_code?: string } | undefined;
+  if (!recipient.status || !rec?.recipient_code) {
+    throw Object.assign(new Error(recipient.message || "Could not save Paystack recipient"), { status: 502 });
+  }
+  return { nuban, bank, accountName: data.account_name, recipientCode: rec.recipient_code };
+}
 
-  return prisma.vendor.update({
+const payoutAccountSelect = {
+  payoutBankCode: true,
+  payoutBankName: true,
+  payoutAccountNumber: true,
+  payoutAccountName: true,
+  payoutRecipientCode: true
+} as const;
+
+export async function saveVendorPayoutAccount(vendorId: string, bankCode: string, accountNumber: string) {
+  const resolved = await resolvePayoutAccount(bankCode, accountNumber);
+  const saved = await prisma.vendor.update({
     where: { id: vendorId },
     data: {
-      payoutBankCode: code,
-      payoutBankName: bank.name,
-      payoutAccountNumber: nuban,
-      payoutAccountName: accountName || undefined,
-      payoutRecipientCode: recipientCode
+      payoutBankCode: resolved.bank.code,
+      payoutBankName: resolved.bank.name,
+      payoutAccountNumber: resolved.nuban,
+      payoutAccountName: resolved.accountName || undefined,
+      payoutRecipientCode: resolved.recipientCode
     },
-    select: {
-      payoutBankCode: true,
-      payoutBankName: true,
-      payoutAccountNumber: true,
-      payoutAccountName: true,
-      payoutRecipientCode: true
+    select: payoutAccountSelect
+  });
+  await flushVendorPayouts(vendorId);
+  return saved;
+}
+
+async function ensureVendorRecipient(vendor: {
+  id: string;
+  payoutRecipientCode: string | null;
+  payoutAccountNumber: string | null;
+  payoutBankCode: string | null;
+}) {
+  if (vendor.payoutRecipientCode) return vendor.payoutRecipientCode;
+  if (!vendor.payoutAccountNumber || !vendor.payoutBankCode) return null;
+  if (!paystackConfigured()) return null;
+  const resolved = await resolvePayoutAccount(vendor.payoutBankCode, vendor.payoutAccountNumber);
+  await prisma.vendor.update({
+    where: { id: vendor.id },
+    data: {
+      payoutBankName: resolved.bank.name,
+      payoutAccountName: resolved.accountName || undefined,
+      payoutRecipientCode: resolved.recipientCode
     }
   });
+  return resolved.recipientCode;
 }
 
 export function maskAccountNumber(nuban: string | null | undefined) {
@@ -158,9 +192,17 @@ export async function releaseVendorPayout(bookingId: string) {
   }
 
   const vendor = booking.vendor;
-  const reference = `NS-PO-${crypto.randomBytes(8).toString("hex")}`;
+  const existingPayout = await prisma.payout.findUnique({ where: { earningId: earning.id } });
+  if (existingPayout && ["paid", "pending", "otp"].includes(existingPayout.status) && existingPayout.providerRef) {
+    return earning;
+  }
 
-  if (!vendor.payoutRecipientCode || !vendor.payoutAccountNumber) {
+  const recipient = await ensureVendorRecipient(vendor);
+  const destination = [vendor.payoutAccountName, vendor.payoutBankName, maskAccountNumber(vendor.payoutAccountNumber)]
+    .filter(Boolean)
+    .join(" · ");
+
+  if (!recipient || !vendor.payoutAccountNumber) {
     await prisma.payout.upsert({
       where: { earningId: earning.id },
       create: {
@@ -168,10 +210,13 @@ export async function releaseVendorPayout(bookingId: string) {
         earningId: earning.id,
         amountKobo: earning.payableKobo,
         status: "needs_account",
-        note: "Add a payout bank account under Earnings to receive this automatically.",
-        reference
+        note: "Add a verified Nigerian bank account under Earnings. Payouts go to that NUBAN after the visit is confirmed.",
+        reference: `NS-PO-${crypto.randomBytes(8).toString("hex")}`
       },
-      update: { status: "needs_account", note: "Add a payout bank account under Earnings to receive this automatically." }
+      update: {
+        status: "needs_account",
+        note: "Add a verified Nigerian bank account under Earnings. Payouts go to that NUBAN after the visit is confirmed."
+      }
     });
     return earning;
   }
@@ -184,20 +229,27 @@ export async function releaseVendorPayout(bookingId: string) {
         earningId: earning.id,
         amountKobo: earning.payableKobo,
         status: "pending",
-        note: "Paystack transfers are not configured. Finance can mark this paid after a manual transfer.",
-        reference
+        note: `Queued for ${destination || "the saved payout account"}. Paystack transfers are not configured on this host.`,
+        reference: `NS-PO-${crypto.randomBytes(8).toString("hex")}`
       },
-      update: { status: "pending" }
+      update: {
+        status: "pending",
+        note: `Queued for ${destination || "the saved payout account"}. Paystack transfers are not configured on this host.`
+      }
     });
     return earning;
   }
+
+  const reference = existingPayout?.status === "failed" || !existingPayout?.reference
+    ? `NS-PO-${crypto.randomBytes(8).toString("hex")}`
+    : existingPayout.reference;
 
   const transfer = await paystackJson("/transfer", {
     method: "POST",
     body: JSON.stringify({
       source: "balance",
       amount: earning.payableKobo,
-      recipient: vendor.payoutRecipientCode,
+      recipient,
       reason: `NaijaSpa booking ${booking.id.slice(0, 8)}`,
       reference
     })
@@ -219,28 +271,78 @@ export async function releaseVendorPayout(bookingId: string) {
     return earning;
   }
 
+  const outcome = transferOutcome(data?.status);
+  const note = outcome.earningPaid
+    ? `Sent to ${destination || "the vendor payout account"} via Paystack Transfer.`
+    : data?.status === "otp"
+      ? `Paystack needs OTP/approval, then ${destination || "the vendor account"} will be credited.`
+      : `Transfer started to ${destination || "the vendor payout account"}. Waiting for Paystack to confirm.`;
+
   await prisma.$transaction([
-    prisma.vendorEarning.update({ where: { id: earning.id }, data: { status: "paid" } }),
+    prisma.vendorEarning.update({
+      where: { id: earning.id },
+      data: { status: outcome.earningPaid ? "paid" : "pending" }
+    }),
     prisma.payout.upsert({
       where: { earningId: earning.id },
       create: {
         vendorId: vendor.id,
         earningId: earning.id,
         amountKobo: earning.payableKobo,
-        status: data?.status === "success" || data?.status === "otp" ? data.status : "paid",
-        note: "Sent via Paystack Transfer after the visit was confirmed.",
+        status: outcome.payoutStatus,
+        note,
         reference,
         providerRef: String(data?.transfer_code || data?.id || "")
       },
       update: {
-        status: "paid",
-        note: "Sent via Paystack Transfer after the visit was confirmed.",
+        status: outcome.payoutStatus,
+        note,
         reference,
         providerRef: String(data?.transfer_code || data?.id || "")
       }
     })
   ]);
   return prisma.vendorEarning.findUnique({ where: { id: earning.id } });
+}
+
+export async function applyPayoutTransferEvent(reference: string, status: string, providerRef?: string) {
+  const payout = await prisma.payout.findFirst({ where: { reference } });
+  if (!payout) return null;
+  const outcome = transferOutcome(status);
+  await prisma.$transaction([
+    prisma.payout.update({
+      where: { id: payout.id },
+      data: {
+        status: outcome.payoutStatus,
+        providerRef: providerRef || payout.providerRef,
+        note: outcome.earningPaid
+          ? "Paystack confirmed the transfer to the vendor bank account."
+          : outcome.payoutStatus === "failed"
+            ? "Paystack reported this transfer failed. Finance can retry."
+            : payout.note
+      }
+    }),
+    ...(payout.earningId
+      ? [
+          prisma.vendorEarning.update({
+            where: { id: payout.earningId },
+            data: { status: outcome.earningPaid ? "paid" : "pending" }
+          })
+        ]
+      : [])
+  ]);
+  return prisma.payout.findUnique({ where: { id: payout.id } });
+}
+
+export async function flushVendorPayouts(vendorId: string) {
+  const due = await prisma.vendorEarning.findMany({
+    where: { vendorId, status: "pending", booking: { status: "completed" } },
+    select: { bookingId: true }
+  });
+  for (const row of due) {
+    await releaseVendorPayout(row.bookingId);
+  }
+  return due.length;
 }
 
 export async function markBookingCompleted(bookingId: string, actorId: string) {

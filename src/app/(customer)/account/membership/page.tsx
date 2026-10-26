@@ -18,7 +18,7 @@ export default async function Page() {
   ]);
   return (
     <div className="mx-auto max-w-6xl px-4 pt-6 lg:px-8">
-      <PageHeader title="Membership" subtitle="Save on every booking and earn rewards." />
+      <PageHeader title="Membership" subtitle="Customer booking discounts and rewards. Therapist listing plans are only in the vendor portal." />
       <section className="relative overflow-hidden rounded-3xl border border-gold/40 bg-forest p-6 text-white">
         <div className="absolute -right-12 -top-12 h-48 w-48 rounded-full border border-gold/30" aria-hidden />
         <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.2em] text-[#E3C766]">

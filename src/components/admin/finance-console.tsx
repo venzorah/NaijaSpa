@@ -115,6 +115,20 @@ export function FinanceConsole({
                       }}
                     />
                   ) : null}
+                  {["failed", "needs_account", "pending", "otp"].includes(p.status) ? (
+                    <ConfirmAction
+                      triggerLabel="Retry transfer"
+                      triggerVariant="outline"
+                      disabled={!editable}
+                      title="Retry Paystack transfer?"
+                      description="Sends this earning again to the vendor’s saved bank account."
+                      confirmLabel="Retry"
+                      onConfirm={async () => {
+                        await adminJson(`/api/admin/payouts/${p.id}`, { method: "PATCH", body: JSON.stringify({ retry: true }) });
+                        router.refresh();
+                      }}
+                    />
+                  ) : null}
                 </div>
               </li>
             ))}

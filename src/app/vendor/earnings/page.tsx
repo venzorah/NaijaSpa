@@ -11,21 +11,32 @@ import { PayoutAccountForm } from "@/components/vendor/payout-account-form";
 export default async function Page() {
   const user = await getSession();
   const vendorId = user?.vendorId || "";
-  const [rows, payouts] = await Promise.all([
+  const [rows, payouts, vendor] = await Promise.all([
     prisma.vendorEarning.findMany({
       where: { vendorId },
       include: { booking: { select: { id: true, startsAt: true, status: true } } },
       orderBy: { booking: { startsAt: "desc" } },
       take: 80
     }),
-    prisma.payout.findMany({ where: { vendorId }, orderBy: { createdAt: "desc" }, take: 20 })
+    prisma.payout.findMany({ where: { vendorId }, orderBy: { createdAt: "desc" }, take: 20 }),
+    prisma.vendor.findUnique({
+      where: { id: vendorId },
+      select: { payoutAccountName: true, payoutBankName: true, payoutAccountNumber: true, payoutRecipientCode: true }
+    })
   ]);
   const payable = rows.filter((e) => e.status === "pending").reduce((s, e) => s + e.payableKobo, 0);
   const paid = rows.filter((e) => e.status !== "pending").reduce((s, e) => s + e.payableKobo, 0);
   const commission = rows.reduce((s, e) => s + e.commissionKobo, 0);
   return (
     <div>
-      <VendorPageHeader title="Earnings & payouts" description="Add a bank account, then we credit it automatically after a visit is confirmed." />
+      <VendorPageHeader
+        title="Earnings & payouts"
+        description={
+          vendor?.payoutAccountNumber
+            ? `Confirmed visits pay ${vendor.payoutAccountName || "your account"} at ${vendor.payoutBankName || "your bank"} (••••${vendor.payoutAccountNumber.slice(-4)}).`
+            : "Add the real Nigerian account that should receive money after a visit is confirmed."
+        }
+      />
       <PayoutAccountForm />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard label="Awaiting payout" value={formatNgnCompact(payable)} icon={Wallet} emphasis="gold" />
@@ -57,6 +68,7 @@ export default async function Page() {
                 <p className="font-medium">{formatNgn(p.amountKobo)}</p>
                 <p className="text-xs text-ink2">
                   {p.createdAt.toLocaleDateString("en-NG")} · {p.status}
+                  {p.note ? ` · ${p.note}` : ""}
                 </p>
               </li>
             ))}

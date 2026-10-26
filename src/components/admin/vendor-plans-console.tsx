@@ -147,8 +147,13 @@ export function VendorPlansConsole() {
                   />
                 </FormRow>
                 <label className="col-span-2 flex min-h-10 items-center gap-2 text-sm">
-                  <input name="contact" type="checkbox" defaultChecked={p.publicDirectContact} disabled={!canEdit} />
-                  Public phone & WhatsApp
+                  <input
+                    name="contact"
+                    type="checkbox"
+                    defaultChecked={p.code !== "FREE" && p.publicDirectContact}
+                    disabled={!canEdit || p.code === "FREE"}
+                  />
+                  Public phone & WhatsApp {p.code === "FREE" ? "(paid plans only)" : ""}
                 </label>
                 <label className="col-span-2 flex min-h-10 items-center gap-2 text-sm">
                   <input name="visibility" type="checkbox" defaultChecked={p.enhancedVisibility} disabled={!canEdit} />
@@ -161,8 +166,8 @@ export function VendorPlansConsole() {
                 <p className="col-span-2 flex items-start gap-2 text-xs text-ink2">
                   <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-leaf" aria-hidden />
                   {p.code === "FREE"
-                    ? "No weekly, monthly or annual fee. Commission applies on successful bookings."
-                    : "If the vendor does not renew after grace, the listing returns to Free."}
+                    ? "No weekly, monthly or annual fee. Commission applies on successful bookings. Phone and WhatsApp stay hidden from the public."
+                    : "If the vendor does not renew after grace, the listing returns to Free and public contact is hidden."}
                 </p>
                 {canEdit ? <button className={`${adminBtn} col-span-2`}>Save listing plan</button> : null}
               </form>

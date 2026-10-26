@@ -387,6 +387,7 @@ export async function getPublicService(slug: string) {
     include: {
       vendor: {
         include: {
+          owner: { select: { email: true } },
           galleries: {
             include: { images: { orderBy: { sortOrder: "asc" } } },
             orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }]
@@ -455,6 +456,7 @@ export async function getPublicVendor(slug: string) {
   const vendor = await prisma.vendor.findUnique({
     where: { slug },
     include: {
+      owner: { select: { email: true } },
       services: { where: { active: true }, include: { category: { select: { name: true, slug: true } } } },
       galleries: { include: { images: { orderBy: { sortOrder: "asc" } } }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] },
       videoLinks: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] }

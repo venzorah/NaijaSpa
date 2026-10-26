@@ -4,8 +4,11 @@ import {
   FREE_ENTITLEMENT,
   entitlementFromPlan,
   locationAddonKobo,
+  bookingUnlocksVendorContact,
+  publicContactAllowed,
   quoteBooking,
   sanitizePublicVendor,
+  toInstagramLink,
   toWhatsAppLink
 } from "../src/lib/commercial";
 import { SUPPORT_WHATSAPP, supportWhatsAppHref } from "../src/lib/support";
@@ -114,21 +117,75 @@ describe("commission and surcharges", () => {
     expect(ent.unlimitedListings).toBe(true);
   });
 
-  it("does not expose free vendor contact on public payloads", () => {
+  it("never grants public contact on the Free listing plan", () => {
+    const ent = entitlementFromPlan(
+      { ...paidPlan, code: "FREE", publicDirectContact: true },
+      new Date("2026-06-01"),
+      {
+        status: "active",
+        startsAt: new Date("2026-01-01"),
+        endsAt: new Date("9999-12-31"),
+        graceUntil: null,
+        source: "default"
+      }
+    );
+    expect(ent.activePaid).toBe(false);
+    expect(ent.publicDirectContact).toBe(false);
+    expect(publicContactAllowed(ent)).toBe(false);
+  });
+
+  it("hides public contact on Free listings", () => {
     const pub = sanitizePublicVendor(
-      { privatePhone: "+2348011111111", privateWhatsapp: "+2348011111111", businessName: "Calm House" },
+      {
+        privatePhone: "+2348011111111",
+        privateWhatsapp: "+2348011111111",
+        instagramUrl: "@calmhouse",
+        owner: { email: "calm@example.com" },
+        businessName: "Calm House"
+      },
       FREE_ENTITLEMENT
     );
     expect(pub.publicPhone).toBeNull();
     expect(pub.publicWhatsapp).toBeNull();
+    expect(pub.publicEmail).toBeNull();
+    expect(pub.publicInstagram).toBeNull();
     expect("privatePhone" in pub).toBe(false);
+    expect("owner" in pub).toBe(false);
   });
 
-  it("builds safe WhatsApp links", () => {
+  it("shows WhatsApp, email and Instagram on paid listings", () => {
+    const pub = sanitizePublicVendor(
+      {
+        privatePhone: "+2348011111111",
+        privateWhatsapp: "08011111111",
+        instagramUrl: "@osunwellness",
+        owner: { email: "hello@osun.example" },
+        businessName: "Osun Wellness"
+      },
+      { ...FREE_ENTITLEMENT, publicDirectContact: true, activePaid: true }
+    );
+    expect(pub.publicPhone).toBe("+2348011111111");
+    expect(pub.publicWhatsapp).toBe("https://wa.me/2348011111111");
+    expect(pub.publicEmail).toBe("hello@osun.example");
+    expect(pub.publicInstagram).toBe("https://www.instagram.com/osunwellness");
+    expect(pub.publicDirectContact).toBe(true);
+  });
+
+  it("unlocks booking contact only after successful payment", () => {
+    expect(bookingUnlocksVendorContact("awaiting_payment", true)).toBe(false);
+    expect(bookingUnlocksVendorContact("confirmed", false)).toBe(false);
+    expect(bookingUnlocksVendorContact("confirmed", true)).toBe(true);
+    expect(bookingUnlocksVendorContact("completed", true)).toBe(true);
+  });
+
+  it("builds safe WhatsApp and Instagram links", () => {
     expect(toWhatsAppLink("08011111111")).toBe("https://wa.me/2348011111111");
     expect(toWhatsAppLink(SUPPORT_WHATSAPP)).toBe("https://wa.me/2347039340610");
     expect(supportWhatsAppHref("Hello")).toBe(
       "https://wa.me/2347039340610?text=Hello"
     );
+    expect(toInstagramLink("@osun.spa")).toBe("https://www.instagram.com/osun.spa");
+    expect(toInstagramLink("https://instagram.com/osun.spa/")).toBe("https://www.instagram.com/osun.spa");
+    expect(toInstagramLink("javascript:alert(1)")).toBeNull();
   });
 });

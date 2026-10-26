@@ -1,0 +1,132 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+
+type InitResponse = {
+  authorizationUrl?: string | null;
+  accessCode?: string | null;
+  publicKey?: string;
+  reference?: string;
+  blocked?: boolean;
+  message?: string | null;
+  error?: string;
+};
+
+declare global {
+  interface Window {
+    PaystackPop?: new () => {
+      resumeTransaction: (
+        accessCode: string,
+        callbacks?: {
+          onSuccess?: (transaction: { reference?: string }) => void;
+          onCancel?: () => void;
+        }
+      ) => void;
+    };
+  }
+}
+
+function loadInline(): Promise<void> {
+  if (typeof window === "undefined") return Promise.resolve();
+  if (window.PaystackPop) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector<HTMLScriptElement>('script[data-naijaspa-paystack="inline"]');
+    if (existing) {
+      existing.addEventListener("load", () => resolve(), { once: true });
+      existing.addEventListener("error", () => reject(new Error("Paystack script failed")), { once: true });
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "https://js.paystack.co/v2/inline.js";
+    script.async = true;
+    script.dataset.naijaspaPaystack = "inline";
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Paystack script failed"));
+    document.body.appendChild(script);
+  });
+}
+
+export function VendorPlanPaystack({
+  planCode,
+  amountLabel,
+  autoStart = true
+}: {
+  planCode: string;
+  amountLabel: string;
+  autoStart?: boolean;
+}) {
+  const router = useRouter();
+  const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
+  const started = useRef(false);
+
+  async function pay() {
+    setBusy(true);
+    setMsg("");
+    try {
+      const res = await fetch("/api/vendor/subscriptions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planCode })
+      });
+      const json = (await res.json()) as InitResponse;
+      if (!res.ok) {
+        setMsg(json.error || json.message || "Could not start plan payment.");
+        return;
+      }
+      if (json.blocked || (!json.accessCode && !json.authorizationUrl)) {
+        setMsg(json.message || json.error || "Paystack is not configured on this host.");
+        return;
+      }
+
+      try {
+        await loadInline();
+        if (json.accessCode && window.PaystackPop) {
+          const popup = new window.PaystackPop();
+          popup.resumeTransaction(json.accessCode, {
+            onSuccess: (transaction) => {
+              const reference = transaction.reference || json.reference || "";
+              router.push(`/vendor/subscriptions/verify?reference=${encodeURIComponent(reference)}`);
+            },
+            onCancel: () => setMsg("Payment window closed. You can try again when you are ready.")
+          });
+          return;
+        }
+      } catch {
+        /* hosted checkout */
+      }
+
+      if (json.authorizationUrl) {
+        window.location.assign(json.authorizationUrl);
+        return;
+      }
+      setMsg(json.message || json.error || "Could not open Paystack.");
+    } catch {
+      setMsg("Could not start payment. Check your connection and try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!autoStart || started.current) return;
+    started.current = true;
+    void pay();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStart, planCode]);
+
+  return (
+    <div>
+      <button
+        type="button"
+        disabled={busy}
+        className="mt-6 min-h-12 w-full rounded-full bg-gold px-4 text-center font-bold leading-snug text-ongold disabled:opacity-60"
+        onClick={() => void pay()}
+      >
+        {busy ? "Opening Paystack…" : `Pay ${amountLabel} with Paystack`}
+      </button>
+      {msg ? <p className="mt-4 text-sm text-ink2">{msg}</p> : null}
+    </div>
+  );
+}

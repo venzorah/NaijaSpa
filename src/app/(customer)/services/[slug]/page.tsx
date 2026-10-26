@@ -8,6 +8,7 @@ import { StarRating } from "@/components/star-rating";
 import { ServiceBookingCard } from "@/components/service-booking-card";
 import { VendorProfileGallery } from "@/components/vendor-profile-gallery";
 import { collectProfileGalleryImages } from "@/lib/galleries";
+import { hasPublicVendorContact, PublicVendorContact } from "@/components/public-vendor-contact";
 
 export const dynamic = "force-dynamic";
 
@@ -149,20 +150,10 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
               <Link href={`/providers/${encodeURIComponent(vendor.slug)}`} className="font-semibold text-leaf">
                 View provider
               </Link>
-              {vendor.publicPhone || vendor.publicWhatsapp ? (
-                <span className="text-ink2">
-                  {vendor.publicPhone ? ` · ${vendor.publicPhone}` : ""}
-                  {vendor.publicWhatsapp ? (
-                    <>
-                      {" · "}
-                      <a className="text-leaf" href={vendor.publicWhatsapp}>
-                        WhatsApp
-                      </a>
-                    </>
-                  ) : null}
-                </span>
+              {hasPublicVendorContact(vendor) ? (
+                <PublicVendorContact vendor={vendor} variant="inline" />
               ) : (
-                <span className="ml-2 text-xs text-ink2">Direct phone is hidden. Book through NaijaSpa.</span>
+                <span className="ml-2 text-xs text-ink2">Free listings keep contact private until you pay. Paid providers show WhatsApp, email and Instagram.</span>
               )}
             </p>
           </section>

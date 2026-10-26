@@ -149,7 +149,7 @@ export const ADMIN_SCREENS: {
     label: "Memberships & promos",
     group: "Revenue",
     icon: Crown,
-    description: "Live listing packages and customer club plans. Admin edits prices, weekly/monthly/yearly billing, and Free.",
+    description: "Customer booking club plans and promo codes. Therapist listing plans live on Commercial config.",
     view: ["memberships.manage", "campaigns.manage", "finance.view"],
     edit: ["memberships.manage"]
   },

@@ -9,7 +9,6 @@ import { adminBtn, adminBtnOutline, adminField, FormRow } from "@/components/adm
 import { adminJson } from "@/components/admin/json";
 import { formatCount, formatNgn } from "@/lib/money";
 import { MEMBERSHIP_INTERVALS, membershipIntervalLabel, monthlyRecurringKobo, parseBenefits } from "@/lib/membership";
-import { VendorPlansConsole } from "@/components/admin/vendor-plans-console";
 
 type Plan = {
   id: string;
@@ -57,14 +56,9 @@ export default function MembershipsPage() {
     <div>
       <AdminPageHeader screen="memberships" />
       <p className="mb-3 text-sm text-ink2">
-        Live admin can edit every price, billing period and benefit. Paid packages bill weekly, monthly or yearly. Free has no subscription fee.
+        Customer booking club only. Therapist listing plans (Free, Silver, Gold, Platinum) are on Commercial config and the vendor dashboard.
       </p>
       {error ? <p className="mb-3 text-sm text-red-400">{error}</p> : null}
-      <h2 className="mb-3 font-display text-xl">Therapist listing plans</h2>
-      <p className="mb-3 text-sm text-ink2">
-        Free: ₦0 and commission on successful bookings. Silver weekly, Gold monthly, Platinum yearly — live amounts, fully editable. Create extra packages below.
-      </p>
-      <VendorPlansConsole />
       <h2 className="mb-3 font-display text-xl">Customer booking club</h2>
       {!canEdit ? (
         <p className="mb-3 text-sm text-ink2">View only. Price, billing, benefits and promo codes are edited by the live admin.</p>

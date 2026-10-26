@@ -6,6 +6,7 @@ import { useState } from "react";
 import { BadgeCheck, Clock, Heart, MapPin, Star } from "lucide-react";
 import { formatNgn } from "@/lib/money";
 import { listingPhotos } from "@/lib/photos";
+import { PublicVendorContact } from "@/components/public-vendor-contact";
 
 export type ExploreResult = {
   service: {
@@ -31,6 +32,8 @@ export type ExploreResult = {
     coverUrl?: string | null;
     publicPhone?: string | null;
     publicWhatsapp?: string | null;
+    publicEmail?: string | null;
+    publicInstagram?: string | null;
     ratingAvg?: number;
     reviewCount?: number;
   };
@@ -146,6 +149,7 @@ export function ExploreResultCard({ result: r }: { result: ExploreResult }) {
         <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
         {place}
       </p>
+      <PublicVendorContact vendor={r.vendor} variant="icons" />
       {r.nextLabel ? (
         <p className="mt-1 inline-flex items-center gap-1.5 text-sm text-ink2">
           <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden />

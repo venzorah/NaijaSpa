@@ -32,6 +32,7 @@ export async function initPayment(input: {
   purpose: "booking" | "subscription" | "membership";
   bookingId?: string;
   customerId?: string;
+  callbackPath?: string;
   metadata?: Record<string, string>;
 }) {
   if (input.amountKobo < 100) {
@@ -85,7 +86,8 @@ export async function initPayment(input: {
       currency: "NGN",
       status: "initialized",
       reference,
-      idempotencyKey: reference
+      idempotencyKey: reference,
+      rawPayload: JSON.stringify({ metadata: input.metadata ?? {} })
     }
   });
 
@@ -102,7 +104,8 @@ export async function initPayment(input: {
     };
   }
 
-  const callback = `${appUrl()}/checkout/verify?reference=${encodeURIComponent(reference)}`;
+  const callbackPath = input.callbackPath || "/checkout/verify";
+  const callback = `${appUrl()}${callbackPath}${callbackPath.includes("?") ? "&" : "?"}reference=${encodeURIComponent(reference)}`;
   const res = await fetch("https://api.paystack.co/transaction/initialize", {
     method: "POST",
     headers: {
@@ -143,7 +146,7 @@ export async function initPayment(input: {
     data: {
       status: "pending",
       providerRef: data.data.access_code,
-      rawPayload: JSON.stringify({ access_code: data.data.access_code })
+      rawPayload: JSON.stringify({ access_code: data.data.access_code, metadata: input.metadata ?? {} })
     }
   });
 
@@ -171,7 +174,30 @@ async function markPaymentSuccess(paymentId: string, bookingId: string | null, p
       if (booking?.status !== "confirmed") throw Object.assign(new Error("Could not confirm booking"), { status: 500 });
     }
   }
-  return payment;
+  if (payment.purpose === "subscription") {
+    await fulfillVendorSubscriptionPayment(payment.id);
+  }
+  return prisma.payment.findUniqueOrThrow({ where: { id: payment.id } });
+}
+
+function paymentMetadata(raw: string | null): { vendorId?: string; planCode?: string } {
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw) as { metadata?: { vendorId?: string; planCode?: string }; vendorId?: string; planCode?: string };
+    return parsed.metadata ?? parsed;
+  } catch {
+    return {};
+  }
+}
+
+async function fulfillVendorSubscriptionPayment(paymentId: string) {
+  const payment = await prisma.payment.findUnique({ where: { id: paymentId } });
+  if (!payment || payment.purpose !== "subscription" || payment.subscriptionId) return;
+  const meta = paymentMetadata(payment.rawPayload);
+  if (!meta.vendorId || !meta.planCode) return;
+  const { grantVendorPlan } = await import("./subscription-lifecycle");
+  const sub = await grantVendorPlan(meta.vendorId, meta.planCode, "paystack");
+  await prisma.payment.update({ where: { id: payment.id }, data: { subscriptionId: sub.id } });
 }
 
 export async function verifyPaystack(reference: string) {

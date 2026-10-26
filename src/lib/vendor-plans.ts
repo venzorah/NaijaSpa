@@ -75,3 +75,45 @@ export function vendorPlanBillingLabel(durationDays: number, priceKobo: number) 
   if (billing === "monthly") return "Billed monthly";
   return "Billed yearly";
 }
+
+export type VendorListingPlanView = {
+  code: string;
+  name: string;
+  priceKobo: number;
+  durationDays: number;
+  commissionBps: number;
+  publicDirectContact: boolean;
+  enhancedVisibility: boolean;
+  sponsoredEligible: boolean;
+};
+
+export function vendorPlanPerks(plan: VendorListingPlanView) {
+  const commission = `${plan.commissionBps / 100}% commission on each successful booking`;
+  if (plan.priceKobo <= 0 || plan.code === "FREE") {
+    return [
+      "No weekly, monthly or yearly listing fee",
+      commission,
+      "WhatsApp, email and Instagram stay private on Explore",
+      "Customers still see contact on a paid booking",
+      "Unlimited service listings"
+    ];
+  }
+  return [
+    vendorPlanBillingLabel(plan.durationDays, plan.priceKobo),
+    commission,
+    plan.publicDirectContact ? "Public WhatsApp, email and Instagram on your listing" : "Public contact hidden",
+    plan.enhancedVisibility ? "Enhanced Explore visibility" : "Standard Explore placement",
+    plan.sponsoredEligible ? "Eligible for sponsored placement" : "Sponsored placement not included",
+    "Unlimited service listings"
+  ];
+}
+
+export function vendorPlanCta(plan: VendorListingPlanView, current?: { code: string; priceKobo: number } | null) {
+  const currentCode = current?.code || "FREE";
+  const currentPrice = current?.priceKobo ?? 0;
+  if (plan.code === currentCode) return { label: "Current plan", kind: "current" as const };
+  if (plan.priceKobo <= 0) return { label: "Stay on Free", kind: "free" as const };
+  if (currentPrice <= 0 || currentCode === "FREE") return { label: `Subscribe to ${plan.name}`, kind: "subscribe" as const };
+  if (plan.priceKobo > currentPrice) return { label: `Upgrade to ${plan.name}`, kind: "upgrade" as const };
+  return { label: `Switch to ${plan.name}`, kind: "switch" as const };
+}

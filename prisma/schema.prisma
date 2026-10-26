@@ -88,6 +88,7 @@ model Vendor {
   hoursJson            String    @default("{}")
   privatePhone         String?
   privateWhatsapp      String?
+  instagramUrl         String?
   payoutBankCode       String?
   payoutBankName       String?
   payoutAccountNumber  String?
