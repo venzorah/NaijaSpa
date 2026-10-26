@@ -3,6 +3,7 @@ import path from "node:path";
 import sharp from "sharp";
 
 const WHITE = { r: 255, g: 255, b: 255, alpha: 1 };
+const PNG = { compressionLevel: 9, adaptiveFiltering: true };
 const sourcePath = path.join("public", "brand", "logo-mark.png");
 const splashLogoPath = path.join("public", "brand", "splash-logo.png");
 const splashDir = path.join("public", "splash");
@@ -36,22 +37,46 @@ async function transparentMark() {
   }
   return sharp(px, { raw: { width: info.width, height: info.height, channels: 4 } })
     .trim({ threshold: 10 })
-    .png()
+    .png(PNG)
     .toBuffer();
 }
 
+/** Keep the circular portrait; drop the wordmark so splash is a single mark. */
+async function portraitOnly(markBuf) {
+  const meta = await sharp(markBuf).metadata();
+  const width = meta.width || 1;
+  const height = meta.height || 1;
+  return sharp(markBuf)
+    .extract({ left: 0, top: 0, width, height: Math.round(height * 0.67) })
+    .trim()
+    .png(PNG)
+    .toBuffer();
+}
+
+async function writePng(file, buf) {
+  const tmp = `${file}.${process.pid}.tmp`;
+  fs.writeFileSync(tmp, buf);
+  try {
+    fs.renameSync(tmp, file);
+  } catch {
+    fs.copyFileSync(tmp, file);
+    fs.rmSync(tmp, { force: true });
+  }
+}
+
 async function whiteSplash(markBuf, width, height, dest) {
-  const markW = Math.round(Math.min(width, height) * 0.72);
-  const mark = await sharp(markBuf).resize({ width: markW, withoutEnlargement: true }).png().toBuffer();
+  const markW = Math.round(Math.min(width, height) * 0.48);
+  const mark = await sharp(markBuf).resize({ width: markW, withoutEnlargement: true }).png(PNG).toBuffer();
   const meta = await sharp(mark).metadata();
   const left = Math.max(0, Math.round((width - (meta.width || markW)) / 2));
   const top = Math.max(0, Math.round((height - (meta.height || markW)) / 2));
-  await sharp({
+  const buf = await sharp({
     create: { width, height, channels: 4, background: WHITE }
   })
     .composite([{ input: mark, left, top }])
-    .png()
-    .toFile(dest);
+    .png(PNG)
+    .toBuffer();
+  await writePng(dest, buf);
 }
 
 /** Fraction of each edge left empty so a round home-screen mask does not clip the mark. */
@@ -62,14 +87,15 @@ async function squareIcon(markBuf, size, dest, pad = 0) {
   const inner = Math.max(1, size - pad * 2);
   const mark = await sharp(markBuf)
     .resize({ width: inner, height: inner, fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
-    .png()
+    .png(PNG)
     .toBuffer();
-  await sharp({
+  const buf = await sharp({
     create: { width: size, height: size, channels: 4, background: WHITE }
   })
     .composite([{ input: mark, left: pad, top: pad }])
-    .png()
-    .toFile(dest);
+    .png(PNG)
+    .toBuffer();
+  await writePng(dest, buf);
 }
 
 function inset(size, ratio) {
@@ -77,7 +103,11 @@ function inset(size, ratio) {
 }
 
 const markBuf = await transparentMark();
-await sharp(markBuf).resize({ width: 1024, withoutEnlargement: true }).png().toFile(splashLogoPath);
+const portraitBuf = await portraitOnly(markBuf);
+await writePng(
+  splashLogoPath,
+  await sharp(portraitBuf).resize({ width: 512, withoutEnlargement: true }).png(PNG).toBuffer()
+);
 
 fs.mkdirSync(splashDir, { recursive: true });
 fs.mkdirSync(iconsDir, { recursive: true });
@@ -96,9 +126,9 @@ if (!process.argv.includes("--icons-only")) {
   for (const d of APPLE) {
     const pw = d.w * d.dpr;
     const ph = d.h * d.dpr;
-    await whiteSplash(markBuf, pw, ph, path.join(splashDir, `${d.file}.png`));
-    await whiteSplash(markBuf, ph, pw, path.join(splashDir, `${d.file}-landscape.png`));
+    await whiteSplash(portraitBuf, pw, ph, path.join(splashDir, `${d.file}.png`));
+    await whiteSplash(portraitBuf, ph, pw, path.join(splashDir, `${d.file}-landscape.png`));
   }
 }
 
-console.log("Wrote install icons and white splash images from public/brand/logo-mark.png.");
+console.log("Wrote install icons (full mark) and splash images (portrait only).");

@@ -1,4 +1,4 @@
-const CACHE = "naijaspa-shell-v9";
+const CACHE = "naijaspa-shell-v10";
 const SHELL = ["/", "/brand/splash-logo.png", "/splash/icon-512.png", "/icons/icon-192.png", "/icons/icon-512.png", "/offline.html"];
 
 self.addEventListener("install", (event) => {

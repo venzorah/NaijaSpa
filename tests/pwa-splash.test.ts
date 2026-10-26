@@ -6,8 +6,8 @@ describe("PWA splash", () => {
     expect(PWA_SPLASH_BG).toBe("#ffffff");
   });
 
-  it("hides the in-app splash in under two seconds", () => {
-    expect(SPLASH_MAX_MS).toBeLessThan(2000);
+  it("hides the in-app splash at 1.5 seconds and never waits longer", () => {
+    expect(SPLASH_MAX_MS).toBe(1500);
   });
 
   it("covers current iPhone and iPad portrait and landscape slots", () => {

@@ -3,7 +3,7 @@ import { Montserrat } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SplashScreen } from "@/components/splash-screen";
-import { appleStartupImages, PWA_SPLASH_BG } from "@/lib/pwa-splash";
+import { appleStartupImages, PWA_SPLASH_BG, SPLASH_MAX_MS } from "@/lib/pwa-splash";
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -43,7 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var d=localStorage.getItem('naijaspa-theme')==='dark';document.documentElement.classList.toggle('dark',d);document.documentElement.style.colorScheme=d?'dark':'light';if(!sessionStorage.getItem('naijaspa-splash'))document.documentElement.classList.add('ns-splash');}catch(e){document.documentElement.classList.remove('dark');document.documentElement.style.colorScheme='light';document.documentElement.classList.add('ns-splash');}})();`
+            __html: `(function(){try{var d=localStorage.getItem('naijaspa-theme')==='dark';document.documentElement.classList.toggle('dark',d);document.documentElement.style.colorScheme=d?'dark':'light';var stand=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone;if(!stand&&!sessionStorage.getItem('naijaspa-splash')){document.documentElement.classList.add('ns-splash');document.documentElement.setAttribute('data-splash-at',String(Date.now()));setTimeout(function(){document.documentElement.classList.remove('ns-splash');},${SPLASH_MAX_MS});}}catch(e){document.documentElement.classList.remove('dark');document.documentElement.style.colorScheme='light';}})();`
           }}
         />
         <link rel="icon" href="/icon.png" type="image/png" />

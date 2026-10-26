@@ -200,6 +200,6 @@ html.ns-splash .ns-splash-layer {
 }
 
 .ns-splash-layer img {
-  width: min(82vw, 20rem);
+  width: min(58vw, 15rem);
   height: auto;
 }
