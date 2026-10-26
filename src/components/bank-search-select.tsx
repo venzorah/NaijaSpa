@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { filterBanks } from "@/lib/payouts";
+import { filterBanks } from "@/lib/payout-banks";
 
 export function BankSearchSelect({
   banks,

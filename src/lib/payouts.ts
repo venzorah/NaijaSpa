@@ -82,11 +82,7 @@ export function transferOutcome(status: string | null | undefined) {
   return { payoutStatus: value === "otp" ? "otp" : "pending", earningPaid: false as const };
 }
 
-export function filterBanks(banks: Array<{ code: string; name: string }>, query: string) {
-  const q = query.trim().toLowerCase();
-  if (!q) return banks;
-  return banks.filter((b) => b.name.toLowerCase().includes(q) || b.code.includes(q));
-}
+export { filterBanks } from "./payout-banks";
 
 export async function lookupPayoutAccount(bankCode: string, accountNumber: string) {
   const nuban = assertNuban(accountNumber);
