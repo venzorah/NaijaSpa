@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, Manrope } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
-import { SplashScreen } from "@/components/splash-screen";
 
 const manrope = Manrope({
   subsets: ["latin"],
@@ -29,25 +28,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: "NaijaSpa",
-    statusBarStyle: "default",
-    startupImage: [
-      {
-        url: "/splash/iphone-1170x2532.png",
-        media: "(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)"
-      },
-      {
-        url: "/splash/iphone-1284x2778.png",
-        media: "(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3)"
-      },
-      {
-        url: "/splash/iphone-1290x2796.png",
-        media: "(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)"
-      },
-      {
-        url: "/splash/ipad-2048x2732.png",
-        media: "(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2)"
-      }
-    ]
+    statusBarStyle: "default"
   }
 };
 
@@ -70,11 +51,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
         <link rel="icon" href="/icon.png" type="image/png" />
         <link rel="apple-touch-icon" href="/apple-icon.png" />
-        <link rel="apple-touch-startup-image" href="/splash/iphone-1290x2796.png" />
       </head>
       <body className={manrope.className}>
         <ThemeProvider>
-          <SplashScreen />
           {children}
         </ThemeProvider>
         <script src="/sw-register.js" defer />
