@@ -2,6 +2,7 @@ import { prisma, getCommercialConfig } from "./db";
 import { locationAddonKobo, quoteBooking, type LocationType } from "./commercial";
 import { vendorEntitlement } from "./entitlements";
 import { audit } from "./audit";
+import { membershipPerks } from "./membership";
 
 export const BOOKING_STATES = [
   "pending",
@@ -63,18 +64,43 @@ export async function createBooking(input: {
     const addonKobo = service.addons
       .filter((a) => input.addonIds?.includes(a.id))
       .reduce((s, a) => s + a.priceKobo, 0);
+    const now = new Date();
+    const membership = await tx.customerMembership.findFirst({
+      where: { userId: input.customerId, status: "active", endsAt: { gte: now } },
+      include: { plan: true }
+    });
+    const perks = membership && membership.plan.active ? membershipPerks(membership.plan.benefits) : null;
+    let locationAddon = locationAddonKobo(loc, service);
+    if (perks?.waiveAllSurcharges) locationAddon = 0;
+    else if (perks?.waiveHomeMonthly && loc === "home") {
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const used = await tx.booking.count({
+        where: {
+          customerId: input.customerId,
+          locationType: "home",
+          surchargeKobo: 0,
+          startsAt: { gte: monthStart },
+          status: { in: ["awaiting_payment", "confirmed", "in_progress", "completed"] }
+        }
+      });
+      if (used === 0) locationAddon = 0;
+    }
     let discountKobo = 0;
+    if (perks?.bookingPercentOff) {
+      discountKobo += Math.round((service.basePriceKobo * perks.bookingPercentOff) / 100);
+    }
     if (input.promoCode) {
       const promo = await tx.promotion.findUnique({ where: { code: input.promoCode.toUpperCase() } });
-      const now = new Date();
       if (promo && promo.active && promo.startsAt <= now && promo.endsAt >= now) {
-        discountKobo = promo.amountKobo || Math.round((service.basePriceKobo * promo.percentOff) / 100);
+        discountKobo += promo.amountKobo || Math.round((service.basePriceKobo * promo.percentOff) / 100);
       }
     }
+    const ceiling = service.basePriceKobo + locationAddon + addonKobo;
+    if (discountKobo > ceiling) discountKobo = ceiling;
     const quote = quoteBooking({
       basePriceKobo: service.basePriceKobo,
       location: loc,
-      locationAddonKobo: locationAddonKobo(loc, service),
+      locationAddonKobo: locationAddon,
       addonKobo,
       discountKobo,
       entitlement,

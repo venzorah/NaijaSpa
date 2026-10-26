@@ -29,6 +29,7 @@ export type Permission =
   | "catalog.manage"
   | "support.manage"
   | "campaigns.manage"
+  | "memberships.manage"
   | "ai.manage"
   | "roles.manage"
   | "audit.view"
@@ -48,6 +49,7 @@ const ALL_ADMIN: Permission[] = [
   "catalog.manage",
   "support.manage",
   "campaigns.manage",
+  "memberships.manage",
   "ai.manage",
   "roles.manage",
   "audit.view",

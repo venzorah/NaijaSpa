@@ -36,6 +36,7 @@ type Promo = {
 export default function MembershipsPage() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [promos, setPromos] = useState<Promo[]>([]);
+  const [canEdit, setCanEdit] = useState(false);
   const [error, setError] = useState("");
 
   async function load() {
@@ -44,6 +45,7 @@ export default function MembershipsPage() {
       const json = await res.json();
       setPlans(json.plans || []);
       setPromos(json.promos || []);
+      setCanEdit(Boolean(json.canEdit));
     }
   }
   useEffect(() => {
@@ -54,6 +56,9 @@ export default function MembershipsPage() {
     <div>
       <AdminPageHeader screen="memberships" />
       {error ? <p className="mb-3 text-sm text-red-400">{error}</p> : null}
+      {!canEdit ? (
+        <p className="mb-3 text-sm text-ink2">View only. Price, billing, benefits and promo codes are edited by the live admin.</p>
+      ) : null}
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         {plans.map((p) => {
@@ -69,8 +74,10 @@ export default function MembershipsPage() {
                   role="switch"
                   aria-checked={p.active}
                   aria-label={p.active ? "Pause plan" : "Activate plan"}
-                  className={`relative h-6 w-11 shrink-0 rounded-full ${p.active ? "bg-leaf" : "bg-elev"}`}
+                  disabled={!canEdit}
+                  className={`relative h-6 w-11 shrink-0 rounded-full ${p.active ? "bg-leaf" : "bg-elev"} disabled:opacity-50`}
                   onClick={async () => {
+                    if (!canEdit) return;
                     setError("");
                     try {
                       await adminJson("/api/admin/memberships", {
@@ -120,11 +127,12 @@ export default function MembershipsPage() {
                     type="number"
                     min={0}
                     defaultValue={Math.round(p.priceKobo / 100)}
+                    disabled={!canEdit}
                     className={adminField}
                   />
                 </FormRow>
                 <FormRow label="Billing" htmlFor={`int-${p.id}`}>
-                  <select id={`int-${p.id}`} name="interval" defaultValue={p.interval} className={adminField}>
+                  <select id={`int-${p.id}`} name="interval" defaultValue={p.interval} disabled={!canEdit} className={adminField}>
                     {[...MEMBERSHIP_INTERVALS, ...(MEMBERSHIP_INTERVALS.includes(p.interval as (typeof MEMBERSHIP_INTERVALS)[number]) ? [] : [p.interval])].map(
                       (i) => (
                         <option key={i} value={i}>
@@ -136,7 +144,7 @@ export default function MembershipsPage() {
                 </FormRow>
                 <div className="col-span-2">
                   <FormRow label="Benefits (one per line)" htmlFor={`ben-${p.id}`}>
-                    <textarea id={`ben-${p.id}`} name="benefits" rows={4} defaultValue={perks.join("\n")} className={adminField} />
+                    <textarea id={`ben-${p.id}`} name="benefits" rows={4} defaultValue={perks.join("\n")} disabled={!canEdit} className={adminField} />
                   </FormRow>
                 </div>
                 <ul className="col-span-2 space-y-1">
@@ -148,11 +156,12 @@ export default function MembershipsPage() {
                   ))}
                 </ul>
                 <p className="col-span-2 text-xs text-ink2">MRR ≈ {formatNgn(mrr)}</p>
-                <button className={`${adminBtn} col-span-2`}>Save plan</button>
+                {canEdit ? <button className={`${adminBtn} col-span-2`}>Save plan</button> : null}
               </form>
             </Panel>
           );
         })}
+        {canEdit ? (
         <Panel title="Create plan">
           <p className="text-sm text-ink2">Same pattern as vendor subscriptions: name, billing interval, price in naira, then publish. Customers see active plans on Membership.</p>
           <form
@@ -202,6 +211,7 @@ export default function MembershipsPage() {
             <button className={adminBtn}>Create plan</button>
           </form>
         </Panel>
+        ) : null}
       </div>
 
       <div className="mt-4 grid gap-4 xl:grid-cols-[1.4fr_1fr]">
@@ -222,7 +232,9 @@ export default function MembershipsPage() {
                   <button
                     type="button"
                     className={adminBtnOutline}
+                    disabled={!canEdit}
                     onClick={async () => {
+                      if (!canEdit) return;
                       await adminJson("/api/admin/promotions", { method: "PATCH", body: JSON.stringify({ id: p.id, active: !p.active }) });
                       load();
                     }}
@@ -234,6 +246,7 @@ export default function MembershipsPage() {
             ))}
           </ul>
         </Panel>
+        {canEdit ? (
         <Panel title="Create promo">
           <form
             className="grid gap-2"
@@ -279,6 +292,7 @@ export default function MembershipsPage() {
             </button>
           </form>
         </Panel>
+        ) : null}
       </div>
     </div>
   );

@@ -5,13 +5,15 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { formatNgn } from "@/lib/money";
 import { parseBenefits } from "@/lib/membership";
+import { ensureLiveMembershipPlans } from "@/lib/membership-live";
 import { PageHeader } from "@/components/page-header";
 
 export default async function Page() {
   const user = await getSession();
   if (!user) redirect("/login?next=/account/membership");
+  await ensureLiveMembershipPlans();
   const [plans, membership] = await Promise.all([
-    prisma.membershipPlan.findMany({ where: { active: true } }),
+    prisma.membershipPlan.findMany({ where: { active: true }, orderBy: { priceKobo: "asc" } }),
     prisma.customerMembership.findFirst({ where: { userId: user.id, status: "active" }, include: { plan: true } })
   ]);
   return (

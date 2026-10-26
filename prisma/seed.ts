@@ -4,6 +4,7 @@ import { DEFAULT_COMMERCIAL } from "../src/lib/commercial";
 import { DEFAULT_GALLERY_CONFIG } from "../src/lib/galleries";
 import { DEFAULT_HOME_HERO, DEFAULT_HERO_ADS, DEFAULT_HERO_AD_DISPLAY_LIMIT, HERO_AD_LIMIT_KEY } from "../src/lib/home-hero";
 import { DEFAULT_HOME_FEED_CONFIG, HOME_FEED_CONFIG_KEYS } from "../src/lib/home-types";
+import { LIVE_MEMBERSHIP_PLANS, serializeBenefits } from "../src/lib/membership";
 
 const prisma = new PrismaClient();
 
@@ -365,17 +366,20 @@ async function main() {
     });
   }
 
-  await prisma.membershipPlan.upsert({
-    where: { code: "CALM_MONTHLY" },
-    update: {},
-    create: {
-      code: "CALM_MONTHLY",
-      name: "Calm monthly",
-      interval: "monthly",
-      priceKobo: 1500000,
-      benefits: JSON.stringify(["5% off eligible bookings", "Priority support"])
-    }
-  });
+  for (const plan of LIVE_MEMBERSHIP_PLANS) {
+    await prisma.membershipPlan.upsert({
+      where: { code: plan.code },
+      update: {},
+      create: {
+        code: plan.code,
+        name: plan.name,
+        interval: plan.interval,
+        priceKobo: plan.priceKobo,
+        benefits: serializeBenefits(plan.benefits),
+        active: true
+      }
+    });
+  }
   await prisma.promotion.upsert({
     where: { code: "DUO15" },
     update: {},

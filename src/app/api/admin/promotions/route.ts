@@ -7,7 +7,7 @@ import { jsonError } from "@/lib/http";
 
 export async function POST(req: Request) {
   try {
-    const actor = await requireAdmin("campaigns.manage");
+    const actor = await requireAdmin("memberships.manage");
     const body = z
       .object({
         code: z.string().min(3),
@@ -39,7 +39,7 @@ export async function POST(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
-    const actor = await requireAdmin("campaigns.manage");
+    const actor = await requireAdmin("memberships.manage");
     const body = z.object({ id: z.string(), active: z.boolean() }).parse(await req.json());
     const before = await prisma.promotion.findUniqueOrThrow({ where: { id: body.id } });
     const promo = await prisma.promotion.update({ where: { id: body.id }, data: { active: body.active } });

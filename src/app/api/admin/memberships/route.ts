@@ -4,13 +4,16 @@ import { requireAdmin } from "@/lib/admin-auth";
 import { audit } from "@/lib/audit";
 import { prisma } from "@/lib/db";
 import { jsonError } from "@/lib/http";
+import { hasPermission } from "@/lib/rbac";
 import { MEMBERSHIP_INTERVALS, planCodeFromName, serializeBenefits } from "@/lib/membership";
+import { ensureLiveMembershipPlans } from "@/lib/membership-live";
 
 const intervalSchema = z.enum(MEMBERSHIP_INTERVALS);
 
 export async function GET() {
   try {
-    await requireAdmin(["campaigns.manage", "finance.view"]);
+    const actor = await requireAdmin(["memberships.manage", "campaigns.manage", "finance.view"]);
+    await ensureLiveMembershipPlans();
     const [plans, promos, counts] = await Promise.all([
       prisma.membershipPlan.findMany({ orderBy: { priceKobo: "asc" } }),
       prisma.promotion.findMany({ orderBy: { code: "asc" } }),
@@ -22,6 +25,7 @@ export async function GET() {
     ]);
     const memberCount = Object.fromEntries(counts.map((c) => [c.planId, c._count._all]));
     return NextResponse.json({
+      canEdit: hasPermission(actor.role, "memberships.manage"),
       plans: plans.map((p) => ({ ...p, memberCount: memberCount[p.id] ?? 0 })),
       promos
     });
@@ -32,7 +36,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const actor = await requireAdmin("campaigns.manage");
+    const actor = await requireAdmin("memberships.manage");
     const body = z
       .object({
         name: z.string().min(2).max(80),
@@ -69,7 +73,7 @@ export async function POST(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
-    const actor = await requireAdmin("campaigns.manage");
+    const actor = await requireAdmin("memberships.manage");
     const body = z
       .object({
         id: z.string(),

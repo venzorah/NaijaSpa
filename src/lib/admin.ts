@@ -149,9 +149,9 @@ export const ADMIN_SCREENS: {
     label: "Memberships & promos",
     group: "Revenue",
     icon: Crown,
-    description: "Create membership plans, promo codes and offers.",
-    view: ["campaigns.manage", "finance.view"],
-    edit: ["campaigns.manage"]
+    description: "Live customer plans and promo codes. Only the live admin can edit.",
+    view: ["memberships.manage", "campaigns.manage", "finance.view"],
+    edit: ["memberships.manage"]
   },
   {
     id: "campaigns",
@@ -247,7 +247,8 @@ export const ADMIN_PERMISSION_ROWS: { area: string; action: string; permission: 
   { area: "Finance", action: "View ledgers and reports", permission: "finance.view" },
   { area: "Finance", action: "Approve refunds and release payouts", permission: "finance.manage" },
   { area: "Finance", action: "Edit plan prices and surcharges", permission: "commercial.manage" },
-  { area: "Growth", action: "Manage memberships, promos and campaigns", permission: "campaigns.manage" },
+  { area: "Growth", action: "Edit live membership plans and promo codes", permission: "memberships.manage" },
+  { area: "Growth", action: "Manage sponsored campaigns", permission: "campaigns.manage" },
   { area: "Content", action: "Publish site content, hero and legal", permission: "cms.manage" },
   { area: "Support", action: "Resolve tickets and moderate reviews", permission: "support.manage" },
   { area: "Platform", action: "Configure AI search", permission: "ai.manage" },
