@@ -4,8 +4,10 @@ import { jsonError, rateLimit } from "@/lib/http";
 import {
   GOOGLE_OAUTH_COOKIE,
   googleAuthorizeUrl,
+  googleCallbackUrlFor,
   googleConfigured,
-  loginPath,
+  googleReturnPath,
+  requestOrigin,
   safeNext,
   signOauthState,
   type GooglePortal
@@ -21,23 +23,27 @@ export async function GET(req: Request) {
       return NextResponse.redirect(new URL("/login?error=Invalid+portal", url.origin));
     }
     if (!googleConfigured()) {
+      const back = googleReturnPath(portal, url.searchParams.get("from"));
+      const sep = back.includes("?") ? "&" : "?";
       return NextResponse.redirect(
-        new URL(`${loginPath(portal)}?error=${encodeURIComponent("Gmail sign-in is not configured yet.")}`, url.origin)
+        new URL(`${back}${sep}error=${encodeURIComponent("Gmail sign-in is not configured yet.")}`, url.origin)
       );
     }
     const fallback = portal === "vendor" ? "/vendor/onboarding" : portal === "admin" ? portalHome("super_admin") : "/account";
     const next = safeNext(url.searchParams.get("next"), fallback);
     const nonce = crypto.randomUUID();
-    const state = await signOauthState({ portal, next, n: nonce });
+    const redirectUri = googleCallbackUrlFor(requestOrigin(req));
+    const returnPath = googleReturnPath(portal, url.searchParams.get("from"));
+    const state = await signOauthState({ portal, next, n: nonce, redirectUri, returnPath });
     const jar = await cookies();
     jar.set(GOOGLE_OAUTH_COOKIE, nonce, {
       httpOnly: true,
       sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      secure: process.env.NODE_ENV === "production" || redirectUri.startsWith("https://"),
       path: "/",
       maxAge: 600
     });
-    return NextResponse.redirect(googleAuthorizeUrl(state));
+    return NextResponse.redirect(googleAuthorizeUrl(state, redirectUri));
   } catch (e) {
     return jsonError(e);
   }

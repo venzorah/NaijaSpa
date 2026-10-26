@@ -3,13 +3,15 @@
 export function GoogleAuthButton({
   portal,
   next,
+  from = "login",
   label
 }: {
   portal: "customer" | "vendor" | "admin";
   next?: string;
+  from?: "login" | "register";
   label?: string;
 }) {
-  const href = `/api/auth/google?portal=${portal}${next ? `&next=${encodeURIComponent(next)}` : ""}`;
+  const href = `/api/auth/google?portal=${portal}&from=${from}${next ? `&next=${encodeURIComponent(next)}` : ""}`;
   return (
     <a
       href={href}

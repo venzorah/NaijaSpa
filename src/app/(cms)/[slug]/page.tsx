@@ -8,6 +8,7 @@ import {
   Leaf,
   Mail,
   MapPin,
+  MessageCircle,
   Phone,
   ShieldCheck,
   Users,
@@ -15,6 +16,7 @@ import {
 } from "lucide-react";
 import { ContactForm } from "@/components/contact-form";
 import { PageHeader } from "@/components/page-header";
+import { SUPPORT_WHATSAPP_DISPLAY, supportWhatsAppHref } from "@/lib/support";
 import { getDemoCms, usingDemoListings } from "@/lib/catalog";
 import { PHOTOS } from "@/lib/photos";
 
@@ -204,18 +206,32 @@ export default async function CmsPage({ params }: { params: Promise<{ slug: stri
         <div className="grid gap-6 md:grid-cols-[1fr_1.3fr]">
           <ul className="space-y-3">
             {[
-              [Mail, "Email", "concierge@naijaspa.com"],
-              [Phone, "Phone", "+234 1 555 0100"],
-              [MapPin, "Office", "Lagos, Nigeria"],
-              [Clock, "Hours", "Daily, 8:00 AM – 10:00 PM WAT"]
-            ].map(([Icon, l, v]) => {
+              [Mail, "Email", "concierge@naijaspa.com", "mailto:concierge@naijaspa.com"],
+              [MessageCircle, "WhatsApp", SUPPORT_WHATSAPP_DISPLAY, supportWhatsAppHref("Hello NaijaSpa, I need help.")],
+              [Phone, "Phone", "+234 1 555 0100", "tel:+23415550100"],
+              [MapPin, "Office", "Lagos, Nigeria", ""],
+              [Clock, "Hours", "Daily, 8:00 AM – 10:00 PM WAT", ""]
+            ].map(([Icon, l, v, href]) => {
               const I = Icon as typeof Mail;
+              const value =
+                href ? (
+                  <a
+                    href={href as string}
+                    target={(href as string).startsWith("http") ? "_blank" : undefined}
+                    rel={(href as string).startsWith("http") ? "noopener noreferrer" : undefined}
+                    className="font-semibold text-ink underline decoration-line underline-offset-2"
+                  >
+                    {v as string}
+                  </a>
+                ) : (
+                  <p className="font-semibold text-ink">{v as string}</p>
+                );
               return (
                 <li key={l as string} className="flex gap-3 rounded-3xl border border-line bg-card p-4">
                   <I className="mt-0.5 h-5 w-5 text-leaf" aria-hidden />
                   <div>
                     <p className="text-xs text-ink2">{l as string}</p>
-                    <p className="font-semibold text-ink">{v as string}</p>
+                    {value}
                   </div>
                 </li>
               );

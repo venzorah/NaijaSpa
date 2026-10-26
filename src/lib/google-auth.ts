@@ -13,7 +13,53 @@ type OauthState = {
   portal: GooglePortal;
   next: string;
   n: string;
+  redirectUri: string;
+  returnPath: string;
 };
+
+export const GOOGLE_STATIC_ORIGINS = [
+  "https://naijaspa.com",
+  "https://www.naijaspa.com",
+  "https://naijaspa.ng",
+  "https://www.naijaspa.ng",
+  "http://localhost:3000",
+  "http://127.0.0.1:3000"
+];
+
+export function allowedGoogleOrigins() {
+  const extra = [appUrl()];
+  if (process.env.VERCEL_URL) extra.push(`https://${process.env.VERCEL_URL.replace(/^https?:\/\//, "").replace(/\/$/, "")}`);
+  if (process.env.GOOGLE_REDIRECT_ORIGINS) {
+    extra.push(
+      ...process.env.GOOGLE_REDIRECT_ORIGINS.split(",")
+        .map((s) => s.trim().replace(/\/$/, ""))
+        .filter(Boolean)
+    );
+  }
+  return new Set([...GOOGLE_STATIC_ORIGINS, ...extra].map((o) => o.replace(/\/$/, "")));
+}
+
+export function requestOrigin(req: Request) {
+  const url = new URL(req.url);
+  const xfHost = req.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
+  const host = xfHost || req.headers.get("host") || url.host;
+  const proto = (req.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() || url.protocol.replace(":", "")).replace(
+    /:$/,
+    ""
+  );
+  return `${proto}://${host}`.replace(/\/$/, "");
+}
+
+export function googleCallbackUrlFor(origin: string) {
+  const allowed = allowedGoogleOrigins();
+  const base = allowed.has(origin.replace(/\/$/, "")) ? origin.replace(/\/$/, "") : appUrl();
+  return `${base}/api/auth/google/callback`;
+}
+
+export function googleReturnPath(portal: GooglePortal, from: string | null) {
+  if (from === "register") return portal === "vendor" ? "/register?asVendor=1" : "/register";
+  return loginPath(portal);
+}
 
 function secret() {
   return new TextEncoder().encode(process.env.AUTH_SECRET || "dev-secret-change-me");
@@ -60,16 +106,18 @@ export async function verifyOauthState(token: string): Promise<OauthState> {
   return {
     portal,
     next: typeof payload.next === "string" ? payload.next : "/",
-    n: typeof payload.n === "string" ? payload.n : ""
+    n: typeof payload.n === "string" ? payload.n : "",
+    redirectUri: typeof payload.redirectUri === "string" ? payload.redirectUri : googleCallbackUrl(),
+    returnPath: typeof payload.returnPath === "string" ? payload.returnPath : loginPath(portal)
   };
 }
 
-export function googleAuthorizeUrl(state: string) {
+export function googleAuthorizeUrl(state: string, redirectUri = googleCallbackUrl()) {
   const id = process.env.GOOGLE_CLIENT_ID;
   if (!id) throw Object.assign(new Error("Google sign-in is not configured"), { status: 503 });
   const params = new URLSearchParams({
     client_id: id,
-    redirect_uri: googleCallbackUrl(),
+    redirect_uri: redirectUri,
     response_type: "code",
     scope: "openid email profile",
     access_type: "online",
@@ -79,7 +127,7 @@ export function googleAuthorizeUrl(state: string) {
   return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
 }
 
-export async function exchangeGoogleCode(code: string) {
+export async function exchangeGoogleCode(code: string, redirectUri = googleCallbackUrl()) {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
   if (!clientId || !clientSecret) {
@@ -92,7 +140,7 @@ export async function exchangeGoogleCode(code: string) {
       code,
       client_id: clientId,
       client_secret: clientSecret,
-      redirect_uri: googleCallbackUrl(),
+      redirect_uri: redirectUri,
       grant_type: "authorization_code"
     })
   });

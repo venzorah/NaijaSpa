@@ -13,7 +13,9 @@ export function ContactForm() {
       <div className="py-10 text-center" role="status">
         <CheckCircle2 className="mx-auto h-12 w-12 text-leaf" aria-hidden />
         <p className="mt-3 font-semibold text-ink">Message sent</p>
-        <p className="text-sm text-ink2">We’ll reply to your email. You can also write concierge@naijaspa.com.</p>
+        <p className="text-sm text-ink2">
+          We’ll reply to your email. You can also write concierge@naijaspa.com or chat on WhatsApp.
+        </p>
       </div>
     );
   }

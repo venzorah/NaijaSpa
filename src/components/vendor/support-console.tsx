@@ -7,6 +7,7 @@ import { Panel } from "@/components/admin/panel";
 import { AdminStatusPill } from "@/components/admin/status-pill";
 import { adminBtn, adminField, FormRow } from "@/components/admin/form-row";
 import { adminJson } from "@/components/admin/json";
+import { WhatsAppSupport } from "@/components/whatsapp-support";
 
 export function VendorSupportConsole({
   tickets
@@ -32,7 +33,8 @@ export function VendorSupportConsole({
 
   return (
     <div>
-      <VendorPageHeader title="Support" description="Talk to NaijaSpa about verification, payouts and your listing." />
+      <VendorPageHeader title="Support" description="Tickets, or WhatsApp as an alternative — verification, payouts and your listing." />
+      <WhatsAppSupport prefill="Hello NaijaSpa, I need vendor support." />
       <div className="grid gap-4 xl:grid-cols-2">
         <Panel title="New ticket">
           <FormRow label="Subject" htmlFor="t-sub">

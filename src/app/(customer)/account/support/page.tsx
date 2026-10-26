@@ -5,6 +5,7 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { PageHeader } from "@/components/page-header";
 import { StatusPill } from "@/components/status-pill";
+import { WhatsAppSupport } from "@/components/whatsapp-support";
 
 export default async function Page() {
   const user = await getSession();
@@ -18,13 +19,14 @@ export default async function Page() {
     <div className="mx-auto max-w-3xl px-4 pt-6 lg:px-8">
       <PageHeader
         title="Support"
-        subtitle="We usually reply within 2 hours, 8 AM – 10 PM daily."
+        subtitle="Tickets, or WhatsApp as an alternative. We usually reply within 2 hours, 8 AM – 10 PM daily."
         right={
           <Link href="/contact" className="inline-flex min-h-11 items-center rounded-full bg-gold px-4 text-sm font-bold text-ongold">
             <Plus className="mr-1 h-4 w-4" aria-hidden /> New
           </Link>
         }
       />
+      <WhatsAppSupport prefill="Hello NaijaSpa, I need help with my booking or account." />
       <ul className="space-y-2">
         {tickets.map((t) => (
           <li key={t.id}>
@@ -42,7 +44,9 @@ export default async function Page() {
           </li>
         ))}
         {tickets.length === 0 ? (
-          <p className="rounded-3xl border border-line bg-card p-6 text-sm text-ink2">No tickets yet. Use Contact to reach concierge.</p>
+          <p className="rounded-3xl border border-line bg-card p-6 text-sm text-ink2">
+            No tickets yet. Use Contact, or WhatsApp, to reach concierge.
+          </p>
         ) : null}
       </ul>
     </div>

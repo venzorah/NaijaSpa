@@ -24,7 +24,8 @@ export async function GET(req: Request) {
   let portalPath = "/login";
   if (stateToken) {
     try {
-      portalPath = loginPath((await verifyOauthState(stateToken)).portal);
+      const early = await verifyOauthState(stateToken);
+      portalPath = early.returnPath || loginPath(early.portal);
     } catch {
       /* keep customer login */
     }
@@ -46,11 +47,11 @@ export async function GET(req: Request) {
 
   try {
     const state = await verifyOauthState(stateToken);
-    portalPath = loginPath(state.portal);
+    portalPath = state.returnPath || loginPath(state.portal);
     if (state.n !== nonce) {
       return fail(origin, portalPath, "Gmail sign-in could not be verified. Try again.");
     }
-    const profile = await exchangeGoogleCode(code);
+    const profile = await exchangeGoogleCode(code, state.redirectUri);
     const result = await signInWithGoogle(profile, state.portal);
     const next =
       result.isNew && state.portal === "vendor" ? "/vendor/onboarding" : safeNext(state.next, result.home);

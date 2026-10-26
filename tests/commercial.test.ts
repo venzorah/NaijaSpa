@@ -8,6 +8,7 @@ import {
   sanitizePublicVendor,
   toWhatsAppLink
 } from "../src/lib/commercial";
+import { SUPPORT_WHATSAPP, supportWhatsAppHref } from "../src/lib/support";
 
 const paidPlan = {
   code: "MONTHLY",
@@ -108,5 +109,9 @@ describe("commission and surcharges", () => {
 
   it("builds safe WhatsApp links", () => {
     expect(toWhatsAppLink("08011111111")).toBe("https://wa.me/2348011111111");
+    expect(toWhatsAppLink(SUPPORT_WHATSAPP)).toBe("https://wa.me/2347039340610");
+    expect(supportWhatsAppHref("Hello")).toBe(
+      "https://wa.me/2347039340610?text=Hello"
+    );
   });
 });

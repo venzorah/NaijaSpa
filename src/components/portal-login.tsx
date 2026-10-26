@@ -123,7 +123,14 @@ export function PortalLogin({
         <GoogleAuthButton
           portal={expect}
           next={next}
-          label={expect === "admin" ? "Continue with Gmail" : asVendor ? "Sign in with Gmail as therapist" : "Sign in with Gmail as client"}
+          from="login"
+          label={
+            expect === "admin"
+              ? "Continue with Gmail"
+              : asVendor
+                ? "Sign in with Gmail as therapist"
+                : "Sign in with Gmail as client"
+          }
         />
       </div>
 
