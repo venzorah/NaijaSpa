@@ -7,9 +7,9 @@ import { WriteReviewForm } from "@/components/write-review-form";
 import { StarRating } from "@/components/star-rating";
 
 export default async function WriteReviewPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const user = await getSession();
   if (!user) redirect(`/login?next=/account/bookings/${id}/review`);
-  const { id } = await params;
   const booking = await prisma.booking.findUnique({
     where: { id },
     include: { service: true, vendor: true, review: true }
