@@ -203,15 +203,16 @@ export default async function VendorHome() {
                 </div>
               ))}
             </div>
-            {!paid ? (
-              <Link href="/vendor/subscriptions" className="mt-3 inline-flex min-h-10 items-center rounded-full bg-gold px-4 text-sm font-bold text-ongold">
-                Pay to unlock public contact
-              </Link>
-            ) : (
-              <Link href="/vendor/onboarding" className="mt-3 inline-flex min-h-10 items-center text-sm font-semibold text-leaf">
-                Edit Instagram and WhatsApp
-              </Link>
-            )}
+            <Link
+              href={paid ? "/vendor/listing" : "/vendor/subscriptions"}
+              className={
+                paid
+                  ? "mt-3 inline-flex min-h-10 items-center text-sm font-semibold text-leaf"
+                  : "mt-3 inline-flex min-h-10 items-center rounded-full bg-gold px-4 text-sm font-bold text-ongold"
+              }
+            >
+              {paid ? "Add or edit public contact" : "Pay to unlock public contact"}
+            </Link>
           </Panel>
         </div>
       </div>

@@ -15,6 +15,7 @@ import {
   Menu,
   Megaphone,
   Moon,
+  Phone,
   Search,
   Settings,
   ShieldCheck,
@@ -47,6 +48,7 @@ export const VENDOR_NAV: { label: string; items: PortalLink[] }[] = [
     label: "Business",
     items: [
       { href: "/vendor/profile", label: "Business profile", icon: Store },
+      { href: "/vendor/listing", label: "Listing details", icon: Phone },
       { href: "/vendor/services", label: "Services", icon: Sparkles },
       { href: "/vendor/staff", label: "Staff & schedules", icon: Users },
       { href: "/vendor/galleries", label: "Galleries", icon: ImageIcon }

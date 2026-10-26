@@ -141,7 +141,10 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
         }));
         if (v.applicationStatus) {
           setStatus(v.applicationStatus);
-          if (v.applicationStatus === "submitted" || v.applicationStatus === "under_review" || v.applicationStatus === "approved") {
+          if (
+            !embedded &&
+            (v.applicationStatus === "submitted" || v.applicationStatus === "under_review" || v.applicationStatus === "approved")
+          ) {
             setDone(true);
           }
         }
@@ -149,10 +152,14 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
         /* stay on blank form */
       }
     })();
-  }, []);
+  }, [embedded]);
 
-  const progress = useMemo(() => ((step + 1) / STEPS.length) * 100, [step]);
-  const current = STEPS[step];
+  const flow = useMemo(
+    () => (embedded ? STEPS.filter((s) => s.id !== "plan" && s.id !== "submit") : STEPS),
+    [embedded]
+  );
+  const progress = useMemo(() => ((step + 1) / flow.length) * 100, [step, flow.length]);
+  const current = flow[step] ?? flow[0];
 
   function set<K extends keyof Form>(key: K, value: Form[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -208,6 +215,7 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
         }
       }
       if (submit) setDone(true);
+      else if (embedded) setError("Saved.");
       return true;
     } catch {
       setError("Could not save. Check your connection.");
@@ -224,7 +232,7 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
     }
     setError("");
     const ok = await save(false);
-    if (ok) setStep((s) => Math.min(s + 1, STEPS.length - 1));
+    if (ok) setStep((s) => Math.min(s + 1, flow.length - 1));
   }
 
   return (
@@ -278,12 +286,12 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
             <div className="h-full rounded-full bg-gold transition-all" style={{ width: `${done ? 100 : progress}%` }} />
           </div>
           <div className="mt-3 flex gap-1.5">
-            {STEPS.map((s, i) => (
+            {flow.map((s, i) => (
               <button
                 key={s.id}
                 type="button"
                 aria-label={s.title}
-                onClick={() => !done && setStep(i)}
+                onClick={() => (!done || embedded) && setStep(i)}
                 className={`h-1.5 flex-1 rounded-full ${i <= step || done ? "bg-gold" : "bg-white/15"}`}
               />
             ))}
@@ -497,7 +505,7 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
                 )}
               </div>
 
-              {error && <p className="mt-4 text-sm text-red-300">{error}</p>}
+              {error && <p className={`mt-4 text-sm ${error === "Saved." ? "text-gold" : "text-red-300"}`}>{error}</p>}
 
               <div className="mt-auto flex gap-3 pt-8">
                 {step > 0 && (
@@ -509,7 +517,7 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
                     Back
                   </button>
                 )}
-                {step < STEPS.length - 1 ? (
+                {step < flow.length - 1 ? (
                   <button
                     type="button"
                     disabled={busy}
@@ -522,10 +530,10 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
                   <button
                     type="button"
                     disabled={busy}
-                    onClick={() => void save(true)}
+                    onClick={() => void save(!embedded)}
                     className="min-h-12 flex-[2] rounded-full bg-gold text-base font-bold text-ongold disabled:opacity-60"
                   >
-                    {busy ? "Submitting…" : "Submit for review"}
+                    {busy ? (embedded ? "Saving…" : "Submitting…") : embedded ? "Save changes" : "Submit for review"}
                   </button>
                 )}
               </div>

@@ -49,9 +49,16 @@ export default async function VendorSubscriptionVerifyPage({
             : "If you completed payment, wait a moment and refresh. The Paystack webhook will also activate the plan."}
         </p>
         <p className="mt-3 font-mono text-sm">{existing.reference} · {formatNgn(existing.amountKobo)}</p>
-        <Link href="/vendor/subscriptions" className="mt-6 inline-flex min-h-11 items-center rounded-full bg-gold px-5 text-sm font-bold text-ongold">
-          View listing plans
-        </Link>
+        <div className="mt-6 flex flex-col items-center gap-2 sm:flex-row">
+          {ok ? (
+            <Link href="/vendor/listing" className="inline-flex min-h-11 items-center rounded-full bg-gold px-5 text-sm font-bold text-ongold">
+              Add public listing details
+            </Link>
+          ) : null}
+          <Link href="/vendor/subscriptions" className="inline-flex min-h-11 items-center rounded-full border border-line px-5 text-sm font-semibold">
+            View listing plans
+          </Link>
+        </div>
       </div>
     </div>
   );
