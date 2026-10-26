@@ -1,14 +1,14 @@
-import { prisma, getCommercialConfig } from "@/lib/db";
-import { queueMail, sendMail, brandedEmailHtml } from "@/lib/mail";
-import { appUrl } from "@/lib/payments";
-import { formatNgn } from "@/lib/money";
+import { prisma, getCommercialConfig } from "./db";
+import { queueMail, sendMail, brandedEmailHtml } from "./mail";
+import { appUrl } from "./payments";
+import { formatNgn } from "./money";
 import {
   calendarDaysUntil,
   lapseNoticeTitle,
   paidUntilMs,
   renewalNoticeDays,
   renewalNoticeTitle
-} from "@/lib/subscription-renewal";
+} from "./subscription-renewal";
 
 export async function lapsePaidSubscriptionToFree(vendorId: string, paidSubId: string, at = new Date()) {
   await prisma.vendorSubscription.update({

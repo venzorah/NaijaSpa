@@ -22,6 +22,8 @@ describe("branded transactional mail", () => {
     expect(html).toContain("/brand/logo-horizontal-dark.png");
     expect(html).toContain("alt=\"NaijaSpa\"");
     expect(html).toContain(MAIL_FROM_ADDRESS);
+    expect(html).toContain('bgcolor="#064E3B"');
+    expect(html).toContain("color-scheme\" content=\"light only");
   });
 
   it("builds customer and vendor welcome copy", () => {
@@ -40,6 +42,8 @@ describe("branded transactional mail", () => {
     expect(reset.html).toContain("482913");
     expect(reset.html).not.toContain("/reset?token=");
     expect(reset.html).toContain("/brand/logo-horizontal-dark.png");
+    expect(reset.html).toContain('bgcolor="#064E3B"');
+    expect(reset.html).toContain('bgcolor="#04382b"');
     const invite = vendorInviteEmail({
       businessName: "Luna Spa",
       setupUrl: "https://naijaspa.ng/invite/tok"

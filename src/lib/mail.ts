@@ -35,41 +35,63 @@ export function brandedEmailHtml({
   cta?: { href: string; label: string };
 }) {
   const logo = brandLogoUrl();
+  const forest = "#064E3B";
+  const forestDeep = "#04382b";
+  const gold = "#D4AF37";
+  const cream = "#f4efe6";
   const codeBlock = code
-    ? `<p style="margin:24px 0 8px;text-align:center;letter-spacing:12px;font-size:32px;line-height:1.2;font-weight:700;color:#D4AF37;font-family:ui-monospace,Consolas,monospace">${escapeHtml(code)}</p>`
+    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${forestDeep}" style="background-color:${forestDeep}!important;margin:24px 0 8px">
+        <tr>
+          <td align="center" bgcolor="${forestDeep}" style="background-color:${forestDeep}!important;padding:18px 12px">
+            <p style="margin:0;text-align:center;letter-spacing:12px;font-size:32px;line-height:1.2;font-weight:700;color:${gold}!important;font-family:ui-monospace,Consolas,monospace">${escapeHtml(code)}</p>
+          </td>
+        </tr>
+      </table>`
     : "";
   const ctaBlock = cta
     ? `<p style="margin:28px 0 8px;text-align:center">
-        <a href="${escapeAttr(cta.href)}" style="display:inline-block;background:#D4AF37;color:#064E3B;font-weight:700;text-decoration:none;padding:14px 28px;border-radius:999px">${escapeHtml(cta.label)}</a>
+        <a href="${escapeAttr(cta.href)}" style="display:inline-block;background-color:${gold}!important;color:${forest}!important;font-weight:700;text-decoration:none;padding:14px 28px;border-radius:999px">${escapeHtml(cta.label)}</a>
       </p>`
     : "";
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" style="background-color:${forest}!important">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="color-scheme" content="light only" />
+  <meta name="supported-color-schemes" content="light" />
   <title>${escapeHtml(title)}</title>
+  <style type="text/css">
+    :root { color-scheme: light only; supported-color-schemes: light; }
+    html, body { background-color: ${forest} !important; }
+    u + .body { background-color: ${forest} !important; }
+    @media (prefers-color-scheme: dark) {
+      html, body, .body, .wrap, .card, .pad { background-color: ${forest} !important; }
+      h1, p, a { color: ${cream} !important; }
+      .gold { color: ${gold} !important; }
+    }
+  </style>
 </head>
-<body style="margin:0;padding:0;background:#0b1210;color:#f4efe6;font-family:Georgia,'Times New Roman',serif">
-  <span style="display:none;max-height:0;overflow:hidden">${escapeHtml(preheader || intro)}</span>
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0b1210;padding:24px 12px">
+<body class="body" bgcolor="${forest}" style="margin:0;padding:0;background-color:${forest}!important;color:${cream};font-family:Georgia,'Times New Roman',serif">
+  <span style="display:none;max-height:0;overflow:hidden;color:${forest}">${escapeHtml(preheader || intro)}</span>
+  <table class="wrap" role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${forest}" style="background-color:${forest}!important;padding:24px 12px">
     <tr>
-      <td align="center">
-        <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#064E3B;border-radius:20px;overflow:hidden;border:1px solid #D4AF37">
+      <td class="pad" align="center" bgcolor="${forest}" style="background-color:${forest}!important">
+        <table class="card" role="presentation" width="560" cellpadding="0" cellspacing="0" bgcolor="${forest}" style="max-width:560px;width:100%;background-color:${forest}!important;border:1px solid ${gold}">
           <tr>
-            <td style="padding:28px 28px 12px;text-align:center;background:#04382b">
-              <img src="${escapeAttr(logo)}" alt="NaijaSpa" width="220" style="display:block;margin:0 auto;max-width:220px;height:auto" />
+            <td align="center" bgcolor="${forestDeep}" style="padding:28px 28px 12px;text-align:center;background-color:${forestDeep}!important">
+              <img src="${escapeAttr(logo)}" alt="NaijaSpa" width="220" height="64" style="display:block;margin:0 auto;max-width:220px;height:auto;border:0;outline:none" />
             </td>
           </tr>
           <tr>
-            <td style="padding:8px 28px 32px">
-              <h1 style="margin:16px 0 12px;font-size:24px;line-height:1.3;color:#D4AF37">${escapeHtml(title)}</h1>
-              <p style="margin:0 0 12px;font-size:16px;line-height:1.6;color:#f4efe6">${escapeHtml(intro)}</p>
-              <p style="margin:0;font-size:15px;line-height:1.6;color:#e8e0d4">${escapeHtml(body)}</p>
+            <td bgcolor="${forest}" style="padding:8px 28px 32px;background-color:${forest}!important;color:${cream}">
+              <h1 class="gold" style="margin:16px 0 12px;font-size:24px;line-height:1.3;color:${gold}!important">${escapeHtml(title)}</h1>
+              <p style="margin:0 0 12px;font-size:16px;line-height:1.6;color:${cream}!important">${escapeHtml(intro)}</p>
+              <p style="margin:0;font-size:15px;line-height:1.6;color:${cream}!important">${escapeHtml(body)}</p>
               ${codeBlock}
               ${ctaBlock}
-              ${cta ? `<p style="margin:16px 0 0;font-size:12px;line-height:1.5;color:#c9c0b0;word-break:break-all">${escapeHtml(cta.href)}</p>` : ""}
-              <p style="margin:28px 0 0;font-size:13px;line-height:1.5;color:#c9c0b0">NaijaSpa · Lagos · Abuja · Port Harcourt · Delta · Anambra<br />Sent from ${escapeHtml(MAIL_FROM_ADDRESS)}</p>
+              ${cta ? `<p style="margin:16px 0 0;font-size:12px;line-height:1.5;color:${cream}!important;word-break:break-all">${escapeHtml(cta.href)}</p>` : ""}
+              <p style="margin:28px 0 0;font-size:13px;line-height:1.5;color:${cream}!important">NaijaSpa · Lagos · Abuja · Port Harcourt · Delta · Anambra<br />Sent from ${escapeHtml(MAIL_FROM_ADDRESS)}</p>
             </td>
           </tr>
         </table>
