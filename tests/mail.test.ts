@@ -34,10 +34,11 @@ describe("branded transactional mail", () => {
     expect(vendor.html).toContain("/vendor/onboarding");
   });
 
-  it("builds password reset and vendor invite emails with action links", () => {
-    const reset = passwordResetEmail({ resetUrl: "https://naijaspa.ng/reset?token=abc" });
-    expect(reset.subject.toLowerCase()).toContain("password");
-    expect(reset.html).toContain("https://naijaspa.ng/reset?token=abc");
+  it("builds password reset OTP and vendor invite emails", () => {
+    const reset = passwordResetEmail({ code: "482913" });
+    expect(reset.subject.toLowerCase()).toMatch(/password|code/);
+    expect(reset.html).toContain("482913");
+    expect(reset.html).not.toContain("/reset?token=");
     expect(reset.html).toContain("/brand/logo-horizontal-dark.png");
     const invite = vendorInviteEmail({
       businessName: "Luna Spa",

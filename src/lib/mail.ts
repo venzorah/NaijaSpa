@@ -20,15 +20,20 @@ export function brandedEmailHtml({
   preheader,
   intro,
   body,
+  code,
   cta
 }: {
   title: string;
   preheader?: string;
   intro: string;
   body: string;
+  code?: string;
   cta?: { href: string; label: string };
 }) {
   const logo = brandLogoUrl();
+  const codeBlock = code
+    ? `<p style="margin:24px 0 8px;text-align:center;letter-spacing:12px;font-size:32px;line-height:1.2;font-weight:700;color:#D4AF37;font-family:ui-monospace,Consolas,monospace">${escapeHtml(code)}</p>`
+    : "";
   const ctaBlock = cta
     ? `<p style="margin:28px 0 8px;text-align:center">
         <a href="${escapeAttr(cta.href)}" style="display:inline-block;background:#D4AF37;color:#064E3B;font-weight:700;text-decoration:none;padding:14px 28px;border-radius:999px">${escapeHtml(cta.label)}</a>
@@ -57,6 +62,7 @@ export function brandedEmailHtml({
               <h1 style="margin:16px 0 12px;font-size:24px;line-height:1.3;color:#D4AF37">${escapeHtml(title)}</h1>
               <p style="margin:0 0 12px;font-size:16px;line-height:1.6;color:#f4efe6">${escapeHtml(intro)}</p>
               <p style="margin:0;font-size:15px;line-height:1.6;color:#e8e0d4">${escapeHtml(body)}</p>
+              ${codeBlock}
               ${ctaBlock}
               ${cta ? `<p style="margin:16px 0 0;font-size:12px;line-height:1.5;color:#c9c0b0;word-break:break-all">${escapeHtml(cta.href)}</p>` : ""}
               <p style="margin:28px 0 0;font-size:13px;line-height:1.5;color:#c9c0b0">NaijaSpa · Lagos · Abuja · Port Harcourt · Delta · Anambra<br />Sent from ${escapeHtml(MAIL_FROM_ADDRESS)}</p>
@@ -96,15 +102,15 @@ export function welcomeEmail({ name, asVendor }: { name: string; asVendor: boole
   };
 }
 
-export function passwordResetEmail({ resetUrl }: { resetUrl: string }) {
+export function passwordResetEmail({ code }: { code: string }) {
   return {
-    subject: "Reset your NaijaSpa password",
+    subject: "Your NaijaSpa password reset code",
     html: brandedEmailHtml({
-      title: "Password reset",
-      preheader: "Use this link within one hour to set a new password.",
-      intro: "We received a request to reset your NaijaSpa password.",
-      body: "This link expires in one hour. If you did not ask for a reset, you can ignore this email — your password stays the same.",
-      cta: { href: resetUrl, label: "Set a new password" }
+      title: "Password reset code",
+      preheader: "Enter this 6-digit code in the NaijaSpa app. It expires in 15 minutes.",
+      intro: "Use this code in the app to set a new password. Do not share it.",
+      body: "The code expires in 15 minutes. If you did not ask for a reset, you can ignore this email — your password stays the same.",
+      code
     })
   };
 }
@@ -163,8 +169,8 @@ export async function sendWelcomeEmail({ to, name, asVendor }: { to: string; nam
   await sendMail({ to, ...mail });
 }
 
-export async function sendPasswordResetEmail({ to, resetUrl }: { to: string; resetUrl: string }) {
-  const mail = passwordResetEmail({ resetUrl });
+export async function sendPasswordResetEmail({ to, code }: { to: string; code: string }) {
+  const mail = passwordResetEmail({ code });
   await sendMail({ to, ...mail });
 }
 
