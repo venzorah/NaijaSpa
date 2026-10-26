@@ -7,6 +7,7 @@ export default async function CategoriesPage() {
   const { editable } = await requireAdminScreen("categories");
   const categories = await prisma.category.findMany({
     orderBy: { sortOrder: "asc" },
+    omit: { imagePayload: true },
     include: { services: { select: { vendorId: true } } }
   });
   return (

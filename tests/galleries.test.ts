@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { FREE_ENTITLEMENT, entitlementFromPlan } from "../src/lib/commercial";
 import { demoVendorBySlug } from "../src/lib/demo-catalog";
+import { formImage } from "../src/lib/form-file";
 import {
   MAX_VENDOR_GALLERIES,
   PROFILE_GALLERY_MAX_IMAGES,
@@ -54,6 +55,13 @@ describe("therapist galleries", () => {
     expect(profileGalleryImageLimit(cfg)).toBe(4);
     expect(() => assertCanAddImage(6, parseGalleryConfig({}), 100, { profile: true })).toThrow(/at most 6/);
     expect(PROFILE_GALLERY_MAX_IMAGES).toBe(6);
+  });
+
+  it("reads a FormData image whether it is a File or a Blob", () => {
+    const fd = new FormData();
+    fd.set("file", new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0xe0])], { type: "image/jpeg" }), "cover.jpg");
+    expect(formImage(fd)?.size).toBe(4);
+    expect(formImage(new FormData())).toBeNull();
   });
 
   it("detects jpeg magic bytes", () => {

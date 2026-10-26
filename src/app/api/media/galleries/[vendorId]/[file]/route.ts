@@ -28,7 +28,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ vendorId: stri
       headers: {
         "Content-Type": fromDb.mimeType || MIME[path.extname(file).slice(1).toLowerCase()] || "application/octet-stream",
         "Content-Length": String(fromDb.byteSize || body.length),
-        "Cache-Control": "public, max-age=86400"
+        "Cache-Control": "public, max-age=31536000, immutable"
       }
     });
   }
@@ -42,7 +42,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ vendorId: stri
       headers: {
         "Content-Type": MIME[ext] || "application/octet-stream",
         "Content-Length": String(info.size),
-        "Cache-Control": "public, max-age=86400"
+        "Cache-Control": "public, max-age=31536000, immutable"
       }
     });
   } catch {

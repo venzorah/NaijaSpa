@@ -17,8 +17,12 @@ export async function saveGalleryImageFile(vendorId: string, id: string, bytes: 
   }
   const fileName = `${id}.${extensionForMime(mime)}`;
   const dir = path.join(uploadsRoot(), vendorId);
-  await mkdir(dir, { recursive: true });
-  await writeFile(path.join(dir, fileName), bytes);
+  try {
+    await mkdir(dir, { recursive: true });
+    await writeFile(path.join(dir, fileName), bytes);
+  } catch {
+    /* Vercel and other hosts are read-only; bytes stay in the database. */
+  }
   return { url: mediaUrl(vendorId, fileName), mime };
 }
 

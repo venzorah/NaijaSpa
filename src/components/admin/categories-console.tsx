@@ -127,7 +127,7 @@ export function CategoriesConsole({ rows, editable }: { rows: AdminCategory[]; e
         {message ? <p className="mb-3 text-sm text-goldink">{message}</p> : null}
         {selected ? (
           <form
-            key={selected.id}
+            key={`${selected.id}:${selected.imageUrl ?? ""}`}
             className="space-y-4"
             onSubmit={(e) => {
               e.preventDefault();
@@ -169,8 +169,16 @@ export function CategoriesConsole({ rows, editable }: { rows: AdminCategory[]; e
                         const data = new FormData();
                         data.set("file", file);
                         const res = await fetch(`/api/admin/categories/${selected.id}/image`, { method: "POST", body: data });
-                        const json = (await res.json().catch(() => ({}))) as { error?: string };
+                        const json = (await res.json().catch(() => ({}))) as {
+                          error?: string;
+                          category?: { id: string; imageUrl: string | null };
+                        };
                         if (!res.ok) throw new Error(json.error || "Upload failed");
+                        if (json.category) {
+                          setList((prev) =>
+                            prev.map((c) => (c.id === json.category!.id ? { ...c, imageUrl: json.category!.imageUrl } : c))
+                          );
+                        }
                       });
                     }}
                   />

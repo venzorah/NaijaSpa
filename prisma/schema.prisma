@@ -213,6 +213,8 @@ model Category {
   metaTitle       String    @default("")
   metaDescription String    @default("")
   imageUrl        String?
+  imagePayload    Bytes?
+  imageMime       String    @default("")
   sortOrder       Int       @default(0)
   active          Boolean   @default(true)
   archivedAt      DateTime?

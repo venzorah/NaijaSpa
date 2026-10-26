@@ -22,8 +22,12 @@ export async function saveCategoryImageFile(id: string, bytes: Uint8Array) {
   }
   const fileName = `${id}.${extensionForMime(mime)}`;
   const dir = categoryUploadsRoot();
-  await mkdir(dir, { recursive: true });
-  await writeFile(path.join(dir, fileName), bytes);
+  try {
+    await mkdir(dir, { recursive: true });
+    await writeFile(path.join(dir, fileName), bytes);
+  } catch {
+    /* Vercel and other hosts are read-only; bytes stay in the database. */
+  }
   return { url: categoryMediaUrl(fileName), mime };
 }
 

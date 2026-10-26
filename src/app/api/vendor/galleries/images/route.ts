@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getSession, requireUser } from "@/lib/auth";
 import { getGalleryConfig, prisma } from "@/lib/db";
 import { assertCanAddImage, assertImageUrl, isProfileGalleryTitle } from "@/lib/galleries";
+import { formImage } from "@/lib/form-file";
 import { jsonError } from "@/lib/http";
 
 function requireVendorId(user: { vendorId?: string | null }) {
@@ -25,13 +26,13 @@ export async function POST(req: Request) {
     const contentType = req.headers.get("content-type") || "";
     const config = await getGalleryConfig();
 
-    if (contentType.includes("multipart/form-data")) {
+    if (!contentType.includes("application/json")) {
       const fd = await req.formData();
       const galleryId = String(fd.get("galleryId") || "");
       const caption = String(fd.get("caption") || "").slice(0, 160);
       const therapistName = String(fd.get("therapistName") || "").slice(0, 80);
-      const file = fd.get("file");
-      if (!(file instanceof File)) return NextResponse.json({ error: "Choose an image file" }, { status: 400 });
+      const file = formImage(fd);
+      if (!file) return NextResponse.json({ error: "Choose an image file" }, { status: 400 });
       const gallery = await ownedGallery(vendorId, galleryId);
       if (!gallery) return NextResponse.json({ error: "Gallery not found" }, { status: 404 });
       const buf = new Uint8Array(await file.arrayBuffer());

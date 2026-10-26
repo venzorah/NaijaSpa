@@ -73,12 +73,16 @@ export default function VendorGalleriesPage() {
     const fd = new FormData(form);
     fd.set("galleryId", galleryId);
     const file = fd.get("file");
-    if (file instanceof File && file.size > maxBytes) {
+    if (!(file instanceof Blob) || !file.size) {
+      setMessage("Choose an image file.");
+      return;
+    }
+    if (file.size > maxBytes) {
       setMessage(`Each image must be at most ${Math.round(maxBytes / 1024)} KB.`);
       return;
     }
     const res = await fetch("/api/vendor/galleries/images", { method: "POST", body: fd });
-    const j = await res.json();
+    const j = await res.json().catch(() => ({}));
     if (!res.ok) {
       setMessage(j.error || "Upload failed.");
       return;

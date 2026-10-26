@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { categoryImage } from "../src/lib/category-images";
 import { listingPhotos, publicWellnessPhoto } from "../src/lib/photos";
 import { demoExploreCities, demoHomeRails, demoNearbyVendors, demoSearch } from "../src/lib/demo-catalog";
 import {
@@ -65,6 +66,7 @@ describe("demo therapist search", () => {
       expect(photos.avatar).toMatch(/^\/photos\//);
       expect(photos.cover).not.toMatch(/unsplash|pexels|picsum/i);
     }
+    expect(categoryImage("massage", "/api/media/categories/abc.jpg")).toBe("/api/media/categories/abc.jpg");
   });
 
   it("shows sibling cities in the same state when a city has no therapists", () => {
