@@ -1,11 +1,13 @@
-import { prisma } from "./db";
+import { getCommercialConfig, prisma } from "./db";
 import { entitlementFromPlan, FREE_ENTITLEMENT, type Entitlement } from "./commercial";
+import { lapsePaidSubscriptionToFree } from "./subscription-lifecycle";
 
 export async function vendorEntitlements(vendorIds: string[], at = new Date()): Promise<Map<string, Entitlement>> {
   const unique = Array.from(new Set(vendorIds.filter(Boolean)));
   const map = new Map<string, Entitlement>();
   for (const id of unique) map.set(id, FREE_ENTITLEMENT);
   if (!unique.length) return map;
+  const config = await getCommercialConfig();
 
   const subs = await prisma.vendorSubscription.findMany({
     where: { vendorId: { in: unique }, status: { in: ["active", "grace"] } },
@@ -17,7 +19,7 @@ export async function vendorEntitlements(vendorIds: string[], at = new Date()): 
     if (!prev || sub.endsAt > prev.endsAt) latest.set(sub.vendorId, sub);
   }
   for (const [vendorId, sub] of latest) {
-    map.set(vendorId, entitlementFromPlan(sub.plan, at, sub));
+    map.set(vendorId, entitlementFromPlan(sub.plan, at, sub, config.graceDays));
   }
   return map;
 }
@@ -29,25 +31,10 @@ export async function vendorEntitlement(vendorId: string, at = new Date()): Prom
     orderBy: { endsAt: "desc" }
   });
   if (!sub) return FREE_ENTITLEMENT;
-  const ent = entitlementFromPlan(sub.plan, at, sub);
+  const config = await getCommercialConfig();
+  const ent = entitlementFromPlan(sub.plan, at, sub, config.graceDays);
   if (!ent.activePaid && sub.plan.code !== "FREE") {
-    await prisma.vendorSubscription.update({
-      where: { id: sub.id },
-      data: { status: "expired" }
-    });
-    const free = await prisma.subscriptionPlan.findUnique({ where: { code: "FREE" } });
-    if (free) {
-      await prisma.vendorSubscription.create({
-        data: {
-          vendorId,
-          planId: free.id,
-          status: "active",
-          source: "expiry",
-          startsAt: at,
-          endsAt: new Date("9999-12-31")
-        }
-      });
-    }
+    await lapsePaidSubscriptionToFree(vendorId, sub.id, at);
     return FREE_ENTITLEMENT;
   }
   return ent;

@@ -141,7 +141,7 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
             </p>
             <p className="mt-0.5 text-[11px] text-ink2">{completionRate.toFixed(0)}% completion rate</p>
           </Link>
-          <StatCard href="/admin/commercial" label="Active vendor subscriptions" value={formatCount(subscriptions)} sub="Weekly · Monthly · 6-Month" icon={Crown} emphasis="gold" />
+          <StatCard href="/admin/commercial" label="Active vendor subscriptions" value={formatCount(subscriptions)} sub="Silver · Gold · Platinum" icon={Crown} emphasis="gold" />
         </div>
       </section>
 

@@ -15,3 +15,11 @@ Vendor (therapist) listing plans on Commercial config and `/vendor/subscriptions
 - **Platinum** — billed **yearly**, default **₦510,000**, admin-set.
 
 Codes: `FREE`, `SILVER`, `GOLD`, `PLATINUM`. Prices live on `SubscriptionPlan.priceKobo` and are edited only in Admin → Commercial config. Seed/ensure must not overwrite a non-zero price the admin already saved.
+
+Renewal notices (email + in-app) follow the package length, not a single global reminder:
+
+- Silver (weekly): 2 days, 1 day, and on the due date
+- Gold (monthly): 7, 3, and 1 day before
+- Platinum (yearly): 30, 14, 7, and 1 day before
+
+If the vendor does not renew, after `graceDays` (commercial default 3) the paid `VendorSubscription` is expired and they are put back on **Free**. Daily job: `GET /api/jobs/subscriptions` (`vercel.json` cron 08:00 UTC) with `Authorization: Bearer` `CRON_SECRET` or `INTERNAL_JOB_SECRET`.

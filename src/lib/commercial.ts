@@ -1,4 +1,5 @@
 import { applyBps } from "./money";
+import { paidUntilMs } from "./subscription-renewal";
 
 export const LOCATION_SPA = "spa";
 export const LOCATION_HOTEL = "hotel";
@@ -58,14 +59,15 @@ export function entitlementFromPlan(
     unlimitedListings: boolean;
   },
   now: Date,
-  sub?: { status: string; startsAt: Date; endsAt: Date; graceUntil: Date | null; source: string }
+  sub?: { status: string; startsAt: Date; endsAt: Date; graceUntil: Date | null; source: string },
+  graceDays = 0
 ): Entitlement {
   const paidActive =
     !!sub &&
-    sub.status === "active" &&
+    (sub.status === "active" || sub.status === "grace") &&
     plan.code !== "FREE" &&
     now >= sub.startsAt &&
-    (now <= sub.endsAt || (!!sub.graceUntil && now <= sub.graceUntil));
+    now.getTime() <= paidUntilMs(sub.endsAt, sub.graceUntil, graceDays);
 
   if (!paidActive) return { ...FREE_ENTITLEMENT, unlimitedListings: true };
 

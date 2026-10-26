@@ -26,7 +26,7 @@ export default function CommercialPage() {
       <AdminPageHeader screen="commercial" />
       <Panel
         title="Plans, extras and marketplace hubs"
-        description="Free vendors pay 10% (or the % you set) on each successful booking — no weekly, monthly or annual fee. Paid packages: Silver weekly, Gold monthly, Platinum yearly. Prices are admin-set."
+        description="Free vendors pay 10% (or the % you set) on each successful booking — no weekly, monthly or annual fee. Paid packages: Silver weekly, Gold monthly, Platinum yearly. Missed renewal after the grace period returns the listing to Free."
       >
       <form
         key={data.config ? "loaded" : "loading"}
@@ -50,6 +50,7 @@ export default function CommercialPage() {
               extraStates: fd.getAll("extraState").map(String),
               freeCommissionBps: Math.round(Number(fd.get("freeCommission") || 10) * 100),
               paidCommissionBps: Math.round(Number(fd.get("paidCommission") || 0) * 100),
+              graceDays: Number(fd.get("graceDays") || 3),
               plans: [
                 { code: "FREE", priceKobo: 0, commissionBps: Math.round(Number(fd.get("freeCommission") || 10) * 100) },
                 { code: "SILVER", priceKobo: Number(fd.get("silver")) * 100 },
@@ -110,6 +111,13 @@ export default function CommercialPage() {
           Platinum (yearly) ₦
           <input name="platinum" type="number" min={0} defaultValue={(data.plans?.find((p) => p.code === "PLATINUM")?.priceKobo || 51_000_000) / 100} className="ml-2 rounded-xl bg-elev px-2" />
         </label>
+        <label className="text-sm">
+          Grace days after plan end
+          <input name="graceDays" type="number" min={0} max={30} defaultValue={Number(data.config?.graceDays ?? 3)} className="ml-2 rounded-xl bg-elev px-2" />
+        </label>
+        <p className="text-xs text-ink2">
+          Renewal notices: Silver 2/1/0 days, Gold 7/3/1 days, Platinum 30/14/7/1 days before the end date. After grace, unpaid listings go back to Free.
+        </p>
         <h2 className="mt-4 font-display text-xl">Therapist galleries</h2>
         <p className="text-xs text-ink2">Vendors may create at most 7 galleries. Image count and file size are editable here.</p>
         <label className="text-sm">

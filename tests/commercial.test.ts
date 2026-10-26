@@ -83,6 +83,23 @@ describe("commission and surcharges", () => {
     expect(q.customerTotalKobo).toBe(2_000_000);
   });
 
+  it("keeps paid entitlements through commercial grace days", () => {
+    const ent = entitlementFromPlan(
+      paidPlan,
+      new Date("2026-07-03"),
+      {
+        status: "active",
+        startsAt: new Date("2026-05-01"),
+        endsAt: new Date("2026-07-01"),
+        graceUntil: null,
+        source: "payment"
+      },
+      3
+    );
+    expect(ent.activePaid).toBe(true);
+    expect(ent.planCode).toBe("MONTHLY");
+  });
+
   it("restores free entitlements after expiry", () => {
     const ent = entitlementFromPlan(paidPlan, new Date("2026-08-01"), {
       status: "active",

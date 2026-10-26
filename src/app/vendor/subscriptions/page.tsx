@@ -6,6 +6,7 @@ import { vendorEntitlement } from "@/lib/entitlements";
 import { formatNgn } from "@/lib/money";
 import { vendorPlanBillingLabel } from "@/lib/vendor-plans";
 import { ensureLiveVendorPlans } from "@/lib/vendor-plans-live";
+import { calendarDaysUntil, renewalNoticeDays } from "@/lib/subscription-renewal";
 import { VendorPageHeader } from "@/components/vendor/page-header";
 import { Panel } from "@/components/admin/panel";
 import { AdminStatusPill } from "@/components/admin/status-pill";
@@ -21,21 +22,43 @@ export default async function Page() {
     include: { plan: true },
     orderBy: { endsAt: "desc" }
   });
+  const paidCurrent = current && current.plan.code !== "FREE" && current.endsAt.getUTCFullYear() < 9000 ? current : null;
+  const daysLeft = paidCurrent ? calendarDaysUntil(paidCurrent.endsAt) : null;
+  const noticeWindows = paidCurrent ? renewalNoticeDays(paidCurrent.plan.durationDays) : [];
+  const showRenewal = daysLeft != null && daysLeft <= Math.max(...noticeWindows, 0);
   return (
     <div>
       <VendorPageHeader
         title="Subscription"
-        description="Free listings pay commission on each successful booking. Silver, Gold and Platinum are subscription packages set by NaijaSpa."
+        description="Free listings pay commission on each successful booking. Silver, Gold and Platinum are subscription packages set by NaijaSpa. Missed renewal returns you to Free."
       />
+      {showRenewal && paidCurrent && daysLeft != null ? (
+        <Panel className="mb-4 border-gold/40" title="Renewal notice">
+          <p className="text-sm">
+            {paidCurrent.plan.name}{" "}
+            {daysLeft < 0
+              ? "is in grace. Renew now or this listing returns to Free."
+              : daysLeft === 0
+                ? "renews today. If you do not renew, this listing returns to Free and booking commission applies."
+                : `renews in ${daysLeft} day${daysLeft === 1 ? "" : "s"} (${paidCurrent.endsAt.toLocaleDateString("en-NG")}). If you do not renew, this listing returns to Free.`}
+          </p>
+          <Link href="/vendor/support" className="mt-3 inline-flex min-h-10 items-center rounded-full bg-gold px-4 text-sm font-bold text-ongold">
+            Request renewal
+          </Link>
+        </Panel>
+      ) : null}
       <Panel className="mb-4" title="Current plan" actions={<AdminStatusPill status={ent?.activePaid ? "Paid" : "Free"} />}>
         <p className="text-sm">
           {current?.plan.name ?? ent?.planCode ?? "FREE"} · {ent?.commissionBps ? `${ent.commissionBps / 100}% commission` : "0% commission"}
         </p>
-        {current ? (
+        {current && current.plan.code !== "FREE" && current.endsAt.getUTCFullYear() < 9000 ? (
           <p className="mt-1 text-xs text-ink2">
-            {current.status} · ends {current.endsAt.toLocaleDateString("en-NG")}
+            {current.status} · renews {current.endsAt.toLocaleDateString("en-NG")}
+            {daysLeft != null ? ` · ${daysLeft < 0 ? "grace" : `${daysLeft} day${daysLeft === 1 ? "" : "s"} left`}` : ""}
           </p>
-        ) : null}
+        ) : (
+          <p className="mt-1 text-xs text-ink2">No recurring fee. Commission applies on successful bookings.</p>
+        )}
       </Panel>
       <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {plans.map((p) => {
