@@ -3,19 +3,10 @@ import { BadgeCheck, CalendarCheck, Users, Wallet } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { ListingPlanCard } from "@/components/listing-plan-card";
 import { listPublicVendorPlans } from "@/lib/vendor-plans-live";
-import { LIVE_VENDOR_PLANS } from "@/lib/vendor-plans";
+import { defaultVendorListingPlans, type VendorListingPlanView } from "@/lib/vendor-plans";
 
 export default async function BecomeVendorPage() {
-  let plans = LIVE_VENDOR_PLANS.map((p) => ({
-    code: p.code,
-    name: p.name,
-    priceKobo: p.priceKobo,
-    durationDays: p.durationDays,
-    commissionBps: p.commissionBps,
-    publicDirectContact: p.publicDirectContact,
-    enhancedVisibility: p.enhancedVisibility,
-    sponsoredEligible: p.sponsoredEligible
-  }));
+  let plans: VendorListingPlanView[] = defaultVendorListingPlans();
   try {
     plans = await listPublicVendorPlans();
   } catch {

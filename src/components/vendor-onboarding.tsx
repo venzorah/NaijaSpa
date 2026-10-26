@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { NIGERIA_STATES, nigeriaStateLabel } from "@/lib/nigeria";
 import { ListingPlanCard } from "@/components/listing-plan-card";
-import { LIVE_VENDOR_PLANS, type VendorListingPlanView } from "@/lib/vendor-plans";
+import { defaultVendorListingPlans, type VendorListingPlanView } from "@/lib/vendor-plans";
 
 function LightLogo({ className }: { className?: string }) {
   return (
@@ -85,18 +85,7 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
   const [banks, setBanks] = useState<Array<{ code: string; name: string }>>([]);
-  const [plans, setPlans] = useState<VendorListingPlanView[]>(
-    LIVE_VENDOR_PLANS.map((p) => ({
-      code: p.code,
-      name: p.name,
-      priceKobo: p.priceKobo,
-      durationDays: p.durationDays,
-      commissionBps: p.commissionBps,
-      publicDirectContact: p.publicDirectContact,
-      enhancedVisibility: p.enhancedVisibility,
-      sponsoredEligible: p.sponsoredEligible
-    }))
-  );
+  const [plans, setPlans] = useState<VendorListingPlanView[]>(defaultVendorListingPlans());
 
   useEffect(() => {
     void (async () => {

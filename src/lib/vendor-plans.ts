@@ -46,6 +46,19 @@ export const LIVE_VENDOR_PLANS = [
   }
 ] as const;
 
+export function defaultVendorListingPlans(): VendorListingPlanView[] {
+  return LIVE_VENDOR_PLANS.map((p) => ({
+    code: p.code,
+    name: p.name,
+    priceKobo: p.priceKobo,
+    durationDays: p.durationDays,
+    commissionBps: p.commissionBps,
+    publicDirectContact: p.publicDirectContact,
+    enhancedVisibility: p.enhancedVisibility,
+    sponsoredEligible: p.sponsoredEligible
+  }));
+}
+
 export const LEGACY_VENDOR_PLAN_CODES: Record<string, string> = {
   WEEKLY: "SILVER",
   MONTHLY: "GOLD",
