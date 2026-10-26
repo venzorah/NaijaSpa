@@ -89,7 +89,7 @@ export function PortalLogin({
               return;
             }
             const dest = new URLSearchParams(window.location.search).get("next") || json.home || (asVendor ? "/vendor" : defaultNext);
-            router.push(dest);
+            router.replace(dest.startsWith("/") && !dest.startsWith("//") ? dest : defaultNext);
             router.refresh();
           } catch {
             setError("Could not log in. Check your connection.");

@@ -40,7 +40,7 @@ export default async function FavPage() {
   });
   return (
     <div className="mx-auto max-w-6xl px-4 pt-6 lg:px-8">
-      <PageHeader title="Favourites" subtitle="Your saved spas and treatments, ready to rebook." />
+      <PageHeader title="Favourites" subtitle="Your saved spas and treatments, ready to rebook." backHref="/" />
       <FavouritesTabs services={services} providers={providers} />
     </div>
   );
