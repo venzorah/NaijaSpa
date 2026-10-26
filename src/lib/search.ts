@@ -135,7 +135,7 @@ async function searchLive(filters: SearchFilters) {
         city: row.vendor.city,
         neighbourhood: row.vendor.neighbourhood,
         verificationStatus: row.vendor.verificationStatus,
-        ratingAvg: row.vendor.ratingAvg,
+        ratingAvg: Number(row.vendor.ratingAvg) || 0,
         reviewCount: row.vendor.reviewCount,
         logoUrl: publicWellnessPhoto(row.vendor.logoUrl, ""),
         coverUrl: firstWellnessPhoto(row.vendor.coverUrl, PHOTOS.bandSpa),

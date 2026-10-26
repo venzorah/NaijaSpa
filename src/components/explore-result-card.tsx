@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { BadgeCheck, Clock, Heart, MapPin, Star } from "lucide-react";
 import { formatNgn } from "@/lib/money";
+import { formatRating } from "@/lib/booking-ui";
 import { listingPhotos } from "@/lib/photos";
 import { PublicVendorContact } from "@/components/public-vendor-contact";
 
@@ -68,7 +69,7 @@ export function ExploreResultCard({ result: r }: { result: ExploreResult }) {
   const verified = r.vendor.verificationStatus === "verified";
   const place = [r.vendor.neighbourhood, r.vendor.city].filter(Boolean).join(", ");
   const title = r.therapists[0]?.name || r.vendor.businessName;
-  const rating = typeof r.vendor.ratingAvg === "number" ? r.vendor.ratingAvg : 0;
+  const ratingLabel = formatRating(r.vendor.ratingAvg);
   const reviews = r.vendor.reviewCount ?? 0;
   const tags = tagsFor(r);
   const vip = Boolean(r.enhanced || r.sponsored);
@@ -114,10 +115,10 @@ export function ExploreResultCard({ result: r }: { result: ExploreResult }) {
       </div>
 
       <p className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-        {rating > 0 ? (
+        {ratingLabel ? (
           <span className="inline-flex items-center gap-1 font-semibold">
             <Star className="h-4 w-4 fill-gold text-gold" aria-hidden />
-            {rating.toFixed(1)}
+            {ratingLabel}
             {reviews > 0 ? <span className="font-normal text-ink2">({reviews})</span> : null}
           </span>
         ) : null}

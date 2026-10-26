@@ -33,8 +33,18 @@ export function formatReviewDate(iso: string | Date | null | undefined) {
   return d.toLocaleDateString("en-GB", { month: "short", year: "numeric" });
 }
 
+export function numericRating(value: unknown) {
+  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+  if (value != null && typeof value === "object" && "toNumber" in value) {
+    const n = (value as { toNumber: () => number }).toNumber();
+    return Number.isFinite(n) ? n : 0;
+  }
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
 export function formatRating(value: unknown, digits = 1) {
-  const n = typeof value === "number" ? value : Number(value);
-  if (!Number.isFinite(n) || n <= 0) return "";
+  const n = numericRating(value);
+  if (n <= 0) return "";
   return n.toFixed(digits);
 }

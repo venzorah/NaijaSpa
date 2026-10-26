@@ -4,6 +4,7 @@ import { useRef } from "react";
 import Link from "next/link";
 import { BadgeCheck, ChevronLeft, ChevronRight, Clock, Heart, MapPin, Star } from "lucide-react";
 import { formatNgn } from "@/lib/money";
+import { formatRating } from "@/lib/booking-ui";
 import { listingPhotos, publicWellnessPhoto } from "@/lib/photos";
 import type { ExploreCityCard } from "@/lib/explore-cities";
 import type { HomeCard } from "@/lib/home-types";
@@ -124,13 +125,13 @@ function ServiceFeedCard({ card }: { card: HomeCard }) {
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-        {typeof vendor.ratingAvg === "number" && vendor.ratingAvg > 0 && (
+        {formatRating(vendor.ratingAvg) ? (
           <span className="inline-flex items-center gap-1 font-semibold">
             <Star className="h-3.5 w-3.5 fill-gold text-gold" aria-hidden />
-            {vendor.ratingAvg.toFixed(1)}
+            {formatRating(vendor.ratingAvg)}
             {vendor.reviewCount ? <span className="font-normal text-ink2">({vendor.reviewCount})</span> : null}
           </span>
-        )}
+        ) : null}
         {verified && (
           <span className="inline-flex items-center gap-1 text-ink2">
             <BadgeCheck className="h-3.5 w-3.5 text-leaf" aria-hidden />
@@ -315,7 +316,7 @@ export function VendorCarousel({
               <h3 className="font-semibold">{v.businessName}</h3>
               <p className="mt-1 text-sm text-ink2">
                 {v.neighbourhood}, {v.city}
-                {v.ratingAvg ? ` · ${v.ratingAvg.toFixed(1)}` : ""}
+                {formatRating(v.ratingAvg) ? ` · ${formatRating(v.ratingAvg)}` : ""}
               </p>
             </div>
           </Link>

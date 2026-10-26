@@ -3,12 +3,13 @@ import Link from "next/link";
 import { BadgeCheck, Heart, MapPin, Star } from "lucide-react";
 import { getPublicService } from "@/lib/catalog";
 import { publicWellnessPhoto } from "@/lib/photos";
-import { formatRating, formatReviewDate, locationLabel } from "@/lib/booking-ui";
+import { formatRating, formatReviewDate, locationLabel, numericRating } from "@/lib/booking-ui";
 import { StarRating } from "@/components/star-rating";
 import { ServiceBookingCard } from "@/components/service-booking-card";
 import { VendorProfileGallery } from "@/components/vendor-profile-gallery";
 import { collectProfileGalleryImages } from "@/lib/galleries";
-import { hasPublicVendorContact, PublicVendorContact } from "@/components/public-vendor-contact";
+import { hasPublicVendorContact, pickPublicVendorContact } from "@/lib/public-contact";
+import { PublicVendorContact } from "@/components/public-vendor-contact";
 
 export const dynamic = "force-dynamic";
 
@@ -152,15 +153,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
                 View provider
               </Link>
               {hasPublicVendorContact(vendor) ? (
-                <PublicVendorContact
-                  vendor={{
-                    publicPhone: vendor.publicPhone,
-                    publicWhatsapp: vendor.publicWhatsapp,
-                    publicEmail: vendor.publicEmail,
-                    publicInstagram: vendor.publicInstagram
-                  }}
-                  variant="inline"
-                />
+                <PublicVendorContact vendor={pickPublicVendorContact(vendor)} variant="inline" />
               ) : (
                 <span className="ml-2 text-xs text-ink2">Free listings keep contact private until you pay. Paid providers show WhatsApp, email and Instagram.</span>
               )}
@@ -179,7 +172,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
                       <div>
                         <p className="font-semibold">{r.author || "Guest"}</p>
                         <div className="mt-1">
-                          <StarRating value={Math.round(Number(r.rating) || 0)} readOnly size="sm" />
+                          <StarRating value={Math.round(numericRating(r.rating))} readOnly size="sm" />
                         </div>
                       </div>
                       <p className="text-sm text-ink2">{formatReviewDate(r.createdAt)}</p>

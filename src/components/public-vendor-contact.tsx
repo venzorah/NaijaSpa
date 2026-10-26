@@ -1,17 +1,13 @@
 "use client";
 
 import { Instagram, Mail, MessageCircle, Phone } from "lucide-react";
+import {
+  hasPublicVendorContact,
+  type PublicVendorContactFields
+} from "@/lib/public-contact";
 
-export type PublicVendorContactFields = {
-  publicPhone?: string | null;
-  publicWhatsapp?: string | null;
-  publicEmail?: string | null;
-  publicInstagram?: string | null;
-};
-
-export function hasPublicVendorContact(vendor: PublicVendorContactFields) {
-  return Boolean(vendor.publicPhone || vendor.publicWhatsapp || vendor.publicEmail || vendor.publicInstagram);
-}
+export type { PublicVendorContactFields };
+export { hasPublicVendorContact };
 
 export function PublicVendorContact({
   vendor,

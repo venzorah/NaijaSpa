@@ -184,7 +184,7 @@ async function loadHomeCatalog(place: LivePlace | null) {
         state: vendor.state,
         city: vendor.city,
         neighbourhood: vendor.neighbourhood,
-        ratingAvg: vendor.ratingAvg,
+        ratingAvg: Number(vendor.ratingAvg) || 0,
         reviewCount: vendor.reviewCount,
         verificationStatus: vendor.verificationStatus,
         logoUrl: vendor.logoUrl
@@ -281,7 +281,7 @@ async function loadHomeCatalog(place: LivePlace | null) {
       city: s.vendor.city,
       neighbourhood: s.vendor.neighbourhood,
       coverUrl: publicWellnessPhoto(s.vendor.coverUrl, PHOTOS.bandSpa),
-      ratingAvg: s.vendor.ratingAvg
+      ratingAvg: Number(s.vendor.ratingAvg) || 0
     });
   }
 
@@ -333,6 +333,11 @@ function locationQuotes(
       })
     }));
 }
+
+const PUBLIC_GALLERY_IMAGES = {
+  orderBy: { sortOrder: "asc" as const },
+  select: { id: true, url: true, caption: true, therapistName: true }
+};
 
 function mapPublicGalleries(
   galleries: Array<{
@@ -389,7 +394,7 @@ export async function getPublicService(slug: string) {
         include: {
           owner: { select: { email: true } },
           galleries: {
-            include: { images: { orderBy: { sortOrder: "asc" } } },
+            include: { images: PUBLIC_GALLERY_IMAGES },
             orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }]
           }
         }
@@ -403,7 +408,25 @@ export async function getPublicService(slug: string) {
   if (!service.active) return null;
   const ent = await vendorEntitlement(service.vendorId);
   const vendor = sanitizePublicVendor(
-    { ...service.vendor, coverUrl: publicWellnessPhoto(service.vendor.coverUrl, PHOTOS.bandSpa) },
+    {
+      id: service.vendor.id,
+      slug: service.vendor.slug,
+      businessName: service.vendor.businessName,
+      description: service.vendor.description,
+      logoUrl: service.vendor.logoUrl,
+      coverUrl: publicWellnessPhoto(service.vendor.coverUrl, PHOTOS.bandSpa),
+      state: service.vendor.state,
+      city: service.vendor.city,
+      neighbourhood: service.vendor.neighbourhood,
+      verificationStatus: service.vendor.verificationStatus,
+      ratingAvg: Number(service.vendor.ratingAvg) || 0,
+      reviewCount: Number(service.vendor.reviewCount) || 0,
+      cancellationPolicy: service.vendor.cancellationPolicy,
+      privatePhone: service.vendor.privatePhone,
+      privateWhatsapp: service.vendor.privateWhatsapp,
+      instagramUrl: service.vendor.instagramUrl,
+      owner: service.vendor.owner
+    },
     ent
   );
   const cfg = await getCommercialConfig();
@@ -432,7 +455,17 @@ export async function getPublicService(slug: string) {
   }
   return {
     demo: false,
-    service: { ...service, imageUrl: publicWellnessPhoto(service.imageUrl, PHOTOS.massage) },
+    service: {
+      id: service.id,
+      slug: service.slug,
+      name: service.name,
+      description: service.description,
+      durationMin: service.durationMin,
+      imageUrl: publicWellnessPhoto(service.imageUrl, PHOTOS.massage),
+      spaEnabled: service.spaEnabled,
+      hotelEnabled: service.hotelEnabled,
+      homeEnabled: service.homeEnabled
+    },
     vendor,
     galleries: mapPublicGalleries(service.vendor.galleries),
     quotes: locationQuotes(service, ent, cfg),
@@ -462,7 +495,7 @@ export async function getPublicVendor(slug: string) {
     include: {
       owner: { select: { email: true } },
       services: { where: { active: true }, include: { category: { select: { name: true, slug: true } } } },
-      galleries: { include: { images: { orderBy: { sortOrder: "asc" } } }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] },
+      galleries: { include: { images: PUBLIC_GALLERY_IMAGES }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] },
       videoLinks: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] }
     }
   });
@@ -471,12 +504,34 @@ export async function getPublicVendor(slug: string) {
   const ent = await vendorEntitlement(vendor.id);
   return {
     vendor: sanitizePublicVendor(
-      { ...vendor, coverUrl: publicWellnessPhoto(vendor.coverUrl, PHOTOS.bandSpa) },
+      {
+        id: vendor.id,
+        slug: vendor.slug,
+        businessName: vendor.businessName,
+        description: vendor.description,
+        logoUrl: vendor.logoUrl,
+        coverUrl: publicWellnessPhoto(vendor.coverUrl, PHOTOS.bandSpa),
+        state: vendor.state,
+        city: vendor.city,
+        neighbourhood: vendor.neighbourhood,
+        verificationStatus: vendor.verificationStatus,
+        ratingAvg: Number(vendor.ratingAvg) || 0,
+        reviewCount: Number(vendor.reviewCount) || 0,
+        cancellationPolicy: vendor.cancellationPolicy,
+        privatePhone: vendor.privatePhone,
+        privateWhatsapp: vendor.privateWhatsapp,
+        instagramUrl: vendor.instagramUrl,
+        owner: vendor.owner
+      },
       ent
     ),
     description: vendor.description,
     services: vendor.services.map((s) => ({
-      ...s,
+      id: s.id,
+      slug: s.slug,
+      name: s.name,
+      durationMin: s.durationMin,
+      basePriceKobo: s.basePriceKobo,
       imageUrl: publicWellnessPhoto(s.imageUrl, PHOTOS.massage)
     })),
     galleries: mapPublicGalleries(vendor.galleries),

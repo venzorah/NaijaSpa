@@ -198,8 +198,23 @@ export function sanitizePublicVendor<T extends {
   owner?: { email?: string | null } | null;
 }>(vendor: T, entitlement?: Entitlement) {
   const allow = entitlement ? publicContactAllowed(entitlement) : false;
-  const { privatePhone, privateWhatsapp, instagramUrl, owner, entitlement: _e, ...rest } = vendor as T & {
+  const {
+    privatePhone,
+    privateWhatsapp,
+    instagramUrl,
+    owner,
+    entitlement: _e,
+    galleries: _galleries,
+    services: _services,
+    videoLinks: _videoLinks,
+    documents: _documents,
+    ...rest
+  } = vendor as T & {
     entitlement?: unknown;
+    galleries?: unknown;
+    services?: unknown;
+    videoLinks?: unknown;
+    documents?: unknown;
   };
   const phone = allow ? privatePhone ?? null : null;
   const whatsapp = allow ? toWhatsAppLink(privateWhatsapp) : null;

@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { BadgeCheck, Info, MapPin, Star } from "lucide-react";
 import { getPublicVendor } from "@/lib/catalog";
-import { hasPublicVendorContact, PublicVendorContact } from "@/components/public-vendor-contact";
+import { hasPublicVendorContact, pickPublicVendorContact } from "@/lib/public-contact";
+import { PublicVendorContact } from "@/components/public-vendor-contact";
 import { formatNgn } from "@/lib/money";
 import { formatRating } from "@/lib/booking-ui";
 import { TherapistGalleries } from "@/components/therapist-galleries";
@@ -76,7 +77,7 @@ export default async function ProviderPage({ params }: { params: Promise<{ slug:
           </div>
           <div className="mt-5">
             {hasPublicVendorContact(vendor) ? (
-              <PublicVendorContact vendor={vendor} />
+              <PublicVendorContact vendor={pickPublicVendorContact(vendor)} />
             ) : (
               <p className="flex items-start gap-2 rounded-2xl bg-bg2 px-4 py-3 text-xs text-ink2">
                 <Info className="mt-0.5 h-4 w-4 shrink-0 text-leaf" aria-hidden />
