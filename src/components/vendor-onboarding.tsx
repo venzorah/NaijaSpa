@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { NIGERIA_STATES, nigeriaStateLabel } from "@/lib/nigeria";
 import { ListingPlanCard } from "@/components/listing-plan-card";
+import { BankSearchSelect } from "@/components/bank-search-select";
+import { usePayoutLookup } from "@/components/use-payout-lookup";
 import { defaultVendorListingPlans, type VendorListingPlanView } from "@/lib/vendor-plans";
 
 function LightLogo({ className }: { className?: string }) {
@@ -77,8 +79,21 @@ function hoursJson(open: string, close: string) {
   return JSON.stringify(Object.fromEntries(days.map((d) => [d, `${open}-${close}`])));
 }
 
+const STEP_KEY = "naijaspa-vendor-onboarding-step";
+
+function readSavedStep(embedded: boolean) {
+  try {
+    const saved = Number(sessionStorage.getItem(embedded ? `${STEP_KEY}-edit` : STEP_KEY));
+    if (Number.isInteger(saved) && saved >= 0) return saved;
+  } catch {
+    /* keep 0 */
+  }
+  return 0;
+}
+
 export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(() => readSavedStep(embedded));
+  const [maxSeen, setMaxSeen] = useState(() => readSavedStep(embedded));
   const [form, setForm] = useState<Form>(empty);
   const [status, setStatus] = useState("draft");
   const [busy, setBusy] = useState(false);
@@ -86,16 +101,21 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
   const [done, setDone] = useState(false);
   const [banks, setBanks] = useState<Array<{ code: string; name: string }>>([]);
   const [plans, setPlans] = useState<VendorListingPlanView[]>(defaultVendorListingPlans());
+  const payout = usePayoutLookup(form.payoutBankCode, form.payoutAccountNumber);
 
   useEffect(() => {
     void (async () => {
       try {
         fetch("/api/vendor/payout-account")
           .then((r) => r.json())
-          .then((json: { banks?: Array<{ code: string; name: string }>; account?: { bankCode?: string | null } }) => {
+          .then((json: { banks?: Array<{ code: string; name: string }>; account?: { bankCode?: string | null; accountNumber?: string | null } }) => {
             if (json.banks?.length) setBanks(json.banks);
-            if (json.account?.bankCode) {
-              setForm((prev) => ({ ...prev, payoutBankCode: json.account?.bankCode || prev.payoutBankCode }));
+            if (json.account?.bankCode || json.account?.accountNumber) {
+              setForm((prev) => ({
+                ...prev,
+                payoutBankCode: json.account?.bankCode || prev.payoutBankCode,
+                payoutAccountNumber: json.account?.accountNumber || prev.payoutAccountNumber
+              }));
             }
           })
           .catch(() => undefined);
@@ -154,21 +174,31 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
     })();
   }, [embedded]);
 
+  useEffect(() => {
+    setMaxSeen((m) => Math.max(m, step));
+    try {
+      sessionStorage.setItem(embedded ? `${STEP_KEY}-edit` : STEP_KEY, String(step));
+    } catch {
+      /* ignore */
+    }
+  }, [step, embedded]);
+
   const flow = useMemo(
     () => (embedded ? STEPS.filter((s) => s.id !== "plan" && s.id !== "submit") : STEPS),
     [embedded]
   );
-  const progress = useMemo(() => ((step + 1) / flow.length) * 100, [step, flow.length]);
-  const current = flow[step] ?? flow[0];
+  const safeStep = Math.min(step, Math.max(0, flow.length - 1));
+  const progress = useMemo(() => ((safeStep + 1) / flow.length) * 100, [safeStep, flow.length]);
+  const current = flow[safeStep] ?? flow[0];
 
   function set<K extends keyof Form>(key: K, value: Form[K]) {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
   function valid() {
-    if (step === 1) return form.businessName.trim().length >= 2;
-    if (step === 2) return form.privatePhone.trim().length >= 8;
-    if (step === 3) return form.city.trim().length >= 2 && form.address.trim().length >= 4;
+    if (safeStep === 1) return form.businessName.trim().length >= 2;
+    if (safeStep === 2) return form.privatePhone.trim().length >= 8;
+    if (safeStep === 3) return form.city.trim().length >= 2 && form.address.trim().length >= 4;
     return true;
   }
 
@@ -225,6 +255,18 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
     }
   }
 
+  function goTo(i: number) {
+    if (done && !embedded) return;
+    if (i < 0 || i >= flow.length) return;
+    if (i > maxSeen && i > step) return;
+    setError("");
+    setStep(i);
+  }
+
+  function back() {
+    goTo(safeStep - 1);
+  }
+
   async function next() {
     if (!valid()) {
       setError("Please complete the required fields on this screen.");
@@ -236,7 +278,7 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
   }
 
   return (
-    <div className={embedded ? "grid min-h-[36rem] overflow-hidden rounded-2xl border border-line bg-[#04140f] text-white lg:grid-cols-2" : "fixed inset-0 z-[60] grid bg-[#04140f] text-white lg:grid-cols-2"}>
+    <div className={embedded ? "grid min-h-[36rem] overflow-hidden rounded-2xl border border-line bg-[#04140f] text-white lg:grid-cols-2" : "fixed inset-0 z-[60] grid h-dvh overflow-hidden bg-[#04140f] text-white lg:grid-cols-2"}>
       <aside className="relative hidden overflow-hidden lg:block">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/photos/spa.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" />
@@ -267,17 +309,23 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
         </div>
       </aside>
 
-      <section className="flex min-h-0 flex-col bg-[#0b1f18] px-5 py-6 sm:px-10 sm:py-8">
-        <div className="mb-6 flex items-center justify-between gap-3 lg:hidden">
-          <LightLogo className="h-10 w-auto object-contain object-left" />
+      <section className="flex h-full min-h-0 flex-col bg-[#0b1f18] px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-5 sm:px-10 sm:pt-8">
+        <div className="mb-4 flex shrink-0 items-center justify-between gap-3 lg:hidden">
+          <LightLogo className="h-9 w-auto object-contain object-left" />
           <Link href="/vendor/dashboard" className="text-xs font-semibold text-gold">
             Dashboard
           </Link>
         </div>
 
-        <div className="mb-8">
-          <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.16em] text-gold">
-            <span>{done ? "Application" : current.kicker}</span>
+        <div className="mb-5 shrink-0">
+          <div className="flex items-center justify-between gap-3 text-xs font-semibold uppercase tracking-[0.16em] text-gold">
+            {safeStep > 0 && !done ? (
+              <button type="button" onClick={back} className="text-left text-gold">
+                ← Previous step
+              </button>
+            ) : (
+              <span>{done ? "Application" : current.kicker}</span>
+            )}
             <Link href="/vendor/dashboard" className="hidden text-white/60 hover:text-gold lg:inline">
               Exit
             </Link>
@@ -290,15 +338,15 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
               <button
                 key={s.id}
                 type="button"
-                aria-label={s.title}
-                onClick={() => (!done || embedded) && setStep(i)}
-                className={`h-1.5 flex-1 rounded-full ${i <= step || done ? "bg-gold" : "bg-white/15"}`}
+                aria-label={`Go to ${s.title}`}
+                onClick={() => goTo(i)}
+                className={`h-1.5 flex-1 rounded-full ${i <= safeStep || done ? "bg-gold" : "bg-white/15"}`}
               />
             ))}
           </div>
         </div>
 
-        <div className={`mx-auto flex w-full flex-1 flex-col ${step === 5 ? "max-w-3xl" : "max-w-lg"}`}>
+        <div className={`mx-auto flex min-h-0 w-full flex-1 flex-col ${safeStep === 5 ? "max-w-3xl" : "max-w-lg"}`}>
           {done ? (
             <div className="my-auto rounded-[2rem] border border-gold/30 bg-white/[0.04] p-8 text-center">
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-gold">Submitted</p>
@@ -324,11 +372,11 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
             </div>
           ) : (
             <>
-              <p className="text-sm text-white/60">{current.kicker}</p>
-              <h2 className="mt-1 font-display text-4xl">{current.title}</h2>
+              <h2 className="font-display text-3xl leading-tight sm:text-4xl">{current.title}</h2>
+              <p className="mt-1 text-sm text-white/60">{current.kicker} · You can go back any time. Your answers stay.</p>
 
-              <div className="mt-8 space-y-4">
-                {step === 0 && (
+              <div className="mt-6 min-h-0 flex-1 space-y-4 overflow-y-auto pb-4">
+                {safeStep === 0 && (
                   <div className="grid gap-3 sm:grid-cols-2">
                     {PROVIDERS.map((p) => (
                       <button
@@ -346,7 +394,7 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
                   </div>
                 )}
 
-                {step === 1 && (
+                {safeStep === 1 && (
                   <>
                     <label>
                       <span className={labelClass}>Business name</span>
@@ -365,7 +413,7 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
                   </>
                 )}
 
-                {step === 2 && (
+                {safeStep === 2 && (
                   <>
                     <p className="text-sm text-white/65">Paid listing plans show WhatsApp, email (your login) and Instagram on Explore. Free listings keep them private until a customer pays for a booking.</p>
                     <label>
@@ -380,18 +428,7 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
                       <span className={labelClass}>Instagram</span>
                       <input className={fieldClass} value={form.instagramUrl} onChange={(e) => set("instagramUrl", e.target.value)} placeholder="@yourspa or instagram.com/yourspa" />
                     </label>
-                    <p className="pt-2 text-sm text-white/65">Payout account — confirmed visits pay this NUBAN. You can add it later under Earnings.</p>
-                    <label>
-                      <span className={labelClass}>Payout bank</span>
-                      <select className={fieldClass} value={form.payoutBankCode} onChange={(e) => set("payoutBankCode", e.target.value)}>
-                        <option value="">Select bank</option>
-                        {banks.map((b) => (
-                          <option key={b.code} value={b.code}>
-                            {b.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                    <p className="pt-2 text-sm text-white/65">Payout account — confirmed visits pay this NUBAN. Search the bank, enter the 10-digit number, and we pull the account name.</p>
                     <label>
                       <span className={labelClass}>Account number</span>
                       <input
@@ -403,10 +440,26 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
                         placeholder="10-digit NUBAN"
                       />
                     </label>
+                    <label>
+                      <span className={labelClass}>Payout bank</span>
+                      <BankSearchSelect
+                        banks={banks}
+                        value={form.payoutBankCode}
+                        onChange={(code) => set("payoutBankCode", code)}
+                        className={fieldClass}
+                      />
+                    </label>
+                    {payout.loading ? <p className="text-sm text-white/65">Looking up account name…</p> : null}
+                    {payout.accountName ? (
+                      <p className="rounded-2xl border border-gold/40 bg-gold/10 px-4 py-3 text-sm font-semibold text-gold">
+                        Account name · {payout.accountName}
+                      </p>
+                    ) : null}
+                    {payout.error ? <p className="text-sm text-red-300">{payout.error}</p> : null}
                   </>
                 )}
 
-                {step === 3 && (
+                {safeStep === 3 && (
                   <>
                     <label>
                       <span className={labelClass}>State</span>
@@ -442,7 +495,7 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
                   </>
                 )}
 
-                {step === 4 && (
+                {safeStep === 4 && (
                   <>
                     <div className="grid grid-cols-2 gap-3">
                       <label>
@@ -466,7 +519,7 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
                   </>
                 )}
 
-                {step === 5 && (
+                {safeStep === 5 && (
                   <>
                     <p className="text-sm text-white/65">Therapist listing packages only. Start on Free, or pick Silver, Gold or Platinum and subscribe after you submit.</p>
                     <div className="grid gap-3 sm:grid-cols-2">
@@ -479,7 +532,7 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
                   </>
                 )}
 
-                {step === 6 && (
+                {safeStep === 6 && (
                   <div className="space-y-3 rounded-[1.75rem] border border-white/10 bg-white/[0.04] p-5 text-sm text-white/80">
                     <p>
                       <span className="text-gold">Provider</span> · {PROVIDERS.find((p) => p.id === form.providerType)?.title}
@@ -505,19 +558,19 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
                 )}
               </div>
 
-              {error && <p className={`mt-4 text-sm ${error === "Saved." ? "text-gold" : "text-red-300"}`}>{error}</p>}
+              {error && <p className={`mt-3 shrink-0 text-sm ${error === "Saved." ? "text-gold" : "text-red-300"}`}>{error}</p>}
 
-              <div className="mt-auto flex gap-3 pt-8">
-                {step > 0 && (
+              <div className="mt-auto flex shrink-0 gap-3 border-t border-white/10 bg-[#0b1f18] pt-4">
+                {safeStep > 0 && (
                   <button
                     type="button"
-                    onClick={() => setStep((s) => s - 1)}
+                    onClick={back}
                     className="min-h-12 flex-1 rounded-full border border-white/20 text-base font-semibold"
                   >
                     Back
                   </button>
                 )}
-                {step < flow.length - 1 ? (
+                {safeStep < flow.length - 1 ? (
                   <button
                     type="button"
                     disabled={busy}

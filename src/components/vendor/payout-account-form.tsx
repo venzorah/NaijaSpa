@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { Panel } from "@/components/admin/panel";
 import { adminBtn, adminField, FormRow } from "@/components/admin/form-row";
+import { BankSearchSelect } from "@/components/bank-search-select";
+import { usePayoutLookup } from "@/components/use-payout-lookup";
 
 type Bank = { code: string; name: string };
 type Account = {
@@ -21,6 +23,7 @@ export function PayoutAccountForm() {
   const [resolvedName, setResolvedName] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const lookup = usePayoutLookup(bankCode, accountNumber);
 
   useEffect(() => {
     fetch("/api/vendor/payout-account")
@@ -29,6 +32,8 @@ export function PayoutAccountForm() {
         setBanks(j.banks || []);
         setAccount(j.account || null);
         setBankCode(j.account?.bankCode || "");
+        if (j.account?.accountNumber) setAccountNumber(j.account.accountNumber);
+        if (j.account?.accountName) setResolvedName(j.account.accountName);
       })
       .catch(() => setMessage("Could not load payout banks."));
   }, []);
@@ -54,7 +59,6 @@ export function PayoutAccountForm() {
       }
       setAccount(json.account);
       setResolvedName(json.account?.accountName || "");
-      setAccountNumber("");
       setMessage("Payouts will now go to this verified account after a visit is confirmed.");
     } catch {
       setMessage("Could not save account.");
@@ -85,16 +89,6 @@ export function PayoutAccountForm() {
           void submit(false);
         }}
       >
-        <FormRow label="Bank" htmlFor="payout-bank">
-          <select id="payout-bank" className={adminField} value={bankCode} onChange={(e) => setBankCode(e.target.value)} required>
-            <option value="">Select bank</option>
-            {banks.map((b) => (
-              <option key={b.code} value={b.code}>
-                {b.name}
-              </option>
-            ))}
-          </select>
-        </FormRow>
         <FormRow label="Account number" htmlFor="payout-nuban">
           <input
             id="payout-nuban"
@@ -110,10 +104,14 @@ export function PayoutAccountForm() {
             required
           />
         </FormRow>
-        {resolvedName ? <p className="sm:col-span-2 text-sm font-semibold text-ink">Pays {resolvedName}</p> : null}
-        <button type="button" className={`${adminBtn} bg-elev text-ink`} disabled={busy} onClick={() => void submit(true)}>
-          {busy ? "Checking…" : "Verify account"}
-        </button>
+        <FormRow label="Bank" htmlFor="payout-bank">
+          <BankSearchSelect banks={banks} value={bankCode} onChange={setBankCode} className={adminField} />
+        </FormRow>
+        {lookup.loading ? <p className="sm:col-span-2 text-sm text-ink2">Looking up account name…</p> : null}
+        {lookup.accountName || resolvedName ? (
+          <p className="sm:col-span-2 text-sm font-semibold text-ink">Pays {lookup.accountName || resolvedName}</p>
+        ) : null}
+        {lookup.error ? <p className="sm:col-span-2 text-sm text-red-400">{lookup.error}</p> : null}
         <button type="submit" className={adminBtn} disabled={busy}>
           {busy ? "Saving…" : "Save payout account"}
         </button>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assertNuban, maskAccountNumber, normalizeAccountNumber, transferOutcome } from "../src/lib/payouts";
+import { assertNuban, filterBanks, maskAccountNumber, normalizeAccountNumber, transferOutcome } from "../src/lib/payouts";
 
 describe("vendor payout account", () => {
   it("normalizes a 10-digit NUBAN", () => {
@@ -14,5 +14,15 @@ describe("vendor payout account", () => {
     expect(transferOutcome("pending").earningPaid).toBe(false);
     expect(transferOutcome("otp").payoutStatus).toBe("otp");
     expect(transferOutcome("failed")).toEqual({ payoutStatus: "failed", earningPaid: false });
+  });
+
+  it("filters banks by name or code", () => {
+    const banks = [
+      { code: "057", name: "Zenith Bank" },
+      { code: "100033", name: "OPay Digital Services Limited (OPay)" }
+    ];
+    expect(filterBanks(banks, "opay")).toEqual([banks[1]]);
+    expect(filterBanks(banks, "057")).toEqual([banks[0]]);
+    expect(filterBanks(banks, "")).toEqual(banks);
   });
 });

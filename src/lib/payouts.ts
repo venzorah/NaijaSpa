@@ -82,7 +82,13 @@ export function transferOutcome(status: string | null | undefined) {
   return { payoutStatus: value === "otp" ? "otp" : "pending", earningPaid: false as const };
 }
 
-export async function resolvePayoutAccount(bankCode: string, accountNumber: string) {
+export function filterBanks(banks: Array<{ code: string; name: string }>, query: string) {
+  const q = query.trim().toLowerCase();
+  if (!q) return banks;
+  return banks.filter((b) => b.name.toLowerCase().includes(q) || b.code.includes(q));
+}
+
+export async function lookupPayoutAccount(bankCode: string, accountNumber: string) {
   const nuban = assertNuban(accountNumber);
   const code = bankCode.trim();
   if (!code) throw Object.assign(new Error("Choose a bank"), { status: 400 });
@@ -90,20 +96,28 @@ export async function resolvePayoutAccount(bankCode: string, accountNumber: stri
   const bank = banks.find((b) => b.code === code);
   if (!bank) throw Object.assign(new Error("Unknown bank"), { status: 400 });
   if (!paystackConfigured()) {
-    return { nuban, bank, accountName: "", recipientCode: null as string | null };
+    return { nuban, bank, accountName: "" };
   }
   const resolved = await paystackJson(`/bank/resolve?account_number=${nuban}&bank_code=${encodeURIComponent(code)}`);
   const data = resolved.data as { account_name?: string } | undefined;
   if (!resolved.status || !data?.account_name) {
     throw Object.assign(new Error(resolved.message || "Could not verify that account"), { status: 400 });
   }
+  return { nuban, bank, accountName: data.account_name };
+}
+
+export async function resolvePayoutAccount(bankCode: string, accountNumber: string) {
+  const looked = await lookupPayoutAccount(bankCode, accountNumber);
+  if (!paystackConfigured()) {
+    return { ...looked, recipientCode: null as string | null };
+  }
   const recipient = await paystackJson("/transferrecipient", {
     method: "POST",
     body: JSON.stringify({
       type: "nuban",
-      name: data.account_name,
-      account_number: nuban,
-      bank_code: code,
+      name: looked.accountName,
+      account_number: looked.nuban,
+      bank_code: looked.bank.code,
       currency: "NGN"
     })
   });
@@ -111,7 +125,7 @@ export async function resolvePayoutAccount(bankCode: string, accountNumber: stri
   if (!recipient.status || !rec?.recipient_code) {
     throw Object.assign(new Error(recipient.message || "Could not save Paystack recipient"), { status: 502 });
   }
-  return { nuban, bank, accountName: data.account_name, recipientCode: rec.recipient_code };
+  return { ...looked, recipientCode: rec.recipient_code };
 }
 
 const payoutAccountSelect = {

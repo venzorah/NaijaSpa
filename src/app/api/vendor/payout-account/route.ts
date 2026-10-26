@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { jsonError } from "@/lib/http";
-import { listPayoutBanks, maskAccountNumber, resolvePayoutAccount, saveVendorPayoutAccount } from "@/lib/payouts";
+import { listPayoutBanks, lookupPayoutAccount, maskAccountNumber, saveVendorPayoutAccount } from "@/lib/payouts";
 import { requireVendor } from "@/lib/vendor-auth";
 import { prisma } from "@/lib/db";
 import { ROLES } from "@/lib/rbac";
@@ -26,6 +26,7 @@ export async function GET() {
       account: {
         bankCode: vendor.payoutBankCode,
         bankName: vendor.payoutBankName,
+        accountNumber: vendor.payoutAccountNumber,
         accountNumberMasked: maskAccountNumber(vendor.payoutAccountNumber),
         accountName: vendor.payoutAccountName,
         ready: Boolean(vendor.payoutRecipientCode)
@@ -47,7 +48,7 @@ export async function POST(req: Request) {
       .object({ bankCode: z.string().min(1), accountNumber: z.string().min(8), verifyOnly: z.boolean().optional() })
       .parse(await req.json());
     if (body.verifyOnly) {
-      const resolved = await resolvePayoutAccount(body.bankCode, body.accountNumber);
+      const resolved = await lookupPayoutAccount(body.bankCode, body.accountNumber);
       return NextResponse.json({
         accountName: resolved.accountName,
         bankName: resolved.bank.name,
