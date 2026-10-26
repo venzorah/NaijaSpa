@@ -149,7 +149,7 @@ export const ADMIN_SCREENS: {
     label: "Memberships & promos",
     group: "Revenue",
     icon: Crown,
-    description: "Customer memberships, promo codes and offers.",
+    description: "Create membership plans, promo codes and offers.",
     view: ["campaigns.manage", "finance.view"],
     edit: ["campaigns.manage"]
   },

@@ -4,6 +4,7 @@ import { Check, Crown } from "lucide-react";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { formatNgn } from "@/lib/money";
+import { parseBenefits } from "@/lib/membership";
 import { PageHeader } from "@/components/page-header";
 
 export default async function Page() {
@@ -40,16 +41,12 @@ export default async function Page() {
                   <span className="text-sm text-ink2">/ {p.interval}</span>
                 </p>
                 <ul className="mt-4 flex-1 space-y-2">
-                  {p.benefits
-                    .split(/[;\n]/)
-                    .map((perk) => perk.trim())
-                    .filter(Boolean)
-                    .map((perk) => (
-                      <li key={perk} className="flex items-start gap-2 text-sm text-ink2">
-                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-leaf" aria-hidden />
-                        {perk}
-                      </li>
-                    ))}
+                  {parseBenefits(p.benefits).map((perk) => (
+                    <li key={perk} className="flex items-start gap-2 text-sm text-ink2">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-leaf" aria-hidden />
+                      {perk}
+                    </li>
+                  ))}
                 </ul>
                 <Link
                   href={current ? "/account/payments" : "/explore"}
