@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Download, Facebook, Instagram, Mail, Phone, Twitter } from "lucide-react";
+import { Download, Facebook, Instagram, Mail, MessageCircle, Twitter } from "lucide-react";
+import { SUPPORT_WHATSAPP_DISPLAY, supportWhatsAppHref } from "@/lib/support";
 
 const groups = [
   {
@@ -31,8 +32,8 @@ const groups = [
 
 export function SiteFooter() {
   return (
-    <footer className="mt-16 hidden border-t border-line bg-bg2 lg:block">
-      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 md:grid-cols-[1.4fr_repeat(3,1fr)] lg:px-8">
+    <footer className="mt-16 border-t border-line bg-bg2">
+      <div className="mx-auto hidden max-w-7xl gap-10 px-4 py-12 md:grid-cols-[1.4fr_repeat(3,1fr)] lg:grid lg:px-8">
         <div>
           <Link href="/" aria-label="NaijaSpa home" className="inline-flex">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -51,9 +52,15 @@ export function SiteFooter() {
             <p className="flex items-center gap-2">
               <Mail className="h-4 w-4 text-leaf" aria-hidden /> concierge@naijaspa.com
             </p>
-            <p className="flex items-center gap-2">
-              <Phone className="h-4 w-4 text-leaf" aria-hidden /> +234 1 555 0100
-            </p>
+            <a
+              href={supportWhatsAppHref("Hello NaijaSpa")}
+              target="_blank"
+              rel="noreferrer"
+              className="flex min-h-9 items-center gap-2 hover:text-ink"
+            >
+              <MessageCircle className="h-4 w-4 text-leaf" aria-hidden />
+              WhatsApp {SUPPORT_WHATSAPP_DISPLAY}
+            </a>
           </div>
           <Link
             href="/install"
@@ -79,7 +86,20 @@ export function SiteFooter() {
       </div>
       <div className="border-t border-line">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-5 text-xs text-ink2 sm:flex-row lg:px-8">
-          <p>© {new Date().getFullYear()} NaijaSpa Technologies Ltd. Lagos, Nigeria. Payments secured by Paystack.</p>
+          <div className="space-y-1 text-center sm:text-left">
+            <p>© {new Date().getFullYear()} NaijaSpa Technologies Ltd. Lagos, Nigeria. Payments secured by Paystack.</p>
+            <p>
+              Founded and Designed by{" "}
+              <a
+                href={supportWhatsAppHref("Hello KM Consulting & Tech Solutions LTD")}
+                target="_blank"
+                rel="noreferrer"
+                className="font-semibold text-goldink underline-offset-2 hover:underline"
+              >
+                KM Consulting &amp; Tech Solutions LTD
+              </a>
+            </p>
+          </div>
           <div className="flex gap-1">
             <span className="flex h-10 w-10 items-center justify-center rounded-full text-ink2 hover:bg-elev" aria-hidden>
               <Instagram className="h-4 w-4" />
