@@ -5,6 +5,7 @@ import { DEFAULT_GALLERY_CONFIG } from "../src/lib/galleries";
 import { DEFAULT_HOME_HERO, DEFAULT_HERO_ADS, DEFAULT_HERO_AD_DISPLAY_LIMIT, HERO_AD_LIMIT_KEY } from "../src/lib/home-hero";
 import { DEFAULT_HOME_FEED_CONFIG, HOME_FEED_CONFIG_KEYS } from "../src/lib/home-types";
 import { LIVE_MEMBERSHIP_PLANS, serializeBenefits } from "../src/lib/membership";
+import { LIVE_VENDOR_PLANS } from "../src/lib/vendor-plans";
 
 const prisma = new PrismaClient();
 
@@ -32,69 +33,32 @@ async function main() {
     await prisma.systemConfig.upsert({ where: { key }, create: { key, value }, update: { value } });
   }
 
-  const free = await prisma.subscriptionPlan.upsert({
-    where: { code: "FREE" },
-    update: { priceKobo: 0, commissionBps: 1000, publicDirectContact: false, enhancedVisibility: false, sponsoredEligible: false },
-    create: {
-      code: "FREE",
-      name: "Free",
-      durationDays: 36500,
-      priceKobo: 0,
-      commissionBps: 1000,
-      publicDirectContact: false,
-      enhancedVisibility: false,
-      sponsoredEligible: false,
-      unlimitedListings: true
-    }
-  });
-  const weekly = await prisma.subscriptionPlan.upsert({
-    where: { code: "WEEKLY" },
-    update: {},
-    create: {
-      code: "WEEKLY",
-      name: "Weekly",
-      durationDays: 7,
-      priceKobo: 0,
-      commissionBps: 0,
-      publicDirectContact: true,
-      enhancedVisibility: true,
-      sponsoredEligible: true,
-      unlimitedListings: true
-    }
-  });
-  const monthly = await prisma.subscriptionPlan.upsert({
-    where: { code: "MONTHLY" },
-    update: {},
-    create: {
-      code: "MONTHLY",
-      name: "Monthly",
-      durationDays: 30,
-      priceKobo: 0,
-      commissionBps: 0,
-      publicDirectContact: true,
-      enhancedVisibility: true,
-      sponsoredEligible: true,
-      unlimitedListings: true
-    }
-  });
-  const six = await prisma.subscriptionPlan.upsert({
-    where: { code: "SIX_MONTH" },
-    update: {},
-    create: {
-      code: "SIX_MONTH",
-      name: "Six month",
-      durationDays: 182,
-      priceKobo: 0,
-      commissionBps: 0,
-      publicDirectContact: true,
-      enhancedVisibility: true,
-      sponsoredEligible: true,
-      unlimitedListings: true
-    }
-  });
-  void weekly;
-  void monthly;
-  void six;
+  const planRows: Record<string, { id: string }> = {};
+  for (const plan of LIVE_VENDOR_PLANS) {
+    const row = await prisma.subscriptionPlan.upsert({
+      where: { code: plan.code },
+      update: {
+        name: plan.name,
+        durationDays: plan.durationDays,
+        publicDirectContact: plan.publicDirectContact,
+        enhancedVisibility: plan.enhancedVisibility,
+        sponsoredEligible: plan.sponsoredEligible
+      },
+      create: {
+        code: plan.code,
+        name: plan.name,
+        durationDays: plan.durationDays,
+        priceKobo: plan.priceKobo,
+        commissionBps: plan.commissionBps,
+        publicDirectContact: plan.publicDirectContact,
+        enhancedVisibility: plan.enhancedVisibility,
+        sponsoredEligible: plan.sponsoredEligible,
+        unlimitedListings: true
+      }
+    });
+    planRows[plan.code] = row;
+  }
+  const free = planRows.FREE;
 
   const roles = [
     ["super.admin@naijaspa.com", "Amaka Obi", "super_admin"],
@@ -179,7 +143,7 @@ async function main() {
         coverUrl: "/photos/band-spa.jpg"
       }
     });
-    const plan = opts.paid ? await prisma.subscriptionPlan.findUniqueOrThrow({ where: { code: "MONTHLY" } }) : free;
+    const plan = opts.paid ? await prisma.subscriptionPlan.findUniqueOrThrow({ where: { code: "GOLD" } }) : free;
     await prisma.vendorSubscription.create({
       data: {
         vendorId: vendor.id,

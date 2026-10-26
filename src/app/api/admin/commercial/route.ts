@@ -13,11 +13,13 @@ import {
   HOME_FEED_LIMIT_MIN
 } from "@/lib/home-types";
 import { MARKETPLACE_HUBS_KEY, extraHubFromState, parseMarketplaceHubs } from "@/lib/hubs";
+import { ensureLiveVendorPlans } from "@/lib/vendor-plans-live";
 
 export async function GET() {
   try {
     const user = requireUser(await getSession());
     assertAnyPermission(user.role, ["finance.view", "commercial.manage", "analytics.view"]);
+    await ensureLiveVendorPlans();
     const [config, galleryConfig, homeFeedConfig, plans, hubsRow] = await Promise.all([
       getCommercialConfig(),
       getGalleryConfig(),
@@ -58,7 +60,13 @@ export async function PUT(req: Request) {
         homeFeedPromoLimit: z.number().int().min(HOME_FEED_LIMIT_MIN).max(HOME_FEED_LIMIT_MAX).optional(),
         homeFeedNearbyLimit: z.number().int().min(HOME_FEED_LIMIT_MIN).max(HOME_FEED_LIMIT_MAX).optional(),
         plans: z
-          .array(z.object({ code: z.string(), priceKobo: z.number().int().nonnegative() }))
+          .array(
+            z.object({
+              code: z.string(),
+              priceKobo: z.number().int().nonnegative().optional(),
+              commissionBps: z.number().int().min(0).max(10000).optional()
+            })
+          )
           .optional(),
         extraStates: z.array(z.string()).optional()
       })
@@ -97,10 +105,29 @@ export async function PUT(req: Request) {
       await setConfig(MARKETPLACE_HUBS_KEY, JSON.stringify(unique.map((h) => ({ id: h.id, label: h.label, state: h.state, city: h.city }))));
     }
     if (body.plans) {
+      await ensureLiveVendorPlans();
       for (const p of body.plans) {
-        if (p.code === "FREE" && p.priceKobo !== 0) continue;
-        await prisma.subscriptionPlan.update({ where: { code: p.code }, data: { priceKobo: p.priceKobo } });
+        const priceKobo = p.code === "FREE" ? 0 : p.priceKobo;
+        await prisma.subscriptionPlan.update({
+          where: { code: p.code },
+          data: {
+            ...(priceKobo != null ? { priceKobo } : {}),
+            ...(p.commissionBps != null ? { commissionBps: p.commissionBps } : {})
+          }
+        });
       }
+    }
+    if (body.freeCommissionBps != null) {
+      await prisma.subscriptionPlan.updateMany({
+        where: { code: "FREE" },
+        data: { commissionBps: body.freeCommissionBps }
+      });
+    }
+    if (body.paidCommissionBps != null) {
+      await prisma.subscriptionPlan.updateMany({
+        where: { code: { in: ["SILVER", "GOLD", "PLATINUM"] } },
+        data: { commissionBps: body.paidCommissionBps }
+      });
     }
     const [after, galleryConfig, homeFeedConfig] = await Promise.all([
       getCommercialConfig(),

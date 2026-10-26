@@ -139,7 +139,7 @@ export const ADMIN_SCREENS: {
     label: "Commercial config",
     group: "Revenue",
     icon: SlidersHorizontal,
-    description: "Plans, commission, galleries, home feed and location hubs.",
+    description: "Free 10% commission, paid Silver / Gold / Platinum fees, galleries and hubs.",
     view: ["finance.view", "commercial.manage", "analytics.view"],
     edit: ["commercial.manage"]
   },

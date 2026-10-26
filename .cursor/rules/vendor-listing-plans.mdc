@@ -1,0 +1,17 @@
+---
+description: Vendor listing plans — Free 10% commission, paid Silver/Gold/Platinum set by admin
+alwaysApply: true
+---
+
+# Vendor listing plans
+
+Do not confuse these with **customer Memberships & promos** (booking discounts on `/admin/memberships`).
+
+Vendor (therapist) listing plans on Commercial config and `/vendor/subscriptions`:
+
+- **Free** — ₦0, no weekly/monthly/annual fee. NaijaSpa takes **10% commission** on every successfully booked service, or the % the live admin sets (`freeCommissionBps` / Free plan `commissionBps`).
+- **Silver** — billed **weekly**, default **₦50,000**, admin-set. Paid-plan commission default **0%** (or admin `paidCommissionBps`).
+- **Gold** — billed **monthly**, default **₦180,000**, admin-set.
+- **Platinum** — billed **yearly**, default **₦510,000**, admin-set.
+
+Codes: `FREE`, `SILVER`, `GOLD`, `PLATINUM`. Prices live on `SubscriptionPlan.priceKobo` and are edited only in Admin → Commercial config. Seed/ensure must not overwrite a non-zero price the admin already saved.

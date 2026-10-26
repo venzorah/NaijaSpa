@@ -10,7 +10,7 @@ type Payload = {
   config?: Record<string, number | string>;
   galleryConfig?: { maxImagesPerGallery: number; maxImageBytes: number };
   homeFeedConfig?: { featured: number; premium: number; promo: number; nearby: number };
-  plans?: Array<{ code: string; priceKobo: number; commissionBps: number }>;
+  plans?: Array<{ code: string; name?: string; priceKobo: number; commissionBps: number }>;
   hubs?: Array<{ id: string; label: string; state: string; locked?: boolean }>;
 };
 
@@ -26,7 +26,7 @@ export default function CommercialPage() {
       <AdminPageHeader screen="commercial" />
       <Panel
         title="Plans, extras and marketplace hubs"
-        description="Free plan is ₦0 / 10% commission. Paid plan prices are set here. Hotel and Home extras are vendor-set per service. Spa/Office is always ₦0 extra."
+        description="Free vendors pay 10% (or the % you set) on each successful booking — no weekly, monthly or annual fee. Paid packages: Silver weekly, Gold monthly, Platinum yearly. Prices are admin-set."
       >
       <form
         key={data.config ? "loaded" : "loading"}
@@ -48,10 +48,13 @@ export default function CommercialPage() {
               homeFeedPromoLimit: Number(fd.get("homePromo")),
               homeFeedNearbyLimit: Number(fd.get("homeNearby")),
               extraStates: fd.getAll("extraState").map(String),
+              freeCommissionBps: Math.round(Number(fd.get("freeCommission") || 10) * 100),
+              paidCommissionBps: Math.round(Number(fd.get("paidCommission") || 0) * 100),
               plans: [
-                { code: "WEEKLY", priceKobo: Number(fd.get("weekly")) * 100 },
-                { code: "MONTHLY", priceKobo: Number(fd.get("monthly")) * 100 },
-                { code: "SIX_MONTH", priceKobo: Number(fd.get("six")) * 100 }
+                { code: "FREE", priceKobo: 0, commissionBps: Math.round(Number(fd.get("freeCommission") || 10) * 100) },
+                { code: "SILVER", priceKobo: Number(fd.get("silver")) * 100 },
+                { code: "GOLD", priceKobo: Number(fd.get("gold")) * 100 },
+                { code: "PLATINUM", priceKobo: Number(fd.get("platinum")) * 100 }
               ]
             })
           });
@@ -70,17 +73,42 @@ export default function CommercialPage() {
           Home surcharge ₦
           <input name="home" type="number" defaultValue={Number(data.config?.homeSurchargeKobo || 0) / 100} className="ml-2 rounded-xl bg-elev px-2" />
         </label>
+        <h2 className="mt-4 font-display text-xl">Vendor listing plans</h2>
         <label className="text-sm">
-          Weekly price ₦
-          <input name="weekly" type="number" defaultValue={(data.plans?.find((p) => p.code === "WEEKLY")?.priceKobo || 0) / 100} className="ml-2 rounded-xl bg-elev px-2" />
+          Free plan commission %
+          <input
+            name="freeCommission"
+            type="number"
+            min={0}
+            max={100}
+            step={0.1}
+            defaultValue={(data.plans?.find((p) => p.code === "FREE")?.commissionBps ?? Number(data.config?.freeCommissionBps || 1000)) / 100}
+            className="ml-2 rounded-xl bg-elev px-2"
+          />
         </label>
         <label className="text-sm">
-          Monthly price ₦
-          <input name="monthly" type="number" defaultValue={(data.plans?.find((p) => p.code === "MONTHLY")?.priceKobo || 0) / 100} className="ml-2 rounded-xl bg-elev px-2" />
+          Paid plan commission %
+          <input
+            name="paidCommission"
+            type="number"
+            min={0}
+            max={100}
+            step={0.1}
+            defaultValue={(data.plans?.find((p) => p.code === "GOLD")?.commissionBps ?? Number(data.config?.paidCommissionBps || 0)) / 100}
+            className="ml-2 rounded-xl bg-elev px-2"
+          />
         </label>
         <label className="text-sm">
-          Six-month price ₦
-          <input name="six" type="number" defaultValue={(data.plans?.find((p) => p.code === "SIX_MONTH")?.priceKobo || 0) / 100} className="ml-2 rounded-xl bg-elev px-2" />
+          Silver (weekly) ₦
+          <input name="silver" type="number" min={0} defaultValue={(data.plans?.find((p) => p.code === "SILVER")?.priceKobo || 5_000_000) / 100} className="ml-2 rounded-xl bg-elev px-2" />
+        </label>
+        <label className="text-sm">
+          Gold (monthly) ₦
+          <input name="gold" type="number" min={0} defaultValue={(data.plans?.find((p) => p.code === "GOLD")?.priceKobo || 18_000_000) / 100} className="ml-2 rounded-xl bg-elev px-2" />
+        </label>
+        <label className="text-sm">
+          Platinum (yearly) ₦
+          <input name="platinum" type="number" min={0} defaultValue={(data.plans?.find((p) => p.code === "PLATINUM")?.priceKobo || 51_000_000) / 100} className="ml-2 rounded-xl bg-elev px-2" />
         </label>
         <h2 className="mt-4 font-display text-xl">Therapist galleries</h2>
         <p className="text-xs text-ink2">Vendors may create at most 7 galleries. Image count and file size are editable here.</p>

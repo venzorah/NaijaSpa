@@ -4,6 +4,8 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { vendorEntitlement } from "@/lib/entitlements";
 import { formatNgn } from "@/lib/money";
+import { vendorPlanBillingLabel } from "@/lib/vendor-plans";
+import { ensureLiveVendorPlans } from "@/lib/vendor-plans-live";
 import { VendorPageHeader } from "@/components/vendor/page-header";
 import { Panel } from "@/components/admin/panel";
 import { AdminStatusPill } from "@/components/admin/status-pill";
@@ -11,6 +13,7 @@ import { cn } from "@/lib/cn";
 
 export default async function Page() {
   const user = await getSession();
+  await ensureLiveVendorPlans();
   const plans = await prisma.subscriptionPlan.findMany({ where: { active: true }, orderBy: { priceKobo: "asc" } });
   const ent = user?.vendorId ? await vendorEntitlement(user.vendorId) : null;
   const current = await prisma.vendorSubscription.findFirst({
@@ -22,7 +25,7 @@ export default async function Page() {
     <div>
       <VendorPageHeader
         title="Subscription"
-        description="Paid plans drop commission to 0% and can unlock public contact and sponsored listings. Plan prices are set by NaijaSpa."
+        description="Free listings pay commission on each successful booking. Silver, Gold and Platinum are subscription packages set by NaijaSpa."
       />
       <Panel className="mb-4" title="Current plan" actions={<AdminStatusPill status={ent?.activePaid ? "Paid" : "Free"} />}>
         <p className="text-sm">
@@ -41,7 +44,7 @@ export default async function Page() {
             <li key={p.id}>
               <Panel className={cn(currentCode && "border-gold/50")} title={p.name} actions={currentCode ? <AdminStatusPill status="Current" /> : null}>
                 <p className="font-display text-2xl">{p.priceKobo === 0 ? "₦0" : formatNgn(p.priceKobo)}</p>
-                <p className="text-xs text-ink2">{p.durationDays >= 3650 ? "Until you change plan" : `${p.durationDays} days`}</p>
+                <p className="text-xs text-ink2">{vendorPlanBillingLabel(p.durationDays, p.priceKobo)}</p>
                 <ul className="mt-3 space-y-1.5 text-sm">
                   <li className="flex gap-2">
                     <Check className="h-4 w-4 text-goldink" aria-hidden />
