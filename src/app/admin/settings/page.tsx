@@ -18,7 +18,7 @@ export default function SettingsPage() {
   return (
     <div>
       <AdminPageHeader screen="settings" />
-      <Panel title="Platform defaults" description="Currency is NGN. Theme defaults to dark for every visitor unless they saved light mode.">
+      <Panel title="Platform defaults" description="Currency is NGN. Theme defaults to light for every visitor unless they saved dark mode.">
         <form
           className="grid max-w-lg gap-3"
           onSubmit={async (e) => {

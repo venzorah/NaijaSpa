@@ -124,7 +124,7 @@ export function SettingsForm({
       <section className="mt-4 rounded-3xl border border-line bg-card p-5">
         <h2 className="font-semibold text-ink">Appearance</h2>
         <div className="mt-3 grid grid-cols-2 gap-2" role="radiogroup" aria-label="Theme">
-          {([["dark", "Dark", Moon], ["light", "Light", Sun]] as const).map(([v, label, Icon]) => (
+          {([["light", "Light", Sun], ["dark", "Dark", Moon]] as const).map(([v, label, Icon]) => (
             <button
               key={v}
               type="button"
@@ -140,7 +140,7 @@ export function SettingsForm({
             </button>
           ))}
         </div>
-        <p className="mt-2 text-xs text-ink2">Saved on this device. Dark is the default.</p>
+        <p className="mt-2 text-xs text-ink2">Saved on this device. Light is the default.</p>
 
         <h2 className="mt-6 font-semibold text-ink">Language</h2>
         <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4" role="radiogroup" aria-label="Language">

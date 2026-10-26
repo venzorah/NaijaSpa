@@ -44,7 +44,7 @@ export async function POST(req: Request) {
       name: user.name,
       role: user.role as never,
       locale: "en",
-      theme: "dark"
+      theme: "light"
     });
     queueMail(sendWelcomeEmail({ to: user.email, name: user.name, asVendor: Boolean(body.asVendor) }));
     return NextResponse.json({ ok: true });

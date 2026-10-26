@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useState } from "rea
 
 type Theme = "dark" | "light";
 const ThemeCtx = createContext<{ theme: Theme; toggle: () => void; setTheme: (t: Theme) => void }>({
-  theme: "dark",
+  theme: "light",
   toggle: () => {},
   setTheme: () => {}
 });
@@ -16,11 +16,11 @@ function applyDom(next: Theme) {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("dark");
+  const [theme, setTheme] = useState<Theme>("light");
 
   useEffect(() => {
     const saved = localStorage.getItem("naijaspa-theme");
-    const next: Theme = saved === "light" ? "light" : "dark";
+    const next: Theme = saved === "dark" ? "dark" : "light";
     setTheme(next);
     applyDom(next);
   }, []);

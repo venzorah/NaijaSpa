@@ -12,7 +12,7 @@ export default function Page() {
       <VendorPageHeader title="Settings" description="Appearance and how this portal behaves on your device." />
       <div className="grid gap-4 md:grid-cols-2">
         <Panel title="Appearance">
-          <p className="text-sm text-ink2">NaijaSpa defaults to dark. Switch anytime — we store the choice on this device.</p>
+          <p className="text-sm text-ink2">NaijaSpa defaults to light. Switch anytime — we store the choice on this device.</p>
           <button type="button" onClick={toggle} className="mt-4 min-h-11 rounded-full border border-line px-5 text-sm font-semibold">
             {theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
           </button>
