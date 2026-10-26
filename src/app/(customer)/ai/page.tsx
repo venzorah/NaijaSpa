@@ -15,11 +15,11 @@ type Message = {
 };
 
 const examples = [
-  "Find a highly rated spa in Lekki under ₦30,000",
-  "Relaxing massage near me this Saturday",
-  "Couples treatments in Abuja",
-  "Home service in Lagos",
-  "Facial about one hour"
+  "Massage in Abuja",
+  "Home service",
+  "Treatments under ₦40,000",
+  "Verified spa in my city",
+  "Couples treatment"
 ];
 
 export default function AskAiPage() {
@@ -59,16 +59,15 @@ export default function AskAiPage() {
         return;
       }
       setPrior(json.filters || {});
-      const count = (json.results as ExploreResult[] | undefined)?.length ?? 0;
       setMessages((m) => [
         ...m,
         {
           id: Date.now() + 1,
           role: "ai",
           text:
-            count === 0
-              ? "Nothing on NaijaSpa matched that request. Try traditional search or refine the budget, area or treatment."
-              : `I found ${count} matching treatment${count === 1 ? "" : "s"} on NaijaSpa.`,
+            typeof json.reply === "string" && json.reply
+              ? json.reply
+              : "Nothing currently listed on NaijaSpa matches that. Try Explore, or a different area or treatment.",
           results: json.results,
           usedFallback: json.usedFallback
         }
@@ -80,14 +79,14 @@ export default function AskAiPage() {
 
   return (
     <div className="mx-auto flex min-h-[calc(100vh-64px)] max-w-3xl flex-col px-4 pt-6 lg:px-8">
-      <PageHeader title="Ask NaijaSpa AI" subtitle="Describe what you need — we’ll find the right treatment." />
+      <PageHeader title="Ask NaijaSpa AI" subtitle="We only show treatments that are actually listed on NaijaSpa." />
 
       <div className="mb-4 flex items-start gap-3 rounded-2xl border border-line bg-bg2 px-4 py-3 text-sm text-ink2">
         <Info className="mt-0.5 h-4 w-4 shrink-0 text-leaf" aria-hidden />
         <p className="flex-1">
-          AI suggestions can miss things. Prefer to filter yourself?{" "}
+          Answers come from live listings, not invented spas or prices. Prefer to filter yourself?{" "}
           <Link href="/explore" className="font-semibold text-leaf underline underline-offset-2">
-            Use traditional search
+            Use Explore
           </Link>
         </p>
       </div>
