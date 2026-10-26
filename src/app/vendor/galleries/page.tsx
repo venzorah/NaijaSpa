@@ -212,7 +212,7 @@ export default function VendorGalleriesPage() {
     <div>
       <VendorPageHeader
         title="Galleries"
-        description={`Profile photos show as a two-up swipe gallery on your public listing (up to ${profileMax} images, ${Math.round(maxBytes / 1024)} KB each). Add up to ${maxGalleries} named therapist galleries (${maxImages} photos each). Video links are for paid plans only.`}
+        description={`Open Galleries, then upload JPEG/PNG/WebP into Profile photos (up to ${profileMax} images, ${Math.round(maxBytes / 1024)} KB each). Or create a named therapist gallery (up to ${maxGalleries}, ${maxImages} photos each). Video links are for paid plans only.`}
       />
       {message ? <p className="mt-3 text-sm font-medium text-forest">{message}</p> : null}
 

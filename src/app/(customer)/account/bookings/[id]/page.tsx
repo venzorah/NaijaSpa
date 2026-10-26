@@ -7,6 +7,7 @@ import { formatNgn } from "@/lib/money";
 import { PageHeader } from "@/components/page-header";
 import { StatusPill } from "@/components/status-pill";
 import { CancelBooking } from "@/components/cancel-booking";
+import { ConfirmVisit } from "@/components/confirm-visit";
 import { PHOTOS, publicWellnessPhoto } from "@/lib/photos";
 import { locationLabel } from "@/lib/booking-ui";
 
@@ -85,6 +86,9 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
 
       <div className="mt-5 grid gap-2 sm:grid-cols-2">
         {active ? <CancelBooking bookingId={booking.id} /> : null}
+        {booking.status === "confirmed" || booking.status === "in_progress" ? (
+          <ConfirmVisit bookingId={booking.id} />
+        ) : null}
         {booking.status === "awaiting_payment" ? (
           <Link href={`/checkout/${booking.id}`} className="inline-flex min-h-11 items-center justify-center rounded-full bg-gold px-5 text-sm font-bold text-ongold">
             Pay with Paystack

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireVendor } from "@/lib/vendor-auth";
 import { prisma } from "@/lib/db";
 import { jsonError } from "@/lib/http";
+import { markBookingCompleted } from "@/lib/payouts";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -11,6 +12,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const body = z.object({ status: z.enum(["confirmed", "completed", "cancelled", "no_show", "in_progress"]) }).parse(await req.json());
     const existing = await prisma.booking.findFirst({ where: { id, vendorId: user.vendorId } });
     if (!existing) return NextResponse.json({ error: "Booking not found" }, { status: 404 });
+    if (body.status === "completed") {
+      const booking = await markBookingCompleted(id, user.id);
+      return NextResponse.json({ booking });
+    }
     const booking = await prisma.booking.update({ where: { id }, data: { status: body.status } });
     await prisma.bookingStatusEvent.create({
       data: { bookingId: id, fromStatus: existing.status, toStatus: body.status, actorId: user.id }

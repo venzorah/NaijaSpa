@@ -88,6 +88,11 @@ model Vendor {
   hoursJson            String    @default("{}")
   privatePhone         String?
   privateWhatsapp      String?
+  payoutBankCode       String?
+  payoutBankName       String?
+  payoutAccountNumber  String?
+  payoutAccountName    String?
+  payoutRecipientCode  String?
   cancellationPolicy   String    @default("")
   applicationStatus    String    @default("draft")
   verificationStatus   String    @default("unverified")
@@ -134,6 +139,8 @@ model TherapistGalleryImage {
   caption        String           @default("")
   therapistName  String           @default("")
   byteSize       Int              @default(0)
+  payload        Bytes?
+  mimeType       String           @default("")
   sortOrder      Int              @default(0)
   createdAt      DateTime         @default(now())
   gallery        TherapistGallery @relation(fields: [galleryId], references: [id], onDelete: Cascade)
@@ -448,16 +455,21 @@ model VendorEarning {
   status        String  @default("pending")
   vendor        Vendor  @relation(fields: [vendorId], references: [id])
   booking       Booking @relation(fields: [bookingId], references: [id])
+  payout        Payout?
 }
 
 model Payout {
   id          String   @id @default(cuid())
   vendorId    String
+  earningId   String?  @unique
   amountKobo  Int
   status      String
   note        String?
+  reference   String?
+  providerRef String?
   createdAt   DateTime @default(now())
   vendor      Vendor   @relation(fields: [vendorId], references: [id])
+  earning     VendorEarning? @relation(fields: [earningId], references: [id])
 }
 
 model MembershipPlan {

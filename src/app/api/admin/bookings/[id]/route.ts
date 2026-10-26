@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/admin-auth";
 import { audit } from "@/lib/audit";
 import { prisma } from "@/lib/db";
 import { jsonError } from "@/lib/http";
+import { markBookingCompleted } from "@/lib/payouts";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -16,13 +17,18 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         reason: z.string().optional()
       })
       .parse(await req.json());
-    const booking = await prisma.booking.update({
-      where: { id },
-      data: { status: body.status, cancelReason: body.reason ?? before.cancelReason }
-    });
-    await prisma.bookingStatusEvent.create({
-      data: { bookingId: id, fromStatus: before.status, toStatus: body.status, actorId: actor.id, note: body.reason }
-    });
+    const booking =
+      body.status === "completed"
+        ? await markBookingCompleted(id, actor.id)
+        : await prisma.booking.update({
+            where: { id },
+            data: { status: body.status, cancelReason: body.reason ?? before.cancelReason }
+          });
+    if (body.status !== "completed") {
+      await prisma.bookingStatusEvent.create({
+        data: { bookingId: id, fromStatus: before.status, toStatus: body.status, actorId: actor.id, note: body.reason }
+      });
+    }
     await audit({
       actorId: actor.id,
       action: `booking.${body.status}`,

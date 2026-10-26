@@ -27,7 +27,12 @@ export async function GET() {
     const [existing, videoLinks, config, entitlement] = await Promise.all([
       prisma.therapistGallery.findMany({
         where: { vendorId },
-        include: { images: { orderBy: { sortOrder: "asc" } } },
+        include: {
+          images: {
+            orderBy: { sortOrder: "asc" },
+            select: { id: true, url: true, caption: true, therapistName: true, byteSize: true, sortOrder: true, createdAt: true }
+          }
+        },
         orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }]
       }),
       prisma.vendorVideoLink.findMany({
@@ -49,7 +54,12 @@ export async function GET() {
       });
       galleries = await prisma.therapistGallery.findMany({
         where: { vendorId },
-        include: { images: { orderBy: { sortOrder: "asc" } } },
+        include: {
+          images: {
+            orderBy: { sortOrder: "asc" },
+            select: { id: true, url: true, caption: true, therapistName: true, byteSize: true, sortOrder: true, createdAt: true }
+          }
+        },
         orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }]
       });
     }

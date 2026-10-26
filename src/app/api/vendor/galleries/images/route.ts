@@ -48,6 +48,8 @@ export async function POST(req: Request) {
           caption,
           therapistName,
           byteSize: buf.byteLength,
+          payload: Buffer.from(buf),
+          mimeType: saved.mime,
           sortOrder: gallery.images.length
         }
       });

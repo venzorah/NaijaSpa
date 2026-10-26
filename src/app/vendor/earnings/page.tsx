@@ -6,6 +6,7 @@ import { VendorPageHeader } from "@/components/vendor/page-header";
 import { StatCard } from "@/components/admin/stat-card";
 import { Panel } from "@/components/admin/panel";
 import { AdminStatusPill } from "@/components/admin/status-pill";
+import { PayoutAccountForm } from "@/components/vendor/payout-account-form";
 
 export default async function Page() {
   const user = await getSession();
@@ -24,7 +25,8 @@ export default async function Page() {
   const commission = rows.reduce((s, e) => s + e.commissionKobo, 0);
   return (
     <div>
-      <VendorPageHeader title="Earnings & payouts" description="What you keep after commission, and payouts NaijaSpa has sent." />
+      <VendorPageHeader title="Earnings & payouts" description="Add a bank account, then we credit it automatically after a visit is confirmed." />
+      <PayoutAccountForm />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard label="Awaiting payout" value={formatNgnCompact(payable)} icon={Wallet} emphasis="gold" />
         <StatCard label="Already paid" value={formatNgnCompact(paid)} />
