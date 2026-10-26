@@ -1,5 +1,5 @@
-const CACHE = "naijaspa-shell-v5";
-const SHELL = ["/", "/brand/logo-horizontal.png", "/splash/icon-512.png", "/offline.html"];
+const CACHE = "naijaspa-shell-v6";
+const SHELL = ["/", "/brand/splash-logo.png", "/splash/icon-512.png", "/icons/icon-192.png", "/icons/icon-512.png", "/offline.html"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));

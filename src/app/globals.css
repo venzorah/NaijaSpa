@@ -185,3 +185,21 @@ input[type="time"] {
     animation: none;
   }
 }
+
+.ns-splash-layer {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  place-items: center;
+  background: #ffffff;
+}
+
+html.ns-splash .ns-splash-layer {
+  display: grid;
+}
+
+.ns-splash-layer img {
+  width: min(72vw, 18rem);
+  height: auto;
+}
