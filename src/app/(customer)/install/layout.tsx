@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Install on iPhone",
+  title: { absolute: "NaijaSpa" },
+  applicationName: "NaijaSpa",
+  appleWebApp: { title: "NaijaSpa" },
   description: "Add NaijaSpa to your iPhone or iPad Home Screen from Safari."
 };
 

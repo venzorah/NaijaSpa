@@ -1,9 +1,16 @@
+import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { CustomerHome } from "@/components/customer-home";
 import { getHomeCatalog } from "@/lib/catalog";
 import { inHref, parsePlacePath, placeHasLocation } from "@/lib/place-urls";
 
 export const revalidate = 30;
+
+export const metadata: Metadata = {
+  title: { absolute: "NaijaSpa" },
+  applicationName: "NaijaSpa",
+  appleWebApp: { title: "NaijaSpa" }
+};
 
 export default async function LocalizedHomePage({ params }: { params: Promise<{ place?: string[] }> }) {
   const { place: segments } = await params;

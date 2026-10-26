@@ -92,7 +92,7 @@ export default function InstallPage() {
           <Step
             n={4}
             title="Tap Add"
-            body="Edit the name if you like, then tap Add in the top right. NaijaSpa appears on your Home Screen like any other app."
+            body="Leave the name as NaijaSpa (or edit it), then tap Add in the top right. NaijaSpa appears on your Home Screen like any other app."
           />
           <Step
             n={5}

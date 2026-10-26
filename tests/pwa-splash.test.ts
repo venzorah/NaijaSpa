@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { appleSplashPixelSizes, appleStartupImages, PWA_SPLASH_BG } from "../src/lib/pwa-splash";
+import { appleSplashPixelSizes, appleStartupImages, PWA_SPLASH_BG, SPLASH_MAX_MS } from "../src/lib/pwa-splash";
 
 describe("PWA splash", () => {
   it("uses a white splash background", () => {
     expect(PWA_SPLASH_BG).toBe("#ffffff");
+  });
+
+  it("hides the in-app splash in under two seconds", () => {
+    expect(SPLASH_MAX_MS).toBeLessThan(2000);
   });
 
   it("covers current iPhone and iPad portrait and landscape slots", () => {

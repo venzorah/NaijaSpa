@@ -1,4 +1,7 @@
 export const PWA_SPLASH_BG = "#ffffff";
+/** In-app overlay must hide before 2s so the homepage is usable immediately. */
+export const SPLASH_MAX_MS = 1200;
+export const SPLASH_REDUCED_MS = 200;
 
 export type AppleStartupImage = {
   url: string;
