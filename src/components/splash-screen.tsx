@@ -4,22 +4,49 @@ import { useEffect, useState } from "react";
 
 const KEY = "naijaspa-splash";
 
-function isAppOpen() {
+function markSession() {
   try {
-    if (sessionStorage.getItem(KEY)) return false;
-    const nav = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
-    if (nav?.type === "reload") return false;
-    const standalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      window.matchMedia("(display-mode: fullscreen)").matches ||
-      ("standalone" in navigator && Boolean((navigator as Navigator & { standalone?: boolean }).standalone));
-    const fromThisSite = document.referrer.startsWith(window.location.origin);
-    if (!standalone && fromThisSite) return false;
     sessionStorage.setItem(KEY, "1");
-    return true;
+  } catch {
+    /* private mode */
+  }
+  try {
+    window.name = KEY;
+  } catch {
+    /* ignore */
+  }
+}
+
+function alreadyInSession() {
+  try {
+    if (sessionStorage.getItem(KEY)) return true;
+  } catch {
+    /* ignore */
+  }
+  try {
+    if (window.name === KEY) return true;
+  } catch {
+    /* ignore */
+  }
+  return false;
+}
+
+/** True only on a cold open of the site or installed app — not on in-app clicks. */
+function isAppOpen() {
+  if (typeof window === "undefined") return false;
+  if (alreadyInSession()) {
+    markSession();
+    return false;
+  }
+  markSession();
+  try {
+    const nav = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
+    if (nav?.type === "reload" || nav?.type === "back_forward") return false;
+    if (document.referrer.startsWith(window.location.origin)) return false;
   } catch {
     return false;
   }
+  return true;
 }
 
 export function SplashScreen() {
