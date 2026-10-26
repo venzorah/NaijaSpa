@@ -3,7 +3,7 @@
 import { MapPin } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
-import { NIGERIA_STATES, PLACE_COOKIE, nigeriaStateLabel, parsePlaceCookie, type LivePlace } from "@/lib/nigeria";
+import { DEFAULT_LIVE_PLACE, NIGERIA_STATES, PLACE_COOKIE, nigeriaStateLabel, parsePlaceCookie, type LivePlace } from "@/lib/nigeria";
 import { exploreHref } from "@/lib/place-urls";
 import { persistLivePlace } from "@/components/place-sync";
 
@@ -53,8 +53,7 @@ export function SearchFiltersForm({
 
   useEffect(() => {
     if (values?.state || values?.city || values?.neighbourhood) return;
-    const stored = readStoredPlace();
-    if (!stored) return;
+    const stored = readStoredPlace() ?? DEFAULT_LIVE_PLACE;
     setPlace({
       state: stored.state,
       city: stored.city,

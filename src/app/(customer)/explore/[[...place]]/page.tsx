@@ -8,7 +8,7 @@ import { ExploreSearchBar } from "@/components/explore-search-bar";
 import { EmptyState } from "@/components/empty-state";
 import { SearchX } from "lucide-react";
 import { listExploreCities, searchServices } from "@/lib/search";
-import { PLACE_COOKIE, nigeriaStateLabel, parsePlaceCookie, serviceAreaState } from "@/lib/nigeria";
+import { PLACE_COOKIE, nigeriaStateLabel, placeFromCookieOrDefault, serviceAreaState } from "@/lib/nigeria";
 import { demoCategories } from "@/lib/demo-catalog";
 import type { LocationType } from "@/lib/commercial";
 import type { TherapistGender } from "@/lib/nigeria";
@@ -35,7 +35,7 @@ export default async function ExplorePage({
   if (fromQuery) redirect(fromQuery);
 
   const pathPlace = placeFromPath(segments);
-  const stored = parsePlaceCookie((await cookies()).get(PLACE_COOKIE)?.value);
+  const stored = placeFromCookieOrDefault((await cookies()).get(PLACE_COOKIE)?.value);
   const filters = filtersFromSearchParams(sp);
   if (pathPlace && placeHasLocation(pathPlace)) {
     const canonicalPath = `/explore${placePath(pathPlace)}`;

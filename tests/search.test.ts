@@ -1,7 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { listingPhotos, publicWellnessPhoto } from "../src/lib/photos";
 import { demoExploreCities, demoHomeRails, demoNearbyVendors, demoSearch } from "../src/lib/demo-catalog";
-import { placeFromNominatim, placeRank, vendorMatchesPlace } from "../src/lib/nigeria";
+import {
+  DEFAULT_LIVE_PLACE,
+  isDefaultLivePlace,
+  placeFromCookieOrDefault,
+  placeFromNominatim,
+  placeRank,
+  vendorMatchesPlace
+} from "../src/lib/nigeria";
+import { hubLabelForPlace } from "../src/lib/hubs";
 import { exploreHref, exploreQueryRedirect, inPlaceHref, parsePlacePath } from "../src/lib/place-urls";
 
 describe("exact place matching", () => {
@@ -84,6 +92,15 @@ describe("demo therapist search", () => {
     expect(menAbuja.results.every((r) => r.therapists.every((t) => t.gender === "male"))).toBe(true);
     const womenAbuja = demoSearch({ city: "Abuja", gender: "female" });
     expect(womenAbuja.results).toEqual([]);
+  });
+});
+
+describe("default marketplace place", () => {
+  it("defaults to Abuja when nothing is stored", () => {
+    expect(placeFromCookieOrDefault(null)).toEqual(DEFAULT_LIVE_PLACE);
+    expect(isDefaultLivePlace(null)).toBe(true);
+    expect(hubLabelForPlace(null)).toBe("Abuja");
+    expect(inPlaceHref(DEFAULT_LIVE_PLACE)).toBe("/in/fct/abuja");
   });
 });
 

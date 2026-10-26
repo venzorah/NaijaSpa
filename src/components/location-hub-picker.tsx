@@ -11,7 +11,7 @@ import {
   hubToPlace,
   type MarketplaceHub
 } from "@/lib/hubs";
-import { PLACE_COOKIE, parsePlaceCookie, type LivePlace } from "@/lib/nigeria";
+import { DEFAULT_LIVE_PLACE, PLACE_COOKIE, parsePlaceCookie, type LivePlace } from "@/lib/nigeria";
 import { inHref } from "@/lib/place-urls";
 
 function readStoredPlace(): LivePlace | null {
@@ -30,10 +30,10 @@ export function LocationHubPicker() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [hubs, setHubs] = useState<MarketplaceHub[]>(DEFAULT_MARKETPLACE_HUBS);
-  const [place, setPlace] = useState<LivePlace | null>(null);
+  const [place, setPlace] = useState<LivePlace | null>(DEFAULT_LIVE_PLACE);
 
   useEffect(() => {
-    setPlace(readStoredPlace());
+    setPlace(readStoredPlace() ?? DEFAULT_LIVE_PLACE);
   }, []);
 
   useEffect(() => {
@@ -54,7 +54,7 @@ export function LocationHubPicker() {
         type="button"
         onClick={() => setOpen(true)}
         className="flex h-10 max-w-[42vw] items-center gap-1 rounded-full border border-line bg-card px-2.5 text-[13px] font-semibold text-ink shadow-sm hover:bg-elev sm:max-w-none"
-        aria-label={`Location: ${label}. Change location`}
+        aria-label={`${label}. Change city`}
       >
         <MapPin className="h-3.5 w-3.5 shrink-0 text-leaf" aria-hidden />
         <span className="truncate">{label}</span>

@@ -12,8 +12,8 @@ export type MarketplaceHub = {
 
 /** Always shown. Admin may append other Nigerian states. */
 export const DEFAULT_MARKETPLACE_HUBS: MarketplaceHub[] = [
-  { id: "lagos", label: "Lagos", state: "Lagos", city: "", locked: true },
   { id: "abuja", label: "Abuja", state: "FCT", city: "Abuja", locked: true },
+  { id: "lagos", label: "Lagos", state: "Lagos", city: "", locked: true },
   { id: "port-harcourt", label: "Port Harcourt", state: "Rivers", city: "Port Harcourt", locked: true },
   { id: "delta", label: "Delta", state: "Delta", city: "", locked: true },
   { id: "anambra", label: "Anambra", state: "Anambra", city: "", locked: true }
@@ -69,7 +69,7 @@ export function hubToPlace(hub: MarketplaceHub): LivePlace {
 }
 
 export function hubLabelForPlace(place?: LivePlace | null, hubs: MarketplaceHub[] = DEFAULT_MARKETPLACE_HUBS) {
-  if (!place) return hubs[0]?.label ?? "Lagos";
+  if (!place) return "Abuja";
   const hit =
     hubs.find((h) => h.state === place.state && normalizePlace(h.city) === normalizePlace(place.city) && h.city) ||
     hubs.find((h) => h.state === place.state) ||
@@ -77,7 +77,7 @@ export function hubLabelForPlace(place?: LivePlace | null, hubs: MarketplaceHub[
   if (hit) return hit.label;
   if (place.city) return place.city;
   if (place.state === "FCT") return "Abuja";
-  return place.state || hubs[0]?.label || "Lagos";
+  return place.state || "Abuja";
 }
 
 export function addableHubStates(hubs: MarketplaceHub[] = DEFAULT_MARKETPLACE_HUBS) {

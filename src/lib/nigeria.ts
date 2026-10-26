@@ -113,6 +113,20 @@ export type LivePlace = {
   neighbourhood: string;
 };
 
+/** Used when the visitor has not picked a city and device location is off. */
+export const DEFAULT_LIVE_PLACE: LivePlace = { state: "FCT", city: "Abuja", neighbourhood: "" };
+
+export function isDefaultLivePlace(place?: LivePlace | null) {
+  if (!place) return true;
+  const state = mapNigeriaState(place.state) || mapNigeriaState(place.city);
+  const city = normalizePlace(place.city);
+  return state === "FCT" && (!city || city === "abuja") && !normalizePlace(place.neighbourhood);
+}
+
+export function placeFromCookieOrDefault(raw?: string | null): LivePlace {
+  return parsePlaceCookie(raw) ?? DEFAULT_LIVE_PLACE;
+}
+
 export const PLACE_COOKIE = "naijaspa_place";
 
 export function parsePlaceCookie(raw?: string | null): LivePlace | null {

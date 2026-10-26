@@ -10,7 +10,7 @@ import { EmptyState } from "@/components/empty-state";
 import { formatNgn } from "@/lib/money";
 import { CategoryCarousel } from "@/components/category-carousel";
 import { cookies } from "next/headers";
-import { PLACE_COOKIE, parsePlaceCookie } from "@/lib/nigeria";
+import { PLACE_COOKIE, placeFromCookieOrDefault } from "@/lib/nigeria";
 import { exploreHref } from "@/lib/place-urls";
 
 export const dynamic = "force-dynamic";
@@ -69,7 +69,7 @@ export default async function CategoryLandingPage({ params }: { params: Promise<
   const categories = await loadCategories();
   const cat = categories.find((c) => c.slug === slug);
   if (!cat) notFound();
-  const place = parsePlaceCookie((await cookies()).get(PLACE_COOKIE)?.value);
+  const place = placeFromCookieOrDefault((await cookies()).get(PLACE_COOKIE)?.value);
   const exploreWithCategory = exploreHref(place, { category: slug });
   const data = await searchServices({ category: slug, take: 24, sort: "rating", rankPlace: place });
   const from = data.results.length ? Math.min(...data.results.map((r) => r.quote.customerTotalKobo)) : 0;
