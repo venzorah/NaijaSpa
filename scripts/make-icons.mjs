@@ -54,6 +54,10 @@ async function whiteSplash(markBuf, width, height, dest) {
     .toFile(dest);
 }
 
+/** Fraction of each edge left empty so a round home-screen mask does not clip the mark. */
+const ICON_INSET = 0.15;
+const MASKABLE_INSET = 0.18;
+
 async function squareIcon(markBuf, size, dest, pad = 0) {
   const inner = Math.max(1, size - pad * 2);
   const mark = await sharp(markBuf)
@@ -68,27 +72,33 @@ async function squareIcon(markBuf, size, dest, pad = 0) {
     .toFile(dest);
 }
 
+function inset(size, ratio) {
+  return Math.round(size * ratio);
+}
+
 const markBuf = await transparentMark();
 await sharp(markBuf).resize({ width: 1024, withoutEnlargement: true }).png().toFile(splashLogoPath);
 
 fs.mkdirSync(splashDir, { recursive: true });
 fs.mkdirSync(iconsDir, { recursive: true });
 
-await squareIcon(markBuf, 192, path.join(splashDir, "icon-192.png"));
-await squareIcon(markBuf, 512, path.join(splashDir, "icon-512.png"));
-await squareIcon(markBuf, 192, path.join(iconsDir, "icon-192.png"));
-await squareIcon(markBuf, 512, path.join(iconsDir, "icon-512.png"));
-await squareIcon(markBuf, 180, path.join(iconsDir, "apple-touch-icon.png"));
-await squareIcon(markBuf, 192, path.join(iconsDir, "maskable-192.png"), 24);
-await squareIcon(markBuf, 512, path.join(iconsDir, "maskable-512.png"), 64);
-await squareIcon(markBuf, 512, path.join("src", "app", "icon.png"));
-await squareIcon(markBuf, 180, path.join("src", "app", "apple-icon.png"));
+await squareIcon(markBuf, 192, path.join(splashDir, "icon-192.png"), inset(192, ICON_INSET));
+await squareIcon(markBuf, 512, path.join(splashDir, "icon-512.png"), inset(512, ICON_INSET));
+await squareIcon(markBuf, 192, path.join(iconsDir, "icon-192.png"), inset(192, ICON_INSET));
+await squareIcon(markBuf, 512, path.join(iconsDir, "icon-512.png"), inset(512, ICON_INSET));
+await squareIcon(markBuf, 180, path.join(iconsDir, "apple-touch-icon.png"), inset(180, ICON_INSET));
+await squareIcon(markBuf, 192, path.join(iconsDir, "maskable-192.png"), inset(192, MASKABLE_INSET));
+await squareIcon(markBuf, 512, path.join(iconsDir, "maskable-512.png"), inset(512, MASKABLE_INSET));
+await squareIcon(markBuf, 512, path.join("src", "app", "icon.png"), inset(512, ICON_INSET));
+await squareIcon(markBuf, 180, path.join("src", "app", "apple-icon.png"), inset(180, ICON_INSET));
 
-for (const d of APPLE) {
-  const pw = d.w * d.dpr;
-  const ph = d.h * d.dpr;
-  await whiteSplash(markBuf, pw, ph, path.join(splashDir, `${d.file}.png`));
-  await whiteSplash(markBuf, ph, pw, path.join(splashDir, `${d.file}-landscape.png`));
+if (!process.argv.includes("--icons-only")) {
+  for (const d of APPLE) {
+    const pw = d.w * d.dpr;
+    const ph = d.h * d.dpr;
+    await whiteSplash(markBuf, pw, ph, path.join(splashDir, `${d.file}.png`));
+    await whiteSplash(markBuf, ph, pw, path.join(splashDir, `${d.file}-landscape.png`));
+  }
 }
 
 console.log("Wrote install icons and white splash images from public/brand/logo-mark.png.");
