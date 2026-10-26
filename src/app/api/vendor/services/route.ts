@@ -44,7 +44,7 @@ export async function POST(req: Request) {
     const service = await prisma.service.create({
       data: {
         vendorId: user.vendorId,
-        slug: `${body.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Date.now().toString(36)}`,
+        slug: `${body.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "service"}-${Date.now().toString(36)}`,
         ...body
       }
     });

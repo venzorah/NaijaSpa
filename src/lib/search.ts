@@ -14,12 +14,7 @@ export async function searchServices(filters: SearchFilters) {
     const { demoSearch } = await import("./demo-catalog");
     return demoSearch(filters);
   }
-  try {
-    return await searchLive(filters);
-  } catch {
-    const { demoSearch } = await import("./demo-catalog");
-    return demoSearch(filters);
-  }
+  return searchLive(filters);
 }
 
 export async function listExploreCities(filters: ExploreCityFilters = {}) {
@@ -27,12 +22,7 @@ export async function listExploreCities(filters: ExploreCityFilters = {}) {
     const { demoExploreCities } = await import("./demo-catalog");
     return demoExploreCities(filters);
   }
-  try {
-    return await liveExploreCities(filters);
-  } catch {
-    const { demoExploreCities } = await import("./demo-catalog");
-    return demoExploreCities(filters);
-  }
+  return liveExploreCities(filters);
 }
 
 async function liveExploreCities(filters: ExploreCityFilters) {
@@ -116,7 +106,11 @@ async function searchLive(filters: SearchFilters) {
   const placeFilter = Boolean(filters.state || filters.city || filters.neighbourhood || filters.gender);
   const rows = await prisma.service.findMany({
     where,
-    include: { vendor: true, category: true, staff: { include: { staff: true } } },
+    include: {
+      vendor: true,
+      category: { select: { name: true, slug: true } },
+      staff: { include: { staff: true } }
+    },
     orderBy,
     ...(placeFilter ? {} : { skip: (page - 1) * take, take })
   });

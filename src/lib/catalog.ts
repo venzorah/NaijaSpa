@@ -294,6 +294,9 @@ async function loadHomeCatalog(place: LivePlace | null) {
     hero
   };
   } catch {
+    if (!usingDemoListings()) {
+      return { demo: false, categories: [], rails: { featured: [], premium: [], promo: [] }, nearby: [], faqs: [], hero };
+    }
     return demoHomePayload(limits, place, hero);
   }
 }
@@ -390,12 +393,12 @@ export async function getPublicService(slug: string) {
           }
         }
       },
-      category: true,
+      category: { select: { name: true, slug: true } },
       addons: true,
       staff: { include: { staff: true } }
     }
   });
-  if (!service) return demoPublicService(slug);
+  if (!service) return usingDemoListings() ? demoPublicService(slug) : null;
   if (!service.active) return null;
   const ent = await vendorEntitlement(service.vendorId);
   const vendor = sanitizePublicVendor(
@@ -438,6 +441,7 @@ export async function getPublicService(slug: string) {
     ].filter(Boolean) as string[]
   };
   } catch {
+    if (!usingDemoListings()) return null;
     return demoPublicService(slug);
   }
 }
@@ -451,12 +455,12 @@ export async function getPublicVendor(slug: string) {
   const vendor = await prisma.vendor.findUnique({
     where: { slug },
     include: {
-      services: { where: { active: true }, include: { category: true } },
+      services: { where: { active: true }, include: { category: { select: { name: true, slug: true } } } },
       galleries: { include: { images: { orderBy: { sortOrder: "asc" } } }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] },
       videoLinks: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] }
     }
   });
-  if (!vendor) return demoVendorBySlug(slug);
+  if (!vendor) return usingDemoListings() ? demoVendorBySlug(slug) : null;
   if (vendor.visibility !== "public") return null;
   const ent = await vendorEntitlement(vendor.id);
   return {
@@ -476,6 +480,7 @@ export async function getPublicVendor(slug: string) {
     )
   };
   } catch {
+    if (!usingDemoListings()) return null;
     return demoVendorBySlug(slug);
   }
 }
