@@ -2,14 +2,19 @@ import { requireAdminScreen } from "@/lib/admin-auth";
 import { prisma } from "@/lib/db";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { CategoriesConsole } from "@/components/admin/categories-console";
+import { categoryAdminSelect } from "@/lib/category-fields";
 
 export default async function CategoriesPage() {
   const { editable } = await requireAdminScreen("categories");
-  const categories = await prisma.category.findMany({
-    orderBy: { sortOrder: "asc" },
-    omit: { imagePayload: true },
-    include: { services: { select: { vendorId: true } } }
-  });
+  const categories = await prisma.category
+    .findMany({
+      orderBy: { sortOrder: "asc" },
+      select: categoryAdminSelect
+    })
+    .catch((error) => {
+      console.error("admin.categories.list", error);
+      return [];
+    });
   return (
     <div>
       <AdminPageHeader screen="categories" />

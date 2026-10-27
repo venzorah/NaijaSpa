@@ -17,10 +17,12 @@ export async function GET(_req: Request, ctx: { params: Promise<{ file: string }
   if (!/^[a-zA-Z0-9._-]+$/.test(file)) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
-  const fromDb = await prisma.category.findFirst({
-    where: { imageUrl: categoryMediaUrl(file) },
-    select: { imagePayload: true, imageMime: true }
-  });
+  const fromDb = await prisma.category
+    .findFirst({
+      where: { imageUrl: categoryMediaUrl(file) },
+      select: { imagePayload: true, imageMime: true }
+    })
+    .catch(() => null);
   if (fromDb?.imagePayload) {
     const body = Buffer.from(fromDb.imagePayload);
     return new NextResponse(body, {

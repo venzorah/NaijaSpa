@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/admin-auth";
 import { audit } from "@/lib/audit";
 import { assertImageUrl } from "@/lib/galleries";
 import { prisma } from "@/lib/db";
+import { categoryAuditSelect } from "@/lib/category-fields";
 import { jsonError } from "@/lib/http";
 
 function slugify(value: string) {
@@ -18,7 +19,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   try {
     const actor = await requireAdmin("catalog.manage");
     const { id } = await params;
-    const before = await prisma.category.findUniqueOrThrow({ where: { id }, omit: { imagePayload: true } });
+    const before = await prisma.category.findUniqueOrThrow({ where: { id }, select: categoryAuditSelect });
     const body = z
       .object({
         name: z.string().min(2).max(80).optional(),
@@ -45,7 +46,6 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (body.slug && !slug) throw Object.assign(new Error("Enter a valid slug"), { status: 400 });
     const imageUrl =
       body.imageUrl === undefined ? undefined : body.imageUrl === null || body.imageUrl === "" ? null : assertImageUrl(body.imageUrl);
-    const clearUpload = imageUrl !== undefined && imageUrl !== before.imageUrl;
     const category = await prisma.category.update({
       where: { id },
       data: {
@@ -56,12 +56,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         metaDescription: body.metaDescription,
         synonyms: body.synonyms,
         imageUrl,
-        ...(clearUpload ? { imagePayload: null, imageMime: "" } : {}),
         active: body.active,
         sortOrder: body.sortOrder,
         archivedAt: body.active === false ? new Date() : body.active === true ? null : undefined
       },
-      omit: { imagePayload: true }
+      select: categoryAuditSelect
     });
     await audit({ actorId: actor.id, action: "category.update", entityType: "Category", entityId: id, before, after: category });
     revalidateTag("home-catalog");
