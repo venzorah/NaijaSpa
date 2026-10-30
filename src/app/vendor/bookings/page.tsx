@@ -27,7 +27,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ q
         payable: b.vendorPayableKobo,
         totalLabel: formatNgn(b.vendorPayableKobo),
         status: b.status,
-        payment: b.payments[0]?.status ?? "unpaid"
+        payment: b.payments.some((p) => p.status === "success") ? "success" : b.payments[0]?.status ?? "unpaid"
       }))}
     />
   );

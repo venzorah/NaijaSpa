@@ -8,7 +8,7 @@ import { queueMail, sendWelcomeEmail } from "@/lib/mail";
 
 export async function POST(req: Request) {
   try {
-    rateLimit("register", 8);
+    rateLimit(`register:${req.headers.get("x-forwarded-for")?.split(",")[0].trim() || "local"}`, 8);
     const body = z
       .object({ email: z.string().email(), password: z.string().min(10), name: z.string().min(2), asVendor: z.boolean().optional() })
       .parse(await req.json());

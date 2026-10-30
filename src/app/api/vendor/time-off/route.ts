@@ -27,10 +27,10 @@ export async function POST(req: Request) {
     const body = z
       .object({
         staffId: z.string(),
-        startsAt: z.string(),
-        endsAt: z.string(),
+        startsAt: z.string().datetime({ offset: true }),
+        endsAt: z.string().datetime({ offset: true }),
         reason: z.string().min(2)
-      })
+      }).refine((b) => new Date(b.endsAt) > new Date(b.startsAt), "End time must follow start time")
       .parse(await req.json());
     const staff = await prisma.vendorStaff.findFirst({ where: { id: body.staffId, vendorId: user.vendorId } });
     if (!staff) return NextResponse.json({ error: "Staff not found" }, { status: 404 });

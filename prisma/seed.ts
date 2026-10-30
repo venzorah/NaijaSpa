@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import { loadEnvFile } from "node:process";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { DEFAULT_COMMERCIAL } from "../src/lib/commercial";
@@ -6,6 +8,8 @@ import { DEFAULT_HOME_HERO, DEFAULT_HERO_ADS, DEFAULT_HERO_AD_DISPLAY_LIMIT, HER
 import { DEFAULT_HOME_FEED_CONFIG, HOME_FEED_CONFIG_KEYS } from "../src/lib/home-types";
 import { LIVE_MEMBERSHIP_PLANS, serializeBenefits } from "../src/lib/membership";
 import { LIVE_VENDOR_PLANS } from "../src/lib/vendor-plans";
+
+if (existsSync(".env")) loadEnvFile(".env");
 
 const prisma = new PrismaClient();
 

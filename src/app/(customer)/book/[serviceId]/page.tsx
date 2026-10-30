@@ -73,7 +73,7 @@ function BookForm() {
             serviceId,
             locationType,
             locationDetails: details,
-            startsAt,
+            startsAt: new Date(`${localValue}:00+01:00`).toISOString(),
             idempotencyKey: crypto.randomUUID()
           };
           const res = await fetch("/api/bookings", {

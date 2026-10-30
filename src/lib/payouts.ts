@@ -182,6 +182,8 @@ export async function releaseVendorPayout(bookingId: string) {
     include: { earning: true, vendor: true }
   });
   if (!booking) return null;
+  if (booking.status !== "completed") throw Object.assign(new Error("Complete the visit before releasing a payout"), { status: 409 });
+  await assertBookingPaid(booking.id, booking.customerTotalKobo, booking.currency);
   let earning = booking.earning;
   if (!earning) {
     earning = await prisma.vendorEarning.create({
@@ -356,21 +358,27 @@ export async function flushVendorPayouts(vendorId: string) {
 }
 
 export async function markBookingCompleted(bookingId: string, actorId: string) {
-  const booking = await prisma.booking.findUniqueOrThrow({ where: { id: bookingId } });
-  if (booking.status === "completed") {
-    await releaseVendorPayout(bookingId);
-    return booking;
-  }
-  if (!["confirmed", "in_progress"].includes(booking.status)) {
-    throw Object.assign(new Error("This booking is not ready to confirm yet"), { status: 400 });
-  }
-  const updated = await prisma.booking.update({
-    where: { id: bookingId },
-    data: {
-      status: "completed",
-      statusHistory: { create: { fromStatus: booking.status, toStatus: "completed", actorId } }
+  const updated = await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "Booking" WHERE id = ${bookingId} FOR UPDATE`;
+    const booking = await tx.booking.findUniqueOrThrow({ where: { id: bookingId } });
+    await assertBookingPaid(booking.id, booking.customerTotalKobo, booking.currency, tx);
+    if (booking.status === "completed") return booking;
+    if (!["confirmed", "in_progress"].includes(booking.status)) {
+      throw Object.assign(new Error("This booking is not ready to confirm yet"), { status: 400 });
     }
+    return tx.booking.update({
+      where: { id: bookingId },
+      data: {
+        status: "completed",
+        statusHistory: { create: { fromStatus: booking.status, toStatus: "completed", actorId } }
+      }
+    });
   });
   await releaseVendorPayout(bookingId);
   return updated;
+}
+
+async function assertBookingPaid(bookingId: string, amountKobo: number, currency: string, client: import("@prisma/client").Prisma.TransactionClient = prisma) {
+  const paid = await client.payment.findFirst({ where: { bookingId, purpose: "booking", status: "success", amountKobo, currency } });
+  if (!paid) throw Object.assign(new Error("Successful payment required"), { status: 409 });
 }

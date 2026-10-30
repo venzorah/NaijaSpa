@@ -138,13 +138,13 @@ export function VendorBookingsConsole({
               </div>
             </dl>
             <div className="mt-4 flex flex-wrap gap-2 border-t border-line pt-4">
-              <button type="button" className={adminBtn} onClick={() => setStatus(selected.id, "confirmed")}>
+              <button type="button" className={adminBtn} disabled={selected.payment !== "success" || !["pending", "awaiting_payment"].includes(selected.status)} onClick={() => setStatus(selected.id, "confirmed")}>
                 Confirm
               </button>
-              <button type="button" className={adminBtnOutline} onClick={() => setStatus(selected.id, "completed")}>
+              <button type="button" className={adminBtnOutline} disabled={!["confirmed", "in_progress"].includes(selected.status)} onClick={() => setStatus(selected.id, "completed")}>
                 Complete
               </button>
-              <button type="button" className={adminBtnOutline} onClick={() => setStatus(selected.id, "no_show")}>
+              <button type="button" className={adminBtnOutline} disabled={!["confirmed", "in_progress"].includes(selected.status)} onClick={() => setStatus(selected.id, "no_show")}>
                 No-show
               </button>
             </div>

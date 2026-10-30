@@ -12,12 +12,12 @@ export async function POST(req: Request) {
   }
   const event = JSON.parse(raw) as {
     event?: string;
-    data?: { reference?: string; id?: string | number; status?: string; transfer_code?: string };
+    data?: { reference?: string; id?: string | number; status?: string; transfer_code?: string; amount?: number; currency?: string };
   };
   const reference = event.data?.reference;
   if (!reference) return NextResponse.json({ ok: true });
   if (event.event === "charge.success") {
-    await applyChargeSuccess(reference, event.data?.id != null ? String(event.data.id) : reference);
+    await applyChargeSuccess(reference, event.data?.id != null ? String(event.data.id) : reference, event.data?.amount, event.data?.currency);
   }
   if (event.event?.startsWith("transfer.")) {
     await applyPayoutTransferEvent(

@@ -5,6 +5,7 @@ import { audit } from "@/lib/audit";
 import { prisma } from "@/lib/db";
 import { jsonError } from "@/lib/http";
 import { markBookingCompleted } from "@/lib/payouts";
+import { confirmBookingFromPayment } from "@/lib/booking";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -20,11 +21,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const booking =
       body.status === "completed"
         ? await markBookingCompleted(id, actor.id)
+        : body.status === "confirmed" ? await confirmBookingFromPayment(id, actor.id)
         : await prisma.booking.update({
             where: { id },
             data: { status: body.status, cancelReason: body.reason ?? before.cancelReason }
           });
-    if (body.status !== "completed") {
+    if (body.status !== "completed" && body.status !== "confirmed") {
       await prisma.bookingStatusEvent.create({
         data: { bookingId: id, fromStatus: before.status, toStatus: body.status, actorId: actor.id, note: body.reason }
       });

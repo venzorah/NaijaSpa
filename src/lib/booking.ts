@@ -3,6 +3,8 @@ import { locationAddonKobo, quoteBooking, type LocationType } from "./commercial
 import { vendorEntitlement } from "./entitlements";
 import { audit } from "./audit";
 import { CUSTOMER_MEMBERSHIP_ENABLED, membershipPerks } from "./membership";
+import type { Prisma } from "@prisma/client";
+import { appointmentWindow, matchingAvailability } from "./booking-availability";
 
 export const BOOKING_STATES = [
   "pending",
@@ -29,15 +31,29 @@ export async function createBooking(input: {
   promoCode?: string;
 }) {
   const existing = await prisma.booking.findUnique({ where: { idempotencyKey: input.idempotencyKey } });
-  if (existing) return existing;
+  if (existing) {
+    if (existing.customerId !== input.customerId) throw Object.assign(new Error("Booking key already used"), { status: 409 });
+    return existing;
+  }
+  if (!Number.isFinite(input.startsAt.getTime()) || input.startsAt <= new Date()) {
+    throw Object.assign(new Error("Choose a valid future appointment"), { status: 400 });
+  }
 
   return prisma.$transaction(async (tx) => {
     const service = await tx.service.findUniqueOrThrow({
       where: { id: input.serviceId },
-      include: { vendor: true, addons: true }
+      include: { vendor: true, addons: true, staff: { select: { staffId: true } } }
     });
     if (!service.active || service.vendor.visibility !== "public" || service.vendor.applicationStatus !== "approved") {
       throw Object.assign(new Error("Service unavailable"), { status: 400 });
+    }
+    // Serialize reservations for this vendor before checking availability. A second
+    // request sees the first committed reservation under PostgreSQL READ COMMITTED.
+    await tx.$queryRaw`SELECT id FROM "Vendor" WHERE id = ${service.vendorId} FOR NO KEY UPDATE`;
+    const retry = await tx.booking.findUnique({ where: { idempotencyKey: input.idempotencyKey } });
+    if (retry) {
+      if (retry.customerId !== input.customerId) throw Object.assign(new Error("Booking key already used"), { status: 409 });
+      return retry;
     }
     const loc = input.locationType;
     if (loc === "spa" && !service.spaEnabled) throw Object.assign(new Error("Spa/Office not offered"), { status: 400 });
@@ -47,17 +63,38 @@ export async function createBooking(input: {
       throw Object.assign(new Error("Location details required"), { status: 400 });
     }
 
-    const endsAt = new Date(input.startsAt.getTime() + service.durationMin * 60_000);
-    const clash = await tx.booking.findFirst({
-      where: {
-        vendorId: service.vendorId,
-        status: { in: ["pending", "awaiting_payment", "confirmed", "in_progress"] },
-        staffId: input.staffId ?? undefined,
-        startsAt: { lt: endsAt },
-        endsAt: { gt: input.startsAt }
-      }
+    const selectedAddons = service.addons.filter((a) => input.addonIds?.includes(a.id));
+    if (new Set(input.addonIds ?? []).size !== selectedAddons.length) {
+      throw Object.assign(new Error("Invalid service add-on"), { status: 400 });
+    }
+    const endsAt = new Date(input.startsAt.getTime() + (service.durationMin + selectedAddons.reduce((n, a) => n + a.durationMin, 0)) * 60_000);
+    const window = appointmentWindow(input.startsAt, endsAt);
+    const staff = await tx.vendorStaff.findMany({
+      where: { vendorId: service.vendorId, active: true, services: { some: { serviceId: service.id } },
+        ...(input.staffId ? { id: input.staffId } : {}) }, orderBy: { id: "asc" }
     });
-    if (clash) throw Object.assign(new Error("That slot is no longer available"), { status: 409 });
+    if ((input.staffId || service.staff.length) && !staff.length) throw Object.assign(new Error("Therapist is not available for this service"), { status: 400 });
+    const slots = await tx.availabilitySlot.findMany({ where: { vendorId: service.vendorId } });
+    // Assign an available therapist even when the customer did not choose one.
+    // Vendors with no assigned therapists reserve their shared business capacity.
+    let staffId: string | null | undefined;
+    for (const candidate of staff.length ? staff.map((s) => s.id) : [null]) {
+      const slot = matchingAvailability(slots, candidate, window);
+      if (!slot) continue;
+      if (candidate && await tx.timeOff.findFirst({ where: {
+        staffId: candidate, startsAt: { lt: endsAt }, endsAt: { gt: input.startsAt }
+      } })) continue;
+      const bufferMs = Math.max(slot.bufferMin, ...slots.map((s) => s.bufferMin)) * 60_000;
+      const clash = await tx.booking.findFirst({ where: {
+        vendorId: service.vendorId,
+        status: { in: ["pending", "awaiting_payment", "confirmed", "in_progress", "cancellation_requested"] },
+        ...(candidate ? { OR: [{ staffId: candidate }, { staffId: null }] } : {}),
+        startsAt: { lt: new Date(endsAt.getTime() + bufferMs) },
+        endsAt: { gt: new Date(input.startsAt.getTime() - bufferMs) }
+      } });
+      if (!clash) { staffId = candidate; break; }
+    }
+    if (staffId === undefined) throw Object.assign(new Error("That slot is outside working hours or no longer available"), { status: 409 });
 
     const entitlement = await vendorEntitlement(service.vendorId);
     const config = await getCommercialConfig();
@@ -119,7 +156,7 @@ export async function createBooking(input: {
         customerId: input.customerId,
         vendorId: service.vendorId,
         serviceId: service.id,
-        staffId: input.staffId ?? null,
+        staffId,
         locationType: loc,
         locationDetails: input.locationDetails,
         startsAt: input.startsAt,
@@ -142,32 +179,48 @@ export async function createBooking(input: {
       }
     });
     return booking;
-  });
+  }, { isolationLevel: "ReadCommitted" });
 }
 
-export async function confirmBookingFromPayment(bookingId: string, actorId?: string) {
-  const booking = await prisma.booking.findUniqueOrThrow({ where: { id: bookingId } });
-  if (booking.status === "confirmed") return booking;
+export async function confirmBookingFromPayment(bookingId: string, actorId?: string, client?: Prisma.TransactionClient): Promise<import("@prisma/client").Booking> {
+  if (!client) return prisma.$transaction((tx) => confirmBookingFromPayment(bookingId, actorId, tx));
+  await client.$queryRaw`SELECT id FROM "Booking" WHERE id = ${bookingId} FOR UPDATE`;
+  const booking = await client.booking.findUniqueOrThrow({ where: { id: bookingId } });
+  const paid = await client.payment.findFirst({ where: { bookingId, status: "success", amountKobo: booking.customerTotalKobo, currency: booking.currency, purpose: "booking" } });
+  if (!paid) throw Object.assign(new Error("Successful payment required"), { status: 409 });
+  if (["confirmed", "in_progress", "completed", "no_show", "cancellation_requested", "refund_pending", "refunded"].includes(booking.status)) return booking;
+  if (booking.status === "cancelled") {
+    // A delayed charge must stay recorded without reviving a cancelled appointment.
+    const refund = await client.refund.findFirst({ where: { paymentId: paid.id, bookingId } });
+    if (!refund) await client.refund.create({ data: {
+      paymentId: paid.id, bookingId, amountKobo: paid.amountKobo, status: "pending",
+      reason: "Payment received for a cancelled appointment"
+    } });
+    return client.booking.update({ where: { id: bookingId }, data: {
+      status: "refund_pending",
+      statusHistory: { create: { fromStatus: booking.status, toStatus: "refund_pending", actorId } }
+    } });
+  }
   if (booking.status !== "awaiting_payment" && booking.status !== "pending") {
     throw Object.assign(new Error("Cannot confirm booking in current state"), { status: 400 });
   }
-  const updated = await prisma.booking.update({
+  const updated = await client.booking.update({
     where: { id: bookingId },
     data: {
       status: "confirmed",
       statusHistory: { create: { fromStatus: booking.status, toStatus: "confirmed", actorId } },
       earning: {
-        create: {
+        upsert: { update: {}, create: {
           vendorId: booking.vendorId,
           payableKobo: booking.vendorPayableKobo,
           commissionKobo: booking.commissionKobo,
           surchargeKobo: booking.surchargeKobo,
           status: "pending"
-        }
+        } }
       }
     }
   });
-  await prisma.notification.create({
+  await client.notification.create({
     data: {
       userId: booking.customerId,
       title: "Booking confirmed",

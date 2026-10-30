@@ -10,7 +10,11 @@ export async function GET() {
     const user = requireUser(await getSession());
     const bookings = await prisma.booking.findMany({
       where: { customerId: user.id },
-      include: { service: true, vendor: true, payments: true },
+      include: {
+        service: { select: { id: true, slug: true, name: true, durationMin: true, imageUrl: true } },
+        vendor: { select: { id: true, slug: true, businessName: true, city: true, neighbourhood: true, address: true } },
+        payments: { select: { id: true, reference: true, status: true, amountKobo: true, currency: true } }
+      },
       orderBy: { startsAt: "desc" }
     });
     return NextResponse.json({ bookings });
@@ -28,7 +32,7 @@ export async function POST(req: Request) {
         staffId: z.string().optional(),
         locationType: z.enum(["spa", "hotel", "home"]),
         locationDetails: z.string().default(""),
-        startsAt: z.string(),
+        startsAt: z.string().datetime({ offset: true }),
         addonIds: z.array(z.string()).optional(),
         idempotencyKey: z.string().min(8),
         promoCode: z.string().optional()

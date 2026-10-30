@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { prisma } from "./db";
 import { confirmBookingFromPayment } from "./booking";
+import { canonicalVendorPlanCode } from "./vendor-plans";
 
 export function paystackConfigured() {
   return Boolean(process.env.PAYSTACK_SECRET_KEY);
@@ -47,8 +48,9 @@ export async function initPayment(input: {
       where: { bookingId: input.bookingId, status: "success" }
     });
     if (paid) {
+      const fulfilled = await markPaymentSuccess(paid.id, paid.bookingId, paid.providerRef || paid.reference);
       return {
-        payment: paid,
+        payment: fulfilled,
         authorizationUrl: null as string | null,
         accessCode: null as string | null,
         publicKey: paystackPublicKey(),
@@ -165,22 +167,16 @@ export async function initPayment(input: {
 }
 
 async function markPaymentSuccess(paymentId: string, bookingId: string | null, providerRef: string) {
-  const payment = await prisma.payment.update({
-    where: { id: paymentId },
-    data: { status: "success", providerRef }
+  return prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "Payment" WHERE id = ${paymentId} FOR UPDATE`;
+    const payment = await tx.payment.update({
+      where: { id: paymentId },
+      data: { status: "success", providerRef }
+    });
+    if (bookingId) await confirmBookingFromPayment(bookingId, undefined, tx);
+    if (payment.purpose === "subscription") await fulfillVendorSubscriptionPayment(payment.id, tx);
+    return tx.payment.findUniqueOrThrow({ where: { id: payment.id } });
   });
-  if (bookingId) {
-    try {
-      await confirmBookingFromPayment(bookingId);
-    } catch {
-      const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
-      if (booking?.status !== "confirmed") throw Object.assign(new Error("Could not confirm booking"), { status: 500 });
-    }
-  }
-  if (payment.purpose === "subscription") {
-    await fulfillVendorSubscriptionPayment(payment.id);
-  }
-  return prisma.payment.findUniqueOrThrow({ where: { id: payment.id } });
 }
 
 function paymentMetadata(raw: string | null): { vendorId?: string; planCode?: string } {
@@ -193,20 +189,30 @@ function paymentMetadata(raw: string | null): { vendorId?: string; planCode?: st
   }
 }
 
-async function fulfillVendorSubscriptionPayment(paymentId: string) {
-  const payment = await prisma.payment.findUnique({ where: { id: paymentId } });
+async function fulfillVendorSubscriptionPayment(paymentId: string, tx: import("@prisma/client").Prisma.TransactionClient) {
+  const payment = await tx.payment.findUnique({ where: { id: paymentId } });
   if (!payment || payment.purpose !== "subscription" || payment.subscriptionId) return;
   const meta = paymentMetadata(payment.rawPayload);
-  if (!meta.vendorId || !meta.planCode) return;
-  const { grantVendorPlan } = await import("./subscription-lifecycle");
-  const sub = await grantVendorPlan(meta.vendorId, meta.planCode, "paystack");
-  await prisma.payment.update({ where: { id: payment.id }, data: { subscriptionId: sub.id } });
+  if (!meta.vendorId || !meta.planCode) throw new Error("Missing subscription payment metadata");
+  await tx.$queryRaw`SELECT id FROM "Vendor" WHERE id = ${meta.vendorId} FOR NO KEY UPDATE`;
+  const plan = await tx.subscriptionPlan.findUnique({ where: { code: canonicalVendorPlanCode(meta.planCode) } });
+  if (!plan) throw new Error("Purchased listing plan no longer exists");
+  const at = new Date();
+  await tx.vendorSubscription.updateMany({
+    where: { vendorId: meta.vendorId, status: { in: ["active", "grace"] } }, data: { status: "expired" }
+  });
+  const sub = await tx.vendorSubscription.create({ data: {
+    vendorId: meta.vendorId, planId: plan.id, status: "active", source: "paystack", startsAt: at,
+    endsAt: plan.code === "FREE" || plan.durationDays >= 3650
+      ? new Date("9999-12-31") : new Date(at.getTime() + plan.durationDays * 86_400_000)
+  } });
+  await tx.payment.update({ where: { id: payment.id }, data: { subscriptionId: sub.id } });
 }
 
 export async function verifyPaystack(reference: string) {
   const payment = await prisma.payment.findUnique({ where: { reference } });
   if (!payment) throw Object.assign(new Error("Unknown payment"), { status: 404 });
-  if (payment.status === "success") return payment;
+  if (payment.status === "success") return markPaymentSuccess(payment.id, payment.bookingId, payment.providerRef || reference);
   if (!paystackConfigured()) return payment;
 
   const res = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
@@ -221,23 +227,25 @@ export async function verifyPaystack(reference: string) {
     Boolean(data.status) &&
     tx?.status === "success" &&
     tx.amount === payment.amountKobo &&
-    String(tx.currency || "NGN").toUpperCase() === "NGN";
+    tx.currency === payment.currency && tx.reference === reference;
 
   if (paid) {
     return markPaymentSuccess(payment.id, payment.bookingId, String(tx?.id ?? reference));
   }
 
-  await prisma.payment.update({
-    where: { id: payment.id },
-    data: { status: "failed", rawPayload: JSON.stringify({ verify: tx?.status ?? data }) }
+  await prisma.payment.updateMany({
+    where: { id: payment.id, status: { not: "success" } },
+    data: { status: "failed" }
   });
   return prisma.payment.findUniqueOrThrow({ where: { id: payment.id } });
 }
 
-export async function applyChargeSuccess(reference: string, providerId?: string) {
+export async function applyChargeSuccess(reference: string, providerId: string | undefined, amountKobo: number | undefined, currency: string | undefined) {
   const payment = await prisma.payment.findUnique({ where: { reference } });
   if (!payment) return null;
-  if (payment.status === "success") return payment;
+  if (payment.amountKobo !== amountKobo || payment.currency !== currency) {
+    throw Object.assign(new Error("Payment amount or currency mismatch"), { status: 400 });
+  }
   return markPaymentSuccess(payment.id, payment.bookingId, String(providerId ?? reference));
 }
 

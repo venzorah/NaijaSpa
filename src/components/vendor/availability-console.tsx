@@ -78,7 +78,7 @@ export function VendorAvailabilityConsole({
     try {
       await adminJson("/api/vendor/time-off", {
         method: "POST",
-        body: JSON.stringify({ staffId, startsAt: from, endsAt: to, reason })
+        body: JSON.stringify({ staffId, startsAt: `${from}:00+01:00`, endsAt: `${to}:00+01:00`, reason })
       });
       setReason("");
       router.refresh();

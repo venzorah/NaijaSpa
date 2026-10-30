@@ -49,7 +49,10 @@ export default async function CheckoutVerifyPage({
   }
 
   const ok = status === "success";
-  const booking = existing.booking;
+  const booking = existing.bookingId ? await prisma.booking.findUnique({
+    where: { id: existing.bookingId }, include: { service: true, vendor: true }
+  }) : null;
+  const booked = ok && !!booking && ["confirmed", "in_progress", "completed", "no_show"].includes(booking.status);
 
   return (
     <div className="mx-auto max-w-2xl px-4 pt-10 lg:px-8">
@@ -57,9 +60,13 @@ export default async function CheckoutVerifyPage({
         <span className="flex h-20 w-20 items-center justify-center rounded-full border border-gold/50 bg-gold/15">
           <Check className="h-10 w-10 text-goldink" aria-hidden />
         </span>
-        <h1 className="mt-5 font-display text-4xl font-semibold text-ink">{ok ? "You’re booked in" : "Payment still pending"}</h1>
+        <h1 className="mt-5 font-display text-4xl font-semibold text-ink">{booked ? "You’re booked in" : ok ? "Payment received" : "Payment still pending"}</h1>
         <p className="mt-2 max-w-sm text-sm text-ink2">
-          {ok
+          {ok && !booked
+            ? booking?.status === "refund_pending"
+              ? "Your appointment is cancelled. Your payment has been recorded and a refund is pending review."
+              : "Your payment has been recorded. View your booking for its current status."
+            : ok
             ? "Paystack verified this charge. We’ve saved your receipt and the provider has been notified."
             : "If you completed payment, wait a moment and refresh. The Paystack webhook will also confirm the booking."}
         </p>
