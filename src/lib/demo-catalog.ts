@@ -23,7 +23,6 @@ import type { SearchFilters } from "./search-types";
 import { CATEGORY_SYNONYMS, listingHaystack, queryMatchesListing, tokenHitCount } from "./query-match";
 import { collectExploreCities, type ExploreCityFilters } from "./explore-cities";
 import { filterByServiceArea, sortByPlace, vendorMatchesPlace, type LivePlace } from "./nigeria";
-import { nextLabelFor } from "./next-slot";
 
 const paidEnt: Entitlement = {
   planCode: "MONTHLY",
@@ -557,7 +556,7 @@ export function demoSearch(filters: SearchFilters) {
       .map((t) => ({ id: t.id, name: t.name, gender: t.gender })),
     sponsored: s.vendor.entitlement.sponsoredEligible,
     enhanced: s.vendor.entitlement.enhancedVisibility,
-    nextLabel: nextLabelFor(s.id),
+    nextLabel: "Next: Book a time",
     quote: quoteBooking({
       basePriceKobo: s.basePriceKobo,
       location: loc,
@@ -609,7 +608,7 @@ function toHomeCard(
       logoUrl: vendor.logoUrl
     },
     tags: tagsFor(s),
-    nextLabel: nextLabelFor(s.id),
+    nextLabel: "Next: Book a time",
     sponsored: extra.sponsored ?? s.vendor.entitlement.sponsoredEligible,
     badge: extra.badge,
     compareAtKobo: extra.compareAtKobo ?? ("compareAtKobo" in s ? (s as { compareAtKobo?: number }).compareAtKobo : undefined)

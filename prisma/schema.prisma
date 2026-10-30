@@ -21,6 +21,7 @@ model User {
   status             String    @default("active")
   emailVerifiedAt    DateTime?
   deletionRequestedAt DateTime?
+  notificationPreferencesJson String @default("{}")
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
@@ -35,6 +36,7 @@ model User {
   tickets            SupportTicket[]       @relation("TicketAuthor")
   assignedTickets    SupportTicket[]       @relation("TicketAssignee")
   notifications      Notification[]
+  pushSubscriptions  PushSubscription[]
   memberships        CustomerMembership[]
   auditLogs          AuditLog[]
   invitesSent        VendorInvite[]        @relation("InviteSender")
@@ -543,6 +545,7 @@ model Favourite {
   service   Service? @relation(fields: [serviceId], references: [id])
 
   @@unique([userId, vendorId, serviceId])
+  @@unique([userId, serviceId])
 }
 
 model Campaign {
@@ -610,7 +613,13 @@ model Notification {
   body      String
   readAt    DateTime?
   createdAt DateTime @default(now())
+  actionUrl String @default("/account/bookings")
+  pushStatus String @default("pending")
+  pushAttempts Int @default(0)
+  pushClaimedAt DateTime?
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([pushStatus, createdAt])
 }
 
 model PushSubscription {
@@ -619,6 +628,9 @@ model PushSubscription {
   endpoint  String @unique
   p256dh    String
   auth      String
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model AuditLog {

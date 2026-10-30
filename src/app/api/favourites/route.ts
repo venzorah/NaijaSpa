@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { getSession, requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { jsonError } from "@/lib/http";
+import { saveFavourite } from "@/lib/favourites";
 
 export async function GET() {
   try {
@@ -17,8 +17,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const user = requireUser(await getSession());
-    const body = z.object({ vendorId: z.string().optional(), serviceId: z.string().optional() }).parse(await req.json());
-    const item = await prisma.favourite.create({ data: { userId: user.id, vendorId: body.vendorId, serviceId: body.serviceId } });
+    const item = await saveFavourite(user.id, await req.json());
     return NextResponse.json({ item });
   } catch (e) {
     return jsonError(e);

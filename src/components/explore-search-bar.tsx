@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Clock, Search, Sparkles, TrendingUp, X } from "lucide-react";
 import { exploreHref, type FilterQuery } from "@/lib/place-urls";
@@ -19,15 +19,20 @@ export function ExploreSearchBar({
   const router = useRouter();
   const [q, setQ] = useState(values.q || "");
   const [focused, setFocused] = useState(false);
+  const input = useRef<HTMLInputElement>(null);
 
   function go(query: string) {
+    setFocused(false);
+    input.current?.blur();
     router.push(exploreHref(place, { ...values, q: query || undefined, page: undefined }));
   }
 
   const suggestions = q ? popular.filter((p) => p.toLowerCase().includes(q.toLowerCase())) : [];
 
   return (
-    <div className="relative mt-5">
+    <div className="relative mt-5" onBlur={(event) => {
+      if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false);
+    }}>
       <form
         className="flex gap-2"
         onSubmit={(e) => {
@@ -39,10 +44,10 @@ export function ExploreSearchBar({
           <Search className="h-5 w-5 text-leaf" aria-hidden />
           <span className="sr-only">Search</span>
           <input
+            ref={input}
             value={q}
             onChange={(e) => setQ(e.target.value)}
             onFocus={() => setFocused(true)}
-            onBlur={() => window.setTimeout(() => setFocused(false), 150)}
             placeholder="Search treatments, spas or areas"
             className="w-full bg-transparent text-[15px] text-ink placeholder:text-ink2 focus:outline-none"
           />
@@ -69,7 +74,7 @@ export function ExploreSearchBar({
                 <li key={s}>
                   <button
                     type="button"
-                    onMouseDown={() => {
+                    onClick={() => {
                       setQ(s);
                       go(s);
                     }}
@@ -87,7 +92,7 @@ export function ExploreSearchBar({
                 <button
                   key={s}
                   type="button"
-                  onMouseDown={() => {
+                  onClick={() => {
                     setQ(s);
                     go(s);
                   }}
@@ -101,7 +106,7 @@ export function ExploreSearchBar({
                 <button
                   key={s}
                   type="button"
-                  onMouseDown={() => {
+                  onClick={() => {
                     setQ(s);
                     go(s);
                   }}

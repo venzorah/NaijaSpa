@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getSession, requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { jsonError } from "@/lib/http";
+import { requestAccountDeletion } from "@/lib/account-deletion";
 
 export async function POST(req: Request) {
   try {
@@ -18,8 +19,8 @@ export async function POST(req: Request) {
       })
       .parse(await req.json());
     if (body.deleteAccount) {
-      await prisma.user.update({ where: { id: user.id }, data: { deletionRequestedAt: new Date() } });
-      return NextResponse.json({ ok: true, deletionRequested: true });
+      const result = await requestAccountDeletion(user.id);
+      return NextResponse.json({ ok: true, deletionRequested: true, ...result });
     }
     await prisma.user.update({
       where: { id: user.id },

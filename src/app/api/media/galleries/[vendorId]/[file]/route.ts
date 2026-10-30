@@ -3,6 +3,7 @@ import path from "node:path";
 import { NextResponse } from "next/server";
 import { mediaUrl, resolveMediaPath } from "@/lib/gallery-media";
 import { prisma } from "@/lib/db";
+import { getMediaObject } from "@/lib/object-storage";
 
 const MIME: Record<string, string> = {
   jpg: "image/jpeg",
@@ -31,6 +32,12 @@ export async function GET(_req: Request, ctx: { params: Promise<{ vendorId: stri
         "Cache-Control": "public, max-age=31536000, immutable"
       }
     });
+  }
+  if (fromDb) {
+    try {
+      const object = await getMediaObject(`galleries/${vendorId}/${file}`);
+      if (object) return new NextResponse(object.bytes, { headers: { "Content-Type": object.mime, "Content-Length": String(object.bytes.length), "Cache-Control": "public, max-age=31536000, immutable", "X-Content-Type-Options": "nosniff" } });
+    } catch { return NextResponse.json({ error: "Media storage is temporarily unavailable" }, { status: 503 }); }
   }
   if (!resolved) return NextResponse.json({ error: "Not found" }, { status: 404 });
   try {

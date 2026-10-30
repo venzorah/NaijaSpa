@@ -152,8 +152,8 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: "Profile photos cannot be deleted. Remove individual images instead." }, { status: 400 });
     }
     const { deleteGalleryImageFile } = await import("@/lib/gallery-media");
-    await prisma.therapistGallery.delete({ where: { id: existing.id } });
     await Promise.all(existing.images.map((img) => deleteGalleryImageFile(img.url)));
+    await prisma.therapistGallery.delete({ where: { id: existing.id } });
     return NextResponse.json({ ok: true });
   } catch (e) {
     return jsonError(e);

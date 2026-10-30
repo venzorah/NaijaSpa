@@ -5,6 +5,7 @@ import { audit } from "./audit";
 import { CUSTOMER_MEMBERSHIP_ENABLED, membershipPerks } from "./membership";
 import type { Prisma } from "@prisma/client";
 import { appointmentWindow, matchingAvailability } from "./booking-availability";
+import { RESERVING_BOOKING_STATES } from "./next-slot";
 
 export const BOOKING_STATES = [
   "pending",
@@ -40,6 +41,11 @@ export async function createBooking(input: {
   }
 
   return prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${input.customerId} FOR NO KEY UPDATE`;
+    const customer = await tx.user.findUnique({ where: { id: input.customerId }, select: { status: true, deletionRequestedAt: true } });
+    if (!customer || customer.status !== "active" || customer.deletionRequestedAt) {
+      throw Object.assign(new Error("This account cannot create bookings while deletion is pending"), { status: 409 });
+    }
     const service = await tx.service.findUniqueOrThrow({
       where: { id: input.serviceId },
       include: { vendor: true, addons: true, staff: { select: { staffId: true } } }
@@ -87,7 +93,7 @@ export async function createBooking(input: {
       const bufferMs = Math.max(slot.bufferMin, ...slots.map((s) => s.bufferMin)) * 60_000;
       const clash = await tx.booking.findFirst({ where: {
         vendorId: service.vendorId,
-        status: { in: ["pending", "awaiting_payment", "confirmed", "in_progress", "cancellation_requested"] },
+        status: { in: RESERVING_BOOKING_STATES },
         ...(candidate ? { OR: [{ staffId: candidate }, { staffId: null }] } : {}),
         startsAt: { lt: new Date(endsAt.getTime() + bufferMs) },
         endsAt: { gt: new Date(input.startsAt.getTime() - bufferMs) }
@@ -224,6 +230,7 @@ export async function confirmBookingFromPayment(bookingId: string, actorId?: str
     data: {
       userId: booking.customerId,
       title: "Booking confirmed",
+      actionUrl: `/account/bookings/${bookingId}`,
       body: "Your NaijaSpa appointment is confirmed. We will send a reminder before your visit."
     }
   });

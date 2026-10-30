@@ -3,28 +3,19 @@ import { prisma } from "@/lib/db";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { Panel } from "@/components/admin/panel";
 import { AdminStatusPill } from "@/components/admin/status-pill";
+import { AiProviderSettings } from "@/components/admin/ai-provider-settings";
+import { aiProviderStatus, getAiSettings } from "@/lib/ai-settings";
 
 export default async function Page() {
-  await requireAdminScreen("ai");
+  const { editable } = await requireAdminScreen("ai");
   const logs = await prisma.aiSearchLog.findMany({ orderBy: { createdAt: "desc" }, take: 40 });
-  const openai = Boolean(process.env.OPENAI_API_KEY);
+  const settings = await getAiSettings();
   return (
     <div>
       <AdminPageHeader screen="ai" />
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <Panel title="Provider" description="Keys stay in environment variables, never in the database.">
-          <dl className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <dt className="text-ink2">OPENAI_API_KEY</dt>
-              <dd>
-                <AdminStatusPill status={openai ? "Set" : "Not set"} />
-              </dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-ink2">Parser</dt>
-              <dd>{openai ? "OpenAI" : "Local fallback"}</dd>
-            </div>
-          </dl>
+          <AiProviderSettings initial={settings} configured={aiProviderStatus()} editable={editable} />
         </Panel>
         <Panel title="Recent queries" className="xl:col-span-2" bodyClassName="p-0">
           <ul className="divide-y divide-line">

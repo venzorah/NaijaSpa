@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { SettingsForm } from "@/components/settings-form";
+import { parseNotificationPreferences } from "@/lib/notification-preferences";
 
 export default async function SettingsPage() {
   const user = await getSession();
@@ -21,6 +22,7 @@ export default async function SettingsPage() {
       city={row.customerProfile?.city || ""}
       neighbourhood={row.customerProfile?.neighbourhood || ""}
       locale={row.locale || "en"}
+      notificationPreferences={parseNotificationPreferences(row.notificationPreferencesJson)}
     />
   );
 }

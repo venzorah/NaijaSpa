@@ -1,6 +1,7 @@
 import { mkdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { detectImageMime, extensionForMime } from "./galleries";
+import { deleteMediaObject, putMediaObject, uploadStorage } from "./object-storage";
 
 export const CATEGORY_MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 
@@ -21,6 +22,11 @@ export async function saveCategoryImageFile(id: string, bytes: Uint8Array) {
     throw Object.assign(new Error("Upload a JPEG, PNG, WebP, or GIF image"), { status: 400 });
   }
   const fileName = `${id}.${extensionForMime(mime)}`;
+  const storage = uploadStorage();
+  if (storage === "r2") {
+    await putMediaObject(`categories/${fileName}`, bytes, mime);
+    return { url: categoryMediaUrl(fileName), mime, storage };
+  }
   const dir = categoryUploadsRoot();
   try {
     await mkdir(dir, { recursive: true });
@@ -28,13 +34,15 @@ export async function saveCategoryImageFile(id: string, bytes: Uint8Array) {
   } catch {
     /* Vercel and other hosts are read-only; bytes stay in the database. */
   }
-  return { url: categoryMediaUrl(fileName), mime };
+  return { url: categoryMediaUrl(fileName), mime, storage };
 }
 
 export async function deleteCategoryImageFile(url: string | null | undefined) {
   const prefix = "/api/media/categories/";
   if (!url?.startsWith(prefix)) return;
   const rest = decodeURIComponent(url.slice(prefix.length));
+  if (!/^[a-zA-Z0-9_-]+\.(png|jpg|jpeg|webp|gif)$/.test(rest)) return;
+  await deleteMediaObject(`categories/${rest}`);
   const root = categoryUploadsRoot();
   const resolved = path.resolve(root, rest);
   if (!resolved.startsWith(root + path.sep)) return;

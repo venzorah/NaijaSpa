@@ -40,7 +40,7 @@ export async function POST(req: Request) {
         profile: isProfileGalleryTitle(gallery.title)
       });
       const { randomUUID } = await import("node:crypto");
-      const { saveGalleryImageFile } = await import("@/lib/gallery-media");
+      const { saveGalleryImageFile, deleteGalleryImageFile } = await import("@/lib/gallery-media");
       const saved = await saveGalleryImageFile(vendorId, randomUUID(), buf);
       const image = await prisma.therapistGalleryImage.create({
         data: {
@@ -49,10 +49,13 @@ export async function POST(req: Request) {
           caption,
           therapistName,
           byteSize: buf.byteLength,
-          payload: Buffer.from(buf),
+          payload: saved.storage === "r2" ? null : Buffer.from(buf),
           mimeType: saved.mime,
           sortOrder: gallery.images.length
         }
+      }).catch(async (error) => {
+        await deleteGalleryImageFile(saved.url).catch(() => console.error("Could not clean up an unlinked gallery upload"));
+        throw error;
       });
       return NextResponse.json({ image });
     }
@@ -95,8 +98,8 @@ export async function DELETE(req: Request) {
     });
     if (!image) return NextResponse.json({ error: "Image not found" }, { status: 404 });
     const { deleteGalleryImageFile } = await import("@/lib/gallery-media");
-    await prisma.therapistGalleryImage.delete({ where: { id: image.id } });
     await deleteGalleryImageFile(image.url);
+    await prisma.therapistGalleryImage.delete({ where: { id: image.id } });
     return NextResponse.json({ ok: true });
   } catch (e) {
     return jsonError(e);

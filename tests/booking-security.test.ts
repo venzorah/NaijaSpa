@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const db = vi.hoisted(() => ({
   $transaction: vi.fn(), $queryRaw: vi.fn(),
+  user: { findUnique: vi.fn() },
   booking: { findUnique: vi.fn(), findUniqueOrThrow: vi.fn(), findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
   service: { findUniqueOrThrow: vi.fn() }, vendorStaff: { findMany: vi.fn() },
   availabilitySlot: { findMany: vi.fn() }, timeOff: { findFirst: vi.fn() },
@@ -21,6 +22,7 @@ const input = {
 beforeEach(() => {
   vi.resetAllMocks();
   db.$transaction.mockImplementation(async (fn) => fn(db));
+  db.user.findUnique.mockResolvedValue({ status: "active", deletionRequestedAt: null });
   db.booking.findUnique.mockResolvedValue(null);
   db.service.findUniqueOrThrow.mockResolvedValue({
     id: "service", vendorId: "vendor", active: true, spaEnabled: true,
@@ -37,6 +39,11 @@ beforeEach(() => {
 });
 
 describe("booking security", () => {
+  it("rejects new reservations after an account deletion request", async () => {
+    db.user.findUnique.mockResolvedValue({ status: "active", deletionRequestedAt: new Date() });
+    await expect(createBooking(input)).rejects.toMatchObject({ status: 409 });
+    expect(db.booking.create).not.toHaveBeenCalled();
+  });
   it("rejects another customer's idempotency key without returning their booking", async () => {
     db.booking.findUnique.mockResolvedValue({ customerId: "someone-else", locationDetails: "private address" });
     await expect(createBooking(input)).rejects.toMatchObject({ status: 409 });
@@ -83,7 +90,9 @@ describe("booking security", () => {
     let reserved = false;
     db.$transaction.mockImplementation(async (fn) => {
       let release = () => {};
-      const tx = { ...db, $queryRaw: async () => {
+      const tx = { ...db, $queryRaw: async (query: TemplateStringsArray) => {
+        // Simulate the shared vendor lock; these customers have distinct user locks.
+        if (!query[0].includes('"Vendor"')) return [];
         const previous = lock;
         lock = new Promise<void>((resolve) => { release = resolve; });
         await previous;

@@ -101,7 +101,7 @@ export function FinanceConsole({
                 <div className="flex items-center gap-2">
                   <span className="tabular-nums font-semibold">{formatNgn(p.amountKobo)}</span>
                   <AdminStatusPill status={p.status} />
-                  {p.status === "pending" ? (
+                  {p.status === "manual" ? (
                     <ConfirmAction
                       triggerLabel="Mark paid"
                       triggerVariant="default"
@@ -115,7 +115,8 @@ export function FinanceConsole({
                       }}
                     />
                   ) : null}
-                  {["failed", "needs_account", "pending", "otp"].includes(p.status) ? (
+                  {["submitting", "pending", "otp"].includes(p.status) ? <TransferApproval id={p.id} needsOtp={p.status === "otp"} disabled={!editable} /> : null}
+                  {["failed", "needs_account", "below_minimum"].includes(p.status) ? (
                     <ConfirmAction
                       triggerLabel="Retry transfer"
                       triggerVariant="outline"
@@ -138,6 +139,29 @@ export function FinanceConsole({
       ) : null}
     </div>
   );
+}
+
+function TransferApproval({ id, needsOtp, disabled }: { id: string; needsOtp: boolean; disabled: boolean }) {
+  const router = useRouter();
+  const [otp, setOtp] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  async function submit(confirm: boolean) {
+    setBusy(true); setError("");
+    try {
+      await adminJson(`/api/admin/payouts/${id}`, { method: "PATCH", body: JSON.stringify(confirm ? { otp } : { refresh: true }) });
+      setOtp(""); router.refresh();
+    } catch (e) { setError(e instanceof Error ? e.message : "Transfer verification failed"); }
+    finally { setBusy(false); }
+  }
+  return <div className="flex flex-wrap items-center gap-2">
+    {needsOtp ? <>
+      <input aria-label="Paystack transfer OTP" type="password" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))} className="w-24 rounded border border-line bg-card px-2 py-1" placeholder="OTP" disabled={disabled || busy} />
+      <button type="button" disabled={disabled || busy || otp.length !== 6} onClick={() => submit(true)} className="rounded border border-line px-2 py-1 disabled:opacity-50">Confirm OTP</button>
+    </> : null}
+    <button type="button" disabled={disabled || busy} onClick={() => submit(false)} className="rounded border border-line px-2 py-1 disabled:opacity-50">Verify transfer</button>
+    {error ? <p role="alert" className="w-full text-xs text-red-600">{error}</p> : null}
+  </div>;
 }
 
 function Rows({ items }: { items: { id: string; title: string; sub: string; amount: number; status: string }[] }) {

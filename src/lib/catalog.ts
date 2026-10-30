@@ -34,6 +34,7 @@ import { publicVideoLinks } from "./galleries";
 import { filterByServiceArea, sortByPlace, type LivePlace } from "./nigeria";
 import { type HomeHeroPayload } from "./home-hero";
 import { PHOTOS, publicWellnessPhoto } from "./photos";
+import { serviceAvailabilityLabels } from "./service-availability";
 
 export { usingDemoListings } from "./live-db";
 export type { HomeCard, HomeFeedConfig, HomeRails, NearbyVendor } from "./home-types";
@@ -167,6 +168,7 @@ async function loadHomeCatalog(place: LivePlace | null) {
         imageUrl: true,
         basePriceKobo: true,
         durationMin: true,
+        staff: { select: { staff: { select: { id: true, active: true } } } },
         spaEnabled: true,
         hotelEnabled: true,
         homeEnabled: true,
@@ -210,6 +212,7 @@ async function loadHomeCatalog(place: LivePlace | null) {
     4000
   ).catch(() => new Map());
 
+  const availability = await withTimeout(serviceAvailabilityLabels(services, undefined, now), 4000).catch(() => new Map<string, string | undefined>());
   const cardFromService = (s: (typeof services)[number], badge?: string, sponsored?: boolean): HomeCard => {
     const ent = entitlements.get(s.vendorId) ?? FREE_ENTITLEMENT;
     const vendor = sanitizePublicVendor(s.vendor, ent);
@@ -230,7 +233,7 @@ async function loadHomeCatalog(place: LivePlace | null) {
         logoUrl: vendor.logoUrl
       },
       tags: tags.slice(0, 4),
-      nextLabel: "Next: Book a time",
+      nextLabel: availability.get(s.id),
       badge,
       sponsored
     };

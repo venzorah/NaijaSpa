@@ -47,13 +47,25 @@ function paystackSecret() {
 async function paystackJson(path: string, init?: RequestInit) {
   const res = await fetch(`https://api.paystack.co${path}`, {
     ...init,
+    signal: AbortSignal.timeout(15000),
     headers: {
       Authorization: `Bearer ${paystackSecret()}`,
       "Content-Type": "application/json",
       ...(init?.headers || {})
     }
   });
-  return (await res.json()) as { status?: boolean; message?: string; data?: unknown };
+  const result = (await res.json()) as { status?: boolean; message?: string; data?: unknown };
+  if (res.status >= 500 || res.status === 408) throw Object.assign(new Error("Paystack status is uncertain. Verify the transfer before retrying."), { status: 503 });
+  return result;
+}
+
+function banksForMode(banks: { code: string; name: string }[]) {
+  // Paystack's Nigeria bank list omits its sandbox resolver bank. Live accounts
+  // must continue to use only the banks returned by the provider.
+  if (process.env.PAYSTACK_SECRET_KEY?.startsWith("sk_test_") && !banks.some((b) => b.code === "001")) {
+    return [{ code: "001", name: "Paystack Test Bank" }, ...banks];
+  }
+  return banks;
 }
 
 export async function listPayoutBanks() {
@@ -67,9 +79,9 @@ export async function listPayoutBanks() {
         return { code: String(r.code || ""), name: String(r.name || "") };
       })
       .filter((b) => b.code && b.name);
-    return banks.length ? banks : FALLBACK_BANKS;
+    return banksForMode(banks.length ? banks : FALLBACK_BANKS);
   } catch {
-    return FALLBACK_BANKS;
+    return banksForMode(FALLBACK_BANKS);
   }
 }
 
@@ -91,6 +103,9 @@ export async function lookupPayoutAccount(bankCode: string, accountNumber: strin
   const banks = await listPayoutBanks();
   const bank = banks.find((b) => b.code === code);
   if (!bank) throw Object.assign(new Error("Unknown bank"), { status: 400 });
+  if (code === "001" && process.env.PAYSTACK_SECRET_KEY?.startsWith("sk_test_") && nuban !== "0000000000") {
+    throw Object.assign(new Error("Use account 0000000000 with the sandbox test bank"), { status: 400 });
+  }
   if (!paystackConfigured()) {
     return { nuban, bank, accountName: "" };
   }
@@ -107,13 +122,17 @@ export async function resolvePayoutAccount(bankCode: string, accountNumber: stri
   if (!paystackConfigured()) {
     return { ...looked, recipientCode: null as string | null };
   }
+  // Code 001 belongs to Paystack's test account resolver, not its transfer bank
+  // directory. The explicitly selected sandbox account maps to the published
+  // Zenith transfer fixture. This mapping is never used with live keys.
+  const sandboxFixture = process.env.PAYSTACK_SECRET_KEY?.startsWith("sk_test_") && looked.bank.code === "001" && looked.nuban === "0000000000";
   const recipient = await paystackJson("/transferrecipient", {
     method: "POST",
     body: JSON.stringify({
       type: "nuban",
       name: looked.accountName,
       account_number: looked.nuban,
-      bank_code: looked.bank.code,
+      bank_code: sandboxFixture ? "057" : looked.bank.code,
       currency: "NGN"
     })
   });
@@ -186,8 +205,8 @@ export async function releaseVendorPayout(bookingId: string) {
   await assertBookingPaid(booking.id, booking.customerTotalKobo, booking.currency);
   let earning = booking.earning;
   if (!earning) {
-    earning = await prisma.vendorEarning.create({
-      data: {
+    earning = await prisma.vendorEarning.upsert({
+      where: { bookingId: booking.id }, update: {}, create: {
         vendorId: booking.vendorId,
         bookingId: booking.id,
         payableKobo: booking.vendorPayableKobo,
@@ -198,14 +217,21 @@ export async function releaseVendorPayout(bookingId: string) {
     });
   }
   if (earning.status === "paid") return earning;
-  if (earning.payableKobo < 100) {
+  if (earning.payableKobo <= 0) {
     await prisma.vendorEarning.update({ where: { id: earning.id }, data: { status: "paid" } });
     return earning;
   }
 
   const vendor = booking.vendor;
+  if (earning.payableKobo < 5000) {
+    await prisma.payout.upsert({ where: { earningId: earning.id },
+      create: { vendorId: vendor.id, earningId: earning.id, amountKobo: earning.payableKobo, status: "below_minimum", note: "Below Paystack's ₦50 transfer minimum. Earning remains pending for finance review.", reference: `ns-po-${crypto.randomBytes(8).toString("hex")}` },
+      update: { status: "below_minimum", note: "Below Paystack's ₦50 transfer minimum. Earning remains pending for finance review." }
+    });
+    return earning;
+  }
   const existingPayout = await prisma.payout.findUnique({ where: { earningId: earning.id } });
-  if (existingPayout && ["paid", "pending", "otp"].includes(existingPayout.status) && existingPayout.providerRef) {
+  if (existingPayout && (existingPayout.status === "submitting" || (["paid", "pending", "otp"].includes(existingPayout.status) && existingPayout.providerRef))) {
     return earning;
   }
 
@@ -223,7 +249,7 @@ export async function releaseVendorPayout(bookingId: string) {
         amountKobo: earning.payableKobo,
         status: "needs_account",
         note: "Add a verified Nigerian bank account under Earnings. Payouts go to that NUBAN after the visit is confirmed.",
-        reference: `NS-PO-${crypto.randomBytes(8).toString("hex")}`
+        reference: `ns-po-${crypto.randomBytes(8).toString("hex")}`
       },
       update: {
         status: "needs_account",
@@ -242,7 +268,7 @@ export async function releaseVendorPayout(bookingId: string) {
         amountKobo: earning.payableKobo,
         status: "pending",
         note: `Queued for ${destination || "the saved payout account"}. Paystack transfers are not configured on this host.`,
-        reference: `NS-PO-${crypto.randomBytes(8).toString("hex")}`
+        reference: `ns-po-${crypto.randomBytes(8).toString("hex")}`
       },
       update: {
         status: "pending",
@@ -252,15 +278,28 @@ export async function releaseVendorPayout(bookingId: string) {
     return earning;
   }
 
-  const reference = existingPayout?.status === "failed" || !existingPayout?.reference
-    ? `NS-PO-${crypto.randomBytes(8).toString("hex")}`
-    : existingPayout.reference;
+  // Reserve the reference before contacting Paystack. Concurrent completion or
+  // retry requests must never create a second transfer for the same earning.
+  const reference = await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "VendorEarning" WHERE id = ${earning!.id} FOR UPDATE`;
+    const current = await tx.payout.findUnique({ where: { earningId: earning!.id } });
+    if (current && (current.status === "submitting" || (["paid", "pending", "otp"].includes(current.status) && current.providerRef))) return null;
+    const ref = current?.status === "failed" || !current?.reference || !/^[a-z0-9_-]+$/.test(current.reference)
+      ? `ns-po-${crypto.randomBytes(8).toString("hex")}` : current.reference;
+    await tx.payout.upsert({ where: { earningId: earning!.id },
+      create: { vendorId: vendor.id, earningId: earning!.id, amountKobo: earning!.payableKobo, status: "submitting", reference: ref },
+      update: { status: "submitting", reference: ref, providerRef: null }
+    });
+    return ref;
+  });
+  if (!reference) return earning;
 
   const transfer = await paystackJson("/transfer", {
     method: "POST",
     body: JSON.stringify({
       source: "balance",
       amount: earning.payableKobo,
+      currency: "NGN",
       recipient,
       reason: `NaijaSpa booking ${booking.id.slice(0, 8)}`,
       reference

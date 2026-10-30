@@ -7,6 +7,8 @@ import { GoldButton } from "@/components/shell";
 import { BottomSheet } from "@/components/bottom-sheet";
 import { useTheme } from "@/components/theme-provider";
 import { LogoutButton } from "@/components/logout-button";
+import { PushSettings } from "@/components/push-settings";
+import type { NotificationPreferences } from "@/lib/notification-preferences";
 
 const field = "mt-1 h-12 w-full rounded-xl border border-line bg-bg2 px-3 text-ink";
 const LANGS = [
@@ -23,7 +25,8 @@ export function SettingsForm({
   phone,
   city,
   neighbourhood,
-  locale
+  locale,
+  notificationPreferences
 }: {
   firstName: string;
   lastName: string;
@@ -32,11 +35,13 @@ export function SettingsForm({
   city: string;
   neighbourhood: string;
   locale: string;
+  notificationPreferences: NotificationPreferences;
 }) {
   const { theme, setTheme } = useTheme();
   const [language, setLanguage] = useState(locale);
   const [status, setStatus] = useState("");
-  const [notif, setNotif] = useState({ reminders: true, offers: false, sms: true, email: true });
+  const [notif, setNotif] = useState(notificationPreferences);
+  const [savingPreferences, setSavingPreferences] = useState(false);
   const [del, setDel] = useState(false);
   const [confirm, setConfirm] = useState("");
 
@@ -102,7 +107,7 @@ export function SettingsForm({
           [
             ["reminders", "Appointment reminders", "Push alerts 24h and 1h before"],
             ["offers", "Offers & promotions", "Seasonal deals from NaijaSpa partners"],
-            ["sms", "SMS updates", "Booking confirmations by text"],
+            ["sms", "SMS updates", "SMS delivery is not available yet"],
             ["email", "Email receipts", "Receipts and refund updates"]
           ] as const
         ).map(([k, label, hint]) => (
@@ -114,11 +119,22 @@ export function SettingsForm({
             <input
               type="checkbox"
               checked={notif[k]}
-              onChange={(e) => setNotif((n) => ({ ...n, [k]: e.target.checked }))}
+              disabled={savingPreferences || k === "sms"}
+              onChange={async (e) => {
+                const previous = notif;
+                const next = { ...notif, [k]: e.target.checked }; setNotif(next); setSavingPreferences(true);
+                try {
+                  const response = await fetch("/api/account/notifications", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(next) });
+                  if (!response.ok) throw new Error("Could not save notification preferences");
+                  setStatus("Notification preferences saved");
+                } catch { setNotif(previous); setStatus("Could not save notification preferences. Try again."); }
+                finally { setSavingPreferences(false); }
+              }}
               className="h-5 w-5 accent-[#D4AF37]"
             />
           </label>
         ))}
+        <PushSettings />
       </section>
 
       <section className="mt-4 rounded-3xl border border-line bg-card p-5">
@@ -196,14 +212,17 @@ export function SettingsForm({
           className="mt-4 w-full !bg-red-600 !text-white hover:!bg-red-700"
           disabled={confirm !== "DELETE"}
           onClick={async () => {
-            await fetch("/api/account/profile", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ deleteAccount: true })
-            });
-            setDel(false);
-            setConfirm("");
-            setStatus("Deletion requested — we’ll email you within 30 days.");
+            try {
+              const response = await fetch("/api/account/profile", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ deleteAccount: true })
+              });
+              if (!response.ok) throw new Error("Deletion request failed");
+              setDel(false);
+              setConfirm("");
+              setStatus("Deletion requested — we’ll email you within 30 days.");
+            } catch { setStatus("Could not request account deletion. Please try again."); }
           }}
         >
           Submit deletion request

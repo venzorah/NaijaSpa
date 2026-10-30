@@ -21,21 +21,18 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     if (!file) return NextResponse.json({ error: "Choose an image file" }, { status: 400 });
     const buf = new Uint8Array(await file.arrayBuffer());
     const saved = await saveCategoryImageFile(`${id}-${randomUUID()}`, buf);
-    await deleteCategoryImageFile(before.imageUrl);
-    const payload = { imageUrl: saved.url, imagePayload: Buffer.from(buf), imageMime: saved.mime };
+    const payload = { imageUrl: saved.url, imagePayload: saved.storage === "r2" ? null : Buffer.from(buf), imageMime: saved.mime };
     const category = await prisma.category
       .update({
         where: { id },
         data: payload,
         select: categoryAuditSelect
       })
-      .catch(() =>
-        prisma.category.update({
-          where: { id },
-          data: { imageUrl: saved.url },
-          select: categoryAuditSelect
-        })
-      );
+      .catch(async (error) => {
+        await deleteCategoryImageFile(saved.url).catch(() => console.error("Could not clean up an unlinked category upload"));
+        throw error;
+      });
+    await deleteCategoryImageFile(before.imageUrl).catch(() => console.error("Could not remove the previous category image"));
     await audit({
       actorId: actor.id,
       action: "category.image",
