@@ -111,6 +111,23 @@ export function filtersFromSearchParams(sp: Record<string, string | string[] | u
   for (const key of FILTER_QUERY_KEYS) {
     query[key] = pick(key);
   }
+  query.q = query.q?.trim().slice(0, 500) || undefined;
+  const choice = (value: string | undefined, options: string[]) => value && options.includes(value) ? value : undefined;
+  query.gender = choice(query.gender, ["male", "female"]);
+  query.location = choice(query.location, ["spa", "home", "hotel"]);
+  query.sort = choice(query.sort, ["relevance", "price", "rating"]);
+  query.verified = query.verified === "1" ? "1" : undefined;
+  query.whatsapp = query.whatsapp === "1" ? "1" : undefined;
+  const numeric = (value: string | undefined, min: number, max: number, integer = false) => {
+    if (!value?.trim()) return undefined;
+    const number = Number(value);
+    return Number.isFinite(number) && number >= min && number <= max && (!integer || Number.isInteger(number)) ? String(number) : undefined;
+  };
+  query.minPrice = numeric(query.minPrice, 0, 21_474_836.47);
+  query.maxPrice = numeric(query.maxPrice, 0, 21_474_836.47);
+  query.minRating = numeric(query.minRating, 0, 5);
+  query.duration = numeric(query.duration, 1, 1440, true);
+  query.page = numeric(query.page, 1, 100_000, true);
   return query;
 }
 

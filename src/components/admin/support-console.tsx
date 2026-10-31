@@ -25,7 +25,7 @@ export function SupportConsole({
   const [filter, setFilter] = useState("open");
   const [selectedId, setSelectedId] = useState(tickets[0]?.id ?? "");
   const filtered = tickets.filter((t) => (filter === "all" ? true : t.status === filter));
-  const selected = tickets.find((t) => t.id === selectedId) ?? filtered[0];
+  const selected = filtered.find((t) => t.id === selectedId) ?? filtered[0];
   return (
     <div>
       <div role="tablist" className="mb-4 flex gap-1 rounded-lg border border-line bg-elev p-1">

@@ -4,7 +4,7 @@ const db = vi.hoisted(() => ({
   $transaction: vi.fn(), $queryRaw: vi.fn(),
   user: { findUnique: vi.fn() },
   booking: { findUnique: vi.fn(), findUniqueOrThrow: vi.fn(), findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
-  service: { findUniqueOrThrow: vi.fn() }, vendorStaff: { findMany: vi.fn() },
+  service: { findUnique: vi.fn() }, vendorStaff: { findMany: vi.fn() },
   availabilitySlot: { findMany: vi.fn() }, timeOff: { findFirst: vi.fn() },
   vendorSubscription: { findFirst: vi.fn() }, payment: { findFirst: vi.fn() },
   vendorEarning: { create: vi.fn() }, notification: { create: vi.fn() },
@@ -24,7 +24,7 @@ beforeEach(() => {
   db.$transaction.mockImplementation(async (fn) => fn(db));
   db.user.findUnique.mockResolvedValue({ status: "active", deletionRequestedAt: null });
   db.booking.findUnique.mockResolvedValue(null);
-  db.service.findUniqueOrThrow.mockResolvedValue({
+  db.service.findUnique.mockResolvedValue({
     id: "service", vendorId: "vendor", active: true, spaEnabled: true,
     durationMin: 60, basePriceKobo: 10000, addons: [], staff: [{ staffId: "staff" }],
     vendor: { visibility: "public", applicationStatus: "approved" }
@@ -39,6 +39,16 @@ beforeEach(() => {
 });
 
 describe("booking security", () => {
+  it("returns a public unavailable message for a deleted service without creating a booking", async () => {
+    db.service.findUnique.mockResolvedValue(null);
+    await expect(createBooking(input)).rejects.toMatchObject({ status: 404, message: "This service is no longer available. Please choose another treatment from Explore." });
+    expect(db.booking.create).not.toHaveBeenCalled();
+  });
+  it.each(["hidden", "unapproved"])("rejects a %s provider before reserving or charging", async (reason) => {
+    db.service.findUnique.mockResolvedValue({ active: true, vendor: { visibility: reason === "hidden" ? "hidden" : "public", applicationStatus: reason === "unapproved" ? "submitted" : "approved" } });
+    await expect(createBooking(input)).rejects.toMatchObject({ status: 404 });
+    expect(db.booking.create).not.toHaveBeenCalled();
+  });
   it("rejects new reservations after an account deletion request", async () => {
     db.user.findUnique.mockResolvedValue({ status: "active", deletionRequestedAt: new Date() });
     await expect(createBooking(input)).rejects.toMatchObject({ status: 409 });

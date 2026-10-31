@@ -60,7 +60,7 @@ export function VendorsConsole({
       return ok && (!q || [v.businessName, v.ownerName, v.city, v.neighbourhood].some((x) => x.toLowerCase().includes(q)));
     });
   }, [rows, query, filter]);
-  const selected = rows.find((v) => v.id === selectedId);
+  const selected = filtered.find((v) => v.id === selectedId) ?? filtered[0];
 
   async function patchStatus(id: string, applicationStatus: string, extra: Record<string, string> = {}) {
     await adminJson(`/api/admin/vendors/${id}`, { method: "PATCH", body: JSON.stringify({ applicationStatus, ...extra }) });
@@ -95,7 +95,7 @@ export function VendorsConsole({
           ) : (
             <ul className="max-h-[calc(100vh-260px)] divide-y divide-line overflow-y-auto">
               {filtered.map((v) => {
-                const active = v.id === selectedId && !creating;
+                const active = v.id === selected?.id && !creating;
                 return (
                   <li key={v.id}>
                     <button

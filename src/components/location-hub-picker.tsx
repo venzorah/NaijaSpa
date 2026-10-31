@@ -74,7 +74,6 @@ export function LocationHubPicker() {
                     setPlace(next);
                     setOpen(false);
                     router.push(inHref(next));
-                    router.refresh();
                   }}
                   className={`flex min-h-[56px] w-full items-center justify-between rounded-2xl border px-4 text-left font-semibold ${
                     selected ? "border-gold/60 bg-gold/10 text-ink" : "border-line bg-card text-ink"

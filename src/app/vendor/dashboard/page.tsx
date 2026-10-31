@@ -29,7 +29,7 @@ export default async function VendorHome() {
   start.setHours(0, 0, 0, 0);
   const weekAgo = new Date(Date.now() - 7 * 864e5);
   const [vendor, bookings, weekBookings, earnings, pendingBookings, hiddenServices, docs, listingPlans] = await Promise.all([
-    prisma.vendor.findUniqueOrThrow({ where: { id: vendorId } }),
+    prisma.vendor.findUniqueOrThrow({ where: { id: vendorId }, include: { _count: { select: { services: { where: { active: true } }, staff: { where: { active: true } } } } } }),
     prisma.booking.findMany({
       where: { vendorId, startsAt: { gte: start } },
       include: { service: true, staff: true, customer: true },
@@ -56,6 +56,7 @@ export default async function VendorHome() {
   const later = Math.max(0, bookings.length - 8);
   const shown = bookings.slice(0, 8);
   const slots = await prisma.availabilitySlot.findMany({ where: { vendorId } });
+  const listedOnExplore = vendor.applicationStatus === "approved" && vendor.visibility === "public" && vendor._count.services > 0;
   const todayWeekday = start.getDay();
   const hoursToday = slots.filter((s) => s.weekday === todayWeekday).reduce((s, sl) => s + Math.max(0, sl.endMin - sl.startMin), 0) / 60;
   const occupancy = hoursToday > 0 ? Math.min(100, Math.round((bookings.length * 1.2 / hoursToday) * 100)) : bookings.length ? 100 : 0;
@@ -134,7 +135,24 @@ export default async function VendorHome() {
               <span>Application</span>
               <Link href="/vendor/profile" className="capitalize text-goldink">{vendor.applicationStatus.replace(/_/g, " ")}</Link>
             </li>
+            <li className="flex justify-between gap-2">
+              <span>Explore listing</span>
+              <span className="font-semibold">{listedOnExplore ? "Visible" : "Not visible yet"}</span>
+            </li>
           </ul>
+          {!listedOnExplore ? (
+            <div className="mt-4 space-y-2 border-t border-line pt-3 text-sm text-ink2">
+              {vendor.applicationStatus !== "approved" ? <p>{["submitted", "under_review"].includes(vendor.applicationStatus) ? "Your application is awaiting admin approval." : "Your application must be approved before treatments appear on Explore."}</p> : vendor.visibility !== "public" ? <p>Your listing is hidden. Contact support to have its publication status reviewed.</p> : null}
+              {vendor._count.services === 0 ? <p><Link href="/vendor/services" className="font-semibold text-goldink">Add an active treatment</Link> with its price and duration. Explore displays treatments, rather than accounts alone.</p> : null}
+            </div>
+          ) : null}
+          {vendor._count.staff === 0 || slots.length === 0 ? (
+            <div className="mt-3 space-y-2 text-sm text-ink2">
+              <p>To accept appointments:</p>
+              {vendor._count.staff === 0 ? <p><Link href="/vendor/staff" className="font-semibold text-goldink">Add yourself as a therapist</Link> to complete your provider profile.</p> : null}
+              {slots.length === 0 ? <p><Link href="/vendor/availability" className="font-semibold text-goldink">Set your working hours</Link> so customers can choose an available time.</p> : null}
+            </div>
+          ) : null}
         </Panel>
       </div>
 

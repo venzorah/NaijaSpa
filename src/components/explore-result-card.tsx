@@ -98,7 +98,7 @@ export function ExploreResultCard({ result: r }: { result: ExploreResult }) {
         <img src={avatar} alt="" className="h-14 w-14 shrink-0 rounded-full object-cover" />
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
-            <Link href={`/services/${encodeURIComponent(r.service.slug)}`} className="font-display text-xl leading-tight hover:text-goldink">
+            <Link href={`/services/${encodeURIComponent(r.service.slug)}`} className="min-w-0 break-words font-display text-xl leading-tight hover:text-goldink">
               {title}
             </Link>
             <button

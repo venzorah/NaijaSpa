@@ -42,7 +42,7 @@ export function ServicesConsole({ rows, editable }: { rows: AdminServiceRow[]; e
   const [filter, setFilter] = useState<"pending" | "live" | "hidden">("pending");
   const filtered = rows.filter((s) => (filter === "live" ? s.active : filter === "hidden" ? !s.active : !s.active));
   const [selectedId, setSelectedId] = useState(filtered[0]?.id ?? rows[0]?.id ?? "");
-  const selected = rows.find((s) => s.id === selectedId) ?? filtered[0];
+  const selected = filtered.find((s) => s.id === selectedId) ?? filtered[0];
   const issues = selected ? detectIssues(selected) : [];
 
   return (

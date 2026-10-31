@@ -3,6 +3,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   outputFileTracingRoot: __dirname,
   reactStrictMode: true,
+  // The bottom-left development badge otherwise overlaps mobile Home navigation.
+  devIndicators: false,
   experimental: {
     optimizePackageImports: ["lucide-react"]
   },

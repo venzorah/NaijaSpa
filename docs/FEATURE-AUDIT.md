@@ -2,6 +2,10 @@
 
 Local app: http://localhost:3000. API audit plus corrected browser recheck and desktop/mobile search checks.
 
+## Explore follow-up — 31 October 2026
+
+The LAN Explore page's state/all-states handling, reset synchronization, price bounds, full result counts, sorting and safe query parsing have been corrected and tested. All 220 automated tests, lint and TypeScript passed. Desktop/mobile browser checks passed the filter combinations, and a focused check verified long provider names fit both viewports. The public providers are two seeded examples and one retained payment-test fixture; the user chose to keep them visible for testing. Temporary audit providers were removed. Provenance, scope and remaining pagination/scale considerations: [EXPLORE-AUDIT.md](EXPLORE-AUDIT.md).
+
 ## OTP security follow-up — 30 October 2026
 
 Local Redis follow-up: standard Redis TCP/TLS support is implemented through `REDIS_URL`, which takes precedence over optional Upstash REST settings. The existing WSL Redis server returned PONG and the application's real atomic counter/rejection check passed. The suite now passes 208 tests. This supersedes the earlier Redis-setup deferral below.

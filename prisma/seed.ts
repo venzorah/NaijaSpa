@@ -139,10 +139,10 @@ async function main() {
         privateWhatsapp: opts.phone,
         cancellationPolicy: "Free cancellation up to 24 hours before the appointment.",
         applicationStatus: "approved",
-        verificationStatus: "verified",
+        verificationStatus: "unverified",
         visibility: "public",
-        ratingAvg: opts.paid ? 4.9 : 4.6,
-        reviewCount: opts.paid ? 128 : 41,
+        ratingAvg: 0,
+        reviewCount: 0,
         logoUrl: "/brand/icon-white.png",
         coverUrl: "/photos/band-spa.jpg"
       }

@@ -9,13 +9,14 @@ export type WorkingSlot = { weekday: number; startMin: number; endMin: number; b
 type BusyWindow = { staffId: string | null; startsAt: Date; endsAt: Date };
 
 /** Find a base-service appointment; booking still rechecks availability on submit. */
-export function findNextSlot(input: {
+export function availableServiceSlots(input: {
   durationMin: number; staffIds: string[]; hasAssignedStaff: boolean;
   slots: WorkingSlot[]; bookings: BusyWindow[]; timeOff: BusyWindow[];
-}, now = new Date()): Date | null {
-  if (!Number.isFinite(input.durationMin) || input.durationMin <= 0 || !input.slots.length) return null;
+}, now = new Date(), limit = 2000): Date[] {
+  const results: Date[] = [];
+  if (!Number.isFinite(input.durationMin) || input.durationMin <= 0 || !input.slots.length) return results;
   const candidates: (string | null)[] = input.staffIds.length ? input.staffIds : input.hasAssignedStaff ? [] : [null];
-  if (!candidates.length) return null;
+  if (!candidates.length) return results;
   const shifted = new Date(now.getTime() + LAGOS_OFFSET);
   const midnight = Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth(), shifted.getUTCDate()) - LAGOS_OFFSET;
   const buffer = Math.max(0, ...input.slots.map((s) => s.bufferMin)) * MINUTE;
@@ -31,11 +32,17 @@ export function findNextSlot(input: {
         if (staffId && input.timeOff.some((off) => off.staffId === staffId && off.startsAt.getTime() < endsAt && off.endsAt.getTime() > startsAt)) continue;
         if (input.bookings.some((booking) => (!staffId || !booking.staffId || booking.staffId === staffId)
           && booking.startsAt.getTime() < endsAt + buffer && booking.endsAt.getTime() > startsAt - buffer)) continue;
-        return new Date(startsAt);
+        results.push(new Date(startsAt));
+        if (results.length >= limit) return results;
+        break;
       }
     }
   }
-  return null;
+  return results;
+}
+
+export function findNextSlot(input: Parameters<typeof availableServiceSlots>[0], now = new Date()): Date | null {
+  return availableServiceSlots(input, now, 1)[0] ?? null;
 }
 
 export function nextLabelFor(startsAt: Date | null, now = new Date()): string | undefined {

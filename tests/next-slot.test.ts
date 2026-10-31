@@ -1,11 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { findNextSlot, nextLabelFor } from "../src/lib/next-slot";
+import { availableServiceSlots, findNextSlot, nextLabelFor } from "../src/lib/next-slot";
 
 const now = new Date("2026-11-02T08:00:00Z"); // Monday 09:00 Lagos
 const slot = { weekday: 1, startMin: 540, endMin: 1080, bufferMin: 15, staffId: null };
 const input = { durationMin: 60, staffIds: ["a"], hasAssignedStaff: true, slots: [slot], bookings: [], timeOff: [] };
 const window = (staffId: string | null, start: string, end: string) => ({ staffId, startsAt: new Date(start), endsAt: new Date(end) });
 describe("schedule-based next appointments", () => {
+  it("lists unique future slots across staff, excludes conflicts and matches the next card label", () => {
+    const busy = [window(null, "2026-11-02T09:00Z", "2026-11-02T10:00Z")];
+    const data = { ...input, staffIds: ["a", "b"], bookings: busy };
+    const available = availableServiceSlots(data, now);
+    expect(available[0]).toEqual(findNextSlot(data, now));
+    expect(new Set(available.map(Number)).size).toBe(available.length);
+    expect(available.every((date) => date > now)).toBe(true);
+    expect(available.some((date) => date.toISOString() === "2026-11-02T09:00:00.000Z")).toBe(false);
+    expect(available.some((date) => date.toISOString() === "2026-11-02T10:15:00.000Z")).toBe(true);
+    expect(availableServiceSlots({ ...data, slots: [] }, now)).toEqual([]);
+  });
   it("never invents availability when working hours are missing", () => {
     expect(findNextSlot({ ...input, slots: [] }, now)).toBeNull();
     expect(nextLabelFor(null, now)).toBeUndefined();

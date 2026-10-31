@@ -448,7 +448,7 @@ export async function getPublicService(slug: string) {
     }
   });
   if (!service) return usingDemoListings() ? demoPublicService(slug) : null;
-  if (!service.active) return null;
+  if (!service.active || service.vendor.visibility !== "public" || service.vendor.applicationStatus !== "approved") return null;
   const ent = await vendorEntitlement(service.vendorId);
   const vendor = sanitizePublicVendor(
     {
@@ -498,6 +498,7 @@ export async function getPublicService(slug: string) {
   }
   return {
     demo: false,
+    therapists: service.staff.filter((link) => link.staff.active).map((link) => ({ id: link.staff.id, name: link.staff.name })),
     service: {
       id: service.id,
       slug: service.slug,
@@ -543,7 +544,7 @@ export async function getPublicVendor(slug: string) {
     }
   });
   if (!vendor) return usingDemoListings() ? demoVendorBySlug(slug) : null;
-  if (vendor.visibility !== "public") return null;
+  if (vendor.visibility !== "public" || vendor.applicationStatus !== "approved") return null;
   const ent = await vendorEntitlement(vendor.id);
   return {
     vendor: sanitizePublicVendor(
@@ -590,6 +591,7 @@ export async function getPublicVendor(slug: string) {
 }
 
 export async function quotePublicService(serviceId: string, location: LocationType) {
+  if (!["spa", "hotel", "home"].includes(location)) throw Object.assign(new Error("Choose a valid service location"), { status: 400 });
   if (usingDemoListings()) {
     const service = demoServiceById(serviceId);
     if (!service) throw Object.assign(new Error("Service not found"), { status: 404 });
@@ -603,7 +605,13 @@ export async function quotePublicService(serviceId: string, location: LocationTy
   }
   const { prisma, getCommercialConfig } = await import("./db");
   const { vendorEntitlement } = await import("./entitlements");
-  const service = await prisma.service.findUniqueOrThrow({ where: { id: serviceId } });
+  const service = await prisma.service.findUnique({ where: { id: serviceId }, include: { vendor: { select: { visibility: true, applicationStatus: true } } } });
+  if (!service || !service.active || service.vendor.visibility !== "public" || service.vendor.applicationStatus !== "approved") {
+    throw Object.assign(new Error("This service is no longer available. Please choose another treatment from Explore."), { status: 404 });
+  }
+  if (!(location === "spa" ? service.spaEnabled : location === "hotel" ? service.hotelEnabled : service.homeEnabled)) {
+    throw Object.assign(new Error("This service is not offered at the selected location."), { status: 400 });
+  }
   const ent = await vendorEntitlement(service.vendorId);
   const config = await getCommercialConfig();
   return quoteBooking({

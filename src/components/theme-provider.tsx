@@ -19,15 +19,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>("light");
 
   useEffect(() => {
-    const saved = localStorage.getItem("naijaspa-theme");
+    let saved: string | null = null;
+    try { saved = localStorage.getItem("naijaspa-theme"); } catch { /* Browser storage can be disabled. */ }
     const next: Theme = saved === "dark" ? "dark" : "light";
     setTheme(next);
     applyDom(next);
   }, []);
 
   const apply = useCallback((next: Theme) => {
-    localStorage.setItem("naijaspa-theme", next);
     applyDom(next);
+    try { localStorage.setItem("naijaspa-theme", next); } catch { /* Keep the toggle working without persistence. */ }
     fetch("/api/account/theme", { method: "POST", body: JSON.stringify({ theme: next }) }).catch(() => {});
     setTheme(next);
   }, []);

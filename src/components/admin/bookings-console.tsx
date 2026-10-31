@@ -43,7 +43,7 @@ export function BookingsConsole({ rows, editable, canSeeMoney }: { rows: AdminBo
     const q = query.toLowerCase();
     return rows.filter((b) => (filter === "all" || b.bucket === filter) && (!q || [b.ref, b.customer, b.vendor].some((x) => x.toLowerCase().includes(q))));
   }, [rows, query, filter]);
-  const b = rows.find((x) => x.id === selectedId) ?? filtered[0];
+  const b = filtered.find((x) => x.id === selectedId) ?? filtered[0];
 
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">

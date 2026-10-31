@@ -50,7 +50,7 @@ export function CustomersConsole({ rows, editable }: { rows: AdminCustomer[]; ed
     });
   }, [rows, query, filter]);
 
-  const selected = rows.find((c) => c.id === selectedId) ?? filtered[0] ?? null;
+  const selected = filtered.find((c) => c.id === selectedId) ?? filtered[0] ?? null;
 
   async function patch(id: string, body: Record<string, unknown>) {
     await adminJson(`/api/admin/users/${id}`, { method: "PATCH", body: JSON.stringify(body) });

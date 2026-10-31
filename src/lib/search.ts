@@ -42,8 +42,8 @@ async function liveExploreCities(filters: ExploreCityFilters) {
 async function searchLive(filters: SearchFilters) {
   const { prisma, getCommercialConfig } = await import("./db");
   const { vendorEntitlements } = await import("./entitlements");
-  const page = Math.max(1, filters.page ?? 1);
-  const take = Math.min(100, Math.max(1, filters.take ?? 12));
+  const page = Number.isFinite(filters.page) ? Math.max(1, Math.floor(filters.page!)) : 1;
+  const take = Number.isFinite(filters.take) ? Math.min(100, Math.max(1, Math.floor(filters.take!))) : 12;
   const contains = (value: string) => ({ contains: value, mode: "insensitive" as const });
   const tokenClause = (token: string) => ({
     OR: [
@@ -56,7 +56,7 @@ async function searchLive(filters: SearchFilters) {
       { category: { name: contains(token) } },
       { category: { slug: contains(token) } },
       { category: { synonyms: contains(token) } },
-      { staff: { some: { staff: { name: contains(token) } } } }
+      { staff: { some: { staff: { active: true, name: contains(token) } } } }
     ]
   });
   const areaState = serviceAreaState(filters);
@@ -76,8 +76,10 @@ async function searchLive(filters: SearchFilters) {
     ...(filters.category
       ? { category: { slug: { equals: filters.category, mode: "insensitive" as const } } }
       : {}),
-    ...(filters.minPrice != null ? { basePriceKobo: { gte: filters.minPrice } } : {}),
-    ...(filters.maxPrice != null ? { basePriceKobo: { lte: filters.maxPrice } } : {}),
+    ...(filters.minPrice != null || filters.maxPrice != null ? { basePriceKobo: {
+      ...(filters.minPrice != null ? { gte: filters.minPrice } : {}),
+      ...(filters.maxPrice != null ? { lte: filters.maxPrice } : {})
+    } } : {}),
     ...(filters.durationMin ? { durationMin: { lte: filters.durationMin + 15, gte: filters.durationMin - 15 } } : {})
   };
   const tokens = tokenizeSearch(filters.q);
@@ -100,12 +102,11 @@ async function searchLive(filters: SearchFilters) {
 
   const orderBy =
     filters.sort === "price"
-      ? { basePriceKobo: "asc" as const }
+      ? [{ basePriceKobo: "asc" as const }, { id: "asc" as const }]
       : filters.sort === "rating"
-        ? { vendor: { ratingAvg: "desc" as const } }
-        : { createdAt: "desc" as const };
+        ? [{ vendor: { ratingAvg: "desc" as const } }, { id: "asc" as const }]
+        : [{ createdAt: "desc" as const }, { id: "asc" as const }];
 
-  const placeFilter = Boolean(filters.state || filters.city || filters.neighbourhood || filters.gender);
   const rows = await prisma.service.findMany({
     where,
     include: {
@@ -113,11 +114,10 @@ async function searchLive(filters: SearchFilters) {
       category: { select: { name: true, slug: true } },
       staff: { include: { staff: true } }
     },
-    orderBy,
-    ...(placeFilter ? {} : { skip: (page - 1) * take, take })
+    orderBy
   });
 
-  const [entitlements, config, availability] = await Promise.all([vendorEntitlements(rows.map((row) => row.vendorId)), getCommercialConfig(), serviceAvailabilityLabels(rows, filters.gender)]);
+  const [entitlements, config] = await Promise.all([vendorEntitlements(rows.map((row) => row.vendorId)), getCommercialConfig()]);
   const results = [];
   for (const row of rows) {
     const ent = entitlements.get(row.vendorId) ?? FREE_ENTITLEMENT;
@@ -187,7 +187,6 @@ async function searchLive(filters: SearchFilters) {
       therapists,
       sponsored: ent.sponsoredEligible,
       enhanced: ent.enhancedVisibility,
-      nextLabel: availability.get(row.id),
       quote
     });
   }
@@ -197,11 +196,13 @@ async function searchLive(filters: SearchFilters) {
       (a, b) =>
         placeRank(b.vendor, filters.rankPlace) - placeRank(a.vendor, filters.rankPlace) ||
         Number(b.enhanced) - Number(a.enhanced) ||
-        b.vendor.ratingAvg - a.vendor.ratingAvg
+        b.vendor.ratingAvg - a.vendor.ratingAvg || a.service.id.localeCompare(b.service.id)
     );
   }
 
   const total = results.length;
-  const paged = placeFilter ? results.slice((page - 1) * take, page * take) : results;
-  return { total, page, results: paged };
+  const paged = results.slice((page - 1) * take, page * take);
+  const selected = new Set(paged.map((result) => result.service.id));
+  const availability = await serviceAvailabilityLabels(rows.filter((row) => selected.has(row.id)), filters.gender);
+  return { total, page, results: paged.map((result) => ({ ...result, nextLabel: availability.get(result.service.id) })) };
 }

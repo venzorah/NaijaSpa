@@ -1,27 +1,43 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Clock, Search, Sparkles, TrendingUp, X } from "lucide-react";
 import { exploreHref, type FilterQuery } from "@/lib/place-urls";
 import type { LivePlace } from "@/lib/nigeria";
 
-const recent = ["Deep tissue Lekki", "Couples massage VI", "Facial Ikeja"];
-const popular = ["Hot stone massage", "Home massage Lekki", "Half-day spa package", "Black soap body polish"];
+const HISTORY_KEY = "naijaspa-search-history";
 
 export function ExploreSearchBar({
   place,
-  values
+  values,
+  suggestions: popular = []
 }: {
   place: Partial<LivePlace> | null;
   values: FilterQuery;
+  suggestions?: string[];
 }) {
   const router = useRouter();
   const [q, setQ] = useState(values.q || "");
   const [focused, setFocused] = useState(false);
   const input = useRef<HTMLInputElement>(null);
+  const [recent, setRecent] = useState<string[]>([]);
+  useEffect(() => setQ(values.q || ""), [values.q]);
+  useEffect(() => {
+    try {
+      const saved: unknown = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+      if (Array.isArray(saved)) setRecent(saved.filter((value): value is string => typeof value === "string").slice(0, 5));
+    } catch { /* Storage can be disabled by the browser. */ }
+  }, []);
 
   function go(query: string) {
+    query = query.trim().slice(0, 500);
+    setQ(query);
+    if (query) {
+      const history = [query, ...recent.filter((value) => value !== query)].slice(0, 5);
+      setRecent(history);
+      try { localStorage.setItem(HISTORY_KEY, JSON.stringify(history)); } catch { /* Optional history. */ }
+    }
     setFocused(false);
     input.current?.blur();
     router.push(exploreHref(place, { ...values, q: query || undefined, page: undefined }));
@@ -87,7 +103,7 @@ export function ExploreSearchBar({
             </ul>
           ) : (
             <>
-              <p className="px-2 pb-1 text-[11px] font-bold uppercase tracking-[0.18em] text-ink2">Recent</p>
+              {recent.length ? <p className="px-2 pb-1 text-[11px] font-bold uppercase tracking-[0.18em] text-ink2">Recent</p> : null}
               {recent.map((s) => (
                 <button
                   key={s}
@@ -101,7 +117,7 @@ export function ExploreSearchBar({
                   <Clock className="h-4 w-4 text-ink2" aria-hidden /> {s}
                 </button>
               ))}
-              <p className="px-2 pb-1 pt-3 text-[11px] font-bold uppercase tracking-[0.18em] text-ink2">Trending</p>
+              {popular.length ? <p className="px-2 pb-1 pt-3 text-[11px] font-bold uppercase tracking-[0.18em] text-ink2">Suggested treatments</p> : null}
               {popular.slice(0, 3).map((s) => (
                 <button
                   key={s}

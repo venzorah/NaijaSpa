@@ -46,7 +46,7 @@ export function ApplicationsConsole({
     if (filter === "rejected") return a.applicationStatus === "rejected";
     return ["draft", "submitted", "under_review"].includes(a.applicationStatus);
   });
-  const app = rows.find((a) => a.id === selectedId) ?? filtered[0];
+  const app = filtered.find((a) => a.id === selectedId) ?? filtered[0];
   const doc = app?.documents.find((d) => d.id === docId) ?? app?.documents[0];
 
   return (

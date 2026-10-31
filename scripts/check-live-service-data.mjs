@@ -1,0 +1,45 @@
+import { createRequire } from "node:module";
+import { randomUUID } from "node:crypto";
+import assert from "node:assert/strict";
+import { chromium } from "playwright";
+const require = createRequire(import.meta.url);
+require("@next/env").loadEnvConfig(process.cwd());
+assert(["localhost", "127.0.0.1"].includes(new URL(process.env.DATABASE_URL).hostname), "Local fixtures only");
+const { PrismaClient } = require("@prisma/client");
+const db = new PrismaClient({ log: [] });
+const id = `live-service-${randomUUID()}`;
+const base = "http://localhost:3000";
+let browser;
+try {
+  const category = await db.category.findFirstOrThrow({ where: { active: true } });
+  await db.user.create({ data: { id, email: `${id}@example.com`, name: "Temporary service audit", role: "vendor_owner" } });
+  await db.vendor.create({ data: { id, ownerId: id, slug: id, businessName: "Live service audit", address: "Test", city: "Lagos", state: "Lagos", neighbourhood: "Lekki", visibility: "public", applicationStatus: "approved" } });
+  await db.vendorStaff.create({ data: { id, vendorId: id, name: "Original audit therapist" } });
+  await db.service.create({ data: { id, slug: id, vendorId: id, categoryId: category.id, name: "Live treatment audit", durationMin: 60, basePriceKobo: 1234500, staff: { create: { staffId: id } } } });
+  await db.availabilitySlot.createMany({ data: Array.from({ length: 7 }, (_, weekday) => ({ vendorId: id, staffId: id, weekday, startMin: 540, endMin: 1080, bufferMin: 15 })) });
+  browser = await chromium.launch({ channel: "msedge", headless: true });
+  const page = await browser.newPage();
+  page.setDefaultNavigationTimeout(60000); page.setDefaultTimeout(45000);
+  await page.goto(`${base}/services/${id}`);
+  await page.getByText("With Original audit therapist", { exact: true }).waitFor();
+  assert((await page.locator("aside").innerText()).includes("12,345"));
+  let response = await page.request.get(`${base}/api/availability?serviceId=${id}`);
+  assert.equal(response.status(), 200); assert((await response.json()).slots.length > 0);
+  await db.service.update({ where: { id }, data: { basePriceKobo: 2345600 } });
+  await db.vendorStaff.update({ where: { id }, data: { name: "Updated audit therapist" } });
+  await page.reload();
+  await page.getByText("With Updated audit therapist", { exact: true }).waitFor();
+  assert((await page.locator("aside").innerText()).includes("23,456"));
+  await db.availabilitySlot.deleteMany({ where: { vendorId: id } });
+  response = await page.request.get(`${base}/api/availability?serviceId=${id}`);
+  assert.deepEqual((await response.json()).slots, []);
+  await db.vendor.update({ where: { id }, data: { visibility: "hidden" } });
+  assert.equal((await page.request.get(`${base}/api/availability?serviceId=${id}`)).status(), 404);
+  assert.equal((await page.goto(`${base}/services/${id}`)).status(), 404);
+  console.log(JSON.stringify({ ok: true, checks: "database price/name changes reach service page, real schedules produce slots, removal clears availability, hidden vendor blocks page and endpoint" }));
+} finally {
+  if (browser) await browser.close();
+  await db.availabilitySlot.deleteMany({ where: { vendorId: id } });
+  await db.user.deleteMany({ where: { id } });
+  await db.$disconnect();
+}

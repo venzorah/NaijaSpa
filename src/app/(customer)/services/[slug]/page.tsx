@@ -66,6 +66,9 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
                   </p>
                   <h1 className="mt-1 font-display text-3xl leading-tight sm:text-5xl">{vendor.businessName}</h1>
                   <p className="mt-1 text-base text-ink2">{service.name}</p>
+                  {"therapists" in data && data.therapists.length ? (
+                    <p className="mt-1 text-sm text-ink2">With {data.therapists.map((person) => person.name).join(", ")}</p>
+                  ) : null}
                 </div>
                 <Link
                   href="/account/favourites"
@@ -97,6 +100,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
 
           <div className="min-w-0 lg:sticky lg:top-24 lg:col-start-2 lg:row-span-4">
             <ServiceBookingCard
+              key={service.id}
               serviceId={service.id}
               treatments={treatments}
               currentSlug={service.slug}

@@ -40,6 +40,7 @@ export function SettingsForm({
   const { theme, setTheme } = useTheme();
   const [language, setLanguage] = useState(locale);
   const [status, setStatus] = useState("");
+  const [savingProfile, setSavingProfile] = useState(false);
   const [notif, setNotif] = useState(notificationPreferences);
   const [savingPreferences, setSavingPreferences] = useState(false);
   const [del, setDel] = useState(false);
@@ -56,19 +57,25 @@ export function SettingsForm({
           className="mt-3 grid gap-3 sm:grid-cols-2"
           onSubmit={async (e) => {
             e.preventDefault();
+            if (savingProfile) return;
+            setSavingProfile(true);
+            setStatus("");
             const fd = new FormData(e.currentTarget);
             const name = `${String(fd.get("first") || "").trim()} ${String(fd.get("last") || "").trim()}`.trim();
-            const res = await fetch("/api/account/profile", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                name,
-                phone: fd.get("phone"),
-                city: fd.get("city"),
-                neighbourhood: fd.get("address")
-              })
-            });
-            setStatus(res.ok ? "Profile saved" : "Could not save profile.");
+            try {
+              const res = await fetch("/api/account/profile", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  name,
+                  phone: fd.get("phone"),
+                  city: fd.get("city"),
+                  neighbourhood: fd.get("address")
+                })
+              });
+              setStatus(res.ok ? "Profile saved" : "Could not save profile.");
+            } catch { setStatus("Could not save profile. Please try again."); }
+            finally { setSavingProfile(false); }
           }}
         >
           <label className="text-sm text-ink2">
@@ -96,7 +103,7 @@ export function SettingsForm({
             <input name="address" defaultValue={neighbourhood} className={field} />
           </label>
           <div className="sm:col-span-2">
-            <GoldButton type="submit">Save changes</GoldButton>
+            <GoldButton type="submit" disabled={savingProfile}>{savingProfile ? "Saving…" : "Save changes"}</GoldButton>
           </div>
         </form>
       </section>

@@ -46,12 +46,12 @@ export async function createBooking(input: {
     if (!customer || customer.status !== "active" || customer.deletionRequestedAt) {
       throw Object.assign(new Error("This account cannot create bookings while deletion is pending"), { status: 409 });
     }
-    const service = await tx.service.findUniqueOrThrow({
+    const service = await tx.service.findUnique({
       where: { id: input.serviceId },
       include: { vendor: true, addons: true, staff: { select: { staffId: true } } }
     });
-    if (!service.active || service.vendor.visibility !== "public" || service.vendor.applicationStatus !== "approved") {
-      throw Object.assign(new Error("Service unavailable"), { status: 400 });
+    if (!service || !service.active || service.vendor.visibility !== "public" || service.vendor.applicationStatus !== "approved") {
+      throw Object.assign(new Error("This service is no longer available. Please choose another treatment from Explore."), { status: 404 });
     }
     // Serialize reservations for this vendor before checking availability. A second
     // request sees the first committed reservation under PostgreSQL READ COMMITTED.

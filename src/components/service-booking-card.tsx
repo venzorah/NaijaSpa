@@ -9,12 +9,9 @@ import type { LocationType } from "@/lib/commercial";
 type Quote = { basePriceKobo: number; surchargeKobo: number; customerTotalKobo: number };
 type Treatment = { id: string; slug: string; name: string; durationMin: number; basePriceKobo: number };
 
-const TIMES = [
-  { value: "09:00", label: "9:00 AM" },
-  { value: "11:30", label: "11:30 AM" },
-  { value: "14:00", label: "2:00 PM" },
-  { value: "17:30", label: "5:30 PM" }
-];
+function lagosDate(d: Date) {
+  return new Date(d.getTime() + 3600_000).toISOString().slice(0, 10);
+}
 
 function lagosParts(d: Date) {
   const parts = new Intl.DateTimeFormat("en-GB", {
@@ -32,10 +29,7 @@ function nextDays(n = 5) {
   const now = new Date();
   for (let i = 0; i < n; i++) {
     const d = new Date(now.getTime() + i * 86400000);
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    days.push({ key: `${y}-${m}-${day}`, ...lagosParts(d) });
+    days.push({ key: lagosDate(d), ...lagosParts(d) });
   }
   return days;
 }
@@ -62,26 +56,65 @@ export function ServiceBookingCard({
   const [time, setTime] = useState("");
   const [details, setDetails] = useState("");
   const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [available, setAvailable] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [availabilityError, setAvailabilityError] = useState("");
+  const [continuing, setContinuing] = useState(false);
+  const [continueError, setContinueError] = useState("");
 
   useEffect(() => {
-    const upcoming = nextDays(5);
+    const upcoming = nextDays(14);
     setDays(upcoming);
     setDay((current) => current || upcoming[0]?.key || "");
   }, []);
 
+  useEffect(() => {
+    const controller = new AbortController();
+    setLoading(true);
+    setAvailable([]);
+    setTime("");
+    setStep(1);
+    setAvailabilityError("");
+    fetch(`/api/availability?serviceId=${encodeURIComponent(serviceId)}`, { signal: controller.signal, cache: "no-store" })
+      .then(async (res) => {
+        if (!res.ok) throw new Error("Could not load available times. Refresh to try again.");
+        const data = await res.json() as { slots: string[] };
+        if (!controller.signal.aborted) setAvailable(data.slots);
+      })
+      .catch((error: Error) => { if (!controller.signal.aborted) setAvailabilityError(error.message); })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
+  }, [serviceId]);
+
+  const times = available.filter((value) => lagosDate(new Date(value)) === day).map((value) => ({
+    value: new Date(new Date(value).getTime() + 3600_000).toISOString().slice(11, 16),
+    label: new Intl.DateTimeFormat("en-US", { timeZone: "Africa/Lagos", hour: "numeric", minute: "2-digit" }).format(new Date(value))
+  }));
+
   const quote = quotes.find((x) => x.l === locationType)?.q ?? quotes[0]?.q;
   const needsAddress = locationType === "hotel" || locationType === "home";
   const canLeaveLocation = Boolean(quote) && (!needsAddress || details.trim().length > 3);
-  const canLeaveTime = Boolean(day && time);
+  const canLeaveTime = !loading && times.some((slot) => slot.value === time);
 
-  const continueToBook = () => {
-    const startsAt = time ? `${day}T${time}` : "";
-    const params = new URLSearchParams({
-      location: locationType,
-      startsAt,
-      details
-    });
-    router.push(`/book/${serviceId}?${params.toString()}`);
+  const continueToBook = async () => {
+    if (continuing) return;
+    setContinuing(true);
+    setContinueError("");
+    try {
+      const response = await fetch(`/api/quote?${new URLSearchParams({ serviceId, location: locationType })}`, { cache: "no-store" });
+      const json = await response.json();
+      if (!response.ok) throw new Error(json.error || "Could not check this service. Please try again.");
+      const startsAt = time ? `${day}T${time}` : "";
+      const params = new URLSearchParams({
+        location: locationType,
+        startsAt,
+        details
+      });
+      router.push(`/book/${serviceId}?${params.toString()}`);
+    } catch (error) {
+      setContinueError(error instanceof Error ? error.message : "Could not continue. Please try again.");
+      setContinuing(false);
+    }
   };
 
   const cta = () => {
@@ -95,7 +128,7 @@ export function ServiceBookingCard({
       setStep(3);
       return;
     }
-    continueToBook();
+    void continueToBook();
   };
 
   const ctaLabel =
@@ -181,7 +214,7 @@ export function ServiceBookingCard({
               <button
                 key={d.key}
                 type="button"
-                onClick={() => setDay(d.key)}
+                onClick={() => { setDay(d.key); setTime(""); }}
                 className={`flex min-h-16 min-w-[4.25rem] shrink-0 flex-col items-center justify-center rounded-2xl border px-2 text-xs ${
                   day === d.key ? "border-forest bg-forest text-white" : "border-line bg-card"
                 }`}
@@ -192,7 +225,7 @@ export function ServiceBookingCard({
             ))}
           </div>
           <div className="mt-3 grid grid-cols-2 gap-2">
-            {TIMES.map((t) => (
+            {times.map((t) => (
               <button
                 key={t.value}
                 type="button"
@@ -205,6 +238,9 @@ export function ServiceBookingCard({
               </button>
             ))}
           </div>
+          <p role="status" className="mt-2 text-xs text-ink2">
+            {loading ? "Loading available times…" : availabilityError || (!times.length ? "No available times on this day. Choose another date." : "Availability is checked again when you book.")}
+          </p>
           <button type="button" className="mt-3 text-sm font-semibold text-goldink" onClick={() => setStep(1)}>
             ← Change location
           </button>
@@ -240,11 +276,12 @@ export function ServiceBookingCard({
       <button
         type="button"
         onClick={cta}
-        disabled={(step === 1 && !canLeaveLocation) || (step === 2 && !canLeaveTime)}
+        disabled={continuing || (step === 1 && !canLeaveLocation) || (step >= 2 && !canLeaveTime)}
         className="mt-6 flex min-h-12 w-full items-center justify-center rounded-full bg-gold px-4 text-center font-bold leading-snug text-ongold disabled:opacity-50"
       >
-        {ctaLabel}
+        {continuing ? "Checking service…" : ctaLabel}
       </button>
+      {continueError ? <p role="alert" className="mt-3 text-sm text-red-500">{continueError} <a href="/explore" className="font-semibold underline">Back to Explore</a></p> : null}
       <p className="mt-3 text-center text-xs text-ink2">
         {cancellationPolicy?.trim() || "Free cancellation up to 12 hours before."} Booking is only confirmed after
         payment verification.

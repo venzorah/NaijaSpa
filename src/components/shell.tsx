@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/navigation-link";
 import { usePathname } from "next/navigation";
 import { CalendarDays, Compass, Heart, Home, Moon, Sparkles, Sun, User } from "lucide-react";
 import { useTheme } from "./theme-provider";

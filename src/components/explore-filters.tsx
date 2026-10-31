@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { NIGERIA_STATES, nigeriaStateLabel, type LivePlace } from "@/lib/nigeria";
 import { exploreHref, type FilterQuery } from "@/lib/place-urls";
 import { formatNgn, koboFromNaira } from "@/lib/money";
@@ -28,16 +28,19 @@ export function ExploreFilters({
   const [q, setQ] = useState(values.q || "");
   const maxNaira = values.maxPrice ? Number(values.maxPrice) : RATE_MAX;
   const [rate, setRate] = useState(Number.isFinite(maxNaira) && maxNaira > 0 ? maxNaira : RATE_MAX);
+  useEffect(() => setQ(values.q || ""), [values.q]);
+  useEffect(() => setRate(Number.isFinite(maxNaira) && maxNaira > 0 ? maxNaira : RATE_MAX), [maxNaira]);
 
   function go(patch: FilterQuery & { state?: string }) {
     const nextState = patch.state !== undefined ? patch.state : place?.state;
+    const stateChanged = patch.state !== undefined && patch.state !== (place?.state || "");
     const { state: _state, ...filterPatch } = patch;
     router.push(
       exploreHref(
         {
           state: nextState,
-          city: patch.state && patch.state !== place?.state ? "" : place?.city,
-          neighbourhood: patch.state && patch.state !== place?.state ? "" : place?.neighbourhood
+          city: stateChanged ? "" : place?.city,
+          neighbourhood: stateChanged ? "" : place?.neighbourhood
         },
         {
           ...values,
@@ -59,7 +62,7 @@ export function ExploreFilters({
     <aside className="rounded-[1.5rem] border border-line bg-card p-5 shadow-sm">
       <div className="flex items-center justify-between">
         <p className="text-xs font-bold uppercase tracking-[0.14em] text-ink2">Filters</p>
-        <button type="button" className="text-sm font-semibold text-goldink" onClick={() => router.push(exploreHref(place))}>
+        <button type="button" className="text-sm font-semibold text-goldink" onClick={() => router.push(exploreHref(null))}>
           Reset
         </button>
       </div>
@@ -67,6 +70,7 @@ export function ExploreFilters({
       <form onSubmit={onSearch} className="mt-5">
         <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-ink2">Search</p>
         <input
+          aria-label="Treatment or name"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Treatment or name"
@@ -77,8 +81,9 @@ export function ExploreFilters({
       <label className="mt-6 block">
         <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-ink2">State</p>
         <select
+          aria-label="State"
           value={place?.state || ""}
-          onChange={(e) => go({ state: e.target.value || undefined })}
+          onChange={(e) => go({ state: e.target.value })}
           className="mt-2 min-h-11 w-full rounded-full border border-line bg-bg2 px-4 text-base text-ink outline-none focus:border-forest"
         >
           <option value="">All states</option>
@@ -135,17 +140,18 @@ export function ExploreFilters({
       <div className="mt-6">
         <div className="flex items-center justify-between">
           <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-ink2">Max rate</p>
-          <p className="text-sm font-bold text-ink">{formatNgn(koboFromNaira(rate))}</p>
+          <p className="text-sm font-bold text-ink">{formatNgn(koboFromNaira(rate))}{rate >= RATE_MAX ? "+" : ""}</p>
         </div>
         <input
           type="range"
+          aria-label="Max rate"
           min={RATE_MIN}
           max={RATE_MAX}
           step={5000}
           value={rate}
           onChange={(e) => setRate(Number(e.target.value))}
-          onPointerUp={() => go({ maxPrice: rate >= RATE_MAX ? undefined : String(rate) })}
-          onKeyUp={() => go({ maxPrice: rate >= RATE_MAX ? undefined : String(rate) })}
+          onPointerUp={(e) => go({ maxPrice: Number(e.currentTarget.value) >= RATE_MAX ? undefined : e.currentTarget.value })}
+          onKeyUp={(e) => go({ maxPrice: Number(e.currentTarget.value) >= RATE_MAX ? undefined : e.currentTarget.value })}
           className="mt-3 w-full accent-gold"
         />
       </div>
@@ -175,12 +181,14 @@ export function ExploreSort({
     <label className="flex items-center gap-2 text-sm text-ink2">
       Sort by
       <select
+        aria-label="Sort by"
         value={values.sort || "relevance"}
         onChange={(e) =>
           router.push(
             exploreHref(place, {
               ...values,
-              sort: e.target.value === "relevance" ? undefined : e.target.value
+              sort: e.target.value === "relevance" ? undefined : e.target.value,
+              page: undefined
             })
           )
         }

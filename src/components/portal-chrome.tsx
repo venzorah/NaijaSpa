@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useOptimistic, useState, useTransition } from "react";
 import {
   BarChart3,
   Bell,
@@ -12,6 +12,7 @@ import {
   Image as ImageIcon,
   LayoutDashboard,
   LifeBuoy,
+  LoaderCircle,
   Menu,
   Megaphone,
   Moon,
@@ -102,6 +103,16 @@ function linkActive(path: string, href: string) {
   return path === href || path.startsWith(`${href}/`);
 }
 
+function NavLinkIcon({ icon: Icon, active, label }: { icon: LucideIcon; active: boolean; label: string }) {
+  const { pending } = useLinkStatus();
+  return pending ? (
+    <span role="status" className="shrink-0">
+      <LoaderCircle className="h-4 w-4 animate-spin text-goldink" aria-hidden />
+      <span className="sr-only">Opening {label}…</span>
+    </span>
+  ) : <Icon className={`h-4 w-4 shrink-0 ${active ? "text-goldink" : ""}`} aria-hidden />;
+}
+
 function NavList({
   groups,
   path,
@@ -131,7 +142,7 @@ function NavList({
                     }`}
                   >
                     {active ? <span className="absolute -left-3 top-1.5 h-5 w-0.5 rounded-r bg-gold" aria-hidden /> : null}
-                    <Icon className={`h-4 w-4 shrink-0 ${active ? "text-goldink" : ""}`} aria-hidden />
+                    <NavLinkIcon icon={Icon} active={active} label={item.label} />
                     <span className="flex-1 truncate">{item.label}</span>
                     {item.badge ? (
                       <span className="rounded-full bg-gold/15 px-1.5 py-0.5 text-[10px] font-semibold text-goldink">{item.badge}</span>
@@ -180,6 +191,7 @@ export function PortalChrome({
   const { theme, toggle } = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [switchingScreen, startScreenTransition] = useTransition();
   const groups =
     variant === "vendor"
       ? VENDOR_NAV.map((g) => ({
@@ -189,6 +201,7 @@ export function PortalChrome({
       : adminNavForRole(role || "");
   const home = variant === "vendor" ? "/vendor/dashboard" : "/admin/dashboard";
   const currentScreen = ADMIN_SCREENS.find((s) => linkActive(path, s.href));
+  const [selectedScreen, setSelectedScreen] = useOptimistic(currentScreen?.id ?? "dashboard");
 
   const sidebar = (
     <div className="flex h-full flex-col bg-bg2">
@@ -289,10 +302,13 @@ export function PortalChrome({
               </label>
               <select
                 id="admin-screen-switcher"
-                value={currentScreen?.id ?? "dashboard"}
+                value={selectedScreen}
                 onChange={(e) => {
                   const next = ADMIN_SCREENS.find((s) => s.id === (e.target.value as AdminScreenId));
-                  if (next) router.push(next.href);
+                  if (next) startScreenTransition(() => {
+                    setSelectedScreen(next.id);
+                    router.push(next.href);
+                  });
                 }}
                 className="h-8 w-40 rounded-md border border-line bg-elev px-2 text-xs sm:w-56"
               >
@@ -306,6 +322,7 @@ export function PortalChrome({
                   </optgroup>
                 ))}
               </select>
+              {switchingScreen ? <span role="status"><LoaderCircle className="h-4 w-4 animate-spin text-goldink" aria-hidden /><span className="sr-only">Opening screen…</span></span> : null}
             </div>
           ) : (
             <p className="hidden min-w-0 truncate text-sm text-ink2 lg:block">

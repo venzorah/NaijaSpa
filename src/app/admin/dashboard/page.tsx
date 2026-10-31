@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/navigation-link";
 import { CalendarCheck, CircleDollarSign, Crown, Lock, Megaphone, Store, Users } from "lucide-react";
 import { requireAdminScreen } from "@/lib/admin-auth";
 import { hasPermission } from "@/lib/rbac";

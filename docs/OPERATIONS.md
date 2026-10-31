@@ -16,6 +16,8 @@ npm test
 npm run dev
 ```
 
+`npm run dev` starts Next.js directly. Prisma Client is generated on install and during builds. After changing the Prisma schema, stop the dev server and run `npm run db:generate` before restarting. On Windows, a running app can hold Prisma's engine DLL open and make generation fail with an EPERM rename error. Stop this project's app processes before generation, installation or building; another development server can also occupy port 3000.
+
 `DATABASE_URL` in `.env`:
 
 ```

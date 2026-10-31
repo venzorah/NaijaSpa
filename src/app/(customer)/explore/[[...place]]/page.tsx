@@ -1,5 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import Link from "next/link";
+import { Fragment } from "react";
 import { PlaceSync } from "@/components/place-sync";
 import { ExploreResultCard } from "@/components/explore-result-card";
 import { ExploreFilters, ExploreSort } from "@/components/explore-filters";
@@ -12,6 +14,7 @@ import { PLACE_COOKIE, nigeriaStateLabel, placeFromCookieOrDefault, serviceAreaS
 import { demoCategories } from "@/lib/demo-catalog";
 import type { LocationType } from "@/lib/commercial";
 import type { TherapistGender } from "@/lib/nigeria";
+import { koboFromNaira } from "@/lib/money";
 import {
   exploreHref,
   exploreQueryRedirect,
@@ -22,6 +25,7 @@ import {
 } from "@/lib/place-urls";
 
 export const dynamic = "force-dynamic";
+const PAGE_SIZE = 10;
 
 export default async function ExplorePage({
   params,
@@ -47,14 +51,14 @@ export default async function ExplorePage({
   const searchedCity = pathPlace?.city || undefined;
   const searchedState = serviceAreaState(pathPlace) || undefined;
   const rankPlace = pathPlace && explicitPlace ? pathPlace : stored;
-  const filterPlace = explicitPlace ? pathPlace : stored;
+  const filterPlace = explicitPlace ? pathPlace : null;
   const data = await searchServices({
     q: filters.q,
     state: searchedState,
     gender,
     category: filters.category,
-    minPrice: filters.minPrice ? Number(filters.minPrice) * 100 : undefined,
-    maxPrice: filters.maxPrice ? Number(filters.maxPrice) * 100 : undefined,
+    minPrice: filters.minPrice ? koboFromNaira(Number(filters.minPrice)) : undefined,
+    maxPrice: filters.maxPrice ? koboFromNaira(Number(filters.maxPrice)) : undefined,
     minRating: filters.minRating ? Number(filters.minRating) : undefined,
     verified: filters.verified === "1",
     durationMin: filters.duration ? Number(filters.duration) : undefined,
@@ -62,9 +66,17 @@ export default async function ExplorePage({
     publicContact: filters.whatsapp === "1",
     sort: (filters.sort as "price" | "rating" | "relevance") || "relevance",
     page: filters.page ? Number(filters.page) : 1,
-    take: 24,
+    take: PAGE_SIZE,
     rankPlace
   });
+  const totalPages = Math.max(1, Math.ceil(data.total / PAGE_SIZE));
+  if (data.page > totalPages) {
+    redirect(exploreHref(filterPlace, { ...filters, page: totalPages > 1 ? String(totalPages) : undefined }));
+  }
+  const pageHref = (page: number) => `${exploreHref(filterPlace, { ...filters, page: page > 1 ? String(page) : undefined })}#explore-results`;
+  const pageNumbers = [...new Set([1, data.page - 1, data.page, data.page + 1, totalPages])]
+    .filter((page) => page >= 1 && page <= totalPages).sort((a, b) => a - b);
+  const pageLinkClass = "inline-flex min-h-10 min-w-10 items-center justify-center rounded-full border border-line bg-card px-3 text-sm font-semibold hover:bg-elev";
   const siblingCities = await listExploreCities({
     state: searchedState,
     excludeCity: searchedCity,
@@ -102,7 +114,7 @@ export default async function ExplorePage({
       <PlaceSync place={pathPlace} />
       <h1 className="font-display text-[34px] font-semibold text-ink md:text-4xl">Explore</h1>
       <p className="text-sm text-ink2">Find the right treatment, therapist and setting.</p>
-      <ExploreSearchBar place={filterPlace} values={filters} />
+      <ExploreSearchBar place={filterPlace} values={filters} suggestions={[...new Set(data.results.map((result) => result.service.name))].slice(0, 8)} />
       <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-display text-2xl font-semibold text-ink">
           {data.total} {data.total === 1 ? "treatment" : "treatments"}
@@ -126,7 +138,7 @@ export default async function ExplorePage({
           </div>
         </div>
 
-        <div>
+        <div id="explore-results" className="scroll-mt-28">
           {data.results.length === 0 ? (
             <EmptyState
               icon={SearchX}
@@ -144,6 +156,28 @@ export default async function ExplorePage({
               ))}
             </ul>
           )}
+          {data.total > 0 ? (
+            <div className="mt-6 space-y-3">
+              <p className="text-sm text-ink2" role="status">
+                Showing {(data.page - 1) * PAGE_SIZE + 1}–{Math.min(data.page * PAGE_SIZE, data.total)} of {data.total} treatments
+              </p>
+              {totalPages > 1 ? (
+                <nav aria-label="Treatment pagination" className="flex flex-wrap items-center gap-2">
+                  {data.page > 1 ? <Link href={pageHref(data.page - 1)} className={pageLinkClass}>Previous</Link> : <span aria-disabled="true" className={`${pageLinkClass} opacity-40`}>Previous</span>}
+                  {pageNumbers.map((page, index) => (
+                    <Fragment key={page}>
+                      {index > 0 && page - pageNumbers[index - 1] > 1 ? <span className="px-1 text-ink2" aria-hidden="true">…</span> : null}
+                      <Link href={pageHref(page)} aria-label={`Page ${page}`} aria-current={data.page === page ? "page" : undefined}
+                        className={data.page === page ? "inline-flex min-h-10 min-w-10 items-center justify-center rounded-full bg-ink px-3 text-sm font-bold text-bg" : pageLinkClass}>
+                        {page}
+                      </Link>
+                    </Fragment>
+                  ))}
+                  {data.page < totalPages ? <Link href={pageHref(data.page + 1)} className={pageLinkClass}>Next</Link> : <span aria-disabled="true" className={`${pageLinkClass} opacity-40`}>Next</span>}
+                </nav>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </div>
 

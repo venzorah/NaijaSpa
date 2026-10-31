@@ -5,6 +5,7 @@ import { prisma } from "./db";
 import { ROLES, type Role } from "./rbac";
 import { withTimeout } from "./timeout";
 import { persistSessionRecord } from "./session-store";
+import { cache } from "react";
 
 const COOKIE = "naijaspa_session";
 
@@ -62,7 +63,7 @@ export async function hasSessionCookie(): Promise<boolean> {
   return Boolean((await cookies()).get(COOKIE)?.value);
 }
 
-export async function getSession(): Promise<SessionUser | null> {
+export const getSession = cache(async (): Promise<SessionUser | null> => {
   const jar = await cookies();
   const token = jar.get(COOKIE)?.value;
   if (!token) return null;
@@ -105,7 +106,7 @@ export async function getSession(): Promise<SessionUser | null> {
   } catch {
     return null;
   }
-}
+});
 
 export function requireUser(user: SessionUser | null): SessionUser {
   if (!user) {

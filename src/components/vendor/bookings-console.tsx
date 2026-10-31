@@ -59,7 +59,7 @@ export function VendorBookingsConsole({
       return ok && (!q || [b.customer, b.service, b.ref, b.staff].some((x) => x.toLowerCase().includes(q)));
     });
   }, [rows, view, query]);
-  const selected = rows.find((b) => b.id === selectedId) ?? filtered[0];
+  const selected = filtered.find((b) => b.id === selectedId) ?? filtered[0];
 
   async function setStatus(id: string, status: string) {
     await adminJson(`/api/vendor/bookings/${id}`, { method: "PATCH", body: JSON.stringify({ status }) });

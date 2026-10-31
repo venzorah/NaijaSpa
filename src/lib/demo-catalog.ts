@@ -522,6 +522,7 @@ export function demoSearch(filters: SearchFilters) {
     if (filters.minPrice != null && s.basePriceKobo < filters.minPrice) return false;
     if (filters.maxPrice != null && s.basePriceKobo > filters.maxPrice) return false;
     if (filters.minRating && s.vendor.ratingAvg < filters.minRating) return false;
+    if (filters.verified && s.vendor.verificationStatus !== "verified") return false;
     if (filters.durationMin && Math.abs(s.durationMin - filters.durationMin) > 15) return false;
     if (filters.locationType === "spa" && !s.spaEnabled) return false;
     if (filters.locationType === "hotel" && !s.hotelEnabled) return false;

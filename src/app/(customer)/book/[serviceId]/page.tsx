@@ -2,6 +2,7 @@
 
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { formatNairaPlain, locationAddonLabel, locationLabel } from "@/lib/booking-ui";
 import { BookingStepper } from "@/components/booking-stepper";
 
@@ -21,6 +22,9 @@ function BookForm() {
   const [startsAt, setStartsAt] = useState(() => search.get("startsAt") || "");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [quoteError, setQuoteError] = useState("");
+  const [quotedFor, setQuotedFor] = useState("");
+  const quoteReady = Boolean(quote && quotedFor === `${serviceId}:${locationType}`);
 
   useEffect(() => {
     const pending = sessionStorage.getItem("naijaspa-pending-booking");
@@ -42,10 +46,21 @@ function BookForm() {
   }, [serviceId]);
 
   useEffect(() => {
-    fetch(`/api/quote?serviceId=${serviceId}&location=${locationType}`)
-      .then((r) => r.json())
-      .then(setQuote)
-      .catch(() => setQuote(null));
+    const controller = new AbortController();
+    setQuote(null);
+    setQuotedFor("");
+    setQuoteError("");
+    fetch(`/api/quote?${new URLSearchParams({ serviceId, location: locationType })}`, { signal: controller.signal, cache: "no-store" })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Could not load the price. Refresh to try again.");
+        if (!controller.signal.aborted) {
+          setQuote(data);
+          setQuotedFor(`${serviceId}:${locationType}`);
+        }
+      })
+      .catch((error: Error) => { if (!controller.signal.aborted) setQuoteError(error.message); });
+    return () => controller.abort();
   }, [serviceId, locationType]);
 
   const needsAddress = locationType === "hotel" || locationType === "home";
@@ -67,34 +82,47 @@ function BookForm() {
         className="mt-6 space-y-4"
         onSubmit={async (e) => {
           e.preventDefault();
+          if (!quoteReady || submitting) return;
           setError("");
           setSubmitting(true);
-          const payload = {
-            serviceId,
-            locationType,
-            locationDetails: details,
-            startsAt: new Date(`${localValue}:00+01:00`).toISOString(),
-            idempotencyKey: crypto.randomUUID()
-          };
-          const res = await fetch("/api/bookings", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-          });
-          const json = await res.json();
-          setSubmitting(false);
-          if (res.status === 401) {
-            sessionStorage.setItem("naijaspa-pending-booking", JSON.stringify({ serviceId, locationType, details, startsAt }));
-            const next = `/book/${serviceId}?${new URLSearchParams({ location: locationType, startsAt, details }).toString()}`;
-            router.push(`/login?next=${encodeURIComponent(next)}`);
-            return;
+          try {
+            const appointment = new Date(`${localValue}:00+01:00`);
+            if (!Number.isFinite(appointment.getTime()) || appointment <= new Date()) throw new Error("Choose a valid future appointment.");
+            const payload = {
+              serviceId,
+              locationType,
+              locationDetails: details,
+              startsAt: appointment.toISOString(),
+              idempotencyKey: crypto.randomUUID()
+            };
+            const res = await fetch("/api/bookings", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload)
+            });
+            const json = await res.json();
+            if (res.status === 401) {
+              sessionStorage.setItem("naijaspa-pending-booking", JSON.stringify({ serviceId, locationType, details, startsAt }));
+              const next = `/book/${serviceId}?${new URLSearchParams({ location: locationType, startsAt, details }).toString()}`;
+              router.push(`/login?next=${encodeURIComponent(next)}`);
+              return;
+            }
+            if (!res.ok) {
+              setError(json.error || "Could not create booking");
+              if (res.status === 404) {
+                setQuote(null);
+                setQuoteError(json.error || "This service is no longer available.");
+                sessionStorage.removeItem("naijaspa-pending-booking");
+              }
+              return;
+            }
+            sessionStorage.removeItem("naijaspa-pending-booking");
+            router.push(`/checkout/${json.id}`);
+          } catch (error) {
+            setError(error instanceof Error ? error.message : "Could not create booking. Please try again.");
+          } finally {
+            setSubmitting(false);
           }
-          if (!res.ok) {
-            setError(json.error || "Could not create booking");
-            return;
-          }
-          sessionStorage.removeItem("naijaspa-pending-booking");
-          router.push(`/checkout/${json.id}`);
         }}
       >
         <fieldset className="space-y-2">
@@ -130,7 +158,7 @@ function BookForm() {
             className="mt-1 box-border min-h-12 w-full min-w-0 max-w-full rounded-2xl border border-line bg-card px-3 font-normal"
           />
         </label>
-        {quote && (
+        {quoteReady && quote && (
           <div className="space-y-2 rounded-[1.4rem] border border-line bg-card p-4 text-sm sm:p-5">
             <div className="flex justify-between gap-3 text-ink2">
               <span className="min-w-0">Base</span>
@@ -146,9 +174,10 @@ function BookForm() {
             </div>
           </div>
         )}
-        {error && <p className="text-sm text-red-500">{error}</p>}
+        {quoteError ? <p role="alert" className="text-sm text-red-500">{quoteError} <Link href="/explore" className="font-semibold underline">Back to Explore</Link></p> : !quoteReady ? <p role="status" className="text-sm text-ink2">Checking service and price…</p> : null}
+        {error && !quoteError && <p role="alert" className="text-sm text-red-500">{error}</p>}
         <button
-          disabled={submitting}
+          disabled={submitting || !quoteReady}
           className="min-h-12 w-full rounded-full bg-gold px-4 text-center font-bold leading-snug text-ongold disabled:opacity-60"
         >
           {submitting ? "Saving…" : "Continue to payment"}

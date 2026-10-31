@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/navigation-link";
 import { redirect } from "next/navigation";
 import { Bell, Sparkles } from "lucide-react";
 import { getSession } from "@/lib/auth";
