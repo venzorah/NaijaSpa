@@ -30,7 +30,7 @@ export async function POST(req: Request) {
     const body = z
       .object({
         name: z.string().min(2),
-        categoryId: z.string(),
+        categoryId: z.string().min(1),
         basePriceKobo: z.number().int().positive(),
         durationMin: z.number().int().positive(),
         description: z.string().optional(),
@@ -41,6 +41,8 @@ export async function POST(req: Request) {
         homeAddonKobo: z.number().int().min(0).optional()
       })
       .parse(await req.json());
+    const category = await prisma.category.findFirst({ where: { id: body.categoryId, active: true }, select: { id: true } });
+    if (!category) return NextResponse.json({ error: "Choose an active treatment category." }, { status: 400 });
     const service = await prisma.service.create({
       data: {
         vendorId: user.vendorId,
@@ -65,6 +67,7 @@ export async function PATCH(req: Request) {
         location: z.enum(["spa", "hotel", "home"]).optional(),
         locationEnabled: z.boolean().optional(),
         name: z.string().min(2).optional(),
+        categoryId: z.string().min(1).optional(),
         description: z.string().optional(),
         basePriceKobo: z.number().int().positive().optional(),
         durationMin: z.number().int().positive().optional(),
@@ -87,6 +90,10 @@ export async function PATCH(req: Request) {
       where: { id: body.id, vendorId: user.vendorId }
     });
     if (!existing) return NextResponse.json({ error: "Service not found" }, { status: 404 });
+    if (body.categoryId && body.categoryId !== existing.categoryId) {
+      const category = await prisma.category.findFirst({ where: { id: body.categoryId, active: true }, select: { id: true } });
+      if (!category) return NextResponse.json({ error: "Choose an active treatment category." }, { status: 400 });
+    }
     const { id, location, locationEnabled, ...data } = body;
     const service = await prisma.service.update({ where: { id }, data });
     revalidateTag("home-catalog");

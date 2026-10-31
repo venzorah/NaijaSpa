@@ -18,7 +18,7 @@ export async function POST(req: Request) {
     const actor = await requireAdmin("catalog.manage");
     const body = z
       .object({
-        name: z.string().min(2).max(80),
+        name: z.string().trim().min(2).max(80),
         slug: z.string().min(2).max(80).optional(),
         description: z.string().max(2000).optional(),
         metaTitle: z.string().max(80).optional(),
@@ -45,6 +45,9 @@ export async function POST(req: Request) {
     revalidateTag("home-catalog");
     return NextResponse.json({ category });
   } catch (e) {
+    if (typeof e === "object" && e && "code" in e && e.code === "P2002") {
+      return NextResponse.json({ error: "This category slug is already in use. Choose another." }, { status: 409 });
+    }
     return jsonError(e);
   }
 }

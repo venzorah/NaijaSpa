@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowDown, ArrowUp, FolderPlus, FolderTree, ImagePlus, Save } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
@@ -31,7 +31,13 @@ export function CategoriesConsole({ rows, editable }: { rows: AdminCategory[]; e
   const [list, setList] = useState(rows);
   const [selectedId, setSelectedId] = useState(rows[0]?.id ?? "");
   const [message, setMessage] = useState("");
-  const selected = list.find((c) => c.id === selectedId);
+  const [creating, setCreating] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const nameInput = useRef<HTMLInputElement>(null);
+  useEffect(() => { if (creating) nameInput.current?.focus(); }, [creating]);
+  const selected: AdminCategory | undefined = creating ? {
+    id: "new-category-draft", name: "", slug: "", description: "", synonyms: "", metaTitle: "", metaDescription: "", imageUrl: null, active: false, services: 0, vendors: 0
+  } : list.find((c) => c.id === selectedId);
 
   useEffect(() => {
     setList(rows);
@@ -47,6 +53,8 @@ export function CategoriesConsole({ rows, editable }: { rows: AdminCategory[]; e
   }
 
   async function run(label: string, fn: () => Promise<void>) {
+    if (busy) return;
+    setBusy(true);
     setMessage("");
     try {
       await fn();
@@ -54,6 +62,8 @@ export function CategoriesConsole({ rows, editable }: { rows: AdminCategory[]; e
       router.refresh();
     } catch (e) {
       setMessage(e instanceof Error ? e.message : "Request failed");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -64,15 +74,8 @@ export function CategoriesConsole({ rows, editable }: { rows: AdminCategory[]; e
           <button
             type="button"
             className={adminBtn}
-            disabled={!editable}
-            onClick={() =>
-              run("Category created. Add an image and SEO, then activate.", async () => {
-                await adminJson("/api/admin/categories", {
-                  method: "POST",
-                  body: JSON.stringify({ name: "New category", slug: `new-category-${Date.now().toString(36)}` })
-                });
-              })
-            }
+            disabled={!editable || busy}
+            onClick={() => { setCreating(true); setMessage(""); }}
           >
             <FolderPlus className="h-3.5 w-3.5" aria-hidden /> New category
           </button>
@@ -94,7 +97,7 @@ export function CategoriesConsole({ rows, editable }: { rows: AdminCategory[]; e
                 </div>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={categoryImage(c.slug, c.imageUrl)} alt="" className="h-10 w-10 rounded-lg object-cover" />
-                <button type="button" onClick={() => setSelectedId(c.id)} className="min-w-0 flex-1 text-left">
+                <button type="button" disabled={busy} onClick={() => { setCreating(false); setSelectedId(c.id); setMessage(""); }} className="min-w-0 flex-1 text-left">
                   <span className="text-sm font-medium">{c.name}</span>
                   <span className="block text-[11px] text-ink2">
                     /{c.slug} · {c.services} services · {c.vendors} vendors
@@ -123,8 +126,8 @@ export function CategoriesConsole({ rows, editable }: { rows: AdminCategory[]; e
           </button>
         </div>
       </Panel>
-      <Panel title={selected ? `Edit · ${selected.name}` : "Edit category"} className="xl:col-span-2">
-        {message ? <p className="mb-3 text-sm text-goldink">{message}</p> : null}
+      <Panel title={creating ? "New category" : selected ? `Edit · ${selected.name}` : "Edit category"} className="xl:col-span-2">
+        {message ? <p role="status" className="mb-3 text-sm text-goldink">{message}</p> : null}
         {selected ? (
           <form
             key={`${selected.id}:${selected.imageUrl ?? ""}`}
@@ -132,6 +135,20 @@ export function CategoriesConsole({ rows, editable }: { rows: AdminCategory[]; e
             onSubmit={(e) => {
               e.preventDefault();
               const fd = new FormData(e.currentTarget);
+              if (creating) {
+                void run("Category created. Add an image, then activate it so specialists can use it.", async () => {
+                  const json = await adminJson<{ category: Omit<AdminCategory, "services" | "vendors"> }>("/api/admin/categories", {
+                    method: "POST",
+                    body: JSON.stringify({ name: String(fd.get("name") || ""), slug: String(fd.get("slug") || "") || undefined,
+                      description: String(fd.get("description") || ""), synonyms: String(fd.get("synonyms") || ""),
+                      metaTitle: String(fd.get("metaTitle") || ""), metaDescription: String(fd.get("metaDescription") || "") })
+                  });
+                  setList((current) => [...current, { ...json.category, services: 0, vendors: 0 }]);
+                  setSelectedId(json.category.id);
+                  setCreating(false);
+                });
+                return;
+              }
               void run("Category saved.", async () => {
                 await adminJson(`/api/admin/categories/${selected.id}`, {
                   method: "PATCH",
@@ -148,7 +165,7 @@ export function CategoriesConsole({ rows, editable }: { rows: AdminCategory[]; e
               });
             }}
           >
-            <div className="overflow-hidden rounded-xl border border-line bg-elev">
+            {!creating ? <div className="overflow-hidden rounded-xl border border-line bg-elev">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={categoryImage(selected.slug, selected.imageUrl)} alt="" className="h-36 w-full object-cover" />
               <div className="space-y-2 p-3">
@@ -187,12 +204,12 @@ export function CategoriesConsole({ rows, editable }: { rows: AdminCategory[]; e
                   <input id="cat-image" name="imageUrl" disabled={!editable} defaultValue={selected.imageUrl ?? ""} className={adminField} />
                 </FormRow>
               </div>
-            </div>
+            </div> : <p className="text-sm text-ink2">Create the category first, then add an image and activate it. Specialists can choose active categories when adding treatments.</p>}
             <FormRow label="Name" htmlFor="cat-name">
-              <input id="cat-name" name="name" required disabled={!editable} defaultValue={selected.name} className={adminField} />
+              <input ref={nameInput} id="cat-name" name="name" required disabled={!editable || busy} defaultValue={selected.name} className={adminField} />
             </FormRow>
             <FormRow label="URL slug" htmlFor="cat-slug" hint={`naijaspa.com/category/${selected.slug}`}>
-              <input id="cat-slug" name="slug" required disabled={!editable} defaultValue={selected.slug} className={`${adminField} font-mono text-xs`} />
+              <input id="cat-slug" name="slug" required={!creating} placeholder={creating ? "Generated from the name if left blank" : undefined} disabled={!editable || busy} defaultValue={selected.slug} className={`${adminField} font-mono text-xs`} />
             </FormRow>
             <FormRow label="Description" htmlFor="cat-desc" hint="Shown on the category page under the title.">
               <textarea id="cat-desc" name="description" rows={3} disabled={!editable} defaultValue={selected.description} className={adminField} />
@@ -207,7 +224,7 @@ export function CategoriesConsole({ rows, editable }: { rows: AdminCategory[]; e
               <textarea id="cat-meta-desc" name="metaDescription" maxLength={320} rows={3} disabled={!editable} defaultValue={selected.metaDescription} className={adminField} />
             </FormRow>
             <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-4">
-              {selected.active ? (
+              {creating ? <button type="button" className={adminBtnOutline} disabled={busy} onClick={() => { setCreating(false); setMessage(""); }}>Cancel</button> : selected.active ? (
                 <ConfirmAction
                   triggerLabel="Deactivate"
                   disabled={!editable}
@@ -234,8 +251,8 @@ export function CategoriesConsole({ rows, editable }: { rows: AdminCategory[]; e
                   Activate
                 </button>
               )}
-              <button type="submit" className={adminBtn} disabled={!editable}>
-                <Save className="h-3.5 w-3.5" aria-hidden /> Save changes
+              <button type="submit" className={adminBtn} disabled={!editable || busy}>
+                <Save className="h-3.5 w-3.5" aria-hidden /> {busy ? "Saving…" : creating ? "Create category" : "Save changes"}
               </button>
             </div>
           </form>

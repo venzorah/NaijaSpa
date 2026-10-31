@@ -22,7 +22,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const before = await prisma.category.findUniqueOrThrow({ where: { id }, select: categoryAuditSelect });
     const body = z
       .object({
-        name: z.string().min(2).max(80).optional(),
+        name: z.string().trim().min(2).max(80).optional(),
         slug: z.string().min(2).max(80).optional(),
         description: z.string().max(2000).optional(),
         metaTitle: z.string().max(80).optional(),
@@ -66,6 +66,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     revalidateTag("home-catalog");
     return NextResponse.json({ category });
   } catch (e) {
+    if (typeof e === "object" && e && "code" in e && e.code === "P2002") {
+      return NextResponse.json({ error: "This category slug is already in use. Choose another." }, { status: 409 });
+    }
     return jsonError(e);
   }
 }

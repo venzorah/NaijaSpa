@@ -44,6 +44,7 @@ export function VendorServicesConsole({
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Row | null>(null);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
   const [form, setForm] = useState({
     name: "",
     categoryId: categories[0]?.id ?? "",
@@ -73,6 +74,7 @@ export function VendorServicesConsole({
     .filter((g) => g.items.length);
 
   function startNew() {
+    setError("");
     setEditing(null);
     setForm({
       name: "",
@@ -90,6 +92,7 @@ export function VendorServicesConsole({
   }
 
   function startEdit(s: Row) {
+    setError("");
     setEditing(s);
     setForm({
       name: s.name,
@@ -107,6 +110,8 @@ export function VendorServicesConsole({
   }
 
   async function save() {
+    if (busy) return;
+    setError("");
     setBusy(true);
     try {
       const payload = {
@@ -125,6 +130,8 @@ export function VendorServicesConsole({
       else await adminJson("/api/vendor/services", { method: "POST", body: JSON.stringify(payload) });
       setOpen(false);
       router.refresh();
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Could not save this treatment. Please try again.");
     } finally {
       setBusy(false);
     }
@@ -246,6 +253,7 @@ export function VendorServicesConsole({
               </FormRow>
               <FormRow label="Category" htmlFor="svc-cat">
                 <select id="svc-cat" className={adminField} value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: e.target.value })}>
+                  {editing && !categories.some((category) => category.id === form.categoryId) ? <option value={form.categoryId} disabled>{editing.category} (inactive)</option> : null}
                   {categories.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
@@ -282,6 +290,7 @@ export function VendorServicesConsole({
                 </label>
               </div>
             </div>
+            {error ? <p role="alert" className="mt-3 text-sm text-red-500">{error}</p> : null}
             <div className="mt-5 flex justify-end gap-2">
               <button type="button" className={adminBtnOutline} onClick={() => setOpen(false)}>
                 Cancel

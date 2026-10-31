@@ -34,7 +34,11 @@ Logins (Postgres must be running and seeded):
 - Vendor: `/login/vendor` — paid.vendor@naijaspa.com or free.vendor@naijaspa.com
 - Admin: `/login/admin` — super.admin@naijaspa.com
 
-## Production (Vercel app + Supabase Postgres)
+## Current production: shared VPS
+
+NaijaSpa runs at `https://naijaspa.com` alongside PadiCheck, using its own systemd service, PostgreSQL database/user and HTTPS virtual host. See [VPS-DEPLOYMENT.md](VPS-DEPLOYMENT.md) for the active paths, backup locations and update procedure. Local development data was migrated at the owner's request. Paystack remains in test mode. Seeded accounts have unique server passwords; `NaijaSpa!dev` applies only to local development, not this VPS.
+
+## Alternative: Vercel app + Supabase Postgres
 
 Step-by-step: **[SUPABASE.md](./SUPABASE.md)**. Use Supabase as **hosted Postgres** with Prisma. Do not enable Supabase Auth.
 
