@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
   // The bottom-left development badge otherwise overlaps mobile Home navigation.
   devIndicators: false,
   experimental: {
+    ...(process.env.NAIJASPA_BUILD_CPUS ? { cpus: Math.max(1, Number(process.env.NAIJASPA_BUILD_CPUS) || 1) } : {}),
     optimizePackageImports: ["lucide-react"]
   },
   images: {
