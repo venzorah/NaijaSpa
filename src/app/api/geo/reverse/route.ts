@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { jsonError, rateLimit } from "@/lib/http";
+import { jsonError, rateLimit, clientAddress } from "@/lib/http";
 import { placeFromNominatim } from "@/lib/nigeria";
 
 export async function GET(req: Request) {
   try {
-    rateLimit(`geo:${req.headers.get("x-forwarded-for") || "local"}`, 20, 60_000);
+    await rateLimit(`geo:${clientAddress(req)}`, 20, 60_000);
     const url = new URL(req.url);
     const lat = Number(url.searchParams.get("lat"));
     const lng = Number(url.searchParams.get("lng"));

@@ -7,7 +7,7 @@ NaijaSpa uses **PostgreSQL** for all persistent data (users, vendors, bookings, 
 ## Local run
 
 ```bash
-docker compose up -d postgres
+docker compose up -d postgres redis
 npm install --ignore-scripts
 npx prisma generate
 npx prisma migrate deploy
@@ -22,7 +22,7 @@ npm run dev
 postgresql://naijaspa:naijaspa@localhost:5432/naijaspa
 ```
 
-If Docker is not available, install PostgreSQL 14+ locally and set both `DATABASE_URL` and `DIRECT_URL` in `.env`.
+If Docker is not available, install PostgreSQL 14+ locally and set both `DATABASE_URL` and `DIRECT_URL` in `.env`. Redis can run in Ubuntu WSL; the current development machine already has it running. Set `REDIS_URL="redis://127.0.0.1:6379"` and check it with `npx tsx scripts/check-redis.ts`. Full connection/startup details: [AUTH-SECURITY.md](AUTH-SECURITY.md).
 
 Demo password for seeded users: `NaijaSpa!dev`
 

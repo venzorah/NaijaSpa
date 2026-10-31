@@ -2,6 +2,12 @@
 
 Put provider-issued values directly in the local `.env`. Keep the private values out of chat and source control. Restart the app after changing its environment.
 
+## OTP and Redis
+
+The local `OTP_HASH_SECRET` has been generated. Preserve it and set the same value on deployment instances. The OTP security migration retires older unused reset codes; request a fresh code after deployment.
+
+Shared rate limiting now uses your local Redis server in Ubuntu WSL through `REDIS_URL="redis://127.0.0.1:6379"`. The real connection and atomic counter/rejection test passed. Upstash credentials are optional and can remain empty. Start/check the server with `wsl.exe -d Ubuntu -- redis-cli ping`; start its service if necessary. Run `npx tsx scripts/check-redis.ts` to check the application integration. See [AUTH-SECURITY.md](AUTH-SECURITY.md) for local startup, deployment connection settings, policies, and testing.
+
 ## Google login
 
 1. Open https://console.cloud.google.com/ and select or create a project called **NaijaSpa**.

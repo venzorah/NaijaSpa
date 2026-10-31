@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { jsonError, rateLimit } from "@/lib/http";
+import { jsonError, rateLimit, clientAddress } from "@/lib/http";
 import {
   GOOGLE_OAUTH_COOKIE,
   googleAuthorizeUrl,
@@ -16,7 +16,7 @@ import { portalHome } from "@/lib/rbac";
 
 export async function GET(req: Request) {
   try {
-    rateLimit(`google-start:${req.headers.get("x-forwarded-for") || "local"}`, 12, 60_000);
+    await rateLimit(`google-start:${clientAddress(req)}`, 12, 60_000);
     const url = new URL(req.url);
     const portal = (url.searchParams.get("portal") || "customer") as GooglePortal;
     if (portal !== "customer" && portal !== "vendor" && portal !== "admin") {

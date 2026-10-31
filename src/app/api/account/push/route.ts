@@ -11,7 +11,7 @@ export async function GET() {
   catch (error) { return jsonError(error); }
 }
 export async function POST(req: Request) {
-  try { const user = requireUser(await getSession()); rateLimit(`push-subscribe:${user.id}`, 12);
+  try { const user = requireUser(await getSession()); await rateLimit(`push-subscribe:${user.id}`, 12);
     if (!pushConfigured()) return NextResponse.json({ error: "Push notifications are not configured" }, { status: 503 });
     const body = PushSubscriptionSchema.parse(await req.json());
     await prisma.pushSubscription.upsert({ where: { endpoint: body.endpoint }, create: { userId: user.id, endpoint: body.endpoint, ...body.keys }, update: { userId: user.id, ...body.keys } });

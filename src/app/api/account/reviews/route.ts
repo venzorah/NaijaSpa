@@ -6,7 +6,7 @@ import { createBookingReview, parseReviewInput } from "@/lib/reviews";
 export async function POST(req: Request) {
   try {
     const user = requireUser(await getSession());
-    rateLimit(`review:${user.id}`, 8, 60_000);
+    await rateLimit(`review:${user.id}`, 8, 60_000);
     const json = await req.json();
     const body = parseReviewInput(json);
     const bookingId = String(json.bookingId || "");

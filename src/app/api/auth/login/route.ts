@@ -3,11 +3,11 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { createSession, verifyPassword } from "@/lib/auth";
 import { isAdminRole, isVendorRole, portalHome } from "@/lib/rbac";
-import { jsonError, rateLimit } from "@/lib/http";
+import { jsonError, rateLimit, clientAddress } from "@/lib/http";
 
 export async function POST(req: Request) {
   try {
-    rateLimit(`login:${req.headers.get("x-forwarded-for") || "local"}`, 10, 60_000);
+    await rateLimit(`login:${clientAddress(req)}`, 10, 60_000);
     const body = z
       .object({
         email: z.string().email(),
@@ -15,6 +15,7 @@ export async function POST(req: Request) {
         expect: z.enum(["customer", "vendor", "admin"]).optional()
       })
       .parse(await req.json());
+    await rateLimit(`login:account:${body.email.toLowerCase()}`, 10, 15 * 60_000);
     const user = await prisma.user.findUnique({
       where: { email: body.email.toLowerCase() },
       include: { vendorOwned: true, staffMemberships: true }
@@ -42,7 +43,7 @@ export async function POST(req: Request) {
       locale: user.locale,
       theme: user.theme,
       vendorId: user.vendorOwned?.id ?? user.staffMemberships[0]?.vendorId
-    });
+    }, user.passwordHash);
     return NextResponse.json({ ok: true, role: user.role, home: portalHome(user.role) });
   } catch (e) {
     return jsonError(e);

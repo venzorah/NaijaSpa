@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "./db";
 import { ROLES, type Role } from "./rbac";
 import { withTimeout } from "./timeout";
+import { persistSessionRecord } from "./session-store";
 
 const COOKIE = "naijaspa_session";
 
@@ -30,14 +31,14 @@ export async function verifyPassword(password: string, hash: string | null | und
   return bcrypt.compare(password, hash);
 }
 
-export async function createSession(user: SessionUser) {
+export async function createSession(user: SessionUser, expectedPasswordHash?: string) {
   const token = await new SignJWT(user)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("14d")
     .sign(secret());
   const expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
-  await prisma.session.create({ data: { userId: user.id, token, expiresAt } });
+  await persistSessionRecord(user.id, token, expiresAt, expectedPasswordHash);
   const jar = await cookies();
   jar.set(COOKIE, token, {
     httpOnly: true,

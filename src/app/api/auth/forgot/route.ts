@@ -1,46 +1,29 @@
 import { NextResponse } from "next/server";
+import { assertOtpSecurityConfigured } from "@/lib/auth-reset";
 import { z } from "zod";
-import { generateResetOtp, hashResetOtp, RESET_OTP_MINUTES } from "@/lib/auth-reset";
 import { prisma } from "@/lib/db";
-import { jsonError, rateLimit } from "@/lib/http";
+import { jsonError, rateLimit, clientAddress } from "@/lib/http";
 import { sendPasswordResetEmail } from "@/lib/mail";
+import { issuePasswordReset } from "@/lib/password-reset";
 
 export async function POST(req: Request) {
   try {
-    rateLimit("forgot", 8);
+    await rateLimit(`forgot:ip:${clientAddress(req)}`, 12, 15 * 60_000);
     const { email } = z.object({ email: z.string().email() }).parse(await req.json());
     const normalized = email.toLowerCase();
-    rateLimit(`forgot:${normalized}`, 3);
+    await rateLimit(`forgot:account:${normalized}`, 3, 15 * 60_000);
+    assertOtpSecurityConfigured();
     const user = await prisma.user.findUnique({ where: { email: normalized } });
     if (user) {
-      const otp = generateResetOtp();
-      await prisma.passwordReset.updateMany({
-        where: { userId: user.id, usedAt: null },
-        data: { usedAt: new Date() }
-      });
-      await prisma.passwordReset.create({
-        data: {
-          userId: user.id,
-          token: hashResetOtp(user.id, otp),
-          expiresAt: new Date(Date.now() + RESET_OTP_MINUTES * 60_000)
-        }
-      });
-      try {
-        await sendPasswordResetEmail({ to: user.email, code: otp });
-      } catch (err) {
-        console.error("[mail] password reset OTP failed", err);
+      const challenge = await issuePasswordReset(user.id);
+      if (challenge) {
+        try { await sendPasswordResetEmail({ to: user.email, code: challenge.code }); }
+        catch { console.error("[mail] password reset delivery failed"); }
       }
-      await prisma.notification.create({
-        data: {
-          userId: user.id,
-          title: "Password reset",
-          body: "We emailed a 6-digit code from noreply@naijaspa.ng. Enter it in the app. It expires in 15 minutes."
-        }
-      });
     }
     return NextResponse.json({
       ok: true,
-      message: "If that email is on NaijaSpa, we sent a 6-digit code from noreply@naijaspa.ng."
+      message: "If that email is eligible, a password reset email will be attempted. Check your inbox and Spam."
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "";

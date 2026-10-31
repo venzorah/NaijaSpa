@@ -2,6 +2,14 @@
 
 Local app: http://localhost:3000. API audit plus corrected browser recheck and desktop/mobile search checks.
 
+## OTP security follow-up — 30 October 2026
+
+Local Redis follow-up: standard Redis TCP/TLS support is implemented through `REDIS_URL`, which takes precedence over optional Upstash REST settings. The existing WSL Redis server returned PONG and the application's real atomic counter/rejection check passed. The suite now passes 208 tests. This supersedes the earlier Redis-setup deferral below.
+
+Password-reset challenges now use per-challenge HMAC digests, a persisted five-attempt budget, a 60-second resend cooldown, one active challenge per account, and atomic consumption. Password reset revokes existing sessions; session persistence rejects logins verified against a password hash that changed during the request. All rate-limited handlers now await a Redis-backed atomic limiter, with bounded local counters only in development/test. Redis setup and its real connection test were deferred by the user; production requires its credentials and fails closed if they are absent or unavailable.
+
+The automated suite passed 200 tests. Isolated local security checks exercise concurrent issuance/consumption, account-scoped session revocation, stale-login prevention, expiry and attempt limits. They send no email. Durable email/outbox delivery, SMTP response timing hardening and signup verification remain separate follow-up work. Setup and policy: [AUTH-SECURITY.md](AUTH-SECURITY.md).
+
 ## Favourites and search fixes — 30 October 2026
 
 - Saving a service or provider is now idempotent, including concurrent requests and mixed service-only/service-plus-provider requests. A provider-only save remains separate from saves of its individual treatments. Empty, whitespace-only, missing, and mismatched targets are rejected. Saves remain scoped to the signed-in account.

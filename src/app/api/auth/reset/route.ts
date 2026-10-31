@@ -1,47 +1,28 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { hashPassword } from "@/lib/auth";
-import { hashResetOtp, normalizeResetOtp, RESET_OTP_LENGTH } from "@/lib/auth-reset";
-import { prisma } from "@/lib/db";
-import { jsonError, rateLimit } from "@/lib/http";
+import { normalizeResetOtp, RESET_OTP_LENGTH } from "@/lib/auth-reset";
+import { jsonError, rateLimit, clientAddress } from "@/lib/http";
+import { completePasswordReset } from "@/lib/password-reset";
 
 export async function POST(req: Request) {
   try {
-    rateLimit("reset", 12);
+    await rateLimit(`reset:ip:${clientAddress(req)}`, 30, 15 * 60_000);
     const body = z
       .object({
         email: z.string().email(),
-        otp: z.string().min(RESET_OTP_LENGTH),
-        password: z.string().min(10)
+        otp: z.string().max(32),
+        password: z.string().min(10).max(72).refine((value) => Buffer.byteLength(value, "utf8") <= 72, "Password must fit within 72 UTF-8 bytes")
       })
       .parse(await req.json());
     const email = body.email.toLowerCase();
-    rateLimit(`reset:${email}`, 8);
+    await rateLimit(`reset:account:${email}`, 15, 15 * 60_000);
     const otp = normalizeResetOtp(body.otp);
-    if (otp.length !== RESET_OTP_LENGTH) {
+    if (otp.length !== RESET_OTP_LENGTH || !/^\d{6}$/.test(otp)) {
       return NextResponse.json({ error: "Enter the 6-digit code from your email." }, { status: 400 });
     }
-    const user = await prisma.user.findUnique({ where: { email } });
-    const token = user ? hashResetOtp(user.id, otp) : "";
-    const row = user
-      ? await prisma.passwordReset.findFirst({
-          where: { userId: user.id, token, usedAt: null, expiresAt: { gt: new Date() } }
-        })
-      : null;
-    if (!row) {
+    if (!await completePasswordReset(email, otp, body.password)) {
       return NextResponse.json({ error: "That code is incorrect or has expired." }, { status: 400 });
     }
-    const passwordHash = await hashPassword(body.password);
-    await prisma.$transaction([
-      prisma.user.update({
-        where: { id: row.userId },
-        data: { passwordHash }
-      }),
-      prisma.passwordReset.updateMany({
-        where: { userId: row.userId, usedAt: null },
-        data: { usedAt: new Date() }
-      })
-    ]);
     return NextResponse.json({ ok: true });
   } catch (e) {
     const message = e instanceof Error ? e.message : "";

@@ -3,12 +3,12 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { createSession, hashPassword } from "@/lib/auth";
 import { ROLES } from "@/lib/rbac";
-import { jsonError, rateLimit } from "@/lib/http";
+import { jsonError, rateLimit, clientAddress } from "@/lib/http";
 import { queueMail, sendWelcomeEmail } from "@/lib/mail";
 
 export async function POST(req: Request) {
   try {
-    rateLimit(`register:${req.headers.get("x-forwarded-for")?.split(",")[0].trim() || "local"}`, 8);
+    await rateLimit(`register:${clientAddress(req)}`, 8);
     const body = z
       .object({ email: z.string().email(), password: z.string().min(10), name: z.string().min(2), asVendor: z.boolean().optional() })
       .parse(await req.json());
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
       role: user.role as never,
       locale: "en",
       theme: "light"
-    });
+    }, user.passwordHash || undefined);
     queueMail(sendWelcomeEmail({ to: user.email, name: user.name, asVendor: Boolean(body.asVendor) }));
     return NextResponse.json({ ok: true });
   } catch (e) {

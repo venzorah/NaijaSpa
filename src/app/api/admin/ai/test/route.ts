@@ -7,7 +7,7 @@ import { jsonError, rateLimit } from "@/lib/http";
 export async function POST(req: Request) {
   try {
     const actor = await requireAdmin("ai.manage");
-    rateLimit(`ai-provider-test:${actor.id}`, 5);
+    await rateLimit(`ai-provider-test:${actor.id}`, 5);
     const settings = AiSettingsSchema.parse(await req.json());
     const categories = await loadAiCategories();
     const query = "Massage in Lagos under ₦20000";

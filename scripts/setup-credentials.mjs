@@ -10,6 +10,34 @@ const present = (key) => Boolean(process.env[key]?.trim());
 const publicKey = process.env.VAPID_PUBLIC_KEY?.trim() || "";
 const privateKey = process.env.VAPID_PRIVATE_KEY?.trim() || "";
 
+if (process.argv.includes("--local-redis")) {
+  const key = "REDIS_URL", value = "redis://127.0.0.1:6379";
+  if (!present(key)) {
+    const newline = envText.includes("\r\n") ? "\r\n" : "\n";
+    const pattern = /^([ \t]*(?:export[ \t]+)?REDIS_URL[ \t]*=)[^\r\n]*/m;
+    envText = pattern.test(envText) ? envText.replace(pattern, (_, prefix) => `${prefix}"${value}"`) : `${envText}${envText.endsWith("\n") ? "" : newline}${key}="${value}"${newline}`;
+    process.env[key] = value; await writeFile(".env", envText);
+    console.log(JSON.stringify({ check: "local-redis-setup", configured: true, secretsPrinted: false }));
+  } else console.log(JSON.stringify({ check: "local-redis-setup", existingConnectionPreserved: true }));
+}
+
+if (process.argv.includes("--prepare-auth")) {
+  const newline = envText.includes("\r\n") ? "\r\n" : "\n";
+  const added = [];
+  for (const [key, value] of Object.entries({ OTP_HASH_SECRET: crypto.randomBytes(32).toString("base64url"), REDIS_URL: "", UPSTASH_REDIS_REST_URL: "", UPSTASH_REDIS_REST_TOKEN: "" })) {
+    const pattern = new RegExp(`^([ \\t]*(?:export[ \\t]+)?${key}[ \\t]*=)[^\\r\\n]*`, "m");
+    if (key === "OTP_HASH_SECRET" && !present(key)) {
+      envText = pattern.test(envText) ? envText.replace(pattern, (_, prefix) => `${prefix}"${value}"`) : `${envText}${envText.endsWith("\n") ? "" : newline}${key}="${value}"${newline}`;
+      process.env[key] = value; added.push(key);
+    } else if (!pattern.test(envText)) {
+      envText += `${envText.endsWith("\n") ? "" : newline}${key}="${value}"${newline}`;
+      process.env[key] = value; added.push(key);
+    }
+  }
+  if (added.length) await writeFile(".env", envText);
+  console.log(JSON.stringify({ check: "auth-setup", addedVariables: added, secretsPrinted: false }));
+}
+
 if (process.argv.includes("--prepare-r2")) {
   const newline = envText.includes("\r\n") ? "\r\n" : "\n";
   const added = [];
@@ -69,7 +97,7 @@ if (present("VAPID_PUBLIC_KEY") && present("VAPID_PRIVATE_KEY")) {
 }
 const names = ["SMTP_HOST", "SMTP_PORT", "SMTP_SECURE", "SMTP_USER", "SMTP_PASS", "MAIL_FROM", "MAIL_REPLY_TO", "RESEND_API_KEY",
   "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "OPENAI_API_KEY", "GEMINI_API_KEY", "VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY", "VAPID_SUBJECT",
-  "R2_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_BUCKET_NAME"];
+  "R2_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_BUCKET_NAME", "OTP_HASH_SECRET", "REDIS_URL", "UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"];
 console.log(JSON.stringify({ check: "credential-readiness", variables: Object.fromEntries(names.map((key) => [key, present(key)])),
   validPushPair, appUrl: process.env.APP_URL || "http://localhost:3000", aiProvider: process.env.AI_PROVIDER || "openai",
   aiModels: { openai: process.env.OPENAI_MODEL || "gpt-4o-mini", gemini: process.env.GEMINI_MODEL || "gemini-3.5-flash-lite" } }));
