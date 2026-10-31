@@ -31,7 +31,7 @@ import {
   type NearbyVendor
 } from "./home-types";
 import { publicVideoLinks } from "./galleries";
-import { filterByServiceArea, sortByPlace, type LivePlace } from "./nigeria";
+import { filterByServiceArea, prismaServiceAreaFilter, serviceAreaState, sortByPlace, type LivePlace } from "./nigeria";
 import { type HomeHeroPayload } from "./home-hero";
 import { PHOTOS, publicWellnessPhoto } from "./photos";
 import { serviceAvailabilityLabels } from "./service-availability";
@@ -159,7 +159,7 @@ async function loadHomeCatalog(place: LivePlace | null) {
       select: { slug: true, name: true, imageUrl: true }
     }),
     prisma.service.findMany({
-      where: { active: true, vendor: { visibility: "public", applicationStatus: "approved" } },
+      where: { active: true, vendor: { visibility: "public", applicationStatus: "approved", ...(serviceAreaState(place) ? prismaServiceAreaFilter(serviceAreaState(place)) : {}) } },
       select: {
         id: true,
         vendorId: true,
@@ -207,12 +207,11 @@ async function loadHomeCatalog(place: LivePlace | null) {
     6000
   );
 
-  const entitlements = await withTimeout(
+  const [entitlements, availability] = await Promise.all([withTimeout(
     vendorEntitlements([...services.map((s) => s.vendorId), ...campaigns.map((c) => c.vendorId)]),
     4000
-  ).catch(() => new Map());
-
-  const availability = await withTimeout(serviceAvailabilityLabels(services, undefined, now), 4000).catch(() => new Map<string, string | undefined>());
+  ).catch(() => new Map()),
+  withTimeout(serviceAvailabilityLabels(services, undefined, now), 4000).catch(() => new Map<string, string | undefined>())]);
   const cardFromService = (s: (typeof services)[number], badge?: string, sponsored?: boolean): HomeCard => {
     const ent = entitlements.get(s.vendorId) ?? FREE_ENTITLEMENT;
     const vendor = sanitizePublicVendor(s.vendor, ent);
@@ -449,7 +448,20 @@ export async function getPublicService(slug: string) {
   });
   if (!service) return usingDemoListings() ? demoPublicService(slug) : null;
   if (!service.active || service.vendor.visibility !== "public" || service.vendor.applicationStatus !== "approved") return null;
-  const ent = await vendorEntitlement(service.vendorId);
+  const [ent, cfg, treatments, reviewRows] = await Promise.all([
+    vendorEntitlement(service.vendorId),
+    getCommercialConfig(),
+    prisma.service.findMany({
+      where: { vendorId: service.vendorId, active: true },
+      select: { id: true, slug: true, name: true, durationMin: true, basePriceKobo: true },
+      orderBy: { durationMin: "asc" }
+    }),
+    prisma.review.findMany({
+      where: { status: "published", booking: { serviceId: service.id } },
+      select: { vendorId: true, rating: true, createdAt: true, body: true, user: { select: { name: true } } },
+      orderBy: { createdAt: "desc" }, take: 20
+    }).catch(() => [])
+  ]);
   const vendor = sanitizePublicVendor(
     {
       id: service.vendor.id,
@@ -472,30 +484,13 @@ export async function getPublicService(slug: string) {
     },
     ent
   );
-  const cfg = await getCommercialConfig();
-  const treatments = await prisma.service.findMany({
-    where: { vendorId: service.vendorId, active: true },
-    select: { id: true, slug: true, name: true, durationMin: true, basePriceKobo: true },
-    orderBy: { durationMin: "asc" }
-  });
-  let reviews: Array<{ vendorId: string; author: string; rating: number; createdAt: string; body: string }> = [];
-  try {
-    const reviewRows = await prisma.review.findMany({
-      where: { status: "published", booking: { serviceId: service.id } },
-      include: { user: { select: { name: true } } },
-      orderBy: { createdAt: "desc" },
-      take: 20
-    });
-    reviews = reviewRows.map((r) => ({
+  const reviews = reviewRows.map((r) => ({
       vendorId: r.vendorId,
       author: initialsName(r.user?.name),
       rating: Number(r.rating) || 0,
       createdAt: r.createdAt instanceof Date ? r.createdAt.toISOString() : String(r.createdAt ?? ""),
       body: String(r.body ?? "")
     }));
-  } catch {
-    reviews = [];
-  }
   return {
     demo: false,
     therapists: service.staff.filter((link) => link.staff.active).map((link) => ({ id: link.staff.id, name: link.staff.name })),

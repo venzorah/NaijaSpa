@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Moon, Sun, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
-import { GoldButton } from "@/components/shell";
+import { GoldButton } from "@/components/gold-button";
 import { BottomSheet } from "@/components/bottom-sheet";
 import { useTheme } from "@/components/theme-provider";
 import { LogoutButton } from "@/components/logout-button";

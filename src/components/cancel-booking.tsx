@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { XCircle } from "lucide-react";
-import { GoldButton } from "@/components/shell";
+import { GoldButton } from "@/components/gold-button";
 import { BottomSheet } from "@/components/bottom-sheet";
 
 const reasons = ["Schedule conflict", "Feeling unwell", "Booked by mistake", "Found another time", "Other"];

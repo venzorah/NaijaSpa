@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { CheckCircle2 } from "lucide-react";
-import { GoldButton } from "@/components/shell";
+import { GoldButton } from "@/components/gold-button";
 
 const field = "mt-1 h-12 w-full rounded-xl border border-line bg-bg2 px-3 text-ink";
 

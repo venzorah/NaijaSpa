@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { Building2, Eye, EyeOff, Moon, Sun, User } from "lucide-react";
-import { BrandLogo } from "@/components/shell";
+import { BrandLogo } from "@/components/brand-logo";
 import { useTheme } from "@/components/theme-provider";
 
 export const authFieldClass =

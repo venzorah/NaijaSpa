@@ -30,7 +30,7 @@ import {
 import { useRouter } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
-import { BrandLogo } from "@/components/shell";
+import { BrandLogo } from "@/components/brand-logo";
 import { LogoutButton } from "@/components/logout-button";
 import { ADMIN_SCREEN_GROUPS, ADMIN_SCREENS, accessForScreen, type AdminScreenId } from "@/lib/admin";
 

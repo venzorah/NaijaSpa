@@ -8,36 +8,7 @@ import { InstallPrompt } from "./install-prompt";
 import { LocationHubPicker } from "./location-hub-picker";
 import { SiteFooter } from "./site-footer";
 import { LogoutButton } from "./logout-button";
-
-export function BrandLogo({
-  className = "h-14 w-auto max-w-[min(14.5rem,68vw)] shrink-0 object-contain object-left sm:h-16 sm:max-w-[18rem]",
-  forceDark = false
-}: {
-  className?: string;
-  forceDark?: boolean;
-}) {
-  return (
-    <span className="inline-flex shrink-0 items-center">
-      {forceDark ? (
-        <>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/logo-horizontal-dark.png" alt="NaijaSpa" className={`drop-shadow-[0_1px_8px_rgba(212,175,55,0.28)] ${className}`} />
-        </>
-      ) : (
-        <>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/logo-horizontal.png" alt="NaijaSpa" className={`dark:hidden ${className}`} />
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/brand/logo-horizontal-dark.png"
-            alt="NaijaSpa"
-            className={`hidden drop-shadow-[0_1px_8px_rgba(212,175,55,0.28)] dark:block ${className}`}
-          />
-        </>
-      )}
-    </span>
-  );
-}
+import { BrandLogo } from "./brand-logo";
 
 function isAuthPath(path: string) {
   return (
@@ -200,22 +171,3 @@ export function CustomerShell({ children, signedIn = false }: { children: React.
   );
 }
 
-export function GoldButton({
-  children,
-  className = "",
-  tone = "solid",
-  ...props
-}: React.ButtonHTMLAttributes<HTMLButtonElement> & { tone?: "solid" | "outline" }) {
-  const look =
-    tone === "outline"
-      ? "border border-gold/70 bg-transparent text-goldink hover:bg-gold/10"
-      : "bg-gold text-ongold";
-  return (
-    <button
-      {...props}
-      className={`inline-flex min-h-11 items-center justify-center rounded-full px-5 text-sm font-bold disabled:opacity-50 ${look} ${className}`}
-    >
-      {children}
-    </button>
-  );
-}

@@ -109,10 +109,17 @@ async function searchLive(filters: SearchFilters) {
 
   const rows = await prisma.service.findMany({
     where,
-    include: {
-      vendor: { include: { owner: { select: { email: true } } } },
+    select: {
+      id: true, vendorId: true, slug: true, name: true, imageUrl: true,
+      basePriceKobo: true, durationMin: true, spaEnabled: true, hotelEnabled: true, homeEnabled: true,
+      hotelAddonKobo: true, homeAddonKobo: true,
+      vendor: { select: {
+        id: true, slug: true, businessName: true, state: true, city: true, neighbourhood: true,
+        verificationStatus: true, ratingAvg: true, reviewCount: true, logoUrl: true, coverUrl: true,
+        privatePhone: true, privateWhatsapp: true, instagramUrl: true, owner: { select: { email: true } }
+      } },
       category: { select: { name: true, slug: true } },
-      staff: { include: { staff: true } }
+      staff: { select: { staff: { select: { id: true, name: true, active: true, gender: true } } } }
     },
     orderBy
   });

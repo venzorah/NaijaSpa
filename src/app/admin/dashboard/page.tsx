@@ -24,13 +24,18 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
   const canSeeMoney = hasPermission(user.role, "finance.view");
   const canSeeCampaigns = hasPermission(user.role, "campaigns.manage") || hasPermission(user.role, "analytics.view");
   const canSeeAudit = hasPermission(user.role, "audit.view");
+  const chartSince = new Date();
+  chartSince.setMonth(chartSince.getMonth() - 5, 1);
+  chartSince.setHours(0, 0, 0, 0);
+  const bookingSince = new Date(Math.min(chartSince.getTime(), since.getTime(), Date.now() - 7 * 864e5));
 
-  const [customers, vendorGroups, bookings, payments, audits, subscriptions, campaigns, refunds, payouts] =
+  const [customerCount, activeCustomerCount, vendorGroups, bookings, payments, audits, subscriptions, campaigns, refunds, payouts] =
     await Promise.all([
-      prisma.user.findMany({ where: { role: "customer" }, select: { createdAt: true, status: true } }),
+      prisma.user.count({ where: { role: "customer" } }),
+      prisma.user.count({ where: { role: "customer", status: "active" } }),
       prisma.vendor.groupBy({ by: ["applicationStatus"], _count: true }),
-      prisma.booking.findMany({ select: { status: true, customerTotalKobo: true, commissionKobo: true, createdAt: true } }),
-      prisma.payment.findMany({ where: { status: "success" }, orderBy: { createdAt: "desc" }, take: 80 }),
+      prisma.booking.findMany({ where: { createdAt: { gte: bookingSince } }, select: { status: true, customerTotalKobo: true, commissionKobo: true, createdAt: true } }),
+      prisma.payment.findMany({ where: { status: "success", createdAt: { gte: bookingSince } }, orderBy: { createdAt: "desc" }, select: { id: true, reference: true, purpose: true, amountKobo: true, createdAt: true } }),
       prisma.auditLog.findMany({ orderBy: { createdAt: "desc" }, take: 8, include: { actor: { select: { name: true } } } }),
       prisma.vendorSubscription.count({ where: { status: "active" } }),
       prisma.campaign.findMany({ include: { vendor: { select: { businessName: true } } }, take: 8 }),
@@ -106,8 +111,8 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
           <StatCard
             href="/admin/users"
             label="Customers"
-            value={formatCount(customers.length)}
-            sub={`${formatCount(customers.filter((c) => c.status === "active").length)} active`}
+            value={formatCount(customerCount)}
+            sub={`${formatCount(activeCustomerCount)} active`}
             icon={Users}
           />
           <div className="rounded-xl border border-line bg-card p-4 shadow-sm">

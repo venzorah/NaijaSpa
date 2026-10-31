@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Share, SquarePlus } from "lucide-react";
 import { useEffect, useState } from "react";
-import { GoldButton } from "./shell";
+import { GoldButton } from "./gold-button";
 import { isAppleMobile, isInAppBrowser, isStandaloneDisplay } from "@/lib/pwa-install";
 
 type BeforeInstall = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
