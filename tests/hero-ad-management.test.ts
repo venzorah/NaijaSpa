@@ -1,0 +1,17 @@
+import { beforeEach, expect, it, vi } from "vitest";
+const mock = vi.hoisted(() => ({ role: "super_admin", create: vi.fn(), update: vi.fn(), remove: vi.fn(), invalidate: vi.fn() }));
+vi.mock("../src/lib/auth", () => ({ getSession: async () => ({ id: "admin", role: mock.role }), requireUser: (u: unknown) => u }));
+vi.mock("../src/lib/db", () => ({ prisma: { heroAd: { create: mock.create, update: mock.update, delete: mock.remove, findUnique: async () => ({ id: "ad", title: "Advert", body: "", ctaLabel: "Visit", ctaHref: "/explore", sortOrder: 0, vendorId: null, imageUrl: "/photos/spa.jpg", active: true }) } } }));
+vi.mock("../src/lib/audit", () => ({ audit: vi.fn() }));
+vi.mock("next/cache", () => ({ revalidateTag: mock.invalidate }));
+import { POST } from "../src/app/api/admin/hero/ads/route";
+import { PUT, DELETE } from "../src/app/api/admin/hero/ads/[id]/route";
+const body = { title: "Paid advert", imageUrl: "/photos/spa.jpg", ctaHref: "/providers/spa" };
+const req = (data: unknown) => new Request("http://localhost/api/admin/hero/ads", { method: "POST", body: JSON.stringify(data) });
+const params = { params: Promise.resolve({ id: "ad" }) };
+beforeEach(() => { vi.clearAllMocks(); mock.role = "super_admin"; mock.create.mockResolvedValue({ id: "ad", ...body, body: "", sortOrder: 0, ctaLabel: "Visit" }); mock.update.mockResolvedValue({ id: "ad", ...body, body: "", sortOrder: 0, ctaLabel: "Visit" }); });
+it("immediately refreshes both layers of homepage cache after creating an advert", async () => { expect((await POST(req(body))).status).toBe(200); expect(mock.invalidate.mock.calls).toEqual([["home-hero"], ["home-catalog"]]); });
+it("pauses an advert and immediately refreshes the homepage", async () => { expect((await PUT(req({ active: false }), params)).status).toBe(200); expect(mock.update.mock.calls[0][0].data.active).toBe(false); expect(mock.invalidate).toHaveBeenCalledWith("home-hero"); });
+it("removes an advert and refreshes the homepage", async () => { expect((await DELETE(req({}), params)).status).toBe(200); expect(mock.remove).toHaveBeenCalledWith({ where: { id: "ad" } }); expect(mock.invalidate).toHaveBeenCalledWith("home-catalog"); });
+it("rejects script URLs before persisting an advert", async () => { expect((await POST(req({ ...body, ctaHref: "javascript:alert(1)" }))).status).toBe(400); expect(mock.create).not.toHaveBeenCalled(); });
+it("allows marketing staff but prevents read-only analysts from editing adverts", async () => { mock.role = "marketing_manager"; expect((await POST(req(body))).status).toBe(200); mock.role = "analyst"; expect((await DELETE(req({}), params)).status).toBe(403); expect(mock.remove).not.toHaveBeenCalled(); });

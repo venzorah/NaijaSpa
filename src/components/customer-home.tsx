@@ -7,6 +7,8 @@ import { ParallaxBand } from "@/components/parallax-band";
 import { ServiceCarousel, VendorCarousel } from "@/components/service-carousel";
 import { PlaceSync } from "@/components/place-sync";
 import { HomeExtras } from "@/components/home-extras";
+import { HomeDiscovery } from "@/components/home-discovery";
+import { HomeServiceGrid } from "@/components/home-service-grid";
 import { categoryHref } from "@/lib/category-images";
 import { exploreHref } from "@/lib/place-urls";
 import type { HomeHeroAd, HomeHeroBanner } from "@/lib/home-hero";
@@ -58,9 +60,9 @@ export function CustomerHome({
         </Link>
       </section>
 
-      <ServiceCarousel
+      <HomeServiceGrid
         id="featured-services"
-        title="Top-rated near you"
+        title="Featured services"
         subtitle={
           place?.city || place?.state
             ? `Every therapist in ${place.state === "FCT" ? "Abuja / FCT" : place.state || "your state"}, with ${[place.neighbourhood, place.city].filter(Boolean).join(", ") || "your area"} shown first.`
@@ -69,6 +71,13 @@ export function CustomerHome({
         seeAllHref={browse()}
         cards={rails.featured}
       />
+
+      {!rails.featured.length ? <section className="mx-auto mt-10 max-w-7xl px-4 lg:px-8"><div className="rounded-3xl border border-line bg-card p-6"><h2 className="font-display text-2xl">Discover treatments</h2><p className="mt-2 text-sm text-ink2">{place?.state ? `No published treatments are available in ${place.state === "FCT" ? "Abuja / FCT" : place.state} yet.` : "No treatments are available for this selection yet."}</p><Link className="mt-4 inline-flex min-h-11 items-center rounded-full bg-gold px-5 text-sm font-bold text-ongold" href="/explore?state=all">Browse all locations →</Link></div></section> : null}
+
+      <VendorCarousel title="Recommended for you" vendors={nearby} />
+      <HomeServiceGrid id="spotlight-partners" title="Spotlight partners" layout="spotlight" subtitle="Sponsored placements are paid promotions. Ratings remain from customer bookings." seeAllHref={browse()} cards={[...new Map([...rails.featured, ...rails.premium, ...rails.promo].filter(c => c.sponsored).map(c => [c.service.id, c])).values()]} />
+
+      <HomeDiscovery place={place} />
 
       <ParallaxBand
         image="/photos/band-spa.jpg"
@@ -104,20 +113,15 @@ export function CustomerHome({
         cta="See couples bookings"
       />
 
-      <VendorCarousel title="Spas & studios in your state" vendors={nearby} />
-
       <HomeExtras />
 
       <DarkRoomTeaser />
 
       <section className="mx-auto mt-10 max-w-3xl px-4 lg:px-8">
-        <h2 className="font-display text-2xl">FAQs</h2>
+        <div className="flex items-center justify-between gap-4"><h2 className="font-display text-2xl">Frequently asked</h2><Link href="/faq" className="text-sm font-semibold text-goldink">All FAQs →</Link></div>
         <dl className="mt-4 space-y-3">
           {faqs.map((f) => (
-            <div key={f.question} className="rounded-2xl border border-line bg-card p-4">
-              <dt className="font-semibold">{f.question}</dt>
-              <dd className="mt-1 text-sm text-ink2">{f.answer}</dd>
-            </div>
+            <div key={f.question}><dt className="sr-only">{f.question}</dt><dd><details className="rounded-2xl border border-line bg-card p-4"><summary className="cursor-pointer font-semibold">{f.question}</summary><p className="mt-3 text-sm text-ink2">{f.answer}</p></details></dd></div>
           ))}
         </dl>
       </section>

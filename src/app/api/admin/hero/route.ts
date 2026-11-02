@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSession, requireUser } from "@/lib/auth";
 import { assertPermission } from "@/lib/rbac";
+import { assertAnyPermission, hasPermission } from "@/lib/rbac";
+import { revalidateTag } from "next/cache";
+import { publicContentUrl } from "@/lib/public-content";
 import { getHeroAdDisplayLimit, getHomeHeroPayload, prisma, setConfig } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { jsonError } from "@/lib/http";
@@ -18,7 +21,7 @@ import {
 export async function GET() {
   try {
     const user = requireUser(await getSession());
-    assertPermission(user.role, "cms.manage");
+    assertAnyPermission(user.role, ["cms.manage", "campaigns.manage"]);
     const [hero, ads, displayLimit, vendors] = await Promise.all([
       prisma.homeHero.findUnique({ where: { id: "home" } }),
       prisma.heroAd.findMany({
@@ -34,6 +37,7 @@ export async function GET() {
       })
     ]);
     return NextResponse.json({
+      canEditBanner: hasPermission(user.role, "cms.manage"),
       banner: sanitizeHeroBanner(hero ?? DEFAULT_HOME_HERO),
       ads,
       displayLimit,
@@ -56,8 +60,8 @@ export async function PUT(req: Request) {
         subtitle: z.string().max(240).optional(),
         priceLine: z.string().max(80).optional(),
         ctaLabel: z.string().min(1).max(40).optional(),
-        ctaHref: z.string().min(1).max(240).optional(),
-        imageUrl: z.string().min(1).max(500).optional(),
+        ctaHref: publicContentUrl.optional(),
+        imageUrl: publicContentUrl.optional(),
         displayLimit: z.number().int().min(HERO_AD_LIMIT_MIN).max(HERO_AD_LIMIT_MAX).optional()
       })
       .parse(await req.json());
@@ -77,6 +81,8 @@ export async function PUT(req: Request) {
         String(clampHeroAdDisplayLimit(body.displayLimit, DEFAULT_HERO_AD_DISPLAY_LIMIT))
       );
     }
+    revalidateTag("home-hero");
+    revalidateTag("home-catalog");
     const after = await getHomeHeroPayload();
     await audit({
       actorId: user.id,

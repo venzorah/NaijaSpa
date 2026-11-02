@@ -1,19 +1,21 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSession, requireUser } from "@/lib/auth";
-import { assertPermission } from "@/lib/rbac";
+import { assertAnyPermission } from "@/lib/rbac";
+import { revalidateTag } from "next/cache";
 import { prisma } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { jsonError } from "@/lib/http";
 import { sanitizeHeroAd } from "@/lib/home-hero";
+import { publicContentUrl } from "@/lib/public-content";
 
 const adBody = z.object({
   vendorId: z.string().min(1).nullable().optional(),
   title: z.string().min(1).max(80).optional(),
   body: z.string().max(280).optional(),
-  imageUrl: z.string().min(1).max(500).optional(),
+  imageUrl: publicContentUrl.optional(),
   ctaLabel: z.string().min(1).max(40).optional(),
-  ctaHref: z.string().min(1).max(240).optional(),
+  ctaHref: publicContentUrl.optional(),
   sortOrder: z.number().int().min(0).max(99).optional(),
   active: z.boolean().optional()
 });
@@ -21,7 +23,7 @@ const adBody = z.object({
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = requireUser(await getSession());
-    assertPermission(user.role, "cms.manage");
+    assertAnyPermission(user.role, ["cms.manage", "campaigns.manage"]);
     const { id } = await params;
     const existing = await prisma.heroAd.findUnique({ where: { id } });
     if (!existing) return NextResponse.json({ error: "Ad not found" }, { status: 404 });
@@ -51,6 +53,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       before: sanitizeHeroAd({ ...existing, vendorName: null }),
       after: sanitizeHeroAd({ ...ad, vendorName: null })
     });
+    revalidateTag("home-hero");
+    revalidateTag("home-catalog");
     return NextResponse.json({ ad });
   } catch (e) {
     return jsonError(e);
@@ -60,7 +64,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = requireUser(await getSession());
-    assertPermission(user.role, "cms.manage");
+    assertAnyPermission(user.role, ["cms.manage", "campaigns.manage"]);
     const { id } = await params;
     const existing = await prisma.heroAd.findUnique({ where: { id } });
     if (!existing) return NextResponse.json({ error: "Ad not found" }, { status: 404 });
@@ -72,6 +76,8 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
       entityId: id,
       before: sanitizeHeroAd({ ...existing, vendorName: null })
     });
+    revalidateTag("home-hero");
+    revalidateTag("home-catalog");
     return NextResponse.json({ ok: true });
   } catch (e) {
     return jsonError(e);

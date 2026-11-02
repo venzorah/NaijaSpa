@@ -33,6 +33,7 @@ export type AdminScreenId =
   | "memberships"
   | "campaigns"
   | "cms"
+  | "hero"
   | "support"
   | "ai"
   | "roles"
@@ -172,6 +173,16 @@ export const ADMIN_SCREENS: {
     description: "Pages, hero, FAQs, legal copy and SEO for the public site.",
     view: ["cms.manage"],
     edit: ["cms.manage"]
+  },
+  {
+    id: "hero",
+    href: "/admin/hero",
+    label: "Homepage & adverts",
+    group: "Content & care",
+    icon: Megaphone,
+    description: "Edit the homepage banner and create, pause or remove paid vendor adverts.",
+    view: ["cms.manage", "campaigns.manage"],
+    edit: ["cms.manage", "campaigns.manage"]
   },
   {
     id: "support",

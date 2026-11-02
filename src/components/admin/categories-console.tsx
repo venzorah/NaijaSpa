@@ -136,13 +136,10 @@ export function CategoriesConsole({ rows, editable }: { rows: AdminCategory[]; e
               e.preventDefault();
               const fd = new FormData(e.currentTarget);
               if (creating) {
-                void run("Category created. Add an image, then activate it so specialists can use it.", async () => {
-                  const json = await adminJson<{ category: Omit<AdminCategory, "services" | "vendors"> }>("/api/admin/categories", {
-                    method: "POST",
-                    body: JSON.stringify({ name: String(fd.get("name") || ""), slug: String(fd.get("slug") || "") || undefined,
-                      description: String(fd.get("description") || ""), synonyms: String(fd.get("synonyms") || ""),
-                      metaTitle: String(fd.get("metaTitle") || ""), metaDescription: String(fd.get("metaDescription") || "") })
-                  });
+                void run("Category created. Activate it so specialists can use it.", async () => {
+                  const res = await fetch("/api/admin/categories", { method: "POST", body: fd });
+                  const json = await res.json() as { error?: string; category: Omit<AdminCategory, "services" | "vendors"> };
+                  if (!res.ok) throw new Error(json.error || "Could not create category");
                   setList((current) => [...current, { ...json.category, services: 0, vendors: 0 }]);
                   setSelectedId(json.category.id);
                   setCreating(false);
@@ -204,7 +201,12 @@ export function CategoriesConsole({ rows, editable }: { rows: AdminCategory[]; e
                   <input id="cat-image" name="imageUrl" disabled={!editable} defaultValue={selected.imageUrl ?? ""} className={adminField} />
                 </FormRow>
               </div>
-            </div> : <p className="text-sm text-ink2">Create the category first, then add an image and activate it. Specialists can choose active categories when adding treatments.</p>}
+            </div> : <div className="space-y-2 rounded-xl border border-line p-3">
+              <label className="block text-sm font-medium" htmlFor="new-category-image">Category image</label>
+              <input id="new-category-image" name="file" type="file" accept="image/jpeg,image/png,image/webp,image/gif" disabled={!editable || busy} className="w-full text-sm" />
+              <p className="text-xs text-ink2">JPEG, PNG, WebP or GIF, up to 2 MB. Saved with the category.</p>
+              <FormRow label="Or image URL" htmlFor="new-category-image-url"><input id="new-category-image-url" name="imageUrl" disabled={!editable || busy} className={adminField} placeholder="/photos/spa.jpg or https://…" /></FormRow>
+            </div>}
             <FormRow label="Name" htmlFor="cat-name">
               <input ref={nameInput} id="cat-name" name="name" required disabled={!editable || busy} defaultValue={selected.name} className={adminField} />
             </FormRow>

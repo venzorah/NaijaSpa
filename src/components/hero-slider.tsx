@@ -52,7 +52,8 @@ function placeAwareHref(href: string, place: LivePlace | null) {
 function PremiumAdCarousel({ ads }: { ads: HomeHeroAd[] }) {
   const [index, setIndex] = useState(0);
   const [manual, setManual] = useState(false);
-  const ad = ads[index] ?? ads[0];
+  const activeIndex = ads.length ? index % ads.length : 0;
+  const ad = ads[activeIndex];
 
   const go = useCallback(
     (dir: -1 | 1, fromUser = false) => {
@@ -85,8 +86,8 @@ function PremiumAdCarousel({ ads }: { ads: HomeHeroAd[] }) {
       {ads.map((item, i) => (
         <div
           key={item.id}
-          className={`absolute inset-0 flex flex-col transition-opacity duration-500 ${i === index ? "z-10 opacity-100" : "pointer-events-none z-0 opacity-0"}`}
-          aria-hidden={i !== index}
+          className={`absolute inset-0 flex flex-col transition-opacity duration-500 ${i === activeIndex ? "z-10 opacity-100" : "pointer-events-none z-0 opacity-0"}`}
+          aria-hidden={i !== activeIndex}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={item.imageUrl} alt="" className="h-36 w-full object-cover md:h-40" />
@@ -96,6 +97,7 @@ function PremiumAdCarousel({ ads }: { ads: HomeHeroAd[] }) {
             <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-ink2">{item.body}</p>
             <Link
               href={item.ctaHref}
+              tabIndex={i === activeIndex ? 0 : -1}
               className="mt-auto inline-flex w-fit min-h-11 items-center rounded-full bg-gold px-5 text-sm font-bold text-ongold"
             >
               {item.ctaLabel} →
@@ -120,10 +122,10 @@ function PremiumAdCarousel({ ads }: { ads: HomeHeroAd[] }) {
                 key={item.id}
                 type="button"
                 role="tab"
-                aria-selected={i === index}
+                aria-selected={i === activeIndex}
                 aria-label={item.title}
                 onClick={() => pick(i)}
-                className={`h-1.5 rounded-full transition-all ${i === index ? "w-6 bg-gold" : "w-2 bg-ink/25"}`}
+                className={`h-1.5 rounded-full transition-all ${i === activeIndex ? "w-6 bg-gold" : "w-2 bg-ink/25"}`}
               />
             ))}
           </div>

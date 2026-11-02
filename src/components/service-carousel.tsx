@@ -95,7 +95,7 @@ export function ServiceCarousel({
 function ServiceFeedCard({ card }: { card: HomeCard }) {
   const { service, vendor, badge, tags = [], nextLabel, compareAtKobo } = card;
   const verified = vendor.verificationStatus === "verified";
-  const vip = badge === "Premium" || badge === "Featured";
+  const vip = badge === "Premium";
   const { cover, avatar: photo } = listingPhotos({
     imageUrl: service.imageUrl,
     logoUrl: vendor.logoUrl

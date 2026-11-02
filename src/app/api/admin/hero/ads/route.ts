@@ -1,19 +1,21 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSession, requireUser } from "@/lib/auth";
-import { assertPermission } from "@/lib/rbac";
+import { assertAnyPermission } from "@/lib/rbac";
+import { revalidateTag } from "next/cache";
 import { prisma } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { jsonError } from "@/lib/http";
 import { sanitizeHeroAd } from "@/lib/home-hero";
+import { publicContentUrl } from "@/lib/public-content";
 
 const adBody = z.object({
   vendorId: z.string().min(1).nullable().optional(),
   title: z.string().min(1).max(80),
   body: z.string().max(280).optional().default(""),
-  imageUrl: z.string().min(1).max(500),
+  imageUrl: publicContentUrl,
   ctaLabel: z.string().min(1).max(40).optional().default("View vendor"),
-  ctaHref: z.string().min(1).max(240),
+  ctaHref: publicContentUrl,
   sortOrder: z.number().int().min(0).max(99).optional().default(0),
   active: z.boolean().optional().default(true)
 });
@@ -21,7 +23,7 @@ const adBody = z.object({
 export async function POST(req: Request) {
   try {
     const user = requireUser(await getSession());
-    assertPermission(user.role, "cms.manage");
+    assertAnyPermission(user.role, ["cms.manage", "campaigns.manage"]);
     const body = adBody.parse(await req.json());
     const vendorId = body.vendorId || null;
     if (vendorId) {
@@ -47,6 +49,8 @@ export async function POST(req: Request) {
       entityId: ad.id,
       after: sanitizeHeroAd({ ...ad, vendorName: null })
     });
+    revalidateTag("home-hero");
+    revalidateTag("home-catalog");
     return NextResponse.json({ ad });
   } catch (e) {
     return jsonError(e);

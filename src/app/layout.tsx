@@ -1,16 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import { Montserrat } from "next/font/google";
 import "./globals.css";
+import "./fonts.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SplashScreen } from "@/components/splash-screen";
 import { appleStartupImages, PWA_SPLASH_BG, SPLASH_MAX_MS } from "@/lib/pwa-splash";
-
-const montserrat = Montserrat({
-  subsets: ["latin"],
-  display: "swap",
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-montserrat"
-});
 
 export const metadata: Metadata = {
   title: { default: "NaijaSpa", template: "%s · NaijaSpa" },
@@ -39,8 +32,9 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={montserrat.variable} suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
+        <link rel="preload" href="/fonts/904be59b21bd51cb-s.p.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var d=localStorage.getItem('naijaspa-theme')==='dark';document.documentElement.classList.toggle('dark',d);document.documentElement.style.colorScheme=d?'dark':'light';var stand=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone;if(!stand&&!sessionStorage.getItem('naijaspa-splash')){document.documentElement.classList.add('ns-splash');document.documentElement.setAttribute('data-splash-at',String(Date.now()));setTimeout(function(){document.documentElement.classList.remove('ns-splash');},${SPLASH_MAX_MS});}}catch(e){document.documentElement.classList.remove('dark');document.documentElement.style.colorScheme='light';}})();`
@@ -52,7 +46,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="apple-mobile-web-app-title" content="NaijaSpa" />
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
-      <body className={montserrat.className}>
+      <body>
         <ThemeProvider>
           <SplashScreen />
           {children}

@@ -56,7 +56,7 @@ async function resolveHomeHero(): Promise<HomeHeroPayload> {
     const { getHomeHeroPayload } = await import("./db");
     return await getHomeHeroPayload();
   } catch {
-    return demoHomeHero();
+    return { ...demoHomeHero(), ads: usingDemoListings() ? demoHomeHero().ads : [] };
   }
 }
 
@@ -144,7 +144,7 @@ export async function getHomeCatalog(place?: LivePlace | null) {
 
 async function loadHomeCatalog(place: LivePlace | null) {
   const [limits, hero] = await withTimeout(Promise.all([resolveHomeFeedLimits(), resolveHomeHero()]), 4000).catch(
-    (): [HomeFeedConfig, HomeHeroPayload] => [DEFAULT_HOME_FEED_CONFIG, demoHomeHero()]
+    (): [HomeFeedConfig, HomeHeroPayload] => [DEFAULT_HOME_FEED_CONFIG, { ...demoHomeHero(), ads: usingDemoListings() ? demoHomeHero().ads : [] }]
   );
   if (usingDemoListings()) return demoHomePayload(limits, place, hero);
   try {
@@ -271,7 +271,7 @@ async function loadHomeCatalog(place: LivePlace | null) {
     filterByServiceArea(
       services.map((s) => {
         const ent = entitlements.get(s.vendorId) ?? FREE_ENTITLEMENT;
-        const sponsored = campaigns.some((c) => c.vendorId === s.vendorId);
+        const sponsored = campaigns.some((c) => c.vendorId === s.vendorId && (!c.serviceId || c.serviceId === s.id));
         return cardFromService(s, ent.activePaid ? "Premium" : sponsored ? "Featured" : undefined, sponsored);
       }),
       place,
@@ -289,16 +289,6 @@ async function loadHomeCatalog(place: LivePlace | null) {
     place,
     (c) => c.vendor
   );
-  const promoPool = sortByPlace(
-    filterByServiceArea(
-      [...services].sort((a, b) => a.basePriceKobo - b.basePriceKobo).map((s) => cardFromService(s, "Promo")),
-      place,
-      (c) => c.vendor
-    ),
-    place,
-    (c) => c.vendor
-  );
-
   const rails: HomeRails = {
     featured: sortByPlace(
       fill(filterByServiceArea(featured, place, (c) => c.vendor), allCards, "Featured", limits.featured),
@@ -306,11 +296,11 @@ async function loadHomeCatalog(place: LivePlace | null) {
       (c) => c.vendor
     ),
     premium: sortByPlace(
-      fill(filterByServiceArea(premiumFromAds, place, (c) => c.vendor), premiumPool.length ? premiumPool : allCards, "Premium", limits.premium),
+      fill(filterByServiceArea(premiumFromAds, place, (c) => c.vendor), premiumPool, "Premium", limits.premium),
       place,
       (c) => c.vendor
     ),
-    promo: sortByPlace(fill(filterByServiceArea(promo, place, (c) => c.vendor), promoPool, "Promo", limits.promo), place, (c) => c.vendor)
+    promo: sortByPlace(filterByServiceArea(promo, place, (c) => c.vendor).slice(0, limits.promo), place, (c) => c.vendor)
   };
 
   const nearbyMap = new Map<string, NearbyVendor>();
