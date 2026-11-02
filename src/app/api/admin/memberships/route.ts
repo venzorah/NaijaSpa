@@ -9,7 +9,7 @@ export async function GET() {
     const actor = await requireAdmin(["memberships.manage", "campaigns.manage", "finance.view"]);
     const promos = await prisma.promotion.findMany({ orderBy: { code: "asc" } });
     return NextResponse.json({
-      canEdit: hasPermission(actor.role, "memberships.manage"),
+      canEdit: hasPermission(actor, "memberships.manage"),
       promos
     });
   } catch (e) {

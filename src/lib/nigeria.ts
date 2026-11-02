@@ -84,8 +84,20 @@ export function prismaServiceAreaFilter(state: string) {
   const aliases = serviceAreaAliases(state);
   if (!aliases.length) return {};
   return {
-    OR: aliases.flatMap((alias) => [{ state: prismaEquals(alias) }, { city: prismaEquals(alias) }])
+    OR: aliases.map((alias) => ({ state: { ...prismaEquals(alias), mode: "insensitive" as const } }))
   };
+}
+
+/** Validate explicit vendor locations before they enter state-wide search. */
+export function vendorStateForLocation(state: string, city: string) {
+  const canonical = mapNigeriaState(state);
+  if (!canonical) throw Object.assign(new Error("Choose a valid Nigerian state."), { status: 400 });
+  const cityName = normalizePlace(city);
+  const cityState = cityName.includes("abuja") ? "FCT" : NIGERIA_STATES.find(value => normalizePlace(value) === cityName);
+  if (cityState && cityState !== canonical) {
+    throw Object.assign(new Error("The city does not match the selected state."), { status: 400 });
+  }
+  return canonical;
 }
 
 export function filterByServiceArea<T>(

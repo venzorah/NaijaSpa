@@ -7,6 +7,9 @@ import { assertImageUrl } from "@/lib/galleries";
 import { prisma } from "@/lib/db";
 import { categoryAuditSelect } from "@/lib/category-fields";
 import { jsonError } from "@/lib/http";
+import { randomUUID } from "node:crypto";
+import { formImage } from "@/lib/form-file";
+import { saveCategoryImageFile, deleteCategoryImageFile } from "@/lib/category-media";
 
 function slugify(value: string) {
   return value
@@ -20,6 +23,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const actor = await requireAdmin("catalog.manage");
     const { id } = await params;
     const before = await prisma.category.findUniqueOrThrow({ where: { id }, select: categoryAuditSelect });
+    const form = req.headers.get("content-type")?.includes("multipart/form-data") ? await req.formData() : null;
+    const input = form ? { ...Object.fromEntries([...form.entries()].filter(([key]) => key !== "file")), ...(form.has("active") ? { active: form.get("active") === "true" } : {}) } : await req.json();
     const body = z
       .object({
         name: z.string().trim().min(2).max(80).optional(),
@@ -33,7 +38,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         sortOrder: z.number().int().optional(),
         order: z.array(z.string()).optional()
       })
-      .parse(await req.json());
+      .parse(input);
     if (body.order) {
       await prisma.$transaction(
         body.order.map((cid, i) => prisma.category.update({ where: { id: cid }, data: { sortOrder: i } }))
@@ -46,6 +51,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (body.slug && !slug) throw Object.assign(new Error("Enter a valid slug"), { status: 400 });
     const imageUrl =
       body.imageUrl === undefined ? undefined : body.imageUrl === null || body.imageUrl === "" ? null : assertImageUrl(body.imageUrl);
+    const file = form ? formImage(form) : null;
+    if (file && file.size > 2 * 1024 * 1024) return NextResponse.json({ error: "Each category image must be at most 2 MB" }, { status: 400 });
+    const bytes = file ? new Uint8Array(await file.arrayBuffer()) : null;
+    const saved = bytes ? await saveCategoryImageFile(`${id}-${randomUUID()}`, bytes) : null;
+    const changedImageUrl = imageUrl !== undefined && imageUrl !== before.imageUrl;
     const category = await prisma.category.update({
       where: { id },
       data: {
@@ -55,13 +65,19 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         metaTitle: body.metaTitle,
         metaDescription: body.metaDescription,
         synonyms: body.synonyms,
-        imageUrl,
+        imageUrl: saved?.url ?? imageUrl,
+        imagePayload: saved ? saved.storage === "r2" ? null : Buffer.from(bytes!) : changedImageUrl ? null : undefined,
+        imageMime: saved?.mime ?? (changedImageUrl ? "" : undefined),
         active: body.active,
         sortOrder: body.sortOrder,
         archivedAt: body.active === false ? new Date() : body.active === true ? null : undefined
       },
       select: categoryAuditSelect
+    }).catch(async error => {
+      if (saved) await deleteCategoryImageFile(saved.url).catch(() => console.error("Could not clean up category upload"));
+      throw error;
     });
+    if (before.imageUrl && before.imageUrl !== category.imageUrl) await deleteCategoryImageFile(before.imageUrl).catch(() => console.error("Could not remove previous category image"));
     await audit({ actorId: actor.id, action: "category.update", entityType: "Category", entityId: id, before, after: category });
     revalidateTag("home-catalog");
     return NextResponse.json({ category });

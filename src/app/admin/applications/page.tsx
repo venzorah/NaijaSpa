@@ -15,7 +15,7 @@ export default async function ApplicationsPage() {
       <AdminPageHeader screen="applications" />
       <ApplicationsConsole
         editable={editable}
-        canViewProtected={hasPermission(user.role, "vendors.verify")}
+        canViewProtected={hasPermission(user, "vendors.verify")}
         rows={vendors.map((v) => ({
           id: v.id,
           businessName: v.businessName,

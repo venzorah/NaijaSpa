@@ -1,4 +1,5 @@
 "use client";
+import type { RoleAccess } from "@/lib/rbac";
 
 import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
@@ -78,7 +79,7 @@ export const VENDOR_NAV: { label: string; items: PortalLink[] }[] = [
   }
 ];
 
-export function adminNavForRole(role: string): { label: string; items: (PortalLink & { viewOnly?: boolean })[] }[] {
+export function adminNavForRole(role: RoleAccess): { label: string; items: (PortalLink & { viewOnly?: boolean })[] }[] {
   return ADMIN_SCREEN_GROUPS.map((group) => ({
     label: group,
     items: ADMIN_SCREENS.filter((s) => s.group === group && accessForScreen(role, s.id)).map((s) => ({
@@ -178,7 +179,7 @@ export function PortalChrome({
   title: string;
   subtitle: string;
   userName: string;
-  role?: string;
+  role?: RoleAccess;
   alerts?: number;
   businessName?: string;
   planPaid?: boolean;

@@ -31,7 +31,7 @@ export async function GET() {
     ]);
     const subscriberCount = Object.fromEntries(counts.map((c) => [c.planId, c._count._all]));
     return NextResponse.json({
-      canEdit: hasPermission(actor.role, "commercial.manage") || hasPermission(actor.role, "memberships.manage"),
+      canEdit: hasPermission(actor, "commercial.manage") || hasPermission(actor, "memberships.manage"),
       plans: plans.map((p) => ({ ...p, subscriberCount: subscriberCount[p.id] ?? 0 }))
     });
   } catch (e) {

@@ -11,7 +11,7 @@ import { grantVendorPlan } from "@/lib/subscription-lifecycle";
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const actor = requireUser(await getSession());
-    assertPermission(actor.role, "vendors.manage");
+    assertPermission(actor, "vendors.manage");
     const { id } = await params;
     const before = await prisma.vendor.findUniqueOrThrow({ where: { id } });
     const body = z

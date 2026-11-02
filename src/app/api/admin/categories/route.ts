@@ -21,7 +21,7 @@ export async function POST(req: Request) {
   try {
     const actor = await requireAdmin("catalog.manage");
     const form = req.headers.get("content-type")?.includes("multipart/form-data") ? await req.formData() : null;
-    const input = form ? Object.fromEntries([...form.entries()].filter(([key]) => key !== "file" && !(key === "slug" && !form.get(key)))) : await req.json();
+    const input = form ? { ...Object.fromEntries([...form.entries()].filter(([key]) => key !== "file" && !(key === "slug" && !form.get(key)))), ...(form.has("active") ? { active: form.get("active") === "true" } : {}) } : await req.json();
     const body = z
       .object({
         name: z.string().trim().min(2).max(80),
@@ -30,7 +30,8 @@ export async function POST(req: Request) {
         metaTitle: z.string().max(80).optional(),
         metaDescription: z.string().max(320).optional(),
         synonyms: z.string().max(400).optional(),
-        imageUrl: z.union([publicContentUrl, z.literal("")]).optional()
+        imageUrl: z.union([publicContentUrl, z.literal("")]).optional(),
+        active: z.boolean().optional().default(false)
       })
       .parse(input);
     const slug = slugify(body.slug || body.name);
@@ -52,7 +53,7 @@ export async function POST(req: Request) {
         imagePayload: bytes && saved?.storage !== "r2" ? Buffer.from(bytes) : null,
         imageMime: saved?.mime ?? "",
         sortOrder: (last._max.sortOrder ?? 0) + 1,
-        active: false
+        active: body.active
       }
     }).catch(async (error) => {
       if (saved) await deleteCategoryImageFile(saved.url).catch(() => console.error("Could not clean up category upload"));

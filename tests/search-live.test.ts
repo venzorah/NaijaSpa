@@ -14,6 +14,19 @@ beforeEach(() => {
   mocks.config.mockResolvedValue(DEFAULT_COMMERCIAL); mocks.entitlements.mockResolvedValue(new Map()); mocks.availability.mockResolvedValue(new Map());
 });
 describe("live Explore filtering and paging", () => {
+  it("includes different cities and neighbourhoods throughout the detected state", async () => {
+    const local = { ...row(0), vendor: { ...row(0).vendor, city: "Lekki", neighbourhood: "Phase 1" } };
+    const otherCity = { ...row(1), vendor: { ...row(1).vendor, city: "Ikeja", neighbourhood: "GRA" } };
+    const anotherState = { ...row(2), vendor: { ...row(2).vendor, state: "Ogun", city: "Abeokuta", neighbourhood: "GRA" } };
+    mocks.findMany.mockResolvedValue([otherCity, anotherState, local]);
+    const result = await searchServices({ state: "Lagos", city: "Lekki", neighbourhood: "Phase 1", sort: "relevance", rankPlace: { state: "Lagos", city: "Lekki", neighbourhood: "Phase 1" } });
+    expect(result.total).toBe(2);
+    expect(result.results.map(r => r.vendor.city)).toEqual(["Lekki", "Ikeja"]);
+    const where = mocks.findMany.mock.calls[0][0].where;
+    expect(where.vendor.AND[1].OR).toContainEqual({ state: { equals: "Lagos", mode: "insensitive" } });
+    expect(JSON.stringify(where)).not.toContain("Phase 1");
+    expect(JSON.stringify(where)).not.toContain("Lekki");
+  });
   it("reports the complete result count while slicing the first page", async () => {
     const result = await searchServices({ take: 24 }); expect(result.total).toBe(30); expect(result.results).toHaveLength(24);
     expect(mocks.findMany.mock.calls[0][0].take).toBeUndefined();

@@ -13,7 +13,8 @@ export const ROLES = {
   ANALYST: "analyst"
 } as const;
 
-export type Role = (typeof ROLES)[keyof typeof ROLES];
+export type Role = (typeof ROLES)[keyof typeof ROLES] | (string & {});
+export type RoleAccess = string | { role: string; permissions?: readonly Permission[] };
 
 export type Permission =
   | "admin.access"
@@ -35,7 +36,7 @@ export type Permission =
   | "audit.view"
   | "analytics.view";
 
-const ALL_ADMIN: Permission[] = [
+export const ALL_ADMIN: Permission[] = [
   "admin.access",
   "users.manage",
   "vendors.manage",
@@ -56,7 +57,7 @@ const ALL_ADMIN: Permission[] = [
   "analytics.view"
 ];
 
-const MATRIX: Record<string, Permission[]> = {
+export const DEFAULT_ROLE_PERMISSIONS: Record<string, Permission[]> = {
   [ROLES.SUPER_ADMIN]: ALL_ADMIN,
   [ROLES.OPERATIONS]: [
     "admin.access",
@@ -86,8 +87,8 @@ const MATRIX: Record<string, Permission[]> = {
   [ROLES.ANALYST]: ["admin.access", "analytics.view", "finance.view", "audit.view"]
 };
 
-export function isAdminRole(role: string): boolean {
-  return role in MATRIX;
+export function isAdminRole(role: RoleAccess): boolean {
+  return hasPermission(role, "admin.access");
 }
 
 export function isVendorRole(role: string): boolean {
@@ -98,17 +99,22 @@ export const CUSTOMER_DASHBOARD = "/account/dashboard";
 export const VENDOR_DASHBOARD = "/vendor/dashboard";
 export const ADMIN_DASHBOARD = "/admin/dashboard";
 
-export function portalHome(role: string) {
+export function portalHome(role: RoleAccess) {
   if (isAdminRole(role)) return ADMIN_DASHBOARD;
-  if (isVendorRole(role)) return VENDOR_DASHBOARD;
+  if (isVendorRole(typeof role === "string" ? role : role.role)) return VENDOR_DASHBOARD;
   return CUSTOMER_DASHBOARD;
 }
 
-export function hasPermission(role: string, permission: Permission): boolean {
-  return MATRIX[role]?.includes(permission) ?? false;
+export function hasPermission(role: RoleAccess, permission: Permission): boolean {
+  const name = typeof role === "string" ? role : role.role;
+  if (name === ROLES.SUPER_ADMIN) return ALL_ADMIN.includes(permission);
+  if ([ROLES.CUSTOMER, ROLES.VENDOR_OWNER, ROLES.VENDOR_STAFF].includes(name as never)) return false;
+  const defaults = Object.hasOwn(DEFAULT_ROLE_PERMISSIONS, name) ? DEFAULT_ROLE_PERMISSIONS[name] : undefined;
+  const grants = typeof role === "string" ? defaults : role.permissions ?? defaults;
+  return grants?.includes(permission) ?? false;
 }
 
-export function assertPermission(role: string, permission: Permission) {
+export function assertPermission(role: RoleAccess, permission: Permission) {
   if (!hasPermission(role, permission)) {
     const err = new Error("Forbidden");
     (err as Error & { status: number }).status = 403;
@@ -116,7 +122,7 @@ export function assertPermission(role: string, permission: Permission) {
   }
 }
 
-export function assertAnyPermission(role: string, permissions: Permission[]) {
+export function assertAnyPermission(role: RoleAccess, permissions: Permission[]) {
   if (!permissions.some((permission) => hasPermission(role, permission))) {
     const err = new Error("Forbidden");
     (err as Error & { status: number }).status = 403;

@@ -23,7 +23,7 @@ export function getHomeDiscovery(place: LivePlace | null) {
     return {
       popular: popular.sort((a, b) => (counts.get(b.id) ?? 0) - (counts.get(a.id) ?? 0)).map(({ vendor, ...service }) => ({ service, vendor, tags: [`${counts.get(service.id)} completed bookings`] })),
       verified, collections, reviews,
-      promotions: promotions.filter(p => p.maxRedemptions == null || p.usedCount < p.maxRedemptions).slice(0, 2)
+      promotions: promotions.filter(p => p.maxRedemptions == null || p.usedCount < p.maxRedemptions).slice(0, 2).map(p => ({ ...p, endsAt: p.endsAt.toISOString() }))
     };
   }, ["home-discovery", state], { revalidate: 30, tags: ["home-catalog"] })();
 }

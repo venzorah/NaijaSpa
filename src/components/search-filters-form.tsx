@@ -2,8 +2,8 @@
 
 import { MapPin } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { FormEvent, useEffect, useState } from "react";
-import { DEFAULT_LIVE_PLACE, NIGERIA_STATES, PLACE_COOKIE, nigeriaStateLabel, parsePlaceCookie, type LivePlace } from "@/lib/nigeria";
+import { FormEvent, useEffect, useRef, useState } from "react";
+import { DEFAULT_LIVE_PLACE, NIGERIA_STATES, PLACE_COOKIE, mapNigeriaState, nigeriaStateLabel, parsePlaceCookie, type LivePlace } from "@/lib/nigeria";
 import { exploreHref } from "@/lib/place-urls";
 import { persistLivePlace } from "@/components/place-sync";
 
@@ -37,6 +37,9 @@ export function SearchFiltersForm({
   const router = useRouter();
   const [locating, setLocating] = useState(false);
   const [hint, setHint] = useState("");
+  const manualPlace = useRef(false);
+  const locationAttempt = useRef(0);
+  useEffect(() => () => { locationAttempt.current++; }, []);
   const [place, setPlace] = useState({
     state: values?.state || "",
     city: values?.city || "",
@@ -68,7 +71,7 @@ export function SearchFiltersForm({
     persistLivePlace(next);
     router.push(
       exploreHref(next, {
-        q: extra?.q || values?.q
+        q: extra ? extra.q : values?.q
       })
     );
   }
@@ -79,6 +82,7 @@ export function SearchFiltersForm({
   }
 
   function useMyLocation(form?: HTMLFormElement | null) {
+    if (locating) return;
     if (!("geolocation" in navigator)) {
       setHint("Location is not available on this device.");
       return;
@@ -89,27 +93,36 @@ export function SearchFiltersForm({
       /* continue */
     }
     setLocating(true);
+    const attempt = ++locationAttempt.current;
     setHint("Finding therapists near you…");
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
+        if (attempt !== locationAttempt.current) return;
         try {
           const res = await fetch(`/api/geo/reverse?lat=${pos.coords.latitude}&lng=${pos.coords.longitude}`);
           const json = (await res.json()) as LivePlace & { error?: string };
-          if (!res.ok) {
+          if (attempt !== locationAttempt.current) return;
+          if (!res.ok || json.error) {
             setHint(json.error || "Could not read your location.");
             return;
           }
-          const next = { state: json.state || "", city: json.city || "", neighbourhood: json.neighbourhood || "" };
+          const state = mapNigeriaState(json.state);
+          if (!state) {
+            setHint("Could not detect your state. Please choose a state below.");
+            return;
+          }
+          const next = { state, city: json.city || "", neighbourhood: json.neighbourhood || "" };
           setPlace(next);
           setHint([next.neighbourhood, next.city, next.state].filter(Boolean).join(", ") || "Location saved.");
           go(next, { q: typedQuery(form) });
         } catch {
-          setHint("Could not read your location.");
+          if (attempt === locationAttempt.current) setHint("Could not read your location.");
         } finally {
-          setLocating(false);
+          if (attempt === locationAttempt.current) setLocating(false);
         }
       },
       () => {
+        if (attempt !== locationAttempt.current) return;
         setLocating(false);
         setHint("Allow location to see therapists in your state, closest first.");
       },
@@ -119,6 +132,11 @@ export function SearchFiltersForm({
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (locating) return;
+    if (!manualPlace.current) {
+      useMyLocation(e.currentTarget);
+      return;
+    }
     const fd = new FormData(e.currentTarget);
     const next = {
       state: String(fd.get("state") || ""),
@@ -137,7 +155,7 @@ export function SearchFiltersForm({
     <form
       action="/explore"
       onSubmit={onSubmit}
-      className="relative z-20 mt-5 w-full min-w-0 max-w-full overflow-x-clip rounded-[1.75rem] border-2 border-forest bg-white p-4 shadow-[0_16px_40px_rgba(6,78,59,0.14)] dark:bg-card sm:p-5"
+      className="relative z-20 mt-5 w-full min-w-0 max-w-full overflow-x-clip rounded-[1.75rem] bg-white p-4 shadow-[0_16px_40px_rgba(6,78,59,0.14)] dark:bg-card sm:p-5"
     >
       <div className="mb-4 flex min-w-0 flex-col gap-3">
         <div className="min-w-0">
@@ -146,6 +164,7 @@ export function SearchFiltersForm({
         </div>
         <button
           type="button"
+          disabled={locating}
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -164,7 +183,12 @@ export function SearchFiltersForm({
         </label>
         <label className="min-w-0">
           <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-forest dark:text-leaf">State</span>
-          <select name="state" value={place.state} onChange={(e) => setPlace((p) => ({ ...p, state: e.target.value }))} className={fieldClass()}>
+          <select name="state" value={place.state} onChange={(e) => {
+            manualPlace.current = true;
+            locationAttempt.current++;
+            setLocating(false);
+            setPlace({ state: e.target.value, city: "", neighbourhood: "" });
+          }} className={fieldClass()}>
             <option value="">All states</option>
             {NIGERIA_STATES.map((state) => (
               <option key={state} value={state}>
@@ -178,13 +202,18 @@ export function SearchFiltersForm({
           <input
             name="city"
             value={place.city}
-            onChange={(e) => setPlace((p) => ({ ...p, city: e.target.value }))}
+            onChange={(e) => {
+              manualPlace.current = true;
+              locationAttempt.current++;
+              setLocating(false);
+              setPlace((p) => ({ ...p, city: e.target.value, neighbourhood: "" }));
+            }}
             placeholder="e.g. Lagos"
             className={fieldClass()}
           />
         </label>
         <div className="flex min-w-0 items-end md:col-span-2 xl:col-span-1">
-          <button type="submit" className="min-h-12 w-full rounded-full bg-gold text-base font-bold text-ongold">
+          <button type="submit" disabled={locating} className="min-h-12 w-full rounded-full bg-gold text-base font-bold text-ongold">
             Search
           </button>
         </div>

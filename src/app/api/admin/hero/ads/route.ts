@@ -23,7 +23,7 @@ const adBody = z.object({
 export async function POST(req: Request) {
   try {
     const user = requireUser(await getSession());
-    assertAnyPermission(user.role, ["cms.manage", "campaigns.manage"]);
+    assertAnyPermission(user, ["cms.manage", "campaigns.manage"]);
     const body = adBody.parse(await req.json());
     const vendorId = body.vendorId || null;
     if (vendorId) {

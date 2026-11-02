@@ -18,7 +18,7 @@ import { ensureLiveVendorPlans } from "@/lib/vendor-plans-live";
 export async function GET() {
   try {
     const user = requireUser(await getSession());
-    assertAnyPermission(user.role, ["finance.view", "commercial.manage", "analytics.view"]);
+    assertAnyPermission(user, ["finance.view", "commercial.manage", "analytics.view"]);
     await ensureLiveVendorPlans();
     const [config, galleryConfig, homeFeedConfig, plans, hubsRow] = await Promise.all([
       getCommercialConfig(),
@@ -42,7 +42,7 @@ export async function GET() {
 export async function PUT(req: Request) {
   try {
     const user = requireUser(await getSession());
-    assertPermission(user.role, "commercial.manage");
+    assertPermission(user, "commercial.manage");
     const before = await getCommercialConfig();
     const body = z
       .object({

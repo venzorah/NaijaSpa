@@ -21,7 +21,7 @@ import {
 export async function GET() {
   try {
     const user = requireUser(await getSession());
-    assertAnyPermission(user.role, ["cms.manage", "campaigns.manage"]);
+    assertAnyPermission(user, ["cms.manage", "campaigns.manage"]);
     const [hero, ads, displayLimit, vendors] = await Promise.all([
       prisma.homeHero.findUnique({ where: { id: "home" } }),
       prisma.heroAd.findMany({
@@ -37,7 +37,7 @@ export async function GET() {
       })
     ]);
     return NextResponse.json({
-      canEditBanner: hasPermission(user.role, "cms.manage"),
+      canEditBanner: hasPermission(user, "cms.manage"),
       banner: sanitizeHeroBanner(hero ?? DEFAULT_HOME_HERO),
       ads,
       displayLimit,
@@ -51,7 +51,7 @@ export async function GET() {
 export async function PUT(req: Request) {
   try {
     const user = requireUser(await getSession());
-    assertPermission(user.role, "cms.manage");
+    assertPermission(user, "cms.manage");
     const before = await getHomeHeroPayload();
     const body = z
       .object({

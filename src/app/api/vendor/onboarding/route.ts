@@ -3,6 +3,8 @@ import { z } from "zod";
 import { getSession, requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { jsonError } from "@/lib/http";
+import { vendorStateForLocation } from "@/lib/nigeria";
+import { revalidateTag } from "next/cache";
 
 const bodySchema = z.object({
   providerType: z.enum(["spa", "independent", "hotel", "mobile"]),
@@ -52,6 +54,7 @@ export async function PATCH(req: Request) {
     const user = requireUser(await getSession());
     if (!user.vendorId) return NextResponse.json({ error: "Not a vendor" }, { status: 403 });
     const body = bodySchema.parse(await req.json());
+    const state = vendorStateForLocation(body.state, body.city);
     const current = await prisma.vendor.findUniqueOrThrow({ where: { id: user.vendorId } });
     if (["approved", "suspended"].includes(current.applicationStatus) && body.submit) {
       return NextResponse.json({ error: "This listing cannot be resubmitted." }, { status: 409 });
@@ -65,7 +68,7 @@ export async function PATCH(req: Request) {
         privatePhone: body.privatePhone || null,
         privateWhatsapp: body.privateWhatsapp || null,
         instagramUrl: body.instagramUrl?.trim() || null,
-        state: body.state,
+        state,
         city: body.city,
         neighbourhood: body.neighbourhood,
         address: body.address,
@@ -74,6 +77,7 @@ export async function PATCH(req: Request) {
         applicationStatus: body.submit ? "submitted" : current.applicationStatus === "draft" ? "draft" : current.applicationStatus
       }
     });
+    revalidateTag("home-catalog");
     return NextResponse.json({ ok: true, applicationStatus: vendor.applicationStatus });
   } catch (e) {
     return jsonError(e);

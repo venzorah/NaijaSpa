@@ -18,7 +18,7 @@ import {
   Wallet
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { hasPermission, ROLES, type Permission } from "@/lib/rbac";
+import { hasPermission, ROLES, type Permission, type RoleAccess } from "@/lib/rbac";
 
 export type AdminScreenId =
   | "dashboard"
@@ -267,7 +267,7 @@ export const ADMIN_PERMISSION_ROWS: { area: string; action: string; permission: 
   { area: "Platform", action: "View audit log", permission: "audit.view" }
 ];
 
-export function accessForScreen(role: string, screenId: AdminScreenId): AdminAccess | null {
+export function accessForScreen(role: RoleAccess, screenId: AdminScreenId): AdminAccess | null {
   const screen = ADMIN_SCREENS.find((s) => s.id === screenId);
   if (!screen) return null;
   if (screen.edit.some((p) => hasPermission(role, p))) return "full";
@@ -275,11 +275,11 @@ export function accessForScreen(role: string, screenId: AdminScreenId): AdminAcc
   return null;
 }
 
-export function visibleAdminScreens(role: string) {
+export function visibleAdminScreens(role: RoleAccess) {
   return ADMIN_SCREENS.filter((s) => accessForScreen(role, s.id));
 }
 
-export function canEditAdminScreen(role: string, screenId: AdminScreenId) {
+export function canEditAdminScreen(role: RoleAccess, screenId: AdminScreenId) {
   return accessForScreen(role, screenId) === "full";
 }
 

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { createSession, verifyPassword } from "@/lib/auth";
 import { isAdminRole, isVendorRole, portalHome } from "@/lib/rbac";
 import { jsonError, rateLimit, clientAddress } from "@/lib/http";
+import { getRoleAccess } from "@/lib/admin-role-store";
 
 export async function POST(req: Request) {
   try {
@@ -32,7 +33,8 @@ export async function POST(req: Request) {
     if (body.expect === "vendor" && !isVendorRole(user.role)) {
       return NextResponse.json({ error: "This is not a vendor account. Use customer or admin login." }, { status: 403 });
     }
-    if (body.expect === "admin" && !isAdminRole(user.role)) {
+    const access = await getRoleAccess(user.role);
+    if (body.expect === "admin" && !isAdminRole(access)) {
       return NextResponse.json({ error: "This is not an admin account. Use customer or vendor login." }, { status: 403 });
     }
     await createSession({
@@ -44,7 +46,7 @@ export async function POST(req: Request) {
       theme: user.theme,
       vendorId: user.vendorOwned?.id ?? user.staffMemberships[0]?.vendorId
     }, user.passwordHash);
-    return NextResponse.json({ ok: true, role: user.role, home: portalHome(user.role) });
+    return NextResponse.json({ ok: true, role: user.role, home: portalHome(access) });
   } catch (e) {
     return jsonError(e);
   }

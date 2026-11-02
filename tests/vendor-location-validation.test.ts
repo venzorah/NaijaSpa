@@ -1,0 +1,12 @@
+import { beforeEach, expect, it, vi } from "vitest";
+const mock = vi.hoisted(() => ({ update: vi.fn(), invalidate: vi.fn() }));
+vi.mock("../src/lib/auth", () => ({ getSession: async () => ({ id: "owner", vendorId: "vendor" }), requireUser: (user: unknown) => user }));
+vi.mock("../src/lib/db", () => ({ prisma: { vendor: { findUniqueOrThrow: async () => ({ applicationStatus: "draft", hoursJson: "{}" }), update: mock.update } } }));
+vi.mock("next/cache", () => ({ revalidateTag: mock.invalidate }));
+import { PATCH } from "../src/app/api/vendor/onboarding/route";
+const payload = { providerType: "spa", businessName: "Test spa", state: "Lagos", city: "Abuja", address: "Test address" };
+const request = (body: unknown) => new Request("http://localhost/api/vendor/onboarding", { method: "PATCH", body: JSON.stringify(body) });
+beforeEach(() => { vi.clearAllMocks(); mock.update.mockResolvedValue({ applicationStatus: "draft" }); });
+it("rejects a contradictory Abuja/Lagos profile without writing it", async () => { expect((await PATCH(request(payload))).status).toBe(400); expect(mock.update).not.toHaveBeenCalled(); });
+it("saves the canonical FCT state for an Abuja profile", async () => { expect((await PATCH(request({ ...payload, state: "Federal Capital Territory" }))).status).toBe(200); expect(mock.update.mock.calls[0][0].data.state).toBe("FCT"); expect(mock.invalidate).toHaveBeenCalledWith("home-catalog"); });
+it("allows other cities in Lagos without narrowing state coverage", async () => { expect((await PATCH(request({ ...payload, city: "Ikeja" }))).status).toBe(200); expect(mock.update.mock.calls[0][0].data.state).toBe("Lagos"); });

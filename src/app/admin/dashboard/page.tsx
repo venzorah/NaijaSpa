@@ -21,9 +21,9 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
   const sp = await searchParams;
   const range = sp.range === "7d" || sp.range === "90d" ? sp.range : "30d";
   const since = new Date(Date.now() - RANGES[range] * 864e5);
-  const canSeeMoney = hasPermission(user.role, "finance.view");
-  const canSeeCampaigns = hasPermission(user.role, "campaigns.manage") || hasPermission(user.role, "analytics.view");
-  const canSeeAudit = hasPermission(user.role, "audit.view");
+  const canSeeMoney = hasPermission(user, "finance.view");
+  const canSeeCampaigns = hasPermission(user, "campaigns.manage") || hasPermission(user, "analytics.view");
+  const canSeeAudit = hasPermission(user, "audit.view");
   const chartSince = new Date();
   chartSince.setMonth(chartSince.getMonth() - 5, 1);
   chartSince.setHours(0, 0, 0, 0);

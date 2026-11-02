@@ -219,7 +219,7 @@ export async function signInWithGoogle(profile: { googleId: string; email: strin
     if (portal === "vendor" && !isVendorRole(user.role)) {
       throw Object.assign(new Error("This is not a vendor account. Use customer or admin login."), { status: 403 });
     }
-    if (portal === "admin" && !isAdminRole(user.role)) {
+    if (portal === "admin" && !isAdminRole(await getRoleAccess(user.role))) {
       throw Object.assign(new Error("This is not an admin account. Use customer or vendor login."), { status: 403 });
     }
     if (!user.googleId || !user.emailVerifiedAt) {
@@ -249,6 +249,7 @@ export async function signInWithGoogle(profile: { googleId: string; email: strin
     queueMail(sendWelcomeEmail({ to: user.email, name: user.name, asVendor: portal === "vendor" }));
   }
 
-  const home = isNew && portal === "vendor" ? "/vendor/onboarding" : portalHome(user.role);
+  const home = isNew && portal === "vendor" ? "/vendor/onboarding" : portalHome(await getRoleAccess(user.role));
   return { home, isNew };
 }
+import { getRoleAccess } from "./admin-role-store";

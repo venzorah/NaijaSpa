@@ -23,7 +23,7 @@ const adBody = z.object({
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = requireUser(await getSession());
-    assertAnyPermission(user.role, ["cms.manage", "campaigns.manage"]);
+    assertAnyPermission(user, ["cms.manage", "campaigns.manage"]);
     const { id } = await params;
     const existing = await prisma.heroAd.findUnique({ where: { id } });
     if (!existing) return NextResponse.json({ error: "Ad not found" }, { status: 404 });
@@ -64,7 +64,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = requireUser(await getSession());
-    assertAnyPermission(user.role, ["cms.manage", "campaigns.manage"]);
+    assertAnyPermission(user, ["cms.manage", "campaigns.manage"]);
     const { id } = await params;
     const existing = await prisma.heroAd.findUnique({ where: { id } });
     if (!existing) return NextResponse.json({ error: "Ad not found" }, { status: 404 });

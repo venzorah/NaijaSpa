@@ -38,7 +38,7 @@ export default async function Page() {
       </div>
       <BookingsConsole
         editable={editable}
-        canSeeMoney={hasPermission(user.role, "finance.view") || editable}
+        canSeeMoney={hasPermission(user, "finance.view") || editable}
         rows={rows.map((b) => ({
           id: b.id,
           ref: b.id.slice(-8).toUpperCase(),

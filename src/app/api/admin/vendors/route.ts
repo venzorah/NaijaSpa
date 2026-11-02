@@ -10,11 +10,12 @@ import { grantVendorPlan } from "@/lib/subscription-lifecycle";
 import { ensureLiveVendorPlans } from "@/lib/vendor-plans-live";
 import { appUrl } from "@/lib/payments";
 import { queueMail, sendVendorInviteEmail } from "@/lib/mail";
+import { mapNigeriaState } from "@/lib/nigeria";
 
 export async function GET() {
   try {
     const user = requireUser(await getSession());
-    assertAnyPermission(user.role, ["vendors.manage", "vendors.verify"]);
+    assertAnyPermission(user, ["vendors.manage", "vendors.verify"]);
     const vendors = await prisma.vendor.findMany({ include: { owner: true, subscriptions: { include: { plan: true } } } });
     return NextResponse.json({ vendors });
   } catch (e) {
@@ -25,7 +26,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const actor = requireUser(await getSession());
-    assertPermission(actor.role, "vendors.invite");
+    assertPermission(actor, "vendors.invite");
     const body = z.object({ email: z.string().email(), businessName: z.string().min(2), city: z.string().min(2) }).parse(await req.json());
     const token = crypto.randomBytes(24).toString("hex");
     const tempPass = crypto.randomBytes(12).toString("base64url");
@@ -43,6 +44,7 @@ export async function POST(req: Request) {
         ownerId: owner.id,
         slug: `invite-${owner.id.slice(-6)}`,
         businessName: body.businessName,
+        state: mapNigeriaState(body.city),
         city: body.city,
         neighbourhood: "",
         address: "",

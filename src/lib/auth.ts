@@ -6,6 +6,8 @@ import { ROLES, type Role } from "./rbac";
 import { withTimeout } from "./timeout";
 import { persistSessionRecord } from "./session-store";
 import { cache } from "react";
+import { getRoleAccess } from "./admin-role-store";
+import type { Permission } from "./rbac";
 
 const COOKIE = "naijaspa_session";
 
@@ -18,6 +20,8 @@ export type SessionUser = {
   email: string;
   name: string;
   role: Role;
+  permissions?: Permission[];
+  roleLabel?: string;
   locale: string;
   theme: string | null;
   vendorId?: string | null;
@@ -95,6 +99,7 @@ export const getSession = cache(async (): Promise<SessionUser | null> => {
     const user = row.user;
     if (!user || user.status !== "active") return null;
     return {
+      ...await getRoleAccess(user.role),
       id: user.id,
       email: user.email,
       name: user.name,
