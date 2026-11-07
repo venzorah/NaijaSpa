@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { vendorEntitlement } from "@/lib/entitlements";
+import { VendorToastProvider } from "@/components/vendor/toasts";
 import { VendorPortal } from "@/components/vendor/portal";
 import { headers } from "next/headers";
 import { isVendorRole } from "@/lib/rbac";
@@ -33,7 +34,7 @@ export default async function VendorLayout({ children }: {
         prisma.notification.count({ where: { userId: user.id, readAt: null } })
     ]);
     const verified = vendor?.verificationStatus === "verified";
-    return (<VendorPortal subtitle={verified ? `Verified · ${vendor?.city || "Nigeria"}` : vendor?.applicationStatus?.replace(/_/g, " ") || "Vendor portal"} userName={user.name} businessName={vendor?.businessName || user.name} logoUrl={vendor?.logoUrl} planPaid={Boolean(ent?.activePaid)} planLabel={ent?.activePaid ? `Paid · ${ent.planCode}` : "Free plan"} commissionBps={ent?.commissionBps ?? 1000} bookingBadge={actionCount} alerts={openTickets}>
+    return (<VendorToastProvider><VendorPortal subtitle={verified ? `Verified · ${vendor?.city || "Nigeria"}` : vendor?.applicationStatus?.replace(/_/g, " ") || "Vendor portal"} userName={user.name} businessName={vendor?.businessName || user.name} logoUrl={vendor?.logoUrl} planPaid={Boolean(ent?.activePaid)} planLabel={ent?.activePaid ? `Paid · ${ent.planCode}` : "Free plan"} commissionBps={ent?.commissionBps ?? 1000} bookingBadge={actionCount} alerts={openTickets}>
       {children}
-    </VendorPortal>);
+    </VendorPortal></VendorToastProvider>);
 }

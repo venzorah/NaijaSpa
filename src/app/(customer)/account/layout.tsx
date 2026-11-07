@@ -1,0 +1,2 @@
+import {headers} from "next/headers";import {redirect} from "next/navigation";import {getSession} from "@/lib/auth";import {portalNext} from "@/lib/portal-auth";
+export default async function Layout({children}:{children:React.ReactNode}){const user=await getSession();const h=await headers();const next=portalNext(h.get("x-naijaspa-customer-path"),"customer");if(!user)redirect(`/login?${new URLSearchParams({next})}`);if(user.role!=="customer")redirect(`/customer-access?${new URLSearchParams({next})}`);return children;}

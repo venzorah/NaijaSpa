@@ -1,4 +1,5 @@
 "use client";
+import { useToast } from "@/components/vendor/toasts";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Building2, CalendarOff, Home, Hotel, Plus, Trash2 } from "lucide-react";
@@ -40,6 +41,7 @@ export function VendorAvailabilityConsole({ calendar, slots, locations, staff, b
     }[];
 }) {
     const router = useRouter();
+    const toast = useToast();
     const [locs, setLocs] = useState(locations);
     const [week, setWeek] = useState(DAYS.map((_, weekday) => {
         const slot = slots.find((s) => s.weekday === weekday);
@@ -57,46 +59,76 @@ export function VendorAvailabilityConsole({ calendar, slots, locations, staff, b
     const [to, setTo] = useState("");
     const [busy, setBusy] = useState(false);
     async function saveHours() {
+        if (busy)
+            return;
+        await toast.run(async () => {
+            setBusy(true);
+            try {
+                await adminJson("/api/vendor/availability", {
+                    method: "PUT",
+                    body: JSON.stringify({
+                        slots: week
+                            .filter((d) => !d.off)
+                            .map((d) => ({ weekday: d.weekday, startMin: timeToMin(d.start), endMin: timeToMin(d.end), bufferMin: d.bufferMin }))
+                    })
+                });
+                router.refresh();
+            }
+            finally {
+                setBusy(false);
+            }
+        }, "Business hours saved.");
+    }
+    async function setLocation(location: "spa" | "hotel" | "home", enabled: boolean) {
+        if (busy)
+            return;
         setBusy(true);
+        const previous = locs[location];
+        setLocs(p => ({ ...p, [location]: enabled }));
         try {
-            await adminJson("/api/vendor/availability", {
-                method: "PUT",
-                body: JSON.stringify({
-                    slots: week
-                        .filter((d) => !d.off)
-                        .map((d) => ({ weekday: d.weekday, startMin: timeToMin(d.start), endMin: timeToMin(d.end), bufferMin: d.bufferMin }))
-                })
-            });
-            router.refresh();
+            const saved = await toast.run(async () => { await adminJson("/api/vendor/services", { method: "PATCH", body: JSON.stringify({ location, locationEnabled: enabled }) }); router.refresh(); }, "Service locations updated.");
+            if (!saved)
+                setLocs(p => ({ ...p, [location]: previous }));
         }
         finally {
             setBusy(false);
         }
     }
-    async function setLocation(location: "spa" | "hotel" | "home", enabled: boolean) {
-        setLocs((p) => ({ ...p, [location]: enabled }));
-        await adminJson("/api/vendor/services", { method: "PATCH", body: JSON.stringify({ location, locationEnabled: enabled }) });
-        router.refresh();
-    }
     async function addBlock() {
-        if (!staffId || !from || !to || reason.length < 2)
+        if (!staffId || !from || !to || reason.length < 2) {
+            toast.error("Choose a therapist, start and end times, and a reason.");
+            return;
+        }
+        if (busy)
+            return;
+        await toast.run(async () => {
+            setBusy(true);
+            try {
+                await adminJson("/api/vendor/time-off", {
+                    method: "POST",
+                    body: JSON.stringify({ staffId, startsAt: `${from}:00+01:00`, endsAt: `${to}:00+01:00`, reason })
+                });
+                setReason("");
+                router.refresh();
+            }
+            finally {
+                setBusy(false);
+            }
+        }, "Blocked time added.");
+    }
+    async function removeBlock(id: string) {
+        if (busy)
             return;
         setBusy(true);
         try {
-            await adminJson("/api/vendor/time-off", {
-                method: "POST",
-                body: JSON.stringify({ staffId, startsAt: `${from}:00+01:00`, endsAt: `${to}:00+01:00`, reason })
-            });
-            setReason("");
-            router.refresh();
+            await toast.run(async () => {
+                await adminJson(`/api/vendor/time-off?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+                router.refresh();
+            }, "Blocked time removed.");
         }
         finally {
             setBusy(false);
         }
-    }
-    async function removeBlock(id: string) {
-        await fetch(`/api/vendor/time-off?id=${encodeURIComponent(id)}`, { method: "DELETE" });
-        router.refresh();
     }
     return (<div>
       <VendorPageHeader title="Availability" description="What guests can book, after shifts, buffers and blocked time."/>
@@ -134,7 +166,7 @@ export function VendorAvailabilityConsole({ calendar, slots, locations, staff, b
                   <p className="text-sm font-medium">{l.label}</p>
                   <p className="text-[11px] text-ink2">{locs[l.id] ? "Accepting bookings" : "Paused"}</p>
                 </div>
-                <input type="checkbox" checked={locs[l.id]} aria-label={`Accept ${l.label} bookings`} onChange={(e) => setLocation(l.id, e.target.checked)}/>
+                <input type="checkbox" disabled={busy} checked={locs[l.id]} aria-label={`Accept ${l.label} bookings`} onChange={(e) => setLocation(l.id, e.target.checked)}/>
               </div>))}
           </Panel>
           <div id="blocked-time" className="scroll-mt-20"><Panel title="Blocked time" description="Closures, training and holidays.">

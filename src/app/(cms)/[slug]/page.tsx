@@ -1,3 +1,4 @@
+import { getPlatformSettings } from "@/lib/platform-settings";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
@@ -201,13 +202,14 @@ export default async function CmsPage({ params }: { params: Promise<{ slug: stri
   }
 
   if (slug === "contact") {
+    const { supportEmail } = await getPlatformSettings();
     return (
       <div className="mx-auto max-w-5xl px-4 pt-6 lg:px-8">
         <PageHeader title={extra?.title || "Contact us"} subtitle="We’re here 8 AM – 10 PM, every day." />
         <div className="grid gap-6 md:grid-cols-[1fr_1.3fr]">
           <ul className="space-y-3">
             {[
-              [Mail, "Email", "concierge@naijaspa.com", "mailto:concierge@naijaspa.com"],
+              [Mail, "Email", supportEmail, `mailto:${supportEmail}`],
               [MessageCircle, "WhatsApp", SUPPORT_WHATSAPP_DISPLAY, supportWhatsAppHref("Hello NaijaSpa, I need help.")],
               [Phone, "Phone", "+234 1 555 0100", "tel:+23415550100"],
               [MapPin, "Office", "Lagos, Nigeria", ""],
@@ -248,6 +250,7 @@ export default async function CmsPage({ params }: { params: Promise<{ slug: stri
 
   const doc = LEGAL[slug];
   if (!doc) notFound();
+  const { supportEmail } = await getPlatformSettings();
   return (
     <div className="mx-auto max-w-3xl px-4 pt-6 lg:px-8">
       <PageHeader title={extra?.title || doc.title} subtitle="Last updated 24 October 2026 · For legal review" />
@@ -257,7 +260,7 @@ export default async function CmsPage({ params }: { params: Promise<{ slug: stri
             <h2 className="font-semibold text-ink">
               {i + 1}. {h}
             </h2>
-            <p className="mt-1 text-sm leading-relaxed text-ink2">{p}</p>
+            <p className="mt-1 text-sm leading-relaxed text-ink2">{p.replaceAll("concierge@naijaspa.com", supportEmail)}</p>
           </section>
         ))}
         {extra?.body ? (

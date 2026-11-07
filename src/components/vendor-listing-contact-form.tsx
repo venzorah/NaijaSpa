@@ -1,4 +1,5 @@
 "use client";
+import { useToastMessage } from "@/components/vendor/toasts";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -23,7 +24,7 @@ export function VendorListingContactForm({ highlightMissing = false }: { highlig
   const [paid, setPaid] = useState(false);
   const [visible, setVisible] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
+  const [message, setMessage, feedbackKind] = useToastMessage();
 
   useEffect(() => {
     void (async () => {
@@ -68,7 +69,7 @@ export function VendorListingContactForm({ highlightMissing = false }: { highlig
       }
       setPaid(Boolean(json.paid));
       setVisible(Boolean(json.public));
-      setMessage(json.public ? "Saved. These details now show on your public listing." : "Saved. They stay private until you subscribe to a paid listing plan.");
+      setMessage(json.public ? "Saved. These details now show on your public listing." : "Saved. They stay private until you subscribe to a paid listing plan.", "success");
     } catch {
       setMessage("Could not save. Check your connection.");
     } finally {
@@ -138,7 +139,7 @@ export function VendorListingContactForm({ highlightMissing = false }: { highlig
           ) : null}
         </div>
       </form>
-      {message ? <p className="mt-3 text-sm text-ink2">{message}</p> : null}
+      {message && feedbackKind === "error" ? <p className="mt-3 text-sm text-ink2">{message}</p> : null}
     </Panel>
   );
 }

@@ -1,3 +1,4 @@
+import { assertPortalAccount } from "./portal-auth";
 import { SignJWT, jwtVerify } from "jose";
 import { appUrl } from "./payments";
 import { isAdminRole, isVendorRole, portalHome, ROLES, type Role } from "./rbac";
@@ -236,6 +237,7 @@ export async function signInWithGoogle(profile: { googleId: string; email: strin
     if (portal === "admin" && !isAdminRole(await getRoleAccess(user.role))) {
       throw Object.assign(new Error("This is not an admin account. Use customer or vendor login."), { status: 403 });
     }
+    assertPortalAccount(await getRoleAccess(user.role), portal);
     if (intent === "register") {
       throw Object.assign(new Error("An account already exists for this Gmail. Sign in instead."), { status: 409 });
     }

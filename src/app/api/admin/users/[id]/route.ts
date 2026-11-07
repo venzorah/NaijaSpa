@@ -1,3 +1,4 @@
+import { deleteCustomer } from "@/lib/admin-account-actions";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/admin-auth";
@@ -18,6 +19,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       })
       .parse(await req.json());
     const before = await prisma.user.findUniqueOrThrow({ where: { id }, select: customerSelect });
+    if (before.status === "deleted") return NextResponse.json({error:"Customer not found"},{status:404});
     if (before.role !== "customer") return NextResponse.json({ error: "Only customer accounts can be changed here" }, { status: 400 });
     const data: { status?: string; name?: string; email?: string; phone?: string | null; deletionRequestedAt?: Date | null } = {};
     if (body.status) data.status = body.status;
@@ -42,3 +44,5 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     return jsonError(e);
   }
 }
+
+export async function DELETE(req: Request, {params}: {params:Promise<{id:string}>}) { try { const actor=await requireAdmin("users.manage"); const body=z.object({reason:z.string().trim().min(5).max(500)}).parse(await req.json()); return NextResponse.json(await deleteCustomer(actor,(await params).id,body.reason)); } catch(e){return jsonError(e);} }

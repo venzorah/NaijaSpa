@@ -7,7 +7,7 @@ export default async function Page() {
   const vendorId = user?.vendorId || "";
   const [services, categories] = await Promise.all([
     prisma.service.findMany({
-      where: { vendorId },
+      where: { vendorId, deletedAt: null },
       include: { category: { select: { id: true, name: true } }, _count: { select: { bookings: true } } },
       orderBy: { createdAt: "desc" }
     }),

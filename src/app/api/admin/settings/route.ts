@@ -1,3 +1,4 @@
+import { revalidateTag } from "next/cache";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/admin-auth";
@@ -30,6 +31,7 @@ export async function PUT(req: Request) {
     if (body.defaultLocale) await setConfig("settings.defaultLocale", body.defaultLocale);
     if (body.supportEmail) await setConfig("settings.supportEmail", body.supportEmail);
     if (body.pwaName) await setConfig("settings.pwaName", body.pwaName);
+    revalidateTag("platform-settings");
     await audit({ actorId: actor.id, action: "settings.update", entityType: "SystemConfig", entityId: "settings", after: body });
     return NextResponse.json({ ok: true });
   } catch (e) {

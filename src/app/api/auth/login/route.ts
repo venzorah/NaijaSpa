@@ -1,3 +1,4 @@
+import { assertPortalAccount } from "@/lib/portal-auth";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
@@ -34,6 +35,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "This is not a vendor account. Use customer or admin login." }, { status: 403 });
     }
     const access = await getRoleAccess(user.role);
+    if (body.expect) assertPortalAccount(access, body.expect);
     if (body.expect === "admin" && !isAdminRole(access)) {
       return NextResponse.json({ error: "This is not an admin account. Use customer or vendor login." }, { status: 403 });
     }

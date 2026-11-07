@@ -1,4 +1,5 @@
 "use client";
+import { useToast, useToastMessage } from "@/components/vendor/toasts";
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -95,9 +96,10 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
   const [step, setStep] = useState(() => readSavedStep(embedded));
   const [maxSeen, setMaxSeen] = useState(() => readSavedStep(embedded));
   const [form, setForm] = useState<Form>(empty);
+  const toast = useToast();
   const [status, setStatus] = useState("draft");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useToastMessage();
   const [done, setDone] = useState(false);
   const [banks, setBanks] = useState<Array<{ code: string; name: string }>>([]);
   const [plans, setPlans] = useState<VendorListingPlanView[]>(defaultVendorListingPlans());
@@ -126,7 +128,7 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
           })
           .catch(() => undefined);
         const res = await fetch("/api/vendor/onboarding");
-        if (!res.ok) return;
+        if (!res.ok) throw new Error("Could not load your application. Please reload and try again.");
         const json = (await res.json()) as { vendor?: Partial<Form> & { hoursJson?: string; applicationStatus?: string } };
         const v = json.vendor;
         if (!v) return;
@@ -169,7 +171,7 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
           }
         }
       } catch {
-        /* stay on blank form */
+        setError("Could not load your application. Please reload and try again.");
       }
     })();
   }, [embedded]);
@@ -244,8 +246,9 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
           return true;
         }
       }
-      if (submit) setDone(true);
-      else if (embedded) setError("Saved.");
+      if (submit) { setDone(true); toast.success("Application submitted for review."); }
+      else if (embedded) setError("Saved.", "success");
+      else toast.success("Progress saved.");
       return true;
     } catch {
       setError("Could not save. Check your connection.");

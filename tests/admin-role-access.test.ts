@@ -7,7 +7,7 @@ vi.mock("../src/lib/db", () => {
     auditLog: { create: mock.audit }, session: { deleteMany: mock.revoke },
     user: {
       findUnique: async ({ where }: { where: { id: string } }) => mock.users.get(where.id) ?? null,
-      count: async ({ where }: { where: { role: string; status?: string } }) => [...mock.users.values()].filter(user => user.role === where.role && (!where.status || user.status === where.status)).length,
+      count: async ({ where }: { where: { role: string; status?: string | {not:string} } }) => [...mock.users.values()].filter(user => user.role === where.role && (!where.status || (typeof where.status === "string" ? user.status === where.status : user.status !== where.status.not))).length,
       update: async ({ where, data }: { where: { id: string }; data: { role: string } }) => { const user = { ...mock.users.get(where.id)!, role: data.role }; mock.users.set(user.id, user); return { id: user.id, role: user.role, name: user.name, email: user.email }; }
     }
   };

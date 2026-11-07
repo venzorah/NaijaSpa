@@ -1,3 +1,4 @@
+import { portalNext } from "@/lib/portal-auth";
 import { redirect } from "next/navigation";
 import { PortalLogin } from "@/components/portal-login";
 import { getSession } from "@/lib/auth";
@@ -10,7 +11,8 @@ export default async function CustomerLoginPage({
 }) {
   const [user, sp] = await Promise.all([getSession(), searchParams]);
   const next = typeof sp.next === "string" ? sp.next : undefined;
-  if (user) redirect(safeNext(next, "/account/dashboard"));
+  if (user && user.role !== "customer") redirect(`/customer-access?${new URLSearchParams({next:portalNext(next,"customer")})}`);
+  if (user) redirect(portalNext(next, "customer"));
   return (
     <PortalLogin
       portal="customer"

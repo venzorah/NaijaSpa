@@ -10,6 +10,7 @@ export const categoryAdminSelect = {
   imageUrl: true,
   sortOrder: true,
   active: true,
+  deletedAt: true,
   archivedAt: true,
   services: { select: { vendorId: true } }
 } as const;
@@ -26,4 +27,5 @@ export const categoryAuditSelect = {
   sortOrder: true,
   active: true,
   archivedAt: true
+  ,deletedAt: true
 } as const;

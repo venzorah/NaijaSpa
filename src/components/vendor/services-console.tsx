@@ -1,4 +1,5 @@
 "use client";
+import { useToast } from "@/components/vendor/toasts";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -38,6 +39,8 @@ export function VendorServicesConsole({ rows, categories }: {
     }[];
 }) {
     const router = useRouter();
+    const toast = useToast();
+    const [busy, setBusy] = useState(false);
     const [query, setQuery] = useState("");
     const [cat, setCat] = useState("all");
     const [open, setOpen] = useState(false);
@@ -52,8 +55,18 @@ export function VendorServicesConsole({ rows, categories }: {
     function startNew() { setEditing(null); setOpen(true); }
     function startEdit(row: Row) { setEditing(row); setOpen(true); }
     async function toggle(s: Row, active: boolean) {
-        await adminJson("/api/vendor/services", { method: "PATCH", body: JSON.stringify({ id: s.id, active }) });
-        router.refresh();
+        if (busy)
+            return;
+        setBusy(true);
+        try {
+            await toast.run(async () => {
+                await adminJson("/api/vendor/services", { method: "PATCH", body: JSON.stringify({ id: s.id, active }) });
+                router.refresh();
+            }, "Service availability updated.");
+        }
+        finally {
+            setBusy(false);
+        }
     }
     return (<div>
       <VendorPageHeader title="Services" description="Create, price and organise everything you offer." actions={<button type="button" className={adminBtn} disabled={!categories.length} onClick={startNew}>
@@ -115,7 +128,7 @@ export function VendorServicesConsole({ rows, categories }: {
                       <p className="w-24 text-right font-display text-lg">{formatNgn(s.basePriceKobo)}</p>
                       {!s.active ? <AdminStatusPill status="Inactive"/> : null}
                       <label className="inline-flex items-center gap-2 text-xs">
-                        <input type="checkbox" checked={s.active} onChange={(e) => toggle(s, e.target.checked)}/>
+                        <input type="checkbox" disabled={busy} checked={s.active} onChange={(e) => toggle(s, e.target.checked)}/>
                         Live
                       </label>
                       <Link href={`/services/${encodeURIComponent(s.slug)}`} className={adminBtnOutline} aria-label={`View ${s.name} on site`}>

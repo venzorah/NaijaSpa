@@ -1,3 +1,5 @@
+import { requireAdmin } from "@/lib/admin-auth";
+import { deleteVendor } from "@/lib/admin-account-actions";
 import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import { z } from "zod";
@@ -14,6 +16,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     assertPermission(actor, "vendors.manage");
     const { id } = await params;
     const before = await prisma.vendor.findUniqueOrThrow({ where: { id } });
+    if (before.applicationStatus === "deleted") return NextResponse.json({error:"Vendor not found"},{status:404});
     const body = z
       .object({
         applicationStatus: z.enum(["draft", "submitted", "under_review", "approved", "rejected", "suspended"]).optional(),
@@ -40,3 +43,5 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     return jsonError(e);
   }
 }
+
+export async function DELETE(req:Request,{params}:{params:Promise<{id:string}>}) {try{const actor=await requireAdmin("vendors.manage");const body=z.object({reason:z.string().trim().min(5).max(500)}).parse(await req.json());const result=await deleteVendor(actor,(await params).id,body.reason);revalidateTag("home-catalog");revalidateTag("home-hero");return NextResponse.json(result);}catch(e){return jsonError(e);}}

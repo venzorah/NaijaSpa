@@ -1,4 +1,5 @@
 "use client";
+import { AdminAccountControls } from "./account-controls";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ALL_ADMIN, ROLES, type Permission } from "@/lib/rbac";
@@ -14,7 +15,7 @@ const labels: Record<string, string> = Object.fromEntries(ADMIN_PERMISSION_ROWS.
 labels["admin.access"] = "Open the admin dashboard";
 labels["analytics.view"] = "View analytics";
 labels["roles.manage"] = "System settings and roles overview (role changes remain super-admin only)";
-export function RolesConsole({ roles, admins, editable, selfId }: { roles: AdminRoleDefinition[]; admins: { id: string; name: string; email: string; role: string }[]; editable: boolean; selfId: string }) {
+export function RolesConsole({ roles, admins, editable, selfId }: { roles: AdminRoleDefinition[]; admins: { id: string; name: string; email: string; role: string; status: string }[]; editable: boolean; selfId: string }) {
   const router = useRouter();
   const [editing, setEditing] = useState<AdminRoleDefinition | null>(null);
   const [busy, setBusy] = useState(false), [message, setMessage] = useState("");
@@ -34,8 +35,9 @@ export function RolesConsole({ roles, admins, editable, selfId }: { roles: Admin
       </li>)}</ul>
     </Panel>
     <Panel title="Admin account assignments" description="Assign roles to existing admin accounts. Reassignment signs the account out so it must sign in with its new access.">
-      <ul className="space-y-2">{admins.map(user => <li key={user.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line p-3"><div><p className="text-sm font-medium">{user.name}{user.id === selfId ? " (you)" : ""}</p><p className="text-xs text-ink2">{user.email}</p></div>
+      <div className="mb-4"><AdminAccountControls roles={roles} editable={editable} selfId={selfId}/></div><ul className="space-y-2">{admins.map(user => <li key={user.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-line p-3"><div><p className="text-sm font-medium">{user.name}{user.id === selfId ? " (you)" : ""}</p><p className="text-xs text-ink2">{user.email}</p></div>
         <select aria-label={`Role for ${user.name}`} className={`${adminField} max-w-72`} value={user.role} disabled={!editable || user.id === selfId || busy} onChange={e => { const role = e.target.value; void perform(() => adminJson("/api/admin/roles", { method: "PATCH", body: JSON.stringify({ userId: user.id, role }) }), "Role assigned. The account can sign in again.").catch(() => {}); }}>{roles.map(role => <option key={role.key} value={role.key}>{role.label}</option>)}</select>
+        <AdminAccountControls user={user} roles={roles} editable={editable} selfId={selfId}/>
       </li>)}</ul>
     </Panel>
     {editing ? <EditorModal title={editing.key ? `Role · ${editing.label}` : "Create role"} busy={busy} onClose={() => setEditing(null)}>

@@ -1,4 +1,5 @@
 "use client";
+import { useToast, useToastMessage } from "@/components/vendor/toasts";
 import { useEffect, useRef, useState } from "react";
 import { ImagePlus, LoaderCircle, Upload, X } from "lucide-react";
 import { EditorModal } from "@/components/admin/editor-modal";
@@ -15,6 +16,7 @@ export function ServiceEditorModal({ value, categories, vendors, admin = false, 
   value?: ServiceEditorValue; categories: { id: string; name: string }[];
   vendors?: { id: string; businessName: string }[]; admin?: boolean; onClose: () => void; onSaved: () => void;
 }) {
+  const toast = useToast();
   const [name, setName] = useState(value?.name ?? ""), [description, setDescription] = useState(value?.description ?? "");
   const [categoryId, setCategoryId] = useState(value?.categoryId ?? categories[0]?.id ?? "");
   const [vendorId, setVendorId] = useState(value?.vendorId ?? vendors?.[0]?.id ?? "");
@@ -25,8 +27,8 @@ export function ServiceEditorModal({ value, categories, vendors, admin = false, 
   const [file, setFile] = useState<File | null>(null), [preview, setPreview] = useState(value?.imageUrl ?? "");
   const [galleryId, setGalleryId] = useState(""), [removed, setRemoved] = useState(false);
   const [galleries, setGalleries] = useState<Gallery[]>([]), [showGallery, setShowGallery] = useState(false);
-  const [galleryLoading, setGalleryLoading] = useState(false), [galleryError, setGalleryError] = useState("");
-  const [busy, setBusy] = useState(false), [error, setError] = useState("");
+  const [galleryLoading, setGalleryLoading] = useState(false), [galleryError, setGalleryError] = useToastMessage();
+  const [busy, setBusy] = useState(false), [error, setError] = useToastMessage();
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (!file) return;
@@ -55,6 +57,7 @@ export function ServiceEditorModal({ value, categories, vendors, admin = false, 
       const response = await fetch(url, { method: value ? "PATCH" : "POST", body: form });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || "Could not save this service.");
+      toast.success(value ? "Service updated." : "Service created.");
       onSaved();
     } catch (error) { setError(error instanceof Error ? error.message : "Could not save this service."); }
     finally { setBusy(false); }

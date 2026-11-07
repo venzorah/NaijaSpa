@@ -2,13 +2,14 @@ import crypto from "crypto";
 import { prisma } from "./db";
 import { confirmBookingFromPayment } from "./booking";
 import { canonicalVendorPlanCode } from "./vendor-plans";
+import { paystackMode, reusablePaystackCheckout } from "./paystack-checkout";
 
 export function paystackConfigured() {
   return Boolean(process.env.PAYSTACK_SECRET_KEY);
 }
 
 export function paystackPublicKey() {
-  return process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || process.env.PAYSTACK_PUBLIC_KEY || "";
+  return process.env.PAYSTACK_PUBLIC_KEY || process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "";
 }
 
 export function appUrl() {
@@ -68,7 +69,7 @@ export async function initPayment(input: {
       },
       orderBy: { createdAt: "desc" }
     });
-    if (pending?.providerRef) {
+    if (pending?.providerRef && reusablePaystackCheckout(pending.rawPayload, process.env.PAYSTACK_SECRET_KEY)) {
       return {
         payment: pending,
         authorizationUrl: `https://checkout.paystack.com/${pending.providerRef}`,
@@ -92,7 +93,7 @@ export async function initPayment(input: {
       status: "initialized",
       reference,
       idempotencyKey: reference,
-      rawPayload: JSON.stringify({ metadata: input.metadata ?? {} })
+      rawPayload: JSON.stringify({ paystackMode: paystackMode(process.env.PAYSTACK_SECRET_KEY), metadata: input.metadata ?? {} })
     }
   });
 
@@ -151,7 +152,7 @@ export async function initPayment(input: {
     data: {
       status: "pending",
       providerRef: data.data.access_code,
-      rawPayload: JSON.stringify({ access_code: data.data.access_code, metadata: input.metadata ?? {} })
+      rawPayload: JSON.stringify({ paystackMode: paystackMode(process.env.PAYSTACK_SECRET_KEY), access_code: data.data.access_code, metadata: input.metadata ?? {} })
     }
   });
 

@@ -1,4 +1,5 @@
 "use client";
+import { useToast } from "@/components/vendor/toasts";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { UserPlus } from "lucide-react";
@@ -36,6 +37,7 @@ export function VendorStaffConsole({ staff, timeline }: {
     timeline?: React.ReactNode;
 }) {
     const router = useRouter();
+    const toast = useToast();
     const [selectedId, setSelectedId] = useState(staff[0]?.id ?? "");
     const selected = staff.find((s) => s.id === selectedId) ?? staff[0];
     const [name, setName] = useState("");
@@ -73,48 +75,76 @@ export function VendorStaffConsole({ staff, timeline }: {
         setBuffer(w.find((d) => !d.off)?.bufferMin ?? 15);
     }
     async function add() {
-        setBusy(true);
-        try {
-            await adminJson("/api/vendor/staff", { method: "POST", body: JSON.stringify({ name, title, gender }) });
-            setName("");
-            router.refresh();
-        }
-        finally {
-            setBusy(false);
-        }
+        if (busy)
+            return;
+        await toast.run(async () => {
+            setBusy(true);
+            try {
+                await adminJson("/api/vendor/staff", { method: "POST", body: JSON.stringify({ name, title, gender }) });
+                setName("");
+                router.refresh();
+            }
+            finally {
+                setBusy(false);
+            }
+        }, "Therapist added.");
     }
     async function saveMeta() {
         if (!selected)
             return;
-        await adminJson("/api/vendor/staff", {
-            method: "PATCH",
-            body: JSON.stringify({ id: selected.id, name: selected.name, title: selected.title, gender: selected.gender, bio: selected.bio, active: selected.active })
-        });
-        router.refresh();
-    }
-    async function saveSchedule() {
-        if (!selected)
+        if (busy)
             return;
         setBusy(true);
         try {
-            await adminJson("/api/vendor/availability", {
-                method: "PUT",
-                body: JSON.stringify({
-                    staffId: selected.id,
-                    slots: draft
-                        .filter((d) => !d.off)
-                        .map((d) => ({ weekday: d.weekday, startMin: timeToMin(d.start), endMin: timeToMin(d.end), bufferMin: buffer }))
-                })
-            });
-            router.refresh();
+            await toast.run(async () => {
+                await adminJson("/api/vendor/staff", {
+                    method: "PATCH",
+                    body: JSON.stringify({ id: selected.id, name: selected.name, title: selected.title, gender: selected.gender, bio: selected.bio, active: selected.active })
+                });
+                router.refresh();
+            }, "Therapist details saved.");
         }
         finally {
             setBusy(false);
         }
     }
+    async function saveSchedule() {
+        if (!selected)
+            return;
+        if (busy)
+            return;
+        await toast.run(async () => {
+            setBusy(true);
+            try {
+                await adminJson("/api/vendor/availability", {
+                    method: "PUT",
+                    body: JSON.stringify({
+                        staffId: selected.id,
+                        slots: draft
+                            .filter((d) => !d.off)
+                            .map((d) => ({ weekday: d.weekday, startMin: timeToMin(d.start), endMin: timeToMin(d.end), bufferMin: buffer }))
+                    })
+                });
+                router.refresh();
+            }
+            finally {
+                setBusy(false);
+            }
+        }, "Therapist schedule saved.");
+    }
     async function toggleActive(id: string, active: boolean) {
-        await adminJson("/api/vendor/staff", { method: "PATCH", body: JSON.stringify({ id, active }) });
-        router.refresh();
+        if (busy)
+            return;
+        setBusy(true);
+        try {
+            await toast.run(async () => {
+                await adminJson("/api/vendor/staff", { method: "PATCH", body: JSON.stringify({ id, active }) });
+                router.refresh();
+            }, "Therapist availability updated.");
+        }
+        finally {
+            setBusy(false);
+        }
     }
     return (<div>
       <VendorPageHeader title="Staff & schedules" description="Therapist shifts and buffers drive what guests can book."/>
@@ -159,7 +189,7 @@ export function VendorStaffConsole({ staff, timeline }: {
           {selected ? (<Panel title={selected.name} description={`${selected.bookings} bookings · ${selected.title || "Therapist"}`}>
               <div className="mb-4 flex items-center justify-between rounded-xl border border-line px-4 py-3">
                 <span className="text-sm">Visible on booking</span>
-                <input type="checkbox" checked={selected.active} onChange={(e) => toggleActive(selected.id, e.target.checked)}/>
+                <input type="checkbox" disabled={busy} checked={selected.active} onChange={(e) => toggleActive(selected.id, e.target.checked)}/>
               </div>
               <FormRow label="Buffer between bookings" htmlFor="st-buffer">
                 <select id="st-buffer" className={adminField} value={buffer} onChange={(e) => setBuffer(Number(e.target.value))}>

@@ -1,0 +1,2 @@
+import {NextResponse} from "next/server";import {requireAdmin} from "@/lib/admin-auth";import {createAdminAccount} from "@/lib/admin-account-actions";import {jsonError} from "@/lib/http";
+export async function POST(req:Request){try{return NextResponse.json(await createAdminAccount(await requireAdmin("roles.manage"),await req.json()));}catch(e){if(e&&typeof e==="object"&&"code" in e&&e.code==="P2002")return NextResponse.json({error:"This email is already registered."},{status:409});return jsonError(e);}}

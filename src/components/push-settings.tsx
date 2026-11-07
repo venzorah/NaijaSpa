@@ -1,4 +1,5 @@
 "use client";
+import { useToastMessage } from "@/components/vendor/toasts";
 import { useEffect, useState } from "react";
 
 function keyBytes(value: string) {
@@ -28,7 +29,7 @@ async function preparePushWorker() {
   return registration;
 }
 export function PushSettings() {
-  const [enabled, setEnabled] = useState(false), [ready, setReady] = useState(false), [busy, setBusy] = useState(false), [message, setMessage] = useState("");
+  const [enabled, setEnabled] = useState(false), [ready, setReady] = useState(false), [busy, setBusy] = useState(false), [message, setMessage] = useToastMessage();
   const [supported, setSupported] = useState(false);
   useEffect(() => {
     const available = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
@@ -61,7 +62,7 @@ export function PushSettings() {
       subscription ??= await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: expected });
       const saved = await fetch("/api/account/push", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(subscription.toJSON()) });
       if (!saved.ok) throw new Error((await saved.json()).error || "Could not save this browser's subscription.");
-      setEnabled(true); setMessage("Notifications enabled on this browser.");
+      setEnabled(true); setMessage("Notifications enabled on this browser.", "success");
     } catch (error) { setMessage(error instanceof Error ? error.message : "Could not enable notifications."); }
     finally { setBusy(false); }
   }
@@ -75,7 +76,7 @@ export function PushSettings() {
         if (!response.ok) throw new Error("Could not disable notifications. Try again.");
         await subscription.unsubscribe();
       }
-      setEnabled(false); setMessage("Notifications disabled on this browser.");
+      setEnabled(false); setMessage("Notifications disabled on this browser.", "success");
     } catch (error) { setMessage(error instanceof Error ? error.message : "Could not disable notifications."); }
     finally { setBusy(false); }
   }
@@ -85,7 +86,7 @@ export function PushSettings() {
       await preparePushWorker();
       const response = await fetch("/api/account/push/test", { method: "POST" }); const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Could not send the test notification.");
-      setMessage("Test notification accepted by the push service. Check your device notifications.");
+      setMessage("Test notification accepted by the push service. Check your device notifications.", "success");
     } catch (error) { setMessage(error instanceof Error ? error.message : "Could not send test notification."); }
     finally { setBusy(false); }
   }
@@ -96,7 +97,7 @@ export function PushSettings() {
       const registration = await preparePushWorker();
       await registration.showNotification("NaijaSpa device test", { body: "Notifications are enabled for this browser.", icon: "/icons/icon-192.png", tag: "naijaspa-device-test", data: { url: "/account/settings" } });
       const visible = await registration.getNotifications({ tag: "naijaspa-device-test" });
-      setMessage(visible.length ? "The browser created the device test. If no alert appeared, check Windows notifications for your browser and Do Not Disturb." : "The browser did not retain the test notification. Check browser and device notification settings.");
+      setMessage(visible.length ? "The browser created the device test. If no alert appeared, check Windows notifications for your browser and Do Not Disturb." : "The browser did not retain the test notification. Check browser and device notification settings.", visible.length ? "success" : "info");
     } catch (error) { setMessage(error instanceof Error ? error.message : "Device notification test failed."); }
     finally { setBusy(false); }
   }

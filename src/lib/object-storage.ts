@@ -24,7 +24,7 @@ function client() {
 }
 
 function validKey(key: string) {
-  if (!/^(galleries\/[a-zA-Z0-9_-]+|categories)\/[a-zA-Z0-9_-]+\.(png|jpg|jpeg|gif|webp)$/.test(key)) throw new Error("Invalid media object key");
+  if (!/^(galleries\/[a-zA-Z0-9_-]+|categories|library)\/[a-zA-Z0-9_-]+\.(png|jpg|jpeg|gif|webp)$/.test(key)) throw new Error("Invalid media object key");
   return key;
 }
 

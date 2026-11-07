@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 import { formatNgn } from "@/lib/money";
 import { verifyPaystack } from "@/lib/payments";
 import { VendorPageHeader } from "@/components/vendor/page-header";
+import { ToastOnMount } from "@/components/vendor/toasts";
 
 export default async function VendorSubscriptionVerifyPage({
   searchParams
@@ -19,6 +20,7 @@ export default async function VendorSubscriptionVerifyPage({
   if (!reference) {
     return (
       <div>
+        <ToastOnMount kind="error" message="Payment reference was not returned. Please return to your listing plans." />
         <VendorPageHeader title="Payment not found" description="Paystack did not return a reference." />
         <Link href="/vendor/subscriptions" className="inline-flex min-h-11 items-center rounded-full bg-gold px-5 text-sm font-bold text-ongold">
           Listing plans
@@ -38,6 +40,7 @@ export default async function VendorSubscriptionVerifyPage({
   const ok = status === "success";
   return (
     <div>
+      <ToastOnMount kind={ok ? "success" : "info"} message={ok ? "Payment confirmed." : "Payment is still pending confirmation."} />
       <div className="flex flex-col items-center text-center">
         <span className="flex h-20 w-20 items-center justify-center rounded-full border border-gold/50 bg-gold/15">
           <Check className="h-10 w-10 text-goldink" aria-hidden />

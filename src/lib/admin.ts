@@ -34,6 +34,7 @@ export type AdminScreenId =
   | "campaigns"
   | "cms"
   | "hero"
+  | "library"
   | "support"
   | "ai"
   | "roles"
@@ -183,6 +184,9 @@ export const ADMIN_SCREENS: {
     description: "Edit the homepage banner and create, pause or remove paid vendor adverts.",
     view: ["cms.manage", "campaigns.manage"],
     edit: ["cms.manage", "campaigns.manage"]
+  },
+  {
+    id: "library", href: "/admin/library", label: "Image library", group: "Content & care", icon: FolderTree, description: "Upload, browse and reuse platform images.", view: ["cms.manage", "catalog.manage", "campaigns.manage"], edit: ["cms.manage", "catalog.manage", "campaigns.manage"]
   },
   {
     id: "support",

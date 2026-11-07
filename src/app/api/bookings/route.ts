@@ -1,3 +1,4 @@
+import { assertPortalAccount } from "@/lib/portal-auth";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getSession, requireUser } from "@/lib/auth";
@@ -8,6 +9,7 @@ import { prisma } from "@/lib/db";
 export async function GET() {
   try {
     const user = requireUser(await getSession());
+    assertPortalAccount(user, "customer");
     const bookings = await prisma.booking.findMany({
       where: { customerId: user.id },
       include: {
@@ -26,6 +28,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const user = requireUser(await getSession());
+    assertPortalAccount(user, "customer");
     const body = z
       .object({
         serviceId: z.string(),
@@ -58,6 +61,7 @@ export async function POST(req: Request) {
 export async function PATCH(req: Request) {
   try {
     const user = requireUser(await getSession());
+    assertPortalAccount(user, "customer");
     const body = z
       .object({
         id: z.string(),

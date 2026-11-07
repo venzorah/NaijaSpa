@@ -8,6 +8,7 @@ export default async function CategoriesPage() {
   const { editable } = await requireAdminScreen("categories");
   const categories = await prisma.category
     .findMany({
+      where: { deletedAt: null },
       orderBy: { sortOrder: "asc" },
       select: categoryAdminSelect
     })

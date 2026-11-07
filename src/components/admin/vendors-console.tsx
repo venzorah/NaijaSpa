@@ -251,6 +251,7 @@ export function VendorsConsole({
                   requireReason
                   onConfirm={() => patchStatus(selected.id, "suspended", { visibility: "hidden" })}
                 />
+                <ConfirmAction triggerLabel="Delete vendor" triggerClassName="text-red-600 border-red-300" disabled={!editable} title={`Delete ${selected.businessName}?`} description="Remove the vendor from listings and disable its account and services. Booking, payment and payout history are preserved." confirmLabel="Delete vendor" requireReason onConfirm={async reason => { await adminJson(`/api/admin/vendors/${selected.id}`,{method:"DELETE",body:JSON.stringify({reason})});router.refresh();}} />
               </div>
               {msg ? <p className="mt-3 text-xs text-goldink">{msg}</p> : null}
             </Panel>

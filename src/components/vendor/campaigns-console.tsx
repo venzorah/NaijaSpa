@@ -1,4 +1,5 @@
 "use client";
+import { useToast } from "@/components/vendor/toasts";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -26,27 +27,42 @@ export function VendorCampaignsConsole({ eligible, services, rows }: {
     }[];
 }) {
     const router = useRouter();
+    const toast = useToast();
     const [placement, setPlacement] = useState("home_hero");
     const [serviceId, setServiceId] = useState(services[0]?.id ?? "");
     const [startsAt, setStartsAt] = useState("");
     const [endsAt, setEndsAt] = useState("");
     const [busy, setBusy] = useState(false);
     async function create() {
+        if (busy)
+            return;
+        await toast.run(async () => {
+            setBusy(true);
+            try {
+                await adminJson("/api/vendor/campaigns", {
+                    method: "POST",
+                    body: JSON.stringify({ placement, serviceId: serviceId || undefined, startsAt, endsAt })
+                });
+                router.refresh();
+            }
+            finally {
+                setBusy(false);
+            }
+        }, "Campaign created.");
+    }
+    async function toggle(id: string, active: boolean) {
+        if (busy)
+            return;
         setBusy(true);
         try {
-            await adminJson("/api/vendor/campaigns", {
-                method: "POST",
-                body: JSON.stringify({ placement, serviceId: serviceId || undefined, startsAt, endsAt })
-            });
-            router.refresh();
+            await toast.run(async () => {
+                await adminJson("/api/vendor/campaigns", { method: "PATCH", body: JSON.stringify({ id, active }) });
+                router.refresh();
+            }, "Campaign updated.");
         }
         finally {
             setBusy(false);
         }
-    }
-    async function toggle(id: string, active: boolean) {
-        await adminJson("/api/vendor/campaigns", { method: "PATCH", body: JSON.stringify({ id, active }) });
-        router.refresh();
     }
     return (<div>
       <VendorPageHeader title="Sponsored" description="Boost a listing on home, search and category placements."/>

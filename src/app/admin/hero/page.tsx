@@ -1,5 +1,5 @@
 "use client";
-
+import { AdminImageField } from "@/components/admin/image-field";
 import { useCallback, useEffect, useState } from "react";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { ConfirmAction } from "@/components/admin/confirm-action";
@@ -32,7 +32,7 @@ export default function HeroAdsPage() {
   }}><fieldset disabled={busy} className="grid gap-3 disabled:opacity-60">
     <TextField name="title" label="Advert title" value={ad?.title} maxLength={80} />
     <TextField name="body" label="Details" value={ad?.body} required={false} maxLength={280} />
-    <TextField name="imageUrl" label="Image URL" value={ad?.imageUrl ?? "/photos/spa.jpg"} />
+    <AdminImageField name="imageUrl" label="Advert image" defaultValue={ad?.imageUrl ?? "/photos/spa.jpg"} onBusyChange={setBusy} />
     <label className="text-sm">Linked vendor<select name="vendorId" defaultValue={ad?.vendorId ?? ""} className={`${adminField} mt-1`}><option value="">No linked vendor</option>{data?.vendors.map(v => <option key={v.id} value={v.id}>{v.businessName}</option>)}</select></label>
     <TextField name="ctaLabel" label="Button label" value={ad?.ctaLabel ?? "View vendor"} maxLength={40} />
     <TextField name="ctaHref" label="Button link" value={ad?.ctaHref ?? "/explore"} maxLength={240} />
@@ -52,7 +52,7 @@ export default function HeroAdsPage() {
         <fieldset disabled={busy || !data.canEditBanner} className="grid gap-3 disabled:opacity-60">
           <TextField name="kicker" label="Kicker" value={data.banner.kicker} maxLength={80} /><TextField name="title" label="Title" value={data.banner.title} maxLength={120} />
           <TextField name="subtitle" label="Details" value={data.banner.subtitle} required={false} maxLength={240} /><TextField name="priceLine" label="Price line" value={data.banner.priceLine} required={false} maxLength={80} />
-          <TextField name="ctaLabel" label="Button label" value={data.banner.ctaLabel} maxLength={40} /><TextField name="ctaHref" label="Button link" value={data.banner.ctaHref} maxLength={240} /><TextField name="imageUrl" label="Banner image URL" value={data.banner.imageUrl} />
+          <TextField name="ctaLabel" label="Button label" value={data.banner.ctaLabel} maxLength={40} /><TextField name="ctaHref" label="Button link" value={data.banner.ctaHref} maxLength={240} /><AdminImageField name="imageUrl" label="Banner image" defaultValue={data.banner.imageUrl} onBusyChange={setBusy} />
           <label className="text-sm">Adverts to display<input className={adminField} name="displayLimit" type="number" min={1} max={8} required defaultValue={data.displayLimit} /></label>
           <button className={adminBtn}>Save banner</button>
         </fieldset>

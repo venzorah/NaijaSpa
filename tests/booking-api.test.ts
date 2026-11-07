@@ -5,8 +5,13 @@ vi.mock("../src/lib/auth", () => ({ getSession: mocks.session, requireUser: (use
 vi.mock("../src/lib/booking", () => ({ createBooking: vi.fn(), requestCancellation: vi.fn() }));
 import { GET } from "../src/app/api/bookings/route";
 
-beforeEach(() => { vi.resetAllMocks(); mocks.session.mockResolvedValue({ id: "customer" }); mocks.findMany.mockResolvedValue([]); });
+beforeEach(() => { vi.resetAllMocks(); mocks.session.mockResolvedValue({ id: "customer", role: "customer" }); mocks.findMany.mockResolvedValue([]); });
 describe("customer booking data", () => {
+  it("rejects vendor accounts before querying customer bookings", async () => {
+    mocks.session.mockResolvedValue({id:"vendor",role:"vendor_owner"});
+    expect((await GET()).status).toBe(403);
+    expect(mocks.findMany).not.toHaveBeenCalled();
+  });
   it("scopes results to the customer and selects only safe vendor/payment fields", async () => {
     const response = await GET();
     expect(response.status).toBe(200);

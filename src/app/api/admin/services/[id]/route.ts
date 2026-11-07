@@ -1,3 +1,5 @@
+import { deleteCatalogEntry } from "@/lib/admin-catalog-delete";
+import { requireAdmin as requireCatalogAdmin } from "@/lib/admin-auth";
 import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import { z } from "zod";
@@ -12,6 +14,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const actor = await requireAdmin("catalog.manage");
     const { id } = await params;
     const before = await prisma.service.findUniqueOrThrow({ where: { id } });
+    if (before.deletedAt) return NextResponse.json({error:"Service not found"},{status:404});
     if (req.headers.get("content-type")?.includes("multipart/form-data")) {
       const { data, file } = await readServiceRequest(req);
       const service = await saveService(before.vendorId, data, file, id);
@@ -46,3 +49,5 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     return jsonError(e);
   }
 }
+
+export async function DELETE(req:Request,{params}:{params:Promise<{id:string}>}){try{const actor=await requireCatalogAdmin("catalog.manage");const body=z.object({reason:z.string().trim().min(5).max(500)}).parse(await req.json());const result=await deleteCatalogEntry(actor.id,(await params).id,"service",body.reason);revalidateTag("home-catalog");return NextResponse.json(result);}catch(e){return jsonError(e);}}

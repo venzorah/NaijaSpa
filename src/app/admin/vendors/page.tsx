@@ -8,6 +8,7 @@ export default async function AdminVendorsPage() {
   const { editable } = await requireAdminScreen("vendors");
   const [vendors, listingPlans] = await Promise.all([
     prisma.vendor.findMany({
+      where: { applicationStatus: { not: "deleted" } },
       include: {
         owner: { select: { name: true, email: true } },
         subscriptions: {

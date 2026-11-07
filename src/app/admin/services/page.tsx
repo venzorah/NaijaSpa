@@ -6,6 +6,7 @@ import { ServicesConsole } from "@/components/admin/services-console";
 export default async function ServicesPage() {
   const { editable } = await requireAdminScreen("services");
   const services = await prisma.service.findMany({
+    where: { deletedAt: null, vendor: {applicationStatus: {not:"deleted"}} },
     include: { vendor: { select: { businessName: true } }, category: { select: { name: true } } },
     orderBy: { createdAt: "desc" },
     take: 200

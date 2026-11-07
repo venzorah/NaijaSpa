@@ -1,5 +1,5 @@
 "use client";
-
+import { portalNext } from "@/lib/portal-auth";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -89,7 +89,7 @@ export function PortalLogin({
               return;
             }
             const dest = new URLSearchParams(window.location.search).get("next") || json.home || (asVendor ? "/vendor/dashboard" : defaultNext);
-            router.replace(dest.startsWith("/") && !dest.startsWith("//") ? dest : defaultNext);
+            window.location.assign(portalNext(dest, expect));
             router.refresh();
           } catch {
             setError("Could not log in. Check your connection.");

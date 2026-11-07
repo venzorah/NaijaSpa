@@ -1,3 +1,4 @@
+import { portalNext } from "@/lib/portal-auth";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import {
@@ -60,7 +61,7 @@ export async function GET(req: Request) {
     const profile = await exchangeGoogleCode(code, state.redirectUri);
     const result = await signInWithGoogle(profile, state.portal, state.intent);
     const next =
-      result.isNew && state.portal === "vendor" ? "/vendor/onboarding" : safeNext(state.next, result.home);
+      result.isNew && state.portal === "vendor" ? "/vendor/onboarding" : portalNext(state.next || result.home, state.portal);
     return NextResponse.redirect(new URL(next, origin));
   } catch (e) {
     const message = e instanceof Error ? e.message : "Gmail sign-in failed.";

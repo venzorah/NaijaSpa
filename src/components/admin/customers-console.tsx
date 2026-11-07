@@ -188,18 +188,17 @@ export function CustomersConsole({ rows, editable }: { rows: AdminCustomer[]; ed
                     onConfirm={(reason) => patch(selected.id, { status: "suspended", note: reason })}
                   />
                 )}
-                {selected.deletionRequested ? (
                   <ConfirmAction
-                    triggerLabel="Process deletion"
+                    triggerLabel="Delete customer"
+                    triggerClassName="text-red-600 border-red-300"
                     triggerIcon={Trash2}
                     disabled={!editable}
                     title="Permanently delete personal data?"
                     description="Profile fields are redacted. Booking and payment records stay anonymised."
                     confirmLabel="Delete personal data"
                     requireReason
-                    onConfirm={(reason) => patch(selected.id, { processDeletion: true, note: reason })}
+                    onConfirm={async (reason) => { await adminJson(`/api/admin/users/${selected.id}`, {method:"DELETE",body:JSON.stringify({reason})}); router.refresh(); }}
                   />
-                ) : null}
               </div>
             </Panel>
             <Panel title="Support history" description={`${selected.tickets.length} conversation${selected.tickets.length === 1 ? "" : "s"}`}>

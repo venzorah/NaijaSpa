@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useToastMessage } from "@/components/vendor/toasts";
 
 export function usePayoutLookup(bankCode: string, accountNumber: string) {
   const [accountName, setAccountName] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useToastMessage();
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {

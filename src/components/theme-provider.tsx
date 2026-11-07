@@ -3,10 +3,11 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 
 type Theme = "dark" | "light";
-const ThemeCtx = createContext<{ theme: Theme; toggle: () => void; setTheme: (t: Theme) => void }>({
+export type ThemeSaveResult = { deviceSaved: boolean; accountSaved: boolean };
+const ThemeCtx = createContext<{ theme: Theme; toggle: () => Promise<ThemeSaveResult>; setTheme: (t: Theme) => Promise<ThemeSaveResult> }>({
   theme: "light",
-  toggle: () => {},
-  setTheme: () => {}
+  toggle: async () => ({ deviceSaved: false, accountSaved: false }),
+  setTheme: async () => ({ deviceSaved: false, accountSaved: false })
 });
 
 function applyDom(next: Theme) {
@@ -26,15 +27,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     applyDom(next);
   }, []);
 
-  const apply = useCallback((next: Theme) => {
+  const apply = useCallback(async (next: Theme): Promise<ThemeSaveResult> => {
     applyDom(next);
-    try { localStorage.setItem("naijaspa-theme", next); } catch { /* Keep the toggle working without persistence. */ }
-    fetch("/api/account/theme", { method: "POST", body: JSON.stringify({ theme: next }) }).catch(() => {});
+    let deviceSaved = true, accountSaved = false;
+    try { localStorage.setItem("naijaspa-theme", next); } catch { deviceSaved = false; }
     setTheme(next);
+    try { accountSaved = (await fetch("/api/account/theme", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ theme: next }) })).ok; } catch { /* Return partial-save state. */ }
+    return { deviceSaved, accountSaved };
   }, []);
 
   const toggle = useCallback(() => {
-    apply(theme === "dark" ? "light" : "dark");
+    return apply(theme === "dark" ? "light" : "dark");
   }, [apply, theme]);
 
   return <ThemeCtx.Provider value={{ theme, toggle, setTheme: apply }}>{children}</ThemeCtx.Provider>;

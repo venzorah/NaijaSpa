@@ -187,6 +187,7 @@ export function ServicesConsole({ rows, editable, vendors, categories }: { rows:
                 >
                   <CheckCircle2 className="h-3.5 w-3.5" aria-hidden /> Approve
                 </button>
+                <ConfirmAction triggerLabel="Delete service" triggerClassName="text-red-600 border-red-300" title={`Delete ${selected.name}?`} description="Remove this service from the catalogue. Existing bookings and payments remain preserved." confirmLabel="Delete service" requireReason disabled={!editable} onConfirm={async reason=>{await adminJson(`/api/admin/services/${selected.id}`,{method:"DELETE",body:JSON.stringify({reason})});router.refresh();}} />
               </div>
             </Panel>
           ) : (

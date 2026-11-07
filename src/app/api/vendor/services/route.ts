@@ -10,7 +10,7 @@ export async function GET() {
   try {
     const user = await requireVendor();
     const [services, categories] = await Promise.all([
-      prisma.service.findMany({ where: { vendorId: user.vendorId }, include: { category: { select: { name: true } }, _count: { select: { bookings: true } } }, orderBy: { createdAt: "desc" } }),
+      prisma.service.findMany({ where: { vendorId: user.vendorId, deletedAt: null }, include: { category: { select: { name: true } }, _count: { select: { bookings: true } } }, orderBy: { createdAt: "desc" } }),
       prisma.category.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" }, select: { id: true, name: true } })
     ]);
     return NextResponse.json({ services, categories, unlimited: true });

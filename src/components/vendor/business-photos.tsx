@@ -1,4 +1,5 @@
 "use client";
+import { useToastMessage } from "@/components/vendor/toasts";
 
 import { useEffect, useRef, useState } from "react";
 import { Trash2 } from "lucide-react";
@@ -22,7 +23,7 @@ export function BusinessPhotos({ revision, onChanged }: { revision: string; onCh
   const [maxBytes, setMaxBytes] = useState(2 * 1024 * 1024);
   const [videosOk, setVideosOk] = useState(false);
   const [planCode, setPlanCode] = useState("FREE");
-  const [message, setMessage] = useState("");
+  const [message, setMessage, feedbackKind] = useToastMessage();
   const [title, setTitle] = useState("");
   const [caption, setCaption] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
@@ -49,7 +50,7 @@ export function BusinessPhotos({ revision, onChanged }: { revision: string; onCh
     load();
   }, [revision]);
 
-  const createGallery = async (e: React.FormEvent) => {
+  const createGallery = async (e: React.FormEvent) => {try {
     e.preventDefault();
     setMessage("");
     const res = await fetch("/api/vendor/galleries", {
@@ -64,16 +65,16 @@ export function BusinessPhotos({ revision, onChanged }: { revision: string; onCh
     }
     setTitle("");
     setCaption("");
-    setMessage("Gallery created.");
+    setMessage("Gallery created.", "success");
     load(true);
-  };
+  } catch (error) { setMessage(error instanceof Error ? error.message : "Could not update your photos or videos."); }};
 
-  const removeGallery = async (id: string) => {
+  const removeGallery = async (id: string) => {try {
     if (!confirm("Delete this gallery and its photos?")) return;
     const res = await fetch(`/api/vendor/galleries?id=${encodeURIComponent(id)}`, { method: "DELETE" });
-    if (!res.ok) setMessage((await res.json().catch(() => ({}))).error || "Could not delete gallery.");
+    if (!res.ok) setMessage((await res.json().catch(() => ({}))).error || "Could not delete gallery."); else setMessage("Album deleted.", "success");
     load(true);
-  };
+  } catch (error) { setMessage(error instanceof Error ? error.message : "Could not update your photos or videos."); }};
 
   const uploadImage = async (galleryId: string, form: HTMLFormElement) => {
     if (uploading) return;
@@ -95,7 +96,7 @@ export function BusinessPhotos({ revision, onChanged }: { revision: string; onCh
       const j = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(j.error || "Upload failed.");
       form.reset();
-      setMessage("Photo added.");
+      setMessage("Photo added.", "success");
       load(true);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Upload failed.");
@@ -104,13 +105,13 @@ export function BusinessPhotos({ revision, onChanged }: { revision: string; onCh
     }
   };
 
-  const removeImage = async (id: string) => {
+  const removeImage = async (id: string) => {try {
     const response = await fetch(`/api/vendor/galleries/images?id=${encodeURIComponent(id)}`, { method: "DELETE" });
-    if (!response.ok) setMessage((await response.json().catch(() => ({}))).error || "Could not remove photo.");
+    if (!response.ok) setMessage((await response.json().catch(() => ({}))).error || "Could not remove photo."); else setMessage("Photo deleted.", "success");
     load(true);
-  };
+  } catch (error) { setMessage(error instanceof Error ? error.message : "Could not update your photos or videos."); }};
 
-  const addVideo = async (e: React.FormEvent) => {
+  const addVideo = async (e: React.FormEvent) => {try {
     e.preventDefault();
     setMessage("");
     const res = await fetch("/api/vendor/videos", {
@@ -125,16 +126,16 @@ export function BusinessPhotos({ revision, onChanged }: { revision: string; onCh
     }
     setVideoUrl("");
     setVideoTitle("");
-    setMessage("Video link added.");
+    setMessage("Video link added.", "success");
     load(true);
-  };
+  } catch (error) { setMessage(error instanceof Error ? error.message : "Could not update your photos or videos."); }};
 
-  const removeVideo = async (id: string) => {
+  const removeVideo = async (id: string) => {try {
     const res = await fetch(`/api/vendor/videos?id=${encodeURIComponent(id)}`, { method: "DELETE" });
     const j = await res.json().catch(() => ({}));
-    if (!res.ok) setMessage(j.error || "Could not remove video link.");
+    if (!res.ok) setMessage(j.error || "Could not remove video link."); else setMessage("Video link removed.", "success");
     load(true);
-  };
+  } catch (error) { setMessage(error instanceof Error ? error.message : "Could not update your photos or videos."); }};
 
   async function quickUpload(files: FileList | null) {
     if (!files?.length || !uploadTarget || uploading) return;
@@ -149,7 +150,7 @@ export function BusinessPhotos({ revision, onChanged }: { revision: string; onCh
         if (!response.ok) throw new Error(data.error || "Photo upload failed.");
         count++;
       }
-      setMessage(`${count} photo${count === 1 ? "" : "s"} uploaded.`);
+      setMessage(`${count} photo${count === 1 ? "" : "s"} uploaded.`, "success");
     } catch (error) { setMessage(`${count ? count + " uploaded. " : ""}${error instanceof Error ? error.message : "Upload failed."}`); }
     finally { setUploading(false); if (picker.current) picker.current.value = ""; load(true); }
   }
@@ -193,7 +194,7 @@ export function BusinessPhotos({ revision, onChanged }: { revision: string; onCh
       <Panel title="Business photos" description="Upload directly from your phone or computer. Your existing photos are kept here." actions={<button type="button" disabled={uploading || !uploadTarget} onClick={() => picker.current?.click()} className="inline-flex min-h-10 items-center rounded-lg bg-gold px-4 text-sm font-bold text-ongold disabled:opacity-50">{uploading ? "Uploading…" : "Upload photos"}</button>}>
       <input ref={picker} aria-label="Upload gallery photos" type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif" className="sr-only" onChange={event => void quickUpload(event.target.files)} />
       <label className="mt-3 flex max-w-md items-center gap-3 text-sm">Upload to<select aria-label="Upload destination gallery" className="min-w-0 flex-1 rounded-lg border border-line bg-card px-3 py-2" disabled={uploading} value={uploadTarget} onChange={event => setUploadTarget(event.target.value)}>{galleries.map(gallery => <option key={gallery.id} value={gallery.id}>{gallery.title}</option>)}</select></label>
-      {message ? <p role="status" className="mt-3 text-sm font-medium text-forest">{message}</p> : null}
+      {message && feedbackKind === "error" ? <p role="status" className="mt-3 text-sm font-medium text-forest">{message}</p> : null}
 
       {profileGallery ? (
         <ul className="mt-6 space-y-4">{renderGallery(profileGallery, profileMax, false)}</ul>

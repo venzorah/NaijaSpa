@@ -1,4 +1,5 @@
 "use client";
+import { useToast, useToastMessage } from "@/components/vendor/toasts";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -27,7 +28,8 @@ export function VendorSupportConsole({ tickets }: {
     tickets: Ticket[];
 }) {
     const router = useRouter();
-    const [selected, setSelected] = useState(tickets[0]?.id ?? ''), [open, setOpen] = useState(false), [subject, setSubject] = useState(''), [message, setMessage] = useState(''), [reply, setReply] = useState(''), [busy, setBusy] = useState(false), [error, setError] = useState('');
+    const toast = useToast();
+    const [selected, setSelected] = useState(tickets[0]?.id ?? ''), [open, setOpen] = useState(false), [subject, setSubject] = useState(''), [message, setMessage] = useState(''), [reply, setReply] = useState(''), [busy, setBusy] = useState(false), [error, setError] = useToastMessage();
     const ticket = tickets.find(t => t.id === selected) ?? tickets[0];
     async function send(create: boolean) { if (busy)
         return; setBusy(true); setError(''); try {
@@ -44,6 +46,7 @@ export function VendorSupportConsole({ tickets }: {
         }
         else
             setReply('');
+        toast.success(create ? 'Support ticket created.' : 'Reply sent.');
         router.refresh();
     }
     catch (e) {

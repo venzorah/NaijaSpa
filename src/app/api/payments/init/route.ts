@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { assertPortalAccount } from "@/lib/portal-auth";
 import { z } from "zod";
 import { getSession, requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -8,6 +9,7 @@ import { jsonError } from "@/lib/http";
 export async function POST(req: Request) {
   try {
     const user = requireUser(await getSession());
+    assertPortalAccount(user, "customer");
     const { bookingId } = z.object({ bookingId: z.string() }).parse(await req.json());
     const booking = await prisma.booking.findUniqueOrThrow({ where: { id: bookingId } });
     if (booking.customerId !== user.id) return NextResponse.json({ error: "Forbidden" }, { status: 403 });

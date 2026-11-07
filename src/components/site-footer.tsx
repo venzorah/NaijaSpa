@@ -1,3 +1,5 @@
+"use client";
+import { useSupportEmail } from "./use-support-email";
 import Link from "next/link";
 import { Download, Facebook, Instagram, Mail, MessageCircle, Twitter } from "lucide-react";
 import { SUPPORT_WHATSAPP_DISPLAY, supportWhatsAppHref } from "@/lib/support";
@@ -30,6 +32,7 @@ const groups = [
 ];
 
 export function SiteFooter() {
+  const supportEmail = useSupportEmail();
   return (
     <footer className="mt-16 border-t border-line bg-bg2">
       <div className="mx-auto hidden max-w-7xl gap-10 px-4 py-12 md:grid-cols-[1.4fr_repeat(3,1fr)] lg:grid lg:px-8">
@@ -49,7 +52,7 @@ export function SiteFooter() {
           </p>
           <div className="mt-5 space-y-2 text-sm text-ink2">
             <p className="flex items-center gap-2">
-              <Mail className="h-4 w-4 text-leaf" aria-hidden /> concierge@naijaspa.com
+              <Mail className="h-4 w-4 text-leaf" aria-hidden /> {supportEmail}
             </p>
             <a
               href={supportWhatsAppHref("Hello NaijaSpa")}

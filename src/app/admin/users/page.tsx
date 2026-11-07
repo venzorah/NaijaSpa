@@ -6,7 +6,7 @@ import { CustomersConsole } from "@/components/admin/customers-console";
 export default async function UsersPage() {
   const { editable } = await requireAdminScreen("users");
   const users = await prisma.user.findMany({
-    where: { role: "customer" },
+    where: { role: "customer", status: { not: "deleted" } },
     take: 200,
     orderBy: { createdAt: "desc" },
     include: {

@@ -1,4 +1,5 @@
 "use client";
+import { useToast, useToastMessage } from "@/components/vendor/toasts";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -16,9 +17,11 @@ export function VendorNotifications({ rows }: {
         readAt: string | null;
         actionUrl: string;
     }[];
-}) { const router = useRouter(); const [busy, setBusy] = useState(false), [error, setError] = useState(''); async function read(id?: string) { setBusy(true); setError(''); try {
+}) { const router = useRouter();
+    const toast = useToast(); const [busy, setBusy] = useState(false), [error, setError] = useToastMessage(); async function read(id?: string) { setBusy(true); setError(''); try {
     await adminJson('/api/vendor/notifications', { method: 'PATCH', body: JSON.stringify({ id }) });
-    router.refresh();
+    toast.success(id ? 'Notification marked read.' : 'All notifications marked read.');
+        router.refresh();
 }
 catch (e) {
     setError(e instanceof Error ? e.message : 'Could not update.');

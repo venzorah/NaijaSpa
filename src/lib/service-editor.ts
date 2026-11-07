@@ -31,7 +31,7 @@ export async function readServiceRequest(request: Request) {
 
 export async function saveService(vendorId: string, raw: unknown, file: Blob | null, id?: string) {
   const body = (id ? patchSchema : createServiceSchema).parse(raw);
-  const existing = id ? await prisma.service.findFirst({ where: { id, vendorId } }) : null;
+  const existing = id ? await prisma.service.findFirst({ where: { id, vendorId, deletedAt: null } }) : null;
   if (id && !existing) throw Object.assign(new Error("Service not found"), { status: 404 });
   if (body.categoryId && body.categoryId !== existing?.categoryId) {
     const category = await prisma.category.findFirst({ where: { id: body.categoryId, active: true }, select: { id: true } });

@@ -19,7 +19,7 @@ export async function changeRoleDefinition(actor: { id: string; role: string }, 
     if (key === ROLES.SUPER_ADMIN) denied("Super administrator permissions are protected.");
     if (action !== "create" && !before) denied("Role not found", 404);
     if (action === "delete" && before?.builtIn) denied("Built-in roles cannot be removed.");
-    if (action === "delete" && await tx.user.count({ where: { role: key } })) denied("Reassign every account using this role before removing it.", 409);
+    if (action === "delete" && await tx.user.count({ where: { role: key, status: { not: "deleted" } } })) denied("Reassign every account using this role before removing it.", 409);
     if (action !== "delete" && roles.some(role => role.key !== key && role.label.toLowerCase() === body.label.toLowerCase())) denied("A role with this name already exists.", 409);
     const role: AdminRoleDefinition = { key: key!, label: body.label, permissions: [...new Set(["admin.access" as const, ...body.permissions])], builtIn: before?.builtIn ?? false };
     const next = action === "delete" ? roles.filter(role => role.key !== key) : action === "create" ? [...roles, role] : roles.map(value => value.key === key ? role : value);

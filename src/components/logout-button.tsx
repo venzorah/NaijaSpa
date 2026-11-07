@@ -3,6 +3,7 @@
 import { LogOut } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { useRef, useState } from "react";
+import { useToastMessage } from "@/components/vendor/toasts";
 
 async function signOut(href: string) {
   const response = await fetch("/api/auth/logout", { method: "POST" });
@@ -21,7 +22,7 @@ export function LogoutButton({
 }) {
   const inFlight = useRef(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useToastMessage();
   const styles =
     variant === "block"
       ? "mt-6 flex min-h-[52px] w-full items-center justify-center gap-2 rounded-3xl border border-line text-sm font-semibold text-red-600 hover:bg-red-500/10 dark:text-red-300"

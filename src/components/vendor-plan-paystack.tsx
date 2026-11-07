@@ -1,4 +1,5 @@
 "use client";
+import { useToastMessage } from "@/components/vendor/toasts";
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -57,7 +58,7 @@ export function VendorPlanPaystack({
   autoStart?: boolean;
 }) {
   const router = useRouter();
-  const [msg, setMsg] = useState("");
+  const [msg, setMsg] = useToastMessage();
   const [busy, setBusy] = useState(false);
   const started = useRef(false);
 
@@ -87,9 +88,10 @@ export function VendorPlanPaystack({
           popup.resumeTransaction(json.accessCode, {
             onSuccess: (transaction) => {
               const reference = transaction.reference || json.reference || "";
+              setMsg("Verifying your payment…", "info");
               router.push(`/vendor/subscriptions/verify?reference=${encodeURIComponent(reference)}`);
             },
-            onCancel: () => setMsg("Payment window closed. You can try again when you are ready.")
+            onCancel: () => setMsg("Payment window closed. You can try again when you are ready.", "info")
           });
           return;
         }

@@ -1,4 +1,5 @@
 "use client";
+import { useToastMessage } from "@/components/vendor/toasts";
 
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -29,7 +30,7 @@ function BillingHistoryDialog({ onClose }: { onClose: () => void }) {
   const close = useRef(onClose); close.current = onClose;
   const [page, setPage] = useState(1), [query, setQuery] = useState("");
   const [result, setResult] = useState<VendorBillingPage | null>(null);
-  const [loading, setLoading] = useState(true), [error, setError] = useState("");
+  const [loading, setLoading] = useState(true), [error, setError] = useToastMessage();
   const [retry, setRetry] = useState(0);
 
   useEffect(() => {

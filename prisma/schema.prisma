@@ -210,6 +210,7 @@ model VerificationDoc {
 }
 
 model Category {
+  deletedAt       DateTime?
   id              String    @id @default(cuid())
   slug            String    @unique
   name            String
@@ -227,6 +228,7 @@ model Category {
 }
 
 model Service {
+  deletedAt            DateTime?
   id                   String   @id @default(cuid())
   vendorId             String
   categoryId           String
@@ -337,6 +339,19 @@ model VendorSubscription {
   bookings      Booking[]
 
   @@index([vendorId, status])
+}
+
+model MediaAsset {
+  id           String   @id @default(cuid())
+  url          String   @unique
+  name         String
+  mime         String
+  byteSize     Int
+  imagePayload Bytes?
+  createdById  String
+  createdAt    DateTime @default(now())
+
+  @@index([createdAt])
 }
 
 model SystemConfig {

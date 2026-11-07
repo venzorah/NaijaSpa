@@ -1,0 +1,11 @@
+# Admin controls
+
+System settings loads saved values into controlled inputs, reports request failures, and invalidates public settings after saving. The support email is used on the footer, contact form/page and privacy contact text. It is separate from login email addresses and SMTP authentication.
+
+Super administrators can create, edit and delete admin accounts from Roles & permissions. Email/password/status changes revoke sessions. Self-deletion/suspension and removal of the last active super administrator are blocked. Delegated roles cannot gain this capability by granting themselves roles.manage. Seeded account records are editable; they are not automatically deleted by deployment.
+
+Customer and vendor deletion require the existing management permission and an explicit confirmation/reason. Customers are redacted and sessions revoked; deleted vendors leave public/admin listings, have their owner disabled, and services/campaigns/adverts disabled. Historical bookings, payments, payouts and audit records remain. Catalogue deletion uses deletedAt and removes services from both vendor and admin lists; deleting a category also removes its services after an explicit warning. Deleted entries cannot be reactivated through the edit endpoints.
+
+The image library lists uploaded assets, public business/gallery/staff images, service/category pictures, homepage pictures and default photos with search/source filters and 24 images per page. Identity/verification documents are excluded. Uploads validate image bytes and the 2 MB limit and use R2 with database fallback for local storage. Banner/advert editors support device uploads and library selection. Unused library uploads can be removed; images with active references return a conflict instead of breaking the website.
+
+Password and Google authentication validate customer/vendor/admin account types in both directions. Account and checkout pages guard customer access, with an explicit account-switch screen that keeps the current session until the user chooses to switch. Vendor access retains its existing role gate. Return destinations are scoped to the selected portal and customer booking/payment initiation rejects vendor accounts.

@@ -1,5 +1,5 @@
 "use client";
-
+import { useSupportEmail } from "./use-support-email";
 import { useState } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { GoldButton } from "@/components/gold-button";
@@ -7,6 +7,7 @@ import { GoldButton } from "@/components/gold-button";
 const field = "mt-1 h-12 w-full rounded-xl border border-line bg-bg2 px-3 text-ink";
 
 export function ContactForm() {
+  const supportEmail = useSupportEmail();
   const [sent, setSent] = useState(false);
   if (sent) {
     return (
@@ -14,7 +15,7 @@ export function ContactForm() {
         <CheckCircle2 className="mx-auto h-12 w-12 text-leaf" aria-hidden />
         <p className="mt-3 font-semibold text-ink">Message sent</p>
         <p className="text-sm text-ink2">
-          We’ll reply to your email. You can also write concierge@naijaspa.com or chat on WhatsApp.
+          We’ll reply to your email. You can also write {supportEmail} or chat on WhatsApp.
         </p>
       </div>
     );
@@ -28,7 +29,7 @@ export function ContactForm() {
         const name = String(fd.get("name") || "");
         const email = String(fd.get("email") || "");
         const message = String(fd.get("message") || "");
-        window.location.href = `mailto:concierge@naijaspa.com?subject=${encodeURIComponent(`NaijaSpa contact from ${name}`)}&body=${encodeURIComponent(`${message}\n\n${email}`)}`;
+        window.location.href = `mailto:${supportEmail}?subject=${encodeURIComponent(`NaijaSpa contact from ${name}`)}&body=${encodeURIComponent(`${message}\n\n${email}`)}`;
         setSent(true);
       }}
     >

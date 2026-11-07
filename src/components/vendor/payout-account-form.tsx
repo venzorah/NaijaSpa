@@ -1,4 +1,5 @@
 "use client";
+import { useToastMessage } from "@/components/vendor/toasts";
 
 import { useEffect, useState } from "react";
 import { Panel } from "@/components/admin/panel";
@@ -21,13 +22,13 @@ export function PayoutAccountForm() {
   const [bankCode, setBankCode] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
   const [resolvedName, setResolvedName] = useState("");
-  const [message, setMessage] = useState("");
+  const [message, setMessage, feedbackKind] = useToastMessage();
   const [busy, setBusy] = useState(false);
   const lookup = usePayoutLookup(bankCode, accountNumber);
 
   useEffect(() => {
     fetch("/api/vendor/payout-account")
-      .then((r) => r.json())
+      .then(async (r) => { const data = await r.json(); if (!r.ok) throw new Error(data.error || "Could not load payout banks."); return data; })
       .then((j) => {
         setBanks(j.banks || []);
         setAccount(j.account || null);
@@ -54,12 +55,12 @@ export function PayoutAccountForm() {
       }
       if (verifyOnly) {
         setResolvedName(json.accountName || "");
-        setMessage(json.accountName ? `Account name: ${json.accountName}` : "Account number looks valid.");
+        setMessage(json.accountName ? `Account name: ${json.accountName}` : "Account number looks valid.", "success");
         return;
       }
       setAccount(json.account);
       setResolvedName(json.account?.accountName || "");
-      setMessage("Payouts will now go to this verified account after a visit is confirmed.");
+      setMessage(json.account?.ready ? "Payout account saved and verified." : "Payout account saved. Paystack recipient setup is pending.", json.account?.ready ? "success" : "info");
     } catch {
       setMessage("Could not save account.");
     } finally {
@@ -116,7 +117,7 @@ export function PayoutAccountForm() {
           {busy ? "Saving…" : "Save payout account"}
         </button>
       </form>
-      {message ? <p className="mt-3 text-sm text-ink2">{message}</p> : null}
+      {message && feedbackKind === "error" ? <p className="mt-3 text-sm text-ink2">{message}</p> : null}
     </Panel>
   );
 }
