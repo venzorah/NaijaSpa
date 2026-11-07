@@ -16,7 +16,7 @@ export async function GET() {
   try {
     const user = requireUser(await getSession());
     assertAnyPermission(user, ["vendors.manage", "vendors.verify"]);
-    const vendors = await prisma.vendor.findMany({ include: { owner: true, subscriptions: { include: { plan: true } } } });
+    const vendors = await prisma.vendor.findMany({ include: { owner: { select: { id: true, name: true, email: true, role: true, status: true } }, subscriptions: { include: { plan: true } } } });
     return NextResponse.json({ vendors });
   } catch (e) {
     return jsonError(e);

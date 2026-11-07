@@ -12,6 +12,7 @@ import { Panel } from "@/components/admin/panel";
 import { AdminStatusPill } from "@/components/admin/status-pill";
 import { adminJson } from "@/components/admin/json";
 import { formatNgn } from "@/lib/money";
+import { ServiceEditorModal } from "@/components/service-editor-modal";
 import { cn } from "@/lib/cn";
 
 export type AdminServiceRow = {
@@ -21,6 +22,13 @@ export type AdminServiceRow = {
   description: string;
   imageUrl: string | null;
   vendor: string;
+  vendorId: string;
+  categoryId: string;
+  spaEnabled: boolean;
+  hotelEnabled: boolean;
+  homeEnabled: boolean;
+  hotelAddonKobo: number;
+  homeAddonKobo: number;
   category: string;
   price: number;
   duration: number;
@@ -37,7 +45,8 @@ function detectIssues(s: AdminServiceRow): string[] {
   return issues;
 }
 
-export function ServicesConsole({ rows, editable }: { rows: AdminServiceRow[]; editable: boolean }) {
+export function ServicesConsole({ rows, editable, vendors, categories }: { rows: AdminServiceRow[]; editable: boolean; vendors: { id: string; businessName: string }[]; categories: { id: string; name: string }[] }) {
+  const [editor, setEditor] = useState<AdminServiceRow | "new" | null>(null);
   const router = useRouter();
   const [filter, setFilter] = useState<"pending" | "live" | "hidden">("pending");
   const filtered = rows.filter((s) => (filter === "live" ? s.active : filter === "hidden" ? !s.active : !s.active));
@@ -47,7 +56,8 @@ export function ServicesConsole({ rows, editable }: { rows: AdminServiceRow[]; e
 
   return (
     <div>
-      <div className="mb-4">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <button type="button" disabled={!editable || !categories.length || !vendors.length} onClick={() => setEditor("new")} className={adminBtn}>New service</button>
         <FilterChips
           label="Moderation queue"
           value={filter}
@@ -130,6 +140,7 @@ export function ServicesConsole({ rows, editable }: { rows: AdminServiceRow[]; e
                 </p>
               )}
               <div className="mt-4 flex flex-wrap justify-end gap-2 border-t border-line pt-4">
+                <button type="button" disabled={!editable} className={adminBtnOutline} onClick={() => setEditor(selected)}>Edit service & photo</button>
                 <Link
                   href={`/services/${encodeURIComponent(selected.slug)}`}
                   className={adminBtn}
@@ -185,6 +196,7 @@ export function ServicesConsole({ rows, editable }: { rows: AdminServiceRow[]; e
           )}
         </div>
       </div>
+      {editor ? <ServiceEditorModal admin categories={categories} vendors={vendors} value={editor === "new" ? undefined : { ...editor, basePriceKobo: editor.price, durationMin: editor.duration }} onClose={() => setEditor(null)} onSaved={() => { setEditor(null); router.refresh(); }} /> : null}
     </div>
   );
 }

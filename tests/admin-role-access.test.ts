@@ -27,7 +27,7 @@ describe("configurable admin roles", () => {
   it("does not turn customer or vendor payloads into admin access", () => { expect(isAdminRole({ role: "customer", permissions: ALL_ADMIN })).toBe(false); expect(hasPermission({ role: "vendor_owner", permissions: ALL_ADMIN }, "finance.manage")).toBe(false); });
   it("does not treat prototype property names as built-in roles", async () => { expect(isAdminRole("constructor")).toBe(false); expect(isAdminRole("toString")).toBe(false); expect(isAdminRole(await getRoleAccess("constructor"))).toBe(false); });
   it("creates a custom role with explicitly selected responsibilities only", async () => {
-    const { role } = await changeRoleDefinition(actor, "create", { label: "Category editor", permissions: ["catalog.manage"] });
+    const { role } = await changeRoleDefinition(actor, "create", { key: "", label: "Category editor", permissions: ["catalog.manage"] });
     expect(role!.key).toMatch(/^admin_custom_/); expect(role!.permissions).toEqual(["admin.access", "catalog.manage"]);
     const access = await getRoleAccess(role!.key); expect(isAdminRole(access)).toBe(true); expect(portalHome(access)).toBe("/admin/dashboard");
     expect(accessForScreen(access, "categories")).toBe("full"); expect(accessForScreen(access, "finance")).toBe(null);

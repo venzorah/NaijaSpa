@@ -419,8 +419,9 @@ export async function getPublicService(slug: string) {
   try {
   const { prisma, getCommercialConfig } = await import("./db");
   const { vendorEntitlement } = await import("./entitlements");
+  const alias = await prisma.serviceSlugAlias.findUnique({ where: { slug }, select: { serviceId: true } });
   const service = await prisma.service.findUnique({
-    where: { slug },
+    where: alias ? { id: alias.serviceId } : { slug },
     include: {
       vendor: {
         include: {

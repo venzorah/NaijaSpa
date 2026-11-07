@@ -33,7 +33,8 @@ export async function GET(_req: Request, ctx: { params: Promise<{ vendorId: stri
       }
     });
   }
-  if (fromDb) {
+  const fromService = !fromDb && file.startsWith("service-") ? await prisma.service.findFirst({ where: { vendorId, imageUrl: mediaUrl(vendorId, file) }, select: { id: true } }) : null;
+  if (fromDb || fromService) {
     try {
       const object = await getMediaObject(`galleries/${vendorId}/${file}`);
       if (object) return new NextResponse(object.bytes, { headers: { "Content-Type": object.mime, "Content-Length": String(object.bytes.length), "Cache-Control": "public, max-age=31536000, immutable", "X-Content-Type-Options": "nosniff" } });

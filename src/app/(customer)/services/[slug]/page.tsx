@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import Link from "next/link";
 import { BadgeCheck, Heart, MapPin, Star } from "lucide-react";
 import { getPublicService } from "@/lib/catalog";
@@ -13,11 +13,21 @@ import { PublicVendorContact } from "@/components/public-vendor-contact";
 
 export const dynamic = "force-dynamic";
 
-export default async function ServicePage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function ServicePage({ params, searchParams }: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { slug } = await params;
   const data = await getPublicService(slug);
   if (!data) notFound();
   const { service, vendor, quotes, treatments, reviews, tags, galleries = [] } = data;
+  if (slug !== service.slug) {
+    const query = new URLSearchParams();
+    for (const [key, value] of Object.entries(await searchParams)) {
+      for (const item of Array.isArray(value) ? value : value === undefined ? [] : [value]) query.append(key, item);
+    }
+    permanentRedirect(`/services/${encodeURIComponent(service.slug)}${query.size ? `?${query}` : ""}`);
+  }
   const galleryImages = collectProfileGalleryImages(galleries, [
     service.imageUrl,
     "coverUrl" in vendor ? String(vendor.coverUrl || "") : ""
@@ -98,7 +108,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
             </div>
           </header>
 
-          <div className="min-w-0 lg:sticky lg:top-24 lg:col-start-2 lg:row-span-4">
+          <div id="booking" className="min-w-0 scroll-mt-24 lg:sticky lg:top-24 lg:col-start-2 lg:row-span-4">
             <ServiceBookingCard
               key={service.id}
               serviceId={service.id}

@@ -9,7 +9,7 @@ export function requireRoleOwner(actor: { role: string }) {
 }
 export async function changeRoleDefinition(actor: { id: string; role: string }, action: "create" | "update" | "delete", input: unknown) {
   requireRoleOwner(actor);
-  const body = action === "delete" ? { ...roleDefinitionSchema.pick({ key: true }).parse(input), label: "", permissions: [] } : roleDefinitionSchema.partial({ key: true }).parse(input);
+  const body = action === "create" ? { ...roleDefinitionSchema.omit({ key: true }).parse(input), key: undefined } : action === "delete" ? { ...roleDefinitionSchema.pick({ key: true }).parse(input), label: "", permissions: [] } : roleDefinitionSchema.partial({ key: true }).parse(input);
   return prisma.$transaction(async tx => {
     await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext('naijaspa.admin.roles'))::text`;
     const roles = await readRoleDefinitions(tx);

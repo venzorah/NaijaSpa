@@ -147,11 +147,7 @@ export function PortalLogin({
           Forgot password
         </Link>
       </p>
-      {split ? (
-        <p className="mt-8 text-center text-xs text-ink2">
-          <Link href="/login/admin">Admin sign in</Link>
-        </p>
-      ) : (
+      {!split ? (
         <p className="mt-8 text-center text-xs text-ink2">
           <Link href="/">NaijaSpa home</Link>
           {" · "}
@@ -159,7 +155,7 @@ export function PortalLogin({
           {" · "}
           <Link href="/login/vendor">Therapist</Link>
         </p>
-      )}
+      ) : null}
     </AuthScreen>
   );
 }

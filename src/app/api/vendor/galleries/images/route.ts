@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getSession, requireUser } from "@/lib/auth";
+import { requireVendor } from "@/lib/vendor-auth";
 import { getGalleryConfig, prisma } from "@/lib/db";
 import { assertCanAddImage, assertImageUrl, isProfileGalleryTitle } from "@/lib/galleries";
 import { formImage } from "@/lib/form-file";
@@ -20,7 +20,7 @@ async function ownedGallery(vendorId: string, galleryId: string) {
 
 export async function POST(req: Request) {
   try {
-    const user = requireUser(await getSession());
+    const user = await requireVendor();
     const vendorId = requireVendorId(user);
     if (!vendorId) return NextResponse.json({ error: "Not a vendor" }, { status: 403 });
     const contentType = req.headers.get("content-type") || "";
@@ -33,6 +33,7 @@ export async function POST(req: Request) {
       const therapistName = String(fd.get("therapistName") || "").slice(0, 80);
       const file = formImage(fd);
       if (!file) return NextResponse.json({ error: "Choose an image file" }, { status: 400 });
+      if (file.size > config.maxImageBytes) return NextResponse.json({ error: "Image exceeds the upload size limit." }, { status: 400 });
       const gallery = await ownedGallery(vendorId, galleryId);
       if (!gallery) return NextResponse.json({ error: "Gallery not found" }, { status: 404 });
       const buf = new Uint8Array(await file.arrayBuffer());
@@ -89,7 +90,7 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const user = requireUser(await getSession());
+    const user = await requireVendor();
     const vendorId = requireVendorId(user);
     if (!vendorId) return NextResponse.json({ error: "Not a vendor" }, { status: 403 });
     const id = new URL(req.url).searchParams.get("id") || "";
@@ -97,6 +98,10 @@ export async function DELETE(req: Request) {
       where: { id, gallery: { vendorId } }
     });
     if (!image) return NextResponse.json({ error: "Image not found" }, { status: 404 });
+    const profileUse = await prisma.vendor.count({ where: { OR: [{ coverUrl: image.url }, { logoUrl: image.url }] } });
+    if (profileUse) return NextResponse.json({ error: "This photo is used as a business cover or logo. Choose a replacement in Business profile first." }, { status: 409 });
+    const used = await prisma.service.count({ where: { imageUrl: image.url } });
+    if (used) return NextResponse.json({ error: "This photo is a service's featured image. Replace or remove it from the service first." }, { status: 409 });
     const { deleteGalleryImageFile } = await import("@/lib/gallery-media");
     await deleteGalleryImageFile(image.url);
     await prisma.therapistGalleryImage.delete({ where: { id: image.id } });

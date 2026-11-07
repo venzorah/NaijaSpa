@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getSession, requireUser } from "@/lib/auth";
+import { requireVendor } from "@/lib/vendor-auth";
 import { getGalleryConfig, prisma } from "@/lib/db";
 import { vendorEntitlement } from "@/lib/entitlements";
 import {
@@ -21,7 +21,7 @@ function requireVendorId(user: { vendorId?: string | null }) {
 
 export async function GET() {
   try {
-    const user = requireUser(await getSession());
+    const user = await requireVendor();
     const vendorId = requireVendorId(user);
     if (!vendorId) return NextResponse.json({ error: "Not a vendor" }, { status: 403 });
     const [existing, videoLinks, config, entitlement] = await Promise.all([
@@ -81,7 +81,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const user = requireUser(await getSession());
+    const user = await requireVendor();
     const vendorId = requireVendorId(user);
     if (!vendorId) return NextResponse.json({ error: "Not a vendor" }, { status: 403 });
     const body = z.object({ title: z.string(), caption: z.string().max(240).optional() }).parse(await req.json());
@@ -108,7 +108,7 @@ export async function POST(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
-    const user = requireUser(await getSession());
+    const user = await requireVendor();
     const vendorId = requireVendorId(user);
     if (!vendorId) return NextResponse.json({ error: "Not a vendor" }, { status: 403 });
     const body = z
@@ -139,7 +139,7 @@ export async function PATCH(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const user = requireUser(await getSession());
+    const user = await requireVendor();
     const vendorId = requireVendorId(user);
     if (!vendorId) return NextResponse.json({ error: "Not a vendor" }, { status: 403 });
     const id = new URL(req.url).searchParams.get("id") || "";
@@ -150,6 +150,13 @@ export async function DELETE(req: Request) {
     if (!existing) return NextResponse.json({ error: "Gallery not found" }, { status: 404 });
     if (isProfileGalleryTitle(existing.title)) {
       return NextResponse.json({ error: "Profile photos cannot be deleted. Remove individual images instead." }, { status: 400 });
+    }
+    const urls = existing.images.map(image => image.url);
+    if (await prisma.vendor.count({ where: { OR: [{ coverUrl: { in: urls } }, { logoUrl: { in: urls } }] } })) {
+      return NextResponse.json({ error: "This album contains a business cover or logo. Choose a replacement in Business profile first." }, { status: 409 });
+    }
+    if (await prisma.service.count({ where: { imageUrl: { in: existing.images.map(image => image.url) } } })) {
+      return NextResponse.json({ error: "This gallery contains a service's featured image. Replace or remove it from the service first." }, { status: 409 });
     }
     const { deleteGalleryImageFile } = await import("@/lib/gallery-media");
     await Promise.all(existing.images.map((img) => deleteGalleryImageFile(img.url)));

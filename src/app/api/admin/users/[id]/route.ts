@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/admin-auth";
 import { audit } from "@/lib/audit";
 import { prisma } from "@/lib/db";
 import { jsonError } from "@/lib/http";
+const customerSelect = { id: true, name: true, email: true, role: true, status: true, phone: true, deletionRequestedAt: true } as const;
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -16,7 +17,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         note: z.string().optional()
       })
       .parse(await req.json());
-    const before = await prisma.user.findUniqueOrThrow({ where: { id } });
+    const before = await prisma.user.findUniqueOrThrow({ where: { id }, select: customerSelect });
     if (before.role !== "customer") return NextResponse.json({ error: "Only customer accounts can be changed here" }, { status: 400 });
     const data: { status?: string; name?: string; email?: string; phone?: string | null; deletionRequestedAt?: Date | null } = {};
     if (body.status) data.status = body.status;
@@ -27,7 +28,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       data.deletionRequestedAt = null;
       data.status = "suspended";
     }
-    const user = await prisma.user.update({ where: { id }, data });
+    const user = await prisma.user.update({ where: { id }, data, select: customerSelect });
     await audit({
       actorId: actor.id,
       action: body.processDeletion ? "user.delete_personal_data" : body.status === "suspended" ? "user.suspend" : "user.update",

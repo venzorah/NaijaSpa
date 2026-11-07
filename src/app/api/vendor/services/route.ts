@@ -1,104 +1,43 @@
 import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import { z } from "zod";
-import { getSession, requireUser } from "@/lib/auth";
+import { requireVendor } from "@/lib/vendor-auth";
 import { prisma } from "@/lib/db";
+import { readServiceRequest, saveService } from "@/lib/service-editor";
 import { jsonError } from "@/lib/http";
 
 export async function GET() {
   try {
-    const user = requireUser(await getSession());
-    if (!user.vendorId) return NextResponse.json({ error: "Not a vendor" }, { status: 403 });
+    const user = await requireVendor();
     const [services, categories] = await Promise.all([
-      prisma.service.findMany({
-        where: { vendorId: user.vendorId },
-        include: { category: { select: { name: true } }, _count: { select: { bookings: true } } },
-        orderBy: { createdAt: "desc" }
-      }),
+      prisma.service.findMany({ where: { vendorId: user.vendorId }, include: { category: { select: { name: true } }, _count: { select: { bookings: true } } }, orderBy: { createdAt: "desc" } }),
       prisma.category.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" }, select: { id: true, name: true } })
     ]);
     return NextResponse.json({ services, categories, unlimited: true });
-  } catch (e) {
-    return jsonError(e);
-  }
+  } catch (error) { return jsonError(error); }
 }
-
-export async function POST(req: Request) {
+export async function POST(request: Request) {
   try {
-    const user = requireUser(await getSession());
-    if (!user.vendorId) return NextResponse.json({ error: "Not a vendor" }, { status: 403 });
-    const body = z
-      .object({
-        name: z.string().min(2),
-        categoryId: z.string().min(1),
-        basePriceKobo: z.number().int().positive(),
-        durationMin: z.number().int().positive(),
-        description: z.string().optional(),
-        spaEnabled: z.boolean().optional(),
-        hotelEnabled: z.boolean().optional(),
-        homeEnabled: z.boolean().optional(),
-        hotelAddonKobo: z.number().int().min(0).optional(),
-        homeAddonKobo: z.number().int().min(0).optional()
-      })
-      .parse(await req.json());
-    const category = await prisma.category.findFirst({ where: { id: body.categoryId, active: true }, select: { id: true } });
-    if (!category) return NextResponse.json({ error: "Choose an active treatment category." }, { status: 400 });
-    const service = await prisma.service.create({
-      data: {
-        vendorId: user.vendorId,
-        slug: `${body.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "service"}-${Date.now().toString(36)}`,
-        ...body
-      }
-    });
+    const user = await requireVendor();
+    const { data, file } = await readServiceRequest(request);
+    const service = await saveService(user.vendorId, data, file);
     revalidateTag("home-catalog");
     return NextResponse.json({ service });
-  } catch (e) {
-    return jsonError(e);
-  }
+  } catch (error) { return jsonError(error); }
 }
-
-export async function PATCH(req: Request) {
+export async function PATCH(request: Request) {
   try {
-    const user = requireUser(await getSession());
-    if (!user.vendorId) return NextResponse.json({ error: "Not a vendor" }, { status: 403 });
-    const body = z
-      .object({
-        id: z.string().optional(),
-        location: z.enum(["spa", "hotel", "home"]).optional(),
-        locationEnabled: z.boolean().optional(),
-        name: z.string().min(2).optional(),
-        categoryId: z.string().min(1).optional(),
-        description: z.string().optional(),
-        basePriceKobo: z.number().int().positive().optional(),
-        durationMin: z.number().int().positive().optional(),
-        active: z.boolean().optional(),
-        hotelAddonKobo: z.number().int().min(0).optional(),
-        homeAddonKobo: z.number().int().min(0).optional(),
-        spaEnabled: z.boolean().optional(),
-        hotelEnabled: z.boolean().optional(),
-        homeEnabled: z.boolean().optional()
-      })
-      .parse(await req.json());
-    if (body.location && body.locationEnabled !== undefined) {
-      const field = body.location === "spa" ? "spaEnabled" : body.location === "hotel" ? "hotelEnabled" : "homeEnabled";
-      await prisma.service.updateMany({ where: { vendorId: user.vendorId }, data: { [field]: body.locationEnabled } });
-      revalidateTag("home-catalog");
-      return NextResponse.json({ ok: true });
+    const user = await requireVendor();
+    const { data, file } = await readServiceRequest(request);
+    const target = z.object({ id: z.string().optional(), location: z.enum(["spa", "hotel", "home"]).optional(), locationEnabled: z.boolean().optional() }).parse(data);
+    if (target.location && target.locationEnabled !== undefined) {
+      if (file) throw new Error("Select a service for this image.");
+      const field = target.location === "spa" ? "spaEnabled" : target.location === "hotel" ? "hotelEnabled" : "homeEnabled";
+      await prisma.service.updateMany({ where: { vendorId: user.vendorId }, data: { [field]: target.locationEnabled } });
+      revalidateTag("home-catalog"); return NextResponse.json({ ok: true });
     }
-    if (!body.id) return NextResponse.json({ error: "Service id required" }, { status: 400 });
-    const existing = await prisma.service.findFirst({
-      where: { id: body.id, vendorId: user.vendorId }
-    });
-    if (!existing) return NextResponse.json({ error: "Service not found" }, { status: 404 });
-    if (body.categoryId && body.categoryId !== existing.categoryId) {
-      const category = await prisma.category.findFirst({ where: { id: body.categoryId, active: true }, select: { id: true } });
-      if (!category) return NextResponse.json({ error: "Choose an active treatment category." }, { status: 400 });
-    }
-    const { id, location, locationEnabled, ...data } = body;
-    const service = await prisma.service.update({ where: { id }, data });
-    revalidateTag("home-catalog");
-    return NextResponse.json({ service });
-  } catch (e) {
-    return jsonError(e);
-  }
+    if (!target.id) return NextResponse.json({ error: "Service id required" }, { status: 400 });
+    const service = await saveService(user.vendorId, data, file, target.id);
+    revalidateTag("home-catalog"); return NextResponse.json({ service });
+  } catch (error) { return jsonError(error); }
 }

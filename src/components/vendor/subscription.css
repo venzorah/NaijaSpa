@@ -1,0 +1,19 @@
+.vendor-portal .subscription-page .subscription-section-title,
+.vendor-portal .subscription-page .subscription-plan-name {
+  font-family: Georgia, 'Times New Roman', serif;
+  letter-spacing: -0.035em;
+  font-size: 23px !important;
+}
+.vendor-portal .subscription-page .subscription-price {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(26px, 2.1vw, 34px);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1.2;
+}
+.vendor-portal .subscription-page .subscription-savings {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 38px;
+  line-height: 1.2;
+  letter-spacing: -0.04em;
+}

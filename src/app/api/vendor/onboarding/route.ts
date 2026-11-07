@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getSession, requireUser } from "@/lib/auth";
+import { requireVendor } from "@/lib/vendor-auth";
 import { prisma } from "@/lib/db";
 import { jsonError } from "@/lib/http";
 import { vendorStateForLocation } from "@/lib/nigeria";
@@ -24,7 +24,7 @@ const bodySchema = z.object({
 
 export async function GET() {
   try {
-    const user = requireUser(await getSession());
+    const user = await requireVendor();
     if (!user.vendorId) return NextResponse.json({ error: "Not a vendor" }, { status: 403 });
     const vendor = await prisma.vendor.findUniqueOrThrow({ where: { id: user.vendorId } });
     return NextResponse.json({
@@ -51,7 +51,7 @@ export async function GET() {
 
 export async function PATCH(req: Request) {
   try {
-    const user = requireUser(await getSession());
+    const user = await requireVendor();
     if (!user.vendorId) return NextResponse.json({ error: "Not a vendor" }, { status: 403 });
     const body = bodySchema.parse(await req.json());
     const state = vendorStateForLocation(body.state, body.city);

@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 const mock = vi.hoisted(() => ({ category: vi.fn(), create: vi.fn(), existing: vi.fn(), update: vi.fn() }));
-vi.mock("../src/lib/auth", () => ({ getSession: async () => ({ id: "owner", vendorId: "my-vendor" }), requireUser: (user: unknown) => user }));
+vi.mock("../src/lib/auth", () => ({ getSession: async () => ({ id: "owner", role: "vendor_owner", vendorId: "my-vendor" }), requireUser: (user: unknown) => user }));
 vi.mock("next/cache", () => ({ revalidateTag: vi.fn() }));
 vi.mock("../src/lib/db", () => ({ prisma: { category: { findFirst: mock.category }, service: { create: mock.create, findFirst: mock.existing, update: mock.update } } }));
+vi.mock("../src/lib/service-slugs", () => ({ createServiceWithSlug: (data: unknown) => mock.create({ data }) }));
 import { POST, PATCH } from "../src/app/api/vendor/services/route";
 const req = (body: unknown) => new Request("http://localhost/api/vendor/services", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 beforeEach(() => {

@@ -1,6 +1,6 @@
 import { beforeEach, expect, it, vi } from "vitest";
 const mock = vi.hoisted(() => ({ update: vi.fn(), invalidate: vi.fn() }));
-vi.mock("../src/lib/auth", () => ({ getSession: async () => ({ id: "owner", vendorId: "vendor" }), requireUser: (user: unknown) => user }));
+vi.mock("../src/lib/auth", () => ({ getSession: async () => ({ id: "owner", role: "vendor_owner", vendorId: "vendor" }), requireUser: (user: unknown) => user }));
 vi.mock("../src/lib/db", () => ({ prisma: { vendor: { findUniqueOrThrow: async () => ({ applicationStatus: "draft", hoursJson: "{}" }), update: mock.update } } }));
 vi.mock("next/cache", () => ({ revalidateTag: mock.invalidate }));
 import { PATCH } from "../src/app/api/vendor/onboarding/route";

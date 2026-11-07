@@ -61,7 +61,7 @@ function tagsFor(r: ExploreResult) {
 export function ExploreResultCard({ result: r }: { result: ExploreResult }) {
   const router = useRouter();
   const [saved, setSaved] = useState(false);
-  const { avatar } = listingPhotos({
+  const { avatar, cover } = listingPhotos({
     imageUrl: r.service.imageUrl,
     coverUrl: r.vendor.coverUrl,
     logoUrl: r.vendor.logoUrl
@@ -93,6 +93,7 @@ export function ExploreResultCard({ result: r }: { result: ExploreResult }) {
 
   return (
     <article className="flex h-full flex-col rounded-[1.5rem] border border-line bg-card p-5 shadow-sm">
+      <Link href={`/services/${encodeURIComponent(r.service.slug)}`} className="mb-4 block overflow-hidden rounded-xl"><img src={cover} alt={r.service.name} className="h-44 w-full object-cover" /></Link>
       <div className="flex items-start gap-3">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={avatar} alt="" className="h-14 w-14 shrink-0 rounded-full object-cover" />
@@ -164,10 +165,10 @@ export function ExploreResultCard({ result: r }: { result: ExploreResult }) {
           <span className="text-sm text-ink2"> / session</span>
         </p>
         <Link
-          href={`/services/${encodeURIComponent(r.service.slug)}`}
+          href={`/services/${encodeURIComponent(r.service.slug)}#booking`}
           className="inline-flex min-h-10 items-center rounded-full bg-ink px-4 text-sm font-bold text-bg"
         >
-          View spa service
+          Book now
         </Link>
       </div>
     </article>

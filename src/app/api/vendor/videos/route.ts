@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getSession, requireUser } from "@/lib/auth";
+import { requireVendor } from "@/lib/vendor-auth";
 import { prisma } from "@/lib/db";
 import { vendorEntitlement } from "@/lib/entitlements";
 import { assertVideoLinksAllowed, assertVideoUrl, MAX_VIDEO_LINKS } from "@/lib/galleries";
@@ -8,7 +8,7 @@ import { jsonError } from "@/lib/http";
 
 export async function POST(req: Request) {
   try {
-    const user = requireUser(await getSession());
+    const user = await requireVendor();
     if (!user.vendorId) return NextResponse.json({ error: "Not a vendor" }, { status: 403 });
     const entitlement = await vendorEntitlement(user.vendorId);
     assertVideoLinksAllowed(entitlement);
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    const user = requireUser(await getSession());
+    const user = await requireVendor();
     if (!user.vendorId) return NextResponse.json({ error: "Not a vendor" }, { status: 403 });
     const entitlement = await vendorEntitlement(user.vendorId);
     assertVideoLinksAllowed(entitlement);

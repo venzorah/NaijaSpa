@@ -96,9 +96,9 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
         actions={
           <>
             <DashboardRange value={range} />
-            <Link href="/admin/finance" className="inline-flex min-h-9 items-center rounded-full border border-line px-4 text-xs font-semibold">
+            {canSeeMoney ? <Link href="/admin/finance" className="inline-flex min-h-9 items-center rounded-full border border-line px-4 text-xs font-semibold">
               Open finance
-            </Link>
+            </Link> : null}
           </>
         }
       />

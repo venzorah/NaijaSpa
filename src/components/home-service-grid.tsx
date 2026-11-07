@@ -35,6 +35,7 @@ export function HomeServiceGrid({ id, title, subtitle, seeAllHref, cards, layout
               {vendor.verificationStatus === "verified" ? <span className="inline-flex items-center gap-1 text-leaf"><BadgeCheck className="h-3 w-3" />Verified</span> : null}
             </div>
             <div className="mt-3 flex items-end justify-between gap-2"><span className="text-xs text-ink2">{layout === "popular" ? `${service.durationMin} min` : tags?.find(t => t.includes("completed booking"))}</span><span className="font-bold text-goldink">{formatNgn(service.basePriceKobo)}</span></div>
+            <Link href={href + "#booking"} aria-label={`Book ${service.name} now`} className="mt-4 inline-flex min-h-10 w-full items-center justify-center rounded-full bg-gold px-4 text-xs font-bold text-ongold hover:brightness-105">Book now →</Link>
           </div>
         </article>;
       })}

@@ -19,6 +19,7 @@ export default async function Page() {
       rows={services.map((s) => ({
         id: s.id,
         slug: s.slug,
+        imageUrl: s.imageUrl,
         name: s.name,
         description: s.description,
         category: s.category.name,

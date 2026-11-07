@@ -1,29 +1,18 @@
 "use client";
-
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarX, Search } from "lucide-react";
-import { VendorPageHeader } from "@/components/vendor/page-header";
+import { Building2, CalendarX, Download, Home, Hotel, Search } from "lucide-react";
+import { VendorPageHeader } from "./page-header";
 import { FilterChips } from "@/components/admin/filter-chips";
 import { Panel } from "@/components/admin/panel";
 import { AdminStatusPill } from "@/components/admin/status-pill";
+import { EditorModal } from "@/components/admin/editor-modal";
 import { adminBtn, adminBtnOutline } from "@/components/admin/form-row";
 import { adminJson } from "@/components/admin/json";
 import { EmptyState } from "@/components/empty-state";
-import { cn } from "@/lib/cn";
-
-type Filter = "all" | "action" | "upcoming" | "past" | "cancelled";
-
-const ACTION = ["pending", "awaiting_payment", "cancellation_requested"];
-const UPCOMING = ["confirmed", "in_progress"];
-const PAST = ["completed", "no_show"];
-const CANCELLED = ["cancelled", "refunded", "refund_pending"];
-
-export function VendorBookingsConsole({
-  rows,
-  initialQuery
-}: {
-  rows: {
+type Filter = 'all' | 'action' | 'upcoming' | 'past' | 'cancelled';
+const ACTION = ['pending', 'awaiting_payment', 'cancellation_requested'], UPCOMING = ['confirmed', 'in_progress'], PAST = ['completed', 'no_show'], CANCELLED = ['cancelled', 'refunded', 'refund_pending'];
+type BookingRow = {
     id: string;
     ref: string;
     customer: string;
@@ -36,121 +25,28 @@ export function VendorBookingsConsole({
     totalLabel: string;
     status: string;
     payment: string;
-  }[];
-  initialQuery: string;
+};
+function csvCell(value: string) { return '"' + (/^[=+\-@\t\r]/.test(value) ? "'" + value : value).replaceAll('"', '""') + '"'; }
+export function VendorBookingsConsole({ rows, initialQuery }: {
+    rows: BookingRow[];
+    initialQuery: string;
 }) {
-  const router = useRouter();
-  const [view, setView] = useState<Filter>("all");
-  const [query, setQuery] = useState(initialQuery);
-  const [selectedId, setSelectedId] = useState(rows[0]?.id ?? "");
-  const filtered = useMemo(() => {
-    const q = query.toLowerCase();
-    return rows.filter((b) => {
-      const ok =
-        view === "all"
-          ? true
-          : view === "action"
-            ? ACTION.includes(b.status)
-            : view === "upcoming"
-              ? UPCOMING.includes(b.status)
-              : view === "past"
-                ? PAST.includes(b.status)
-                : CANCELLED.includes(b.status);
-      return ok && (!q || [b.customer, b.service, b.ref, b.staff].some((x) => x.toLowerCase().includes(q)));
-    });
-  }, [rows, view, query]);
-  const selected = filtered.find((b) => b.id === selectedId) ?? filtered[0];
-
-  async function setStatus(id: string, status: string) {
-    await adminJson(`/api/vendor/bookings/${id}`, { method: "PATCH", body: JSON.stringify({ status }) });
-    router.refresh();
-  }
-
-  return (
-    <div>
-      <VendorPageHeader title="Bookings" description="Every request, confirmation and refund in one inbox." />
-      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <FilterChips
-          label="Booking views"
-          value={view}
-          onChange={setView}
-          options={[
-            { value: "all", label: "All", count: rows.length },
-            { value: "action", label: "Needs action", count: rows.filter((b) => ACTION.includes(b.status)).length },
-            { value: "upcoming", label: "Upcoming" },
-            { value: "past", label: "Past" },
-            { value: "cancelled", label: "Cancellations" }
-          ]}
-        />
-        <label className="relative w-full lg:w-72">
-          <span className="sr-only">Search bookings</span>
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink2" />
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search customer, service, ref…" className="h-9 w-full rounded-lg border border-line bg-elev pl-9 pr-3 text-sm" />
-        </label>
-      </div>
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <Panel bodyClassName="p-0">
-          {filtered.length === 0 ? (
-            <EmptyState icon={CalendarX} title="No bookings match" text="Try a different status or clear your search." />
-          ) : (
-            <ul className="divide-y divide-line">
-              {filtered.map((b) => (
-                <li key={b.id}>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedId(b.id)}
-                    className={cn("flex w-full items-start justify-between gap-3 px-4 py-3 text-left hover:bg-elev/60", b.id === selected?.id && "bg-gold/5")}
-                  >
-                    <span>
-                      <span className="block text-sm font-medium">{b.customer}</span>
-                      <span className="block text-xs text-ink2">
-                        {b.service} · {b.when}
-                      </span>
-                    </span>
-                    <span className="text-right">
-                      <AdminStatusPill status={b.status} />
-                      <span className="mt-1 block text-xs font-semibold">{b.totalLabel}</span>
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Panel>
-        {selected ? (
-          <Panel title={selected.customer} description={selected.service} actions={<AdminStatusPill status={selected.status} />}>
-            <dl className="grid grid-cols-2 gap-3 text-xs">
-              <div>
-                <dt className="text-ink2">When</dt>
-                <dd>{selected.when}</dd>
-              </div>
-              <div>
-                <dt className="text-ink2">Location</dt>
-                <dd className="capitalize">{selected.location}</dd>
-              </div>
-              <div>
-                <dt className="text-ink2">Therapist</dt>
-                <dd>{selected.staff}</dd>
-              </div>
-              <div>
-                <dt className="text-ink2">Your payable</dt>
-                <dd className="tabular-nums">{selected.totalLabel}</dd>
-              </div>
-            </dl>
-            <div className="mt-4 flex flex-wrap gap-2 border-t border-line pt-4">
-              <button type="button" className={adminBtn} disabled={selected.payment !== "success" || !["pending", "awaiting_payment"].includes(selected.status)} onClick={() => setStatus(selected.id, "confirmed")}>
-                Confirm
-              </button>
-              <button type="button" className={adminBtnOutline} disabled={!["confirmed", "in_progress"].includes(selected.status)} onClick={() => setStatus(selected.id, "completed")}>
-                Complete
-              </button>
-              <button type="button" className={adminBtnOutline} disabled={!["confirmed", "in_progress"].includes(selected.status)} onClick={() => setStatus(selected.id, "no_show")}>
-                No-show
-              </button>
-            </div>
-          </Panel>
-        ) : null}
-      </div>
-    </div>
-  );
+    const router = useRouter();
+    const [view, setView] = useState<Filter>('all'), [query, setQuery] = useState(initialQuery), [status, setStatusFilter] = useState('all'), [selectedId, setSelectedId] = useState<string | null>(null), [busy, setBusy] = useState(false), [error, setError] = useState('');
+    useEffect(() => setQuery(initialQuery), [initialQuery]);
+    const filtered = useMemo(() => rows.filter(b => { const match = view === 'all' || (view === 'action' ? ACTION : view === 'upcoming' ? UPCOMING : view === 'past' ? PAST : CANCELLED).includes(b.status); return match && (status === 'all' || b.status === status) && (!query.trim() || [b.customer, b.service, b.ref, b.staff].some(v => v.toLowerCase().includes(query.trim().toLowerCase()))); }), [rows, view, status, query]);
+    const selected = rows.find(b => b.id === selectedId);
+    async function update(next: string) { if (!selected || busy)
+        return; setBusy(true); setError(''); try {
+        await adminJson(`/api/vendor/bookings/${selected.id}`, { method: 'PATCH', body: JSON.stringify({ status: next }) });
+        router.refresh();
+    }
+    catch (e) {
+        setError(e instanceof Error ? e.message : 'Could not update booking.');
+    }
+    finally {
+        setBusy(false);
+    } }
+    function download() { const contents = '\uFEFF' + [['Reference', 'Customer', 'Service', 'When (WAT)', 'Location', 'Therapist', 'Vendor payable', 'Status'], ...filtered.map(b => [b.ref, b.customer, b.service, b.when, b.location, b.staff, b.totalLabel, b.status])].map(r => r.map(csvCell).join(',')).join('\r\n'); const url = URL.createObjectURL(new Blob([contents], { type: 'text/csv;charset=utf-8;' })); const a = document.createElement('a'); a.href = url; a.download = 'naijaspa-bookings.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
+    return <div><VendorPageHeader title="Bookings" description="Every request, confirmation and refund in one inbox." actions={<button className={adminBtnOutline} onClick={download} disabled={!filtered.length}><Download className="h-4 w-4"/>Export CSV</button>}/><div className="mb-4 flex flex-col justify-between gap-3 xl:flex-row"><FilterChips label="Booking views" value={view} onChange={v => { setView(v); setStatusFilter('all'); }} options={[{ value: 'all', label: 'All' }, { value: 'action', label: 'Needs action' }, { value: 'upcoming', label: 'Upcoming' }, { value: 'past', label: 'Past' }, { value: 'cancelled', label: 'Cancellations & refunds' }]}/><label className="relative block xl:w-72"><Search className="absolute left-3 top-2.5 h-4 w-4 text-ink2"/><input aria-label="Search bookings" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search customer, service, ref…" className="h-9 w-full rounded-lg border border-line bg-bg pl-9 pr-3"/></label></div><div role="group" aria-label="Booking status" className="mb-5 flex flex-wrap gap-2">{Array.from(new Set(rows.map(b => b.status))).map(s => <button key={s} aria-pressed={status === s} onClick={() => setStatusFilter(status === s ? 'all' : s)} className={`rounded-full border px-3 py-1.5 text-[10px] capitalize ${status === s ? 'border-gold bg-gold/10 text-goldink' : 'border-line text-ink2'}`}>{s.replaceAll('_', ' ')} <span className="ml-1 rounded-full bg-elev px-1.5">{rows.filter(b => b.status === s).length}</span></button>)}</div><Panel bodyClassName="p-0">{!filtered.length ? <EmptyState icon={CalendarX} title="No bookings match" text="Try a different status or clear your search."/> : <div className="overflow-x-auto"><table><thead><tr><th>Customer & service</th><th>When (WAT)</th><th>Location</th><th>Therapist</th><th>Payable</th><th>Status</th></tr></thead><tbody>{filtered.map(b => { const Icon = b.location === 'home' ? Home : b.location === 'hotel' ? Hotel : Building2; return <tr key={b.id} className="hover:bg-elev/60"><td><button onClick={() => { setSelectedId(b.id); setError(''); }} className="text-left"><span className="block font-semibold hover:text-goldink">{b.customer}</span><span className="block text-[11px] text-ink2">{b.service} · {b.ref}</span></button></td><td className="whitespace-nowrap text-xs">{b.when}</td><td><span className="flex items-center gap-2 whitespace-nowrap text-xs capitalize text-ink2"><Icon className="h-4 w-4"/>{b.location === 'spa' ? 'Spa / Office' : b.location}</span></td><td className="text-xs text-ink2">{b.staff}</td><td className="whitespace-nowrap font-semibold">{b.totalLabel}</td><td><button aria-label={`Open booking ${b.ref}`} onClick={() => { setSelectedId(b.id); setError(''); }}><AdminStatusPill status={b.status}/></button></td></tr>; })}</tbody></table></div>}</Panel><p className="mt-3 text-xs text-ink2">Showing {filtered.length} of {rows.length} recent bookings.</p>{selected ? <EditorModal title={selected.customer} busy={busy} onClose={() => setSelectedId(null)}><p className="mb-4 text-sm text-ink2">{selected.service} · {selected.ref}</p><AdminStatusPill status={selected.status}/><dl className="my-5 grid grid-cols-2 gap-4 text-sm">{[['When (WAT)', selected.when], ['Location', selected.location], ['Therapist', selected.staff], ['Your payable', selected.totalLabel], ['Payment', selected.payment]].map(([k, v]) => <div key={k}><dt className="mb-1 text-xs text-ink2">{k}</dt><dd className="capitalize">{v}</dd></div>)}</dl>{error ? <p role="alert" className="mb-4 text-sm text-red-600">{error}</p> : null}<div className="flex flex-wrap gap-2 border-t border-line pt-4"><button className={adminBtn} disabled={busy || selected.payment !== 'success' || !['pending', 'awaiting_payment'].includes(selected.status)} onClick={() => void update('confirmed')}>Confirm</button><button className={adminBtnOutline} disabled={busy || selected.status !== 'confirmed'} onClick={() => void update('in_progress')}>Start visit</button><button className={adminBtnOutline} disabled={busy || !UPCOMING.includes(selected.status)} onClick={() => void update('completed')}>Complete</button><button className={adminBtnOutline} disabled={busy || !UPCOMING.includes(selected.status)} onClick={() => void update('no_show')}>No-show</button></div></EditorModal> : null}</div>;
 }

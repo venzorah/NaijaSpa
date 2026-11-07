@@ -10,11 +10,14 @@ export default async function ServicesPage() {
     orderBy: { createdAt: "desc" },
     take: 200
   });
+  const [vendors, categories] = await Promise.all([prisma.vendor.findMany({ select: { id: true, businessName: true }, orderBy: { businessName: "asc" } }), prisma.category.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { sortOrder: "asc" } })]);
   return (
     <div>
       <AdminPageHeader screen="services" />
       <ServicesConsole
         editable={editable}
+        vendors={vendors}
+        categories={categories}
         rows={services.map((s) => ({
           id: s.id,
           slug: s.slug,
@@ -22,6 +25,10 @@ export default async function ServicesPage() {
           description: s.description,
           imageUrl: s.imageUrl,
           vendor: s.vendor.businessName,
+          vendorId: s.vendorId,
+          categoryId: s.categoryId,
+          spaEnabled: s.spaEnabled, hotelEnabled: s.hotelEnabled, homeEnabled: s.homeEnabled,
+          hotelAddonKobo: s.hotelAddonKobo, homeAddonKobo: s.homeAddonKobo,
           category: s.category.name,
           price: s.basePriceKobo,
           duration: s.durationMin,

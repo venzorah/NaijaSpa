@@ -1,80 +1,24 @@
-import { Wallet } from "lucide-react";
-import { getSession } from "@/lib/auth";
+import Link from "next/link";
+import { Wallet, Clock, CheckCircle2, Percent } from "lucide-react";
+import { requireVendor } from "@/lib/vendor-auth";
 import { prisma } from "@/lib/db";
 import { formatNgn, formatNgnCompact } from "@/lib/money";
 import { VendorPageHeader } from "@/components/vendor/page-header";
-import { StatCard } from "@/components/admin/stat-card";
+import { StatCard } from "@/components/vendor/stat-card";
 import { Panel } from "@/components/admin/panel";
 import { AdminStatusPill } from "@/components/admin/status-pill";
 import { PayoutAccountForm } from "@/components/vendor/payout-account-form";
-
 export default async function Page() {
-  const user = await getSession();
-  const vendorId = user?.vendorId || "";
-  const [rows, payouts, vendor] = await Promise.all([
-    prisma.vendorEarning.findMany({
-      where: { vendorId },
-      include: { booking: { select: { id: true, startsAt: true, status: true } } },
-      orderBy: { booking: { startsAt: "desc" } },
-      take: 80
-    }),
-    prisma.payout.findMany({ where: { vendorId }, orderBy: { createdAt: "desc" }, take: 20 }),
-    prisma.vendor.findUnique({
-      where: { id: vendorId },
-      select: { payoutAccountName: true, payoutBankName: true, payoutAccountNumber: true, payoutRecipientCode: true }
-    })
-  ]);
-  const payable = rows.filter((e) => e.status === "pending").reduce((s, e) => s + e.payableKobo, 0);
-  const paid = rows.filter((e) => e.status !== "pending").reduce((s, e) => s + e.payableKobo, 0);
-  const commission = rows.reduce((s, e) => s + e.commissionKobo, 0);
-  return (
-    <div>
-      <VendorPageHeader
-        title="Earnings & payouts"
-        description={
-          vendor?.payoutAccountNumber
-            ? `Confirmed visits pay ${vendor.payoutAccountName || "your account"} at ${vendor.payoutBankName || "your bank"} (••••${vendor.payoutAccountNumber.slice(-4)}).`
-            : "Add the real Nigerian account that should receive money after a visit is confirmed."
-        }
-      />
-      <PayoutAccountForm />
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <StatCard label="Awaiting payout" value={formatNgnCompact(payable)} icon={Wallet} emphasis="gold" />
-        <StatCard label="Already paid" value={formatNgnCompact(paid)} />
-        <StatCard label="Commission held" value={formatNgnCompact(commission)} />
-      </div>
-      <div className="mt-4 grid gap-4 xl:grid-cols-3">
-        <Panel title="Ledger" className="xl:col-span-2" bodyClassName="p-0">
-          {rows.length === 0 ? <p className="px-4 py-8 text-sm text-ink2">No earnings yet.</p> : null}
-          <ul className="divide-y divide-line">
-            {rows.map((e) => (
-              <li key={e.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
-                <div>
-                  <p className="font-medium">{formatNgn(e.payableKobo)}</p>
-                  <p className="text-xs text-ink2">
-                    {e.booking.startsAt.toLocaleDateString("en-NG")} · commission {formatNgn(e.commissionKobo)}
-                  </p>
-                </div>
-                <AdminStatusPill status={e.status} />
-              </li>
-            ))}
-          </ul>
-        </Panel>
-        <Panel title="Payouts" bodyClassName="p-0">
-          {payouts.length === 0 ? <p className="px-4 py-8 text-sm text-ink2">No payouts recorded yet.</p> : null}
-          <ul className="divide-y divide-line">
-            {payouts.map((p) => (
-              <li key={p.id} className="px-4 py-3 text-sm">
-                <p className="font-medium">{formatNgn(p.amountKobo)}</p>
-                <p className="text-xs text-ink2">
-                  {p.createdAt.toLocaleDateString("en-NG")} · {p.status}
-                  {p.note ? ` · ${p.note}` : ""}
-                </p>
-              </li>
-            ))}
-          </ul>
-        </Panel>
-      </div>
-    </div>
-  );
+    const user = await requireVendor(), vendorId = user.vendorId;
+    const [rows, payouts, totals] = await Promise.all([
+        prisma.vendorEarning.findMany({ where: { vendorId }, include: { booking: { select: { id: true, startsAt: true, status: true, basePriceKobo: true, commissionBps: true, locationType: true, customer: { select: { name: true } }, service: { select: { name: true } } } } }, orderBy: { booking: { startsAt: 'desc' } }, take: 80 }),
+        prisma.payout.findMany({ where: { vendorId }, orderBy: { createdAt: 'desc' }, take: 20 }),
+        prisma.vendorEarning.groupBy({ by: ['status'], where: { vendorId }, _sum: { payableKobo: true, commissionKobo: true, surchargeKobo: true } })
+    ]);
+    const pending = totals.filter(e => e.status === 'pending').reduce((s, e) => s + (e._sum.payableKobo || 0), 0);
+    const paid = totals.filter(e => e.status === 'paid').reduce((s, e) => s + (e._sum.payableKobo || 0), 0);
+    const commission = totals.reduce((s, e) => s + (e._sum.commissionKobo || 0), 0), surcharge = totals.reduce((s, e) => s + (e._sum.surchargeKobo || 0), 0);
+    return <div><VendorPageHeader title="Earnings & payouts" description="Every naira itemised — booking prices, commission snapshots and what’s yours." actions={<Link href="/vendor/support" className="rounded-lg border border-line px-4 py-2 text-xs font-semibold">Payout help</Link>}/>
+ <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><StatCard label="Awaiting payout" value={formatNgnCompact(pending)} sub="Pending earnings" icon={Clock} emphasis="gold"/><StatCard label="Lifetime paid out" value={formatNgnCompact(paid)} sub="Settled earnings" icon={CheckCircle2}/><StatCard label="Commission" value={formatNgnCompact(commission)} sub="Rate locked at booking" icon={Percent}/><StatCard label="Surcharges" value={formatNgnCompact(surcharge)} sub="Recorded separately" icon={Wallet}/></div>
+ <div className="mt-5 grid items-start gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]"><Panel title="Earnings ledger" description="Your 80 most recent earning entries." bodyClassName="p-0"><div className="overflow-x-auto"><table><thead><tr><th>Booking</th><th>Base</th><th>Commission</th><th>Surcharge</th><th>Vendor payable</th><th>Status</th></tr></thead><tbody>{rows.map(e => <tr key={e.id}><td><p className="font-semibold">{e.booking.service.name}</p><p className="mt-1 text-[10px] text-ink2">{e.booking.customer.name} · {e.booking.startsAt.toLocaleDateString('en-NG', { timeZone: 'Africa/Lagos' })}</p></td><td className="whitespace-nowrap">{formatNgn(e.booking.basePriceKobo)}</td><td><p className="whitespace-nowrap">{formatNgn(e.commissionKobo)}</p><p className="text-[10px] text-ink2">{e.booking.commissionBps / 100}% snapshot</p></td><td className="whitespace-nowrap">{formatNgn(e.surchargeKobo)}<p className="text-[10px] capitalize text-ink2">{e.booking.locationType}</p></td><td className="whitespace-nowrap font-semibold">{formatNgn(e.payableKobo)}</td><td><AdminStatusPill status={e.status}/></td></tr>)}</tbody></table></div>{!rows.length ? <p className="p-8 text-center text-sm text-ink2">No earnings recorded yet.</p> : null}</Panel><div className="space-y-4"><Panel title="How payable works"><p className="text-sm leading-relaxed text-ink2">Your booking’s commission rate is locked when it is created. The ledger shows the recorded commission, surcharge and vendor payable for each booking. Payments follow the visit confirmation and payout workflow.</p><Link href="/vendor/subscriptions" className="mt-4 inline-block text-xs font-semibold text-goldink">Compare listing plans →</Link></Panel><Panel title="Payout requests" bodyClassName="p-0">{payouts.length ? <ul className="divide-y divide-line">{payouts.map(p => <li key={p.id} className="p-4"><div className="flex flex-wrap items-center justify-between gap-2"><p className="font-semibold">{formatNgn(p.amountKobo)}</p><AdminStatusPill status={p.status}/></div><p className="mt-2 text-[10px] text-ink2">{p.createdAt.toLocaleDateString('en-NG', { timeZone: 'Africa/Lagos' })}</p>{p.note ? <p className="mt-1 break-words text-xs text-ink2">{p.note}</p> : null}</li>)}</ul> : <p className="p-5 text-sm text-ink2">No payouts recorded yet.</p>}</Panel></div></div><div id="payout-account" className="mt-5 scroll-mt-20"><PayoutAccountForm /></div></div>;
 }

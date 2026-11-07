@@ -176,10 +176,10 @@ function ServiceFeedCard({ card }: { card: HomeCard }) {
           <span className="ml-1 text-xs font-normal text-ink2">/ {service.durationMin} min</span>
         </p>
         <Link
-          href={href}
+          href={href + "#booking"}
           className="inline-flex min-h-10 items-center rounded-full bg-ink px-4 text-xs font-bold text-bg"
         >
-          View spa service
+          Book now
         </Link>
       </div>
       </div>

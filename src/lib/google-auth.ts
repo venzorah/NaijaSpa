@@ -8,6 +8,7 @@ import { queueMail, sendWelcomeEmail } from "./mail";
 export const GOOGLE_OAUTH_COOKIE = "naijaspa_oauth";
 
 export type GooglePortal = "customer" | "vendor" | "admin";
+export type GoogleAuthIntent = "login" | "register";
 
 type OauthState = {
   portal: GooglePortal;
@@ -15,6 +16,7 @@ type OauthState = {
   n: string;
   redirectUri: string;
   returnPath: string;
+  intent?: GoogleAuthIntent;
 };
 
 export const GOOGLE_STATIC_ORIGINS = [
@@ -108,7 +110,8 @@ export async function verifyOauthState(token: string): Promise<OauthState> {
     next: typeof payload.next === "string" ? payload.next : "/",
     n: typeof payload.n === "string" ? payload.n : "",
     redirectUri: typeof payload.redirectUri === "string" ? payload.redirectUri : googleCallbackUrl(),
-    returnPath: typeof payload.returnPath === "string" ? payload.returnPath : loginPath(portal)
+    returnPath: typeof payload.returnPath === "string" ? payload.returnPath : loginPath(portal),
+    intent: payload.intent === "register" ? "register" : "login"
   };
 }
 
@@ -171,8 +174,8 @@ export async function exchangeGoogleCode(code: string, redirectUri = googleCallb
   };
 }
 
-async function createVendorFor(userId: string, name: string) {
-  await prisma.vendor.create({
+async function createVendorFor(tx: Pick<typeof prisma, "vendor">, userId: string, name: string) {
+  return tx.vendor.create({
     data: {
       ownerId: userId,
       slug: `vendor-${userId.slice(-8)}`,
@@ -185,7 +188,7 @@ async function createVendorFor(userId: string, name: string) {
   });
 }
 
-export async function signInWithGoogle(profile: { googleId: string; email: string; name: string }, portal: GooglePortal) {
+export async function signInWithGoogle(profile: { googleId: string; email: string; name: string }, portal: GooglePortal, intent: GoogleAuthIntent = "login") {
   let isNew = false;
   let user = await prisma.user.findFirst({
     where: { OR: [{ googleId: profile.googleId }, { email: profile.email }] },
@@ -193,25 +196,36 @@ export async function signInWithGoogle(profile: { googleId: string; email: strin
   });
 
   if (!user) {
-    isNew = true;
     if (portal === "admin") {
       throw Object.assign(new Error("No admin account exists for this Gmail. Ask an owner to invite you."), { status: 403 });
     }
+    if (intent !== "register") {
+      throw Object.assign(new Error(`No ${portal === "vendor" ? "vendor" : "customer"} account exists for this Gmail. Create an account first.`), { status: 401 });
+    }
+    isNew = true;
     const role = portal === "vendor" ? ROLES.VENDOR_OWNER : ROLES.CUSTOMER;
-    user = await prisma.user.create({
-      data: {
-        email: profile.email,
-        name: profile.name,
-        googleId: profile.googleId,
-        emailVerifiedAt: new Date(),
-        role,
-        locale: "en",
-        theme: "light",
-        customerProfile: role === ROLES.CUSTOMER ? { create: {} } : undefined
-      },
-      include: { vendorOwned: true, staffMemberships: true }
+    user = await prisma.$transaction(async tx => {
+      const created = await tx.user.create({
+        data: {
+          email: profile.email,
+          name: profile.name,
+          googleId: profile.googleId,
+          emailVerifiedAt: new Date(),
+          role,
+          locale: "en",
+          theme: "light",
+          customerProfile: role === ROLES.CUSTOMER ? { create: {} } : undefined
+        },
+        include: { vendorOwned: true, staffMemberships: true }
+      });
+      const vendorOwned = role === ROLES.VENDOR_OWNER ? await createVendorFor(tx, created.id, profile.name) : null;
+      return { ...created, vendorOwned };
+    }).catch(error => {
+      if (error && typeof error === "object" && "code" in error && error.code === "P2002") {
+        throw Object.assign(new Error("An account already exists for this Gmail. Sign in instead."), { status: 409 });
+      }
+      throw error;
     });
-    if (role === ROLES.VENDOR_OWNER) await createVendorFor(user.id, profile.name);
   } else {
     if (user.status !== "active") {
       throw Object.assign(new Error("This account is not active"), { status: 403 });
@@ -221,6 +235,12 @@ export async function signInWithGoogle(profile: { googleId: string; email: strin
     }
     if (portal === "admin" && !isAdminRole(await getRoleAccess(user.role))) {
       throw Object.assign(new Error("This is not an admin account. Use customer or vendor login."), { status: 403 });
+    }
+    if (intent === "register") {
+      throw Object.assign(new Error("An account already exists for this Gmail. Sign in instead."), { status: 409 });
+    }
+    if (user.googleId && user.googleId !== profile.googleId) {
+      throw Object.assign(new Error("This email is linked to a different Google account."), { status: 403 });
     }
     if (!user.googleId || !user.emailVerifiedAt) {
       user = await prisma.user.update({

@@ -24,8 +24,8 @@ describe("admin filtered record selection", () => {
     expect(html).not.toContain("Approved sample");
   });
   it("does not expose actions for a live service inside an empty hidden-service queue", () => {
-    const html = renderToStaticMarkup(createElement(ServicesConsole, { editable: true, rows: [
-      { id: "live", slug: "live", name: "Live-only sample treatment", description: "", imageUrl: null, vendor: "Sample", category: "Massage", price: 5000000, duration: 60, active: true, locations: ["spa"], createdAt: "31 Oct" }
+    const html = renderToStaticMarkup(createElement(ServicesConsole, { editable: true, vendors: [], categories: [], rows: [
+      { id: "live", slug: "live", name: "Live-only sample treatment", description: "", imageUrl: null, vendor: "Sample", vendorId: "vendor", categoryId: "category", spaEnabled: true, hotelEnabled: false, homeEnabled: false, hotelAddonKobo: 0, homeAddonKobo: 0, category: "Massage", price: 5000000, duration: 60, active: true, locations: ["spa"], createdAt: "31 Oct" }
     ] }));
     expect(html).toContain("Nothing in this queue");
     expect(html).not.toContain("Live-only sample treatment");
