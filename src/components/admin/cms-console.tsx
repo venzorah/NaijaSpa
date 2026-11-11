@@ -48,9 +48,14 @@ export function CmsConsole({
       {tab === "hero" ? (
         <Panel title="Homepage hero & premium ads" description="Banner copy, image and rotating vendor ads.">
           <p className="text-sm text-ink2">Edit the live homepage banner and carousel ads in the dedicated editor.</p>
-          <Link href="/admin/hero" className={`${adminBtn} mt-4 inline-flex`}>
-            Open hero & ads editor
-          </Link>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link href="/admin/hero" className={`${adminBtn} inline-flex`}>
+              Open hero & ads editor
+            </Link>
+            <Link href="/admin/homepage" className={`${adminBtnOutline} inline-flex`}>
+              Homepage sections
+            </Link>
+          </div>
         </Panel>
       ) : null}
       {tab === "pages" ? (

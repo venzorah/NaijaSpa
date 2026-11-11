@@ -7,14 +7,17 @@ import type { LivePlace } from "@/lib/nigeria";
 import { VendorCarousel } from "@/components/service-carousel";
 import { HomeServiceGrid } from "@/components/home-service-grid";
 import { homeOfferExpiry } from "@/lib/home-offers";
+import { curateCategories, homeSection, type HomeSection } from "@/lib/home-sections";
 
-export async function HomeDiscovery({ place }: { place: LivePlace | null }) {
+export async function HomeDiscovery({ place, layout }: { place: LivePlace | null; layout?: HomeSection[] }) {
   const data = await getHomeDiscovery(place).catch(() => null);
   if (!data) return null;
+  const collectionsSection = homeSection(layout, "collections");
+  const collections = collectionsSection.visible ? curateCategories(data.collections, collectionsSection) : [];
   return <>
     <HomeServiceGrid id="popular-treatments" title="Popular treatments" layout="popular" subtitle="Ranked by completed bookings." seeAllHref={exploreHref(place)} cards={data.popular} />
     <VendorCarousel title="Verified providers" vendors={data.verified} />
-    {data.collections.length ? <section className="mx-auto mt-10 max-w-7xl px-4 lg:px-8" aria-labelledby="featured-collections"><p className="text-[11px] font-bold uppercase tracking-[0.2em] text-goldink">Curated</p><h2 id="featured-collections" className="font-display text-2xl md:text-3xl">Featured collections</h2><div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{data.collections.map(c => <Link key={c.slug} href={categoryHref(c.slug)} className="relative overflow-hidden rounded-3xl border border-line bg-card">
+    {collections.length ? <section className="mx-auto mt-10 max-w-7xl px-4 lg:px-8" aria-labelledby="featured-collections"><p className="text-[11px] font-bold uppercase tracking-[0.2em] text-goldink">Curated</p><h2 id="featured-collections" className="font-display text-2xl md:text-3xl">{collectionsSection.title}</h2><div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{collections.map(c => <Link key={c.slug} href={categoryHref(c.slug)} className="relative overflow-hidden rounded-3xl border border-line bg-card">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={categoryImage(c.slug, c.imageUrl)} alt="" className="h-40 w-full object-cover" /><div className="p-4"><h3 className="font-semibold">{c.name}</h3><p className="text-sm text-ink2">{c._count.services} treatment{c._count.services === 1 ? "" : "s"}{place?.state ? ` in ${place.state}` : ""}</p></div>
     </Link>)}</div></section> : null}

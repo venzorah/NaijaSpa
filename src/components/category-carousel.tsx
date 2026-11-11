@@ -4,6 +4,7 @@ import { useRef } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { categoryHref, categoryImage } from "@/lib/category-images";
+import { demoCategories } from "@/lib/demo-catalog";
 import { useAutoScroll } from "@/hooks/use-auto-scroll";
 import type { LivePlace } from "@/lib/nigeria";
 
@@ -20,9 +21,9 @@ export function CategoryCarousel({
   categories: CategoryTile[];
   place?: LivePlace | null;
 }) {
+  const tiles = categories.length ? categories : demoCategories;
   const scroller = useRef<HTMLDivElement>(null);
   const auto = useAutoScroll(scroller, 3600);
-  if (categories.length === 0) return null;
 
   const scrollByDir = (dir: -1 | 1) => {
     const el = scroller.current;
@@ -63,7 +64,7 @@ export function CategoryCarousel({
           ref={scroller}
           className="no-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1 sm:gap-5 sm:px-16 sm:pb-2 lg:px-20"
         >
-          {categories.map((c) => (
+          {tiles.map((c) => (
             <Link
               key={c.slug}
               href={categoryHref(c.slug)}

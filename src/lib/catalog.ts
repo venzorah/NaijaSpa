@@ -33,6 +33,16 @@ import {
 import { publicVideoLinks } from "./galleries";
 import { filterByServiceArea, prismaServiceAreaFilter, serviceAreaState, sortByPlace, type LivePlace } from "./nigeria";
 import { type HomeHeroPayload } from "./home-hero";
+import {
+  collectedManualServiceIds,
+  collectedManualVendorIds,
+  DEFAULT_HOME_SECTIONS,
+  homeSection,
+  HOME_SECTIONS_CONFIG_KEY,
+  parseHomeSections,
+  pickManualIds,
+  type HomeSection
+} from "./home-sections";
 import { PHOTOS, publicWellnessPhoto } from "./photos";
 import { serviceAvailabilityLabels } from "./service-availability";
 
@@ -60,6 +70,17 @@ async function resolveHomeHero(): Promise<HomeHeroPayload> {
   }
 }
 
+async function resolveHomeSections(): Promise<HomeSection[]> {
+  if (!process.env.DATABASE_URL) return DEFAULT_HOME_SECTIONS;
+  try {
+    const { prisma } = await import("./db");
+    const row = await prisma.systemConfig.findUnique({ where: { key: HOME_SECTIONS_CONFIG_KEY } });
+    return parseHomeSections(row?.value);
+  } catch {
+    return DEFAULT_HOME_SECTIONS;
+  }
+}
+
 const HOME_PLACEMENTS = ["homepage_featured", "homepage_premium", "homepage_promo"] as const;
 
 function compactService(s: {
@@ -80,14 +101,19 @@ function compactService(s: {
   };
 }
 
-function demoHomePayload(limits: HomeFeedConfig, place?: LivePlace | null, hero?: HomeHeroPayload) {
+function demoHomePayload(limits: HomeFeedConfig, place?: LivePlace | null, hero?: HomeHeroPayload, layout: HomeSection[] = DEFAULT_HOME_SECTIONS) {
+  const rails = demoHomeRails(limits, place);
   return {
     demo: true as const,
     categories: demoCategories,
-    rails: demoHomeRails(limits, place),
-    nearby: sortByPlace(filterByServiceArea(demoNearbyVendors(), place, (v) => v), place, (v) => v).slice(0, limits.nearby),
+    rails,
+    spotlight: homeSection(layout, "spotlight").visible ? rails.featured.filter((card) => card.sponsored) : [],
+    nearby: homeSection(layout, "nearby").visible
+      ? sortByPlace(filterByServiceArea(demoNearbyVendors(), place, (v) => v), place, (v) => v).slice(0, limits.nearby)
+      : [],
     faqs: demoFaqs,
-    hero: hero ?? demoHomeHero()
+    hero: hero ?? demoHomeHero(),
+    layout
   };
 }
 
@@ -143,23 +169,44 @@ export async function getHomeCatalog(place?: LivePlace | null) {
 }
 
 async function loadHomeCatalog(place: LivePlace | null) {
-  const [limits, hero] = await withTimeout(Promise.all([resolveHomeFeedLimits(), resolveHomeHero()]), 4000).catch(
-    (): [HomeFeedConfig, HomeHeroPayload] => [DEFAULT_HOME_FEED_CONFIG, { ...demoHomeHero(), ads: usingDemoListings() ? demoHomeHero().ads : [] }]
+  const [limits, hero, layout] = await withTimeout(
+    Promise.all([resolveHomeFeedLimits(), resolveHomeHero(), resolveHomeSections()]),
+    4000
+  ).catch(
+    (): [HomeFeedConfig, HomeHeroPayload, HomeSection[]] => [
+      DEFAULT_HOME_FEED_CONFIG,
+      { ...demoHomeHero(), ads: usingDemoListings() ? demoHomeHero().ads : [] },
+      DEFAULT_HOME_SECTIONS
+    ]
   );
-  if (usingDemoListings()) return demoHomePayload(limits, place, hero);
+  if (usingDemoListings()) return demoHomePayload(limits, place, hero, layout);
   try {
   const { prisma } = await import("./db");
   const { vendorEntitlements } = await import("./entitlements");
   const now = new Date();
+  const pinnedServiceIds = collectedManualServiceIds(layout);
+  const pinnedVendorIds = collectedManualVendorIds(layout);
+  const areaVendor = { visibility: "public" as const, applicationStatus: "approved" as const, ...(serviceAreaState(place) ? prismaServiceAreaFilter(serviceAreaState(place)) : {}) };
   const [categories, services, faqs, campaigns] = await withTimeout(
     Promise.all([
     prisma.category.findMany({
       where: { active: true },
       orderBy: { sortOrder: "asc" },
       select: { slug: true, name: true, imageUrl: true }
-    }),
+    }).then((rows) => (rows.length ? rows : demoCategories.map(({ slug, name, imageUrl }) => ({ slug, name, imageUrl })))),
     prisma.service.findMany({
-      where: { active: true, vendor: { visibility: "public", applicationStatus: "approved", ...(serviceAreaState(place) ? prismaServiceAreaFilter(serviceAreaState(place)) : {}) } },
+      where: {
+        active: true,
+        OR: [
+          { vendor: areaVendor },
+          ...(pinnedServiceIds.length
+            ? [{ id: { in: pinnedServiceIds }, vendor: { visibility: "public" as const, applicationStatus: "approved" as const } }]
+            : []),
+          ...(pinnedVendorIds.length
+            ? [{ vendorId: { in: pinnedVendorIds }, vendor: { visibility: "public" as const, applicationStatus: "approved" as const } }]
+            : [])
+        ]
+      },
       select: {
         id: true,
         vendorId: true,
@@ -174,6 +221,7 @@ async function loadHomeCatalog(place: LivePlace | null) {
         homeEnabled: true,
         vendor: {
           select: {
+            id: true,
             slug: true,
             businessName: true,
             state: true,
@@ -188,9 +236,9 @@ async function loadHomeCatalog(place: LivePlace | null) {
             privateWhatsapp: true
           }
         },
-        category: { select: { name: true } }
+        category: { select: { name: true, slug: true } }
       },
-      take: homeServicePoolTake(limits)
+      take: Math.min(120, homeServicePoolTake(limits) + pinnedServiceIds.length + pinnedVendorIds.length)
     }),
     prisma.faq.findMany({ where: { published: true }, orderBy: { sortOrder: "asc" }, take: 4, select: { question: true, answer: true } }),
     prisma.campaign.findMany({
@@ -267,6 +315,35 @@ async function loadHomeCatalog(place: LivePlace | null) {
     return out;
   };
 
+  const servicesForVendor = (vendorId: string) => services.filter((row) => row.vendorId === vendorId);
+  const servicesForCategory = (slug: string) => services.filter((row) => row.category?.slug === slug);
+  const matchesSectionCategories = (card: HomeCard, slugs: string[]) => {
+    if (!slugs.length) return true;
+    const service = byId.get(card.service.id);
+    return Boolean(service?.category?.slug && slugs.includes(service.category.slug));
+  };
+  const manualCards = (sectionId: "featured" | "premium" | "promo" | "spotlight", badge: string, limit: number) =>
+    pickManualIds(
+      homeSection(layout, sectionId),
+      limit,
+      (id) => byId.get(id),
+      servicesForVendor,
+      servicesForCategory,
+      (row) => row.id
+    ).map((row) => cardFromService(row, badge, sectionId === "spotlight"));
+
+  const autoRail = (campaignCards: HomeCard[], pool: HomeCard[], badge: string, limit: number, slugs: string[]) =>
+    sortByPlace(
+      fill(
+        filterByServiceArea(campaignCards.filter((card) => matchesSectionCategories(card, slugs)), place, (c) => c.vendor),
+        pool.filter((card) => matchesSectionCategories(card, slugs)),
+        badge,
+        limit
+      ),
+      place,
+      (c) => c.vendor
+    );
+
   const allCards = sortByPlace(
     filterByServiceArea(
       services.map((s) => {
@@ -289,47 +366,115 @@ async function loadHomeCatalog(place: LivePlace | null) {
     place,
     (c) => c.vendor
   );
-  const rails: HomeRails = {
-    featured: sortByPlace(
-      fill(filterByServiceArea(featured, place, (c) => c.vendor), allCards, "Featured", limits.featured),
-      place,
-      (c) => c.vendor
-    ),
-    premium: sortByPlace(
-      fill(filterByServiceArea(premiumFromAds, place, (c) => c.vendor), premiumPool, "Premium", limits.premium),
-      place,
-      (c) => c.vendor
-    ),
-    promo: sortByPlace(filterByServiceArea(promo, place, (c) => c.vendor).slice(0, limits.promo), place, (c) => c.vendor)
+  const railFor = (
+    id: "featured" | "premium" | "promo",
+    campaignCards: HomeCard[],
+    pool: HomeCard[],
+    badge: string,
+    limit: number
+  ) => {
+    const section = homeSection(layout, id);
+    if (!section.visible) return [];
+    if (section.source === "manual") return manualCards(id, badge, limit);
+    return autoRail(campaignCards, pool, badge, limit, section.categorySlugs);
   };
+  const rails: HomeRails = {
+    featured: railFor("featured", featured, allCards, "Featured", limits.featured),
+    premium: railFor("premium", premiumFromAds, premiumPool, "Premium", limits.premium),
+    promo: railFor("promo", promo, promo, "Promo", limits.promo)
+  };
+  const spotlightSection = homeSection(layout, "spotlight");
+  const sponsoredUnion = [...new Map([...rails.featured, ...rails.premium, ...rails.promo].filter((c) => c.sponsored).map((c) => [c.service.id, c])).values()];
+  const spotlight = !spotlightSection.visible
+    ? []
+    : spotlightSection.source === "manual"
+      ? manualCards("spotlight", "Featured", limits.featured)
+      : sponsoredUnion.filter((card) => matchesSectionCategories(card, spotlightSection.categorySlugs));
 
-  const nearbyMap = new Map<string, NearbyVendor>();
+  const nearbySection = homeSection(layout, "nearby");
+  const nearbyFromService = (s: (typeof services)[number]): NearbyVendor => ({
+    slug: s.vendor.slug,
+    businessName: s.vendor.businessName,
+    state: s.vendor.state,
+    city: s.vendor.city,
+    neighbourhood: s.vendor.neighbourhood,
+    coverUrl: publicWellnessPhoto(s.vendor.coverUrl, PHOTOS.bandSpa),
+    ratingAvg: Number(s.vendor.ratingAvg) || 0
+  });
+  const nearbyByVendorId = new Map<string, NearbyVendor>();
   for (const s of services) {
-    if (nearbyMap.has(s.vendor.slug)) continue;
-    nearbyMap.set(s.vendor.slug, {
-      slug: s.vendor.slug,
-      businessName: s.vendor.businessName,
-      state: s.vendor.state,
-      city: s.vendor.city,
-      neighbourhood: s.vendor.neighbourhood,
-      coverUrl: publicWellnessPhoto(s.vendor.coverUrl, PHOTOS.bandSpa),
-      ratingAvg: Number(s.vendor.ratingAvg) || 0
-    });
+    if (nearbyByVendorId.has(s.vendorId)) continue;
+    nearbyByVendorId.set(s.vendorId, nearbyFromService(s));
+  }
+  let nearby: NearbyVendor[] = [];
+  if (nearbySection.visible) {
+    if (nearbySection.source === "manual") {
+      const missingVendorIds = nearbySection.vendorIds.filter((id) => !nearbyByVendorId.has(id));
+      if (missingVendorIds.length) {
+        const extraVendors = await prisma.vendor.findMany({
+          where: { id: { in: missingVendorIds }, visibility: "public", applicationStatus: "approved" },
+          select: {
+            id: true,
+            slug: true,
+            businessName: true,
+            state: true,
+            city: true,
+            neighbourhood: true,
+            coverUrl: true,
+            ratingAvg: true
+          }
+        });
+        for (const vendor of extraVendors) {
+          nearbyByVendorId.set(vendor.id, {
+            slug: vendor.slug,
+            businessName: vendor.businessName,
+            state: vendor.state,
+            city: vendor.city,
+            neighbourhood: vendor.neighbourhood,
+            coverUrl: publicWellnessPhoto(vendor.coverUrl, PHOTOS.bandSpa),
+            ratingAvg: Number(vendor.ratingAvg) || 0
+          });
+        }
+      }
+      nearby = nearbySection.vendorIds.map((id) => nearbyByVendorId.get(id)).filter((row): row is NearbyVendor => Boolean(row)).slice(0, limits.nearby);
+      if (!nearby.length && nearbySection.categorySlugs.length) {
+        const seen = new Set<string>();
+        for (const slug of nearbySection.categorySlugs) {
+          for (const s of servicesForCategory(slug)) {
+            if (seen.has(s.vendorId) || nearby.length >= limits.nearby) continue;
+            seen.add(s.vendorId);
+            nearby.push(nearbyFromService(s));
+          }
+        }
+      }
+    } else {
+      const pool = nearbySection.categorySlugs.length
+        ? services.filter((s) => s.category?.slug && nearbySection.categorySlugs.includes(s.category.slug))
+        : services;
+      const autoMap = new Map<string, NearbyVendor>();
+      for (const s of pool) {
+        if (autoMap.has(s.vendor.slug)) continue;
+        autoMap.set(s.vendor.slug, nearbyFromService(s));
+      }
+      nearby = sortByPlace(filterByServiceArea([...autoMap.values()], place, (v) => v), place, (v) => v).slice(0, limits.nearby);
+    }
   }
 
   return {
     demo: false,
     categories,
     rails,
-    nearby: sortByPlace(filterByServiceArea([...nearbyMap.values()], place, (v) => v), place, (v) => v).slice(0, limits.nearby),
+    spotlight,
+    nearby,
     faqs,
-    hero
+    hero,
+    layout
   };
   } catch {
     if (!usingDemoListings()) {
-      return { demo: false, categories: [], rails: { featured: [], premium: [], promo: [] }, nearby: [], faqs: [], hero };
+      return { demo: false, categories: demoCategories, rails: { featured: [], premium: [], promo: [] }, spotlight: [], nearby: [], faqs: [], hero, layout };
     }
-    return demoHomePayload(limits, place, hero);
+    return demoHomePayload(limits, place, hero, layout);
   }
 }
 

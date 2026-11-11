@@ -34,6 +34,7 @@ export type AdminScreenId =
   | "campaigns"
   | "cms"
   | "hero"
+  | "homepage"
   | "library"
   | "support"
   | "ai"
@@ -178,12 +179,22 @@ export const ADMIN_SCREENS: {
   {
     id: "hero",
     href: "/admin/hero",
-    label: "Homepage & adverts",
+    label: "Hero banner & ads",
     group: "Content & care",
     icon: Megaphone,
     description: "Edit the homepage banner and create, pause or remove paid vendor adverts.",
     view: ["cms.manage", "campaigns.manage"],
     edit: ["cms.manage", "campaigns.manage"]
+  },
+  {
+    id: "homepage",
+    href: "/admin/homepage",
+    label: "Homepage sections",
+    group: "Content & care",
+    icon: LayoutDashboard,
+    description: "Choose which services and providers appear in homepage rails. The hero banner and category tiles stay on their existing screens.",
+    view: ["cms.manage", "campaigns.manage"],
+    edit: ["cms.manage"]
   },
   {
     id: "library", href: "/admin/library", label: "Image library", group: "Content & care", icon: FolderTree, description: "Upload, browse and reuse platform images.", view: ["cms.manage", "catalog.manage", "campaigns.manage"], edit: ["cms.manage", "catalog.manage", "campaigns.manage"]

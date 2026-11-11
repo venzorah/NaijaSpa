@@ -12,6 +12,7 @@ import { HomeServiceGrid } from "@/components/home-service-grid";
 import { categoryHref } from "@/lib/category-images";
 import { exploreHref } from "@/lib/place-urls";
 import type { HomeHeroAd, HomeHeroBanner } from "@/lib/home-hero";
+import { DEFAULT_HOME_SECTIONS, homeSection, type HomeSection } from "@/lib/home-sections";
 import type { HomeCard, NearbyVendor } from "@/lib/home-types";
 import type { LivePlace } from "@/lib/nigeria";
 
@@ -30,7 +31,9 @@ export function CustomerHome({
   rails,
   nearby,
   faqs,
-  hero
+  hero,
+  spotlight,
+  layout = DEFAULT_HOME_SECTIONS
 }: {
   place: LivePlace | null;
   categories: Category[];
@@ -38,8 +41,26 @@ export function CustomerHome({
   nearby: NearbyVendor[];
   faqs: { question: string; answer: string }[];
   hero: { banner: HomeHeroBanner; ads: HomeHeroAd[] };
+  spotlight?: HomeCard[];
+  layout?: HomeSection[];
 }) {
   const browse = (query?: Record<string, string | undefined>) => exploreHref(place, query);
+  const featured = homeSection(layout, "featured");
+  const nearbySection = homeSection(layout, "nearby");
+  const spotlightSection = homeSection(layout, "spotlight");
+  const premium = homeSection(layout, "premium");
+  const promo = homeSection(layout, "promo");
+  const bandSpa = homeSection(layout, "bandSpa");
+  const bandCouples = homeSection(layout, "bandCouples");
+  const featuredSubtitle =
+    featured.subtitle ||
+    (place?.city || place?.state
+      ? `Every therapist in ${place.state === "FCT" ? "Abuja / FCT" : place.state || "your state"}, with ${[place.neighbourhood, place.city].filter(Boolean).join(", ") || "your area"} shown first.`
+      : "Allow location on first visit to see every therapist in your state, closest first.");
+  const spotlightCards =
+    spotlight ?? [...new Map([...rails.featured, ...rails.premium, ...rails.promo].filter((c) => c.sponsored).map((c) => [c.service.id, c])).values()];
+  const spaHref = categoryHref(bandSpa.categorySlugs[0] || "spa");
+  const couplesHref = categoryHref(bandCouples.categorySlugs[0] || "couples");
 
   return (
     <div>
@@ -60,72 +81,113 @@ export function CustomerHome({
         </Link>
       </section>
 
-      <HomeServiceGrid
-        id="featured-services"
-        title="Featured services"
-        subtitle={
-          place?.city || place?.state
-            ? `Every therapist in ${place.state === "FCT" ? "Abuja / FCT" : place.state || "your state"}, with ${[place.neighbourhood, place.city].filter(Boolean).join(", ") || "your area"} shown first.`
-            : "Allow location on first visit to see every therapist in your state, closest first."
-        }
-        seeAllHref={browse()}
-        cards={rails.featured}
-      />
+      {featured.visible ? (
+        <HomeServiceGrid
+          id="featured-services"
+          title={featured.title}
+          subtitle={featuredSubtitle}
+          seeAllHref={browse()}
+          cards={rails.featured}
+        />
+      ) : null}
 
-      {!rails.featured.length ? <section className="mx-auto mt-10 max-w-7xl px-4 lg:px-8"><div className="rounded-3xl border border-line bg-card p-6"><h2 className="font-display text-2xl">Discover treatments</h2><p className="mt-2 text-sm text-ink2">{place?.state ? `No published treatments are available in ${place.state === "FCT" ? "Abuja / FCT" : place.state} yet.` : "No treatments are available for this selection yet."}</p><Link className="mt-4 inline-flex min-h-11 items-center rounded-full bg-gold px-5 text-sm font-bold text-ongold" href="/explore?state=all">Browse all locations →</Link></div></section> : null}
+      {featured.visible && !rails.featured.length ? (
+        <section className="mx-auto mt-10 max-w-7xl px-4 lg:px-8">
+          <div className="rounded-3xl border border-line bg-card p-6">
+            <h2 className="font-display text-2xl">Discover treatments</h2>
+            <p className="mt-2 text-sm text-ink2">
+              {place?.state
+                ? `No published treatments are available in ${place.state === "FCT" ? "Abuja / FCT" : place.state} yet.`
+                : "No treatments are available for this selection yet."}
+            </p>
+            <Link className="mt-4 inline-flex min-h-11 items-center rounded-full bg-gold px-5 text-sm font-bold text-ongold" href="/explore?state=all">
+              Browse all locations →
+            </Link>
+          </div>
+        </section>
+      ) : null}
 
-      <VendorCarousel title="Recommended for you" vendors={nearby} />
-      <HomeServiceGrid id="spotlight-partners" title="Spotlight partners" layout="spotlight" subtitle="Sponsored placements are paid promotions. Ratings remain from customer bookings." seeAllHref={browse()} cards={[...new Map([...rails.featured, ...rails.premium, ...rails.promo].filter(c => c.sponsored).map(c => [c.service.id, c])).values()]} />
+      {nearbySection.visible ? <VendorCarousel title={nearbySection.title} vendors={nearby} /> : null}
+      {spotlightSection.visible ? (
+        <HomeServiceGrid
+          id="spotlight-partners"
+          title={spotlightSection.title}
+          layout="spotlight"
+          subtitle={spotlightSection.subtitle}
+          seeAllHref={browse()}
+          cards={spotlightCards}
+        />
+      ) : null}
 
-      <HomeDiscovery place={place} />
+      <HomeDiscovery place={place} layout={layout} />
 
-      <ParallaxBand
-        image="/photos/band-spa.jpg"
-        kicker="At your pace"
-        title="Heat, stone and silence."
-        body="Hot stone, hammam and deep tissue — book the hour your body has been asking for."
-        href={categoryHref("spa")}
-        cta="Browse spa treatments"
-      />
+      {bandSpa.visible ? (
+        <ParallaxBand
+          image="/photos/band-spa.jpg"
+          kicker="At your pace"
+          title={bandSpa.title}
+          body={bandSpa.subtitle}
+          href={spaHref}
+          cta="Browse spa treatments"
+        />
+      ) : null}
 
-      <ServiceCarousel
-        id="premium-services"
-        title="Premium"
-        subtitle="Paid-plan vendors with enhanced visibility and public contact."
-        seeAllHref={browse({ sort: "rating" })}
-        cards={rails.premium}
-        accent="leaf"
-      />
-      <ServiceCarousel
-        id="promo-services"
-        title="Promo"
-        subtitle="Limited-time prices and campaign offers."
-        seeAllHref={browse({ sort: "price" })}
-        cards={rails.promo}
-      />
+      {premium.visible ? (
+        <ServiceCarousel
+          id="premium-services"
+          title={premium.title}
+          subtitle={premium.subtitle}
+          seeAllHref={browse({ sort: "rating" })}
+          cards={rails.premium}
+          accent="leaf"
+        />
+      ) : null}
+      {promo.visible ? (
+        <ServiceCarousel
+          id="promo-services"
+          title={promo.title}
+          subtitle={promo.subtitle}
+          seeAllHref={browse({ sort: "price" })}
+          cards={rails.promo}
+        />
+      ) : null}
 
-      <ParallaxBand
-        image="/photos/band-couples.jpg"
-        kicker="Together"
-        title="Two tables. One still room."
-        body="Couples rituals with two therapists, private suites, and prices in Naira."
-        href={categoryHref("couples")}
-        cta="See couples bookings"
-      />
+      {bandCouples.visible ? (
+        <ParallaxBand
+          image="/photos/band-couples.jpg"
+          kicker="Together"
+          title={bandCouples.title}
+          body={bandCouples.subtitle}
+          href={couplesHref}
+          cta="See couples bookings"
+        />
+      ) : null}
 
       <HomeExtras />
 
       <DarkRoomTeaser />
 
       <section className="mx-auto mt-10 max-w-3xl px-4 lg:px-8">
-        <div className="flex items-center justify-between gap-4"><h2 className="font-display text-2xl">Frequently asked</h2><Link href="/faq" className="text-sm font-semibold text-goldink">All FAQs →</Link></div>
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="font-display text-2xl">Frequently asked</h2>
+          <Link href="/faq" className="text-sm font-semibold text-goldink">
+            All FAQs →
+          </Link>
+        </div>
         <dl className="mt-4 space-y-3">
           {faqs.map((f) => (
-            <div key={f.question}><dt className="sr-only">{f.question}</dt><dd><details className="rounded-2xl border border-line bg-card p-4"><summary className="cursor-pointer font-semibold">{f.question}</summary><p className="mt-3 text-sm text-ink2">{f.answer}</p></details></dd></div>
+            <div key={f.question}>
+              <dt className="sr-only">{f.question}</dt>
+              <dd>
+                <details className="rounded-2xl border border-line bg-card p-4">
+                  <summary className="cursor-pointer font-semibold">{f.question}</summary>
+                  <p className="mt-3 text-sm text-ink2">{f.answer}</p>
+                </details>
+              </dd>
+            </div>
           ))}
         </dl>
       </section>
-
     </div>
   );
 }

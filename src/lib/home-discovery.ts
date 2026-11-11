@@ -11,7 +11,7 @@ export function getHomeDiscovery(place: LivePlace | null) {
     const [ranked, verified, collections, reviews, promotions] = await Promise.all([
       prisma.booking.groupBy({ by: ["serviceId"], where: { status: "completed", service }, _count: { _all: true }, orderBy: [{ _count: { serviceId: "desc" } }, { serviceId: "asc" }], take: 8 }),
       prisma.vendor.findMany({ where: { ...vendor, verificationStatus: "verified", services: { some: { active: true } } }, select: { slug: true, businessName: true, city: true, neighbourhood: true, coverUrl: true, ratingAvg: true }, take: 8, orderBy: { businessName: "asc" } }),
-      prisma.category.findMany({ where: { active: true, services: { some: service } }, select: { slug: true, name: true, imageUrl: true, _count: { select: { services: { where: service } } } }, orderBy: { sortOrder: "asc" }, take: 4 }),
+      prisma.category.findMany({ where: { active: true, services: { some: service } }, select: { slug: true, name: true, imageUrl: true, _count: { select: { services: { where: service } } } }, orderBy: { sortOrder: "asc" }, take: 16 }),
       prisma.review.findMany({ where: { status: "published", booking: { status: "completed", service } }, select: { id: true, body: true, rating: true, user: { select: { name: true } }, booking: { select: { service: { select: { name: true, slug: true } } } } }, orderBy: { createdAt: "desc" }, take: 3 }),
       prisma.promotion.findMany({ where: { active: true, startsAt: { lte: now }, endsAt: { gt: now } }, select: { id: true, code: true, description: true, percentOff: true, amountKobo: true, endsAt: true, maxRedemptions: true, usedCount: true }, orderBy: { endsAt: "asc" }, take: 20 })
     ]);
