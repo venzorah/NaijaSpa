@@ -3,7 +3,9 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Star, Store } from "lucide-react";
+import { Pencil, Plus, Star, Store } from "lucide-react";
+import { EditorModal } from "./editor-modal";
+import { VendorDetailsForm } from "./vendor-details-form";
 import { EmptyState } from "@/components/empty-state";
 import { ConfirmAction } from "@/components/admin/confirm-action";
 import { FilterChips } from "@/components/admin/filter-chips";
@@ -22,6 +24,12 @@ export type AdminVendorRow = {
   id: string;
   businessName: string;
   slug: string;
+  description: string;
+  providerType: string;
+  state: string;
+  address: string;
+  instagramUrl: string;
+  cancellationPolicy: string;
   city: string;
   neighbourhood: string;
   applicationStatus: string;
@@ -31,6 +39,8 @@ export type AdminVendorRow = {
   reviewCount: number;
   ownerName: string;
   ownerEmail: string;
+  mobile: string;
+  whatsapp: string;
   plan: string;
   planCode: string;
   services: number;
@@ -39,16 +49,20 @@ export type AdminVendorRow = {
 export function VendorsConsole({
   rows,
   editable,
+  canInvite,
   listingPlans
 }: {
   rows: AdminVendorRow[];
   editable: boolean;
+  canInvite: boolean;
   listingPlans: Array<{ code: string; name: string; priceKobo: number; durationDays: number; active: boolean }>;
 }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | "Approved" | "Pending" | "Suspended">("all");
-  const [selectedId, setSelectedId] = useState(rows[0]?.id ?? "");
+  const [selectedId, setSelectedId] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [creating, setCreating] = useState(false);
   const [msg, setMsg] = useState("");
 
@@ -60,7 +74,8 @@ export function VendorsConsole({
       return ok && (!q || [v.businessName, v.ownerName, v.city, v.neighbourhood].some((x) => x.toLowerCase().includes(q)));
     });
   }, [rows, query, filter]);
-  const selected = filtered.find((v) => v.id === selectedId) ?? filtered[0];
+  const selected = rows.find((v) => v.id === selectedId);
+  function close() { setSelectedId(""); setCreating(false); setEditing(false); setMsg(""); }
 
   async function patchStatus(id: string, applicationStatus: string, extra: Record<string, string> = {}) {
     await adminJson(`/api/admin/vendors/${id}`, { method: "PATCH", body: JSON.stringify({ applicationStatus, ...extra }) });
@@ -70,11 +85,12 @@ export function VendorsConsole({
   return (
     <div>
       <div className="mb-4 flex justify-end">
-        <button type="button" className={adminBtn} disabled={!editable} onClick={() => setCreating(true)}>
+        <button type="button" className={adminBtn} disabled={!canInvite} onClick={() => { setCreating(true); setSelectedId(""); setEditing(false); setMsg(""); }}>
           <Plus className="h-3.5 w-3.5" aria-hidden /> Create vendor
         </button>
       </div>
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
+      {msg && !selected && !creating ? <p className="mb-4 break-all text-sm text-goldink" role="status">{msg}</p> : null}
+      <div className="space-y-4">
         <Panel bodyClassName="p-0">
           <div className="space-y-2 border-b border-line p-3">
             <SearchInput value={query} onChange={setQuery} label="Search vendors" placeholder="Business, owner or area" />
@@ -100,8 +116,11 @@ export function VendorsConsole({
                   <li key={v.id}>
                     <button
                       type="button"
+                      aria-label={`View vendor ${v.businessName}`}
                       onClick={() => {
                         setSelectedId(v.id);
+                        setEditing(false);
+                        setMsg("");
                         setCreating(false);
                       }}
                       className={cn("flex w-full items-start gap-3 px-3 py-3 text-left hover:bg-elev/60", active && "bg-gold/5 shadow-[inset_2px_0_0_#d4af37]")}
@@ -135,14 +154,17 @@ export function VendorsConsole({
             </ul>
           )}
         </Panel>
-        <div className="min-w-0">
+        {(creating || selected) ? <EditorModal title={creating ? "Create vendor" : "Vendor details"} busy={busy} onClose={close}><div className="min-w-0">
           {creating ? (
             <Panel title="Create vendor" description="Sends a setup invite. No password is shown to admins.">
               <form
                 className="grid gap-3"
                 onSubmit={async (e) => {
                   e.preventDefault();
+                  if (busy) return;
                   const fd = new FormData(e.currentTarget);
+                  setBusy(true);
+                  try {
                   const json = await adminJson<{ setupUrl?: string; error?: string }>("/api/admin/vendors", {
                     method: "POST",
                     body: JSON.stringify({
@@ -154,6 +176,8 @@ export function VendorsConsole({
                   setMsg(json.setupUrl ? `Invite created. Setup path: ${json.setupUrl}` : "");
                   setCreating(false);
                   router.refresh();
+                  } catch { /* adminJson displays the error toast. */ }
+                  finally { setBusy(false); }
                 }}
               >
                 <FormRow label="Vendor email" htmlFor="v-email">
@@ -166,19 +190,23 @@ export function VendorsConsole({
                   <input id="v-city" name="city" required className={adminField} />
                 </FormRow>
                 <div className="flex gap-2">
-                  <button type="button" className={adminBtnOutline} onClick={() => setCreating(false)}>
+                  <button type="button" disabled={busy} className={adminBtnOutline} onClick={() => setCreating(false)}>
                     Cancel
                   </button>
-                  <button className={adminBtn}>Create & invite</button>
+                  <button disabled={busy} className={adminBtn}>{busy ? "Creating…" : "Create & invite"}</button>
                 </div>
               </form>
             </Panel>
           ) : selected ? (
-            <Panel title={selected.businessName} description={`${selected.slug} · ${selected.plan}`} actions={<AdminStatusPill status={vendorStatusLabel(selected.applicationStatus)} />}>
+            editing && editable ? <VendorDetailsForm key={selected.id} vendor={selected} busy={busy} setBusy={setBusy} onCancel={() => setEditing(false)} onSaved={() => { setEditing(false); router.refresh(); }} /> : <Panel className="min-w-0 [&_header_p]:break-all" title={selected.businessName} description={`${selected.slug} · ${selected.plan}`} actions={<AdminStatusPill status={vendorStatusLabel(selected.applicationStatus)} />}>
               <KeyValue
                 items={[
                   { label: "Owner", value: selected.ownerName },
-                  { label: "Email", value: selected.ownerEmail },
+                  { label: "Email", value: <span className="break-all">{selected.ownerEmail}</span> },
+                  { label: "State", value: selected.state },
+                  { label: "Address", value: <span className="break-words">{selected.address || "Not provided"}</span> },
+                  { label: "Mobile number", value: selected.mobile ? <a href={`tel:${selected.mobile}`} className="text-goldink underline">{selected.mobile}</a> : "Not provided" },
+                  { label: "WhatsApp number", value: selected.whatsapp || "Not provided" },
                   { label: "City", value: `${selected.neighbourhood ? `${selected.neighbourhood}, ` : ""}${selected.city}` },
                   { label: "Verification", value: selected.verificationStatus },
                   { label: "Visibility", value: selected.visibility },
@@ -187,6 +215,7 @@ export function VendorsConsole({
                   { label: "Plan", value: selected.plan }
                 ]}
               />
+              {editable ? <button type="button" className={`${adminBtn} mt-4`} onClick={() => setEditing(true)}><Pencil className="h-3.5 w-3.5" aria-hidden /> Edit vendor details</button> : <p className="mt-4 text-xs text-ink2">Your role can view vendor details. Editing requires the Manage vendors permission.</p>}
               <form
                 className="mt-4 grid gap-2 border-t border-line pt-4 sm:grid-cols-[1fr_auto] sm:items-end"
                 onSubmit={async (e) => {
@@ -255,12 +284,8 @@ export function VendorsConsole({
               </div>
               {msg ? <p className="mt-3 text-xs text-goldink">{msg}</p> : null}
             </Panel>
-          ) : (
-            <Panel>
-              <EmptyState icon={Store} title="Select a vendor" text="Choose a vendor to manage their profile and plan." />
-            </Panel>
-          )}
-        </div>
+          ) : null}
+        </div></EditorModal> : null}
       </div>
     </div>
   );

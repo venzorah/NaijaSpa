@@ -1,5 +1,6 @@
 "use client";
-
+import { notifyAction } from "@/lib/action-feedback";
+import { themeFeedback } from "@/lib/theme-feedback";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 
 type Theme = "dark" | "light";
@@ -33,6 +34,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     try { localStorage.setItem("naijaspa-theme", next); } catch { deviceSaved = false; }
     setTheme(next);
     try { accountSaved = (await fetch("/api/account/theme", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ theme: next }) })).ok; } catch { /* Return partial-save state. */ }
+    const feedback = themeFeedback({deviceSaved, accountSaved}); notifyAction(feedback.kind, feedback.message);
     return { deviceSaved, accountSaved };
   }, []);
 

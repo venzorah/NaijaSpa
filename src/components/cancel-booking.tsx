@@ -1,5 +1,5 @@
 "use client";
-
+import { useToast, useToastMessage } from "@/components/vendor/toasts";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { XCircle } from "lucide-react";
@@ -10,10 +10,11 @@ const reasons = ["Schedule conflict", "Feeling unwell", "Booked by mistake", "Fo
 
 export function CancelBooking({ bookingId }: { bookingId: string }) {
   const router = useRouter();
+  const toast = useToast();
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useToastMessage();
 
   return (
     <>
@@ -43,6 +44,7 @@ export function CancelBooking({ bookingId }: { bookingId: string }) {
           onClick={async () => {
             setBusy(true);
             setError("");
+            try {
             const res = await fetch("/api/bookings", {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
@@ -55,7 +57,10 @@ export function CancelBooking({ bookingId }: { bookingId: string }) {
               return;
             }
             setOpen(false);
+            toast.success("Cancellation request saved.");
             router.refresh();
+            } catch { setError("Could not cancel this booking. Please try again."); }
+            finally { setBusy(false); }
           }}
         >
           Confirm cancellation

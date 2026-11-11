@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import type { LucideIcon } from "lucide-react";
 import { ShieldAlert } from "lucide-react";
 import { adminBtn, adminBtnGhost, adminBtnOutline } from "@/components/admin/form-row";
@@ -35,6 +36,17 @@ export function ConfirmAction({
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const dialog = useRef<HTMLDivElement>(null);
+  const pending = useRef(busy); pending.current = busy;
+  useEffect(() => {
+    if(!open) return;
+    const previous=document.activeElement as HTMLElement|null;
+    const root=dialog.current;
+    const controls=()=>[...root!.querySelectorAll<HTMLElement>('button:not([disabled]),textarea,input')].filter(el=>el.getClientRects().length>0);
+    (root?.querySelector<HTMLElement>('textarea') || controls()[0] || root)?.focus();
+    const keydown=(event:KeyboardEvent)=>{if(event.key==='Escape'){event.preventDefault();if(!pending.current)setOpen(false);}if(event.key==='Tab'){const all=controls(),first=all[0],last=all.at(-1);if(!first){event.preventDefault();root?.focus();}else if(event.shiftKey&&(document.activeElement===first||!root?.contains(document.activeElement))){event.preventDefault();last?.focus();}else if(!event.shiftKey&&(document.activeElement===last||!root?.contains(document.activeElement))){event.preventDefault();first.focus();}}};
+    document.addEventListener('keydown',keydown);return()=>{document.removeEventListener('keydown',keydown);previous?.focus();};
+  },[open]);
   const blocked = requireReason && reason.trim().length < 5;
   const trigger =
     triggerVariant === "default" ? adminBtn : triggerVariant === "ghost" ? adminBtnGhost : adminBtnOutline;
@@ -45,10 +57,10 @@ export function ConfirmAction({
         {Icon ? <Icon className="h-3.5 w-3.5" aria-hidden /> : null}
         {triggerLabel}
       </button>
-      {open ? (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+      {open ? createPortal(
+        <div data-confirm-dialog="true" className="fixed inset-0 z-[100] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
           <button type="button" className="absolute inset-0 bg-black/60" aria-label="Close" onClick={() => setOpen(false)} />
-          <div className="relative w-full max-w-md rounded-2xl border border-line bg-card p-5 shadow-xl">
+          <div ref={dialog} tabIndex={-1} className="relative w-full max-w-md rounded-2xl border border-line bg-card p-5 shadow-xl">
             <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full border border-gold/40 bg-gold/10 text-goldink">
               <ShieldAlert className="h-5 w-5" aria-hidden />
             </div>
@@ -106,7 +118,7 @@ export function ConfirmAction({
             </div>
           </div>
         </div>
-      ) : null}
+      , document.body) : null}
     </>
   );
 }

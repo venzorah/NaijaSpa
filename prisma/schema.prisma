@@ -110,6 +110,7 @@ model Vendor {
   updatedAt            DateTime  @updatedAt
 
   owner                User              @relation("VendorOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  slugAliases          VendorSlugAlias[]
   staff                VendorStaff[]
   services             Service[]
   documents            VerificationDoc[]
@@ -122,6 +123,14 @@ model Vendor {
   galleries            TherapistGallery[]
   videoLinks           VendorVideoLink[]
   heroAds              HeroAd[]
+}
+
+model VendorSlugAlias {
+  slug      String @id
+  vendorId  String
+  vendor    Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@index([vendorId])
 }
 
 model TherapistGallery {
@@ -342,6 +351,8 @@ model VendorSubscription {
 }
 
 model MediaAsset {
+  deletedAt    DateTime?
+  storageCleanupPending Boolean @default(false)
   id           String   @id @default(cuid())
   url          String   @unique
   name         String
@@ -352,6 +363,7 @@ model MediaAsset {
   createdAt    DateTime @default(now())
 
   @@index([createdAt])
+  @@index([storageCleanupPending, deletedAt])
 }
 
 model SystemConfig {

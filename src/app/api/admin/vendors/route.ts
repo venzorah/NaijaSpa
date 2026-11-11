@@ -11,6 +11,7 @@ import { ensureLiveVendorPlans } from "@/lib/vendor-plans-live";
 import { appUrl } from "@/lib/payments";
 import { queueMail, sendVendorInviteEmail } from "@/lib/mail";
 import { mapNigeriaState } from "@/lib/nigeria";
+import { updateVendorWithSlug } from "@/lib/vendor-slugs";
 
 export async function GET() {
   try {
@@ -51,6 +52,7 @@ export async function POST(req: Request) {
         applicationStatus: "draft"
       }
     });
+    await updateVendorWithSlug(vendor.id, { businessName: body.businessName });
     await prisma.vendorInvite.create({
       data: {
         vendorId: vendor.id,

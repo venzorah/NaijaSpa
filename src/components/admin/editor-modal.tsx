@@ -12,9 +12,10 @@ export function EditorModal({ title, busy = false, onClose, children }: { title:
     const previous = document.activeElement as HTMLElement | null;
     const overflow = document.body.style.overflow; document.body.style.overflow = "hidden";
     const root = dialog.current;
-    const focusable = () => [...root!.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex="0"]')].filter(el => el.getClientRects().length > 0);
+    const focusable = () => [...root!.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex="0"]')].filter(el => el.getClientRects().length > 0);
     (root?.querySelector<HTMLElement>('[data-initial-focus]:not([disabled])') ?? focusable()[0] ?? root)?.focus();
     const keydown = (event: KeyboardEvent) => {
+      if(document.querySelector('[data-confirm-dialog="true"]')) return;
       if (event.key === "Escape" && !pending.current) { event.preventDefault(); close.current(); }
       if (event.key === "Tab") {
         const list = focusable(); const first = list[0], last = list.at(-1);

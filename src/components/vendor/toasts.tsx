@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { CheckCircle2, CircleAlert, Info, X } from "lucide-react";
 import { createToastFeedback, type ToastKind } from "@/lib/toast-feedback";
 import "./toasts.css";
+import { ACTION_FEEDBACK_EVENT } from "@/lib/action-feedback";
 const ToastContext = createContext(createToastFeedback(() => {}));
 type Notice = { id: number; kind: ToastKind; message: string; at: number };
 export function VendorToastProvider({ children }: { children: React.ReactNode }) {
@@ -21,6 +22,11 @@ export function VendorToastProvider({ children }: { children: React.ReactNode })
   }, []);
   const toast = useMemo(() => createToastFeedback(push), [push]);
   useEffect(() => {
+    const feedback = (event: Event) => { const detail = (event as CustomEvent).detail; if (detail && ["success", "error", "info"].includes(detail.kind) && typeof detail.message === "string") push(detail.kind, detail.message); };
+    window.addEventListener(ACTION_FEEDBACK_EVENT, feedback);
+    return () => window.removeEventListener(ACTION_FEEDBACK_EVENT, feedback);
+  }, [push]);
+  useEffect(() => {
     setMounted(true);
     let pending: ReturnType<typeof setTimeout>;
     const invalid = () => { clearTimeout(pending); pending = setTimeout(() => { if (Date.now() - lastError.current > 150) toast.error("Please complete the required fields and correct any highlighted values."); }, 0); };
@@ -28,7 +34,7 @@ export function VendorToastProvider({ children }: { children: React.ReactNode })
     return () => { clearTimeout(pending); document.removeEventListener("invalid", invalid, true); };
   }, [toast]);
   return <ToastContext.Provider value={toast}>{children}{mounted ? createPortal(
-    <ol aria-label="Action notifications" className="vendor-portal vendor-toast-stack pointer-events-none fixed right-4 left-4 z-[120] flex flex-col gap-3 sm:left-auto sm:w-96">
+    <ol aria-label="Action notifications" className="vendor-toast-stack pointer-events-none fixed right-4 left-4 z-[120] flex flex-col gap-3 sm:left-auto sm:w-96">
       {items.map(item => <ToastCard key={item.id} item={item} onDismiss={dismiss} />)}
     </ol>, document.body) : null}</ToastContext.Provider>;
 }

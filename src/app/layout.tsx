@@ -1,3 +1,4 @@
+import { VendorToastProvider as AppToastProvider } from "@/components/vendor/toasts";
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "./fonts.css";
@@ -47,10 +48,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body>
-        <ThemeProvider>
+        <AppToastProvider><ThemeProvider>
           <SplashScreen />
           {children}
-        </ThemeProvider>
+        </ThemeProvider></AppToastProvider>
         <script src="/sw-register.js" defer />
       </body>
     </html>

@@ -1,5 +1,5 @@
 "use client";
-
+import { useToast, useToastMessage } from "@/components/vendor/toasts";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -13,6 +13,7 @@ function BookForm() {
   const { serviceId } = useParams<{ serviceId: string }>();
   const search = useSearchParams();
   const router = useRouter();
+  const toast = useToast();
   const [quote, setQuote] = useState<Quote | null>(null);
   const [locationType, setLocationType] = useState<LocationType>(() => {
     const loc = search.get("location");
@@ -20,7 +21,7 @@ function BookForm() {
   });
   const [details, setDetails] = useState(() => search.get("details") || "");
   const [startsAt, setStartsAt] = useState(() => search.get("startsAt") || "");
-  const [error, setError] = useState("");
+  const [error, setError] = useToastMessage();
   const [submitting, setSubmitting] = useState(false);
   const [quoteError, setQuoteError] = useState("");
   const [quotedFor, setQuotedFor] = useState("");
@@ -117,6 +118,7 @@ function BookForm() {
               return;
             }
             sessionStorage.removeItem("naijaspa-pending-booking");
+            toast.success("Booking details saved. Continue to payment.");
             router.push(`/checkout/${json.id}`);
           } catch (error) {
             setError(error instanceof Error ? error.message : "Could not create booking. Please try again.");
