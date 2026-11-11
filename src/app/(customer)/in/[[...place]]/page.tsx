@@ -4,7 +4,7 @@ import { CustomerHome } from "@/components/customer-home";
 import { getHomeCatalog } from "@/lib/catalog";
 import { inHref, parsePlacePath, placeHasLocation } from "@/lib/place-urls";
 
-export const revalidate = 30;
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: { absolute: "NaijaSpa" },

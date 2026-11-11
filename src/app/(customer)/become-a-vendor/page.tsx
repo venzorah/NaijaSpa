@@ -5,6 +5,8 @@ import { ListingPlanCard } from "@/components/listing-plan-card";
 import { listPublicVendorPlans } from "@/lib/vendor-plans-live";
 import { defaultVendorListingPlans, type VendorListingPlanView } from "@/lib/vendor-plans";
 
+export const dynamic = "force-dynamic";
+
 export default async function BecomeVendorPage() {
   let plans: VendorListingPlanView[] = defaultVendorListingPlans();
   try {

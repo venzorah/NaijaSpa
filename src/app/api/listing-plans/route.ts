@@ -3,6 +3,8 @@ import { listPublicVendorPlans } from "@/lib/vendor-plans-live";
 import { defaultVendorListingPlans } from "@/lib/vendor-plans";
 import { jsonError } from "@/lib/http";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const plans = await listPublicVendorPlans();

@@ -1,5 +1,5 @@
 import { unstable_cache } from "next/cache";
-import { usingDemoListings } from "./live-db";
+import { duringNextBuild, usingDemoListings } from "./live-db";
 import { withTimeout } from "./timeout";
 import {
   quoteBooking,
@@ -51,7 +51,7 @@ export type { HomeCard, HomeFeedConfig, HomeRails, NearbyVendor } from "./home-t
 export { DEFAULT_HOME_FEED_CONFIG, parseHomeFeedConfig } from "./home-types";
 
 async function resolveHomeFeedLimits(): Promise<HomeFeedConfig> {
-  if (!process.env.DATABASE_URL) return DEFAULT_HOME_FEED_CONFIG;
+  if (duringNextBuild() || !process.env.DATABASE_URL) return DEFAULT_HOME_FEED_CONFIG;
   try {
     const { getHomeFeedConfig } = await import("./db");
     return await getHomeFeedConfig();
@@ -61,7 +61,7 @@ async function resolveHomeFeedLimits(): Promise<HomeFeedConfig> {
 }
 
 async function resolveHomeHero(): Promise<HomeHeroPayload> {
-  if (!process.env.DATABASE_URL) return demoHomeHero();
+  if (duringNextBuild() || !process.env.DATABASE_URL) return demoHomeHero();
   try {
     const { getHomeHeroPayload } = await import("./db");
     return await getHomeHeroPayload();
@@ -71,7 +71,7 @@ async function resolveHomeHero(): Promise<HomeHeroPayload> {
 }
 
 async function resolveHomeSections(): Promise<HomeSection[]> {
-  if (!process.env.DATABASE_URL) return DEFAULT_HOME_SECTIONS;
+  if (duringNextBuild() || !process.env.DATABASE_URL) return DEFAULT_HOME_SECTIONS;
   try {
     const { prisma } = await import("./db");
     const row = await prisma.systemConfig.findUnique({ where: { key: HOME_SECTIONS_CONFIG_KEY } });
@@ -179,7 +179,7 @@ async function loadHomeCatalog(place: LivePlace | null) {
       DEFAULT_HOME_SECTIONS
     ]
   );
-  if (usingDemoListings()) return demoHomePayload(limits, place, hero, layout);
+  if (duringNextBuild() || usingDemoListings()) return demoHomePayload(limits, place, hero, layout);
   try {
   const { prisma } = await import("./db");
   const { vendorEntitlements } = await import("./entitlements");

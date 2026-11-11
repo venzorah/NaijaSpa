@@ -1,12 +1,16 @@
 import { prisma } from "@/lib/db";
+import { duringNextBuild } from "@/lib/live-db";
 import {
   canonicalVendorPlanCode,
+  defaultVendorListingPlans,
   LEGACY_VENDOR_PLAN_CODES,
   LIVE_VENDOR_PLANS,
   type VendorListingPlanView
 } from "@/lib/vendor-plans";
 
 export async function ensureLiveVendorPlans() {
+  if (duringNextBuild() || !process.env.DATABASE_URL) return;
+  try {
   for (const [legacy, next] of Object.entries(LEGACY_VENDOR_PLAN_CODES)) {
     const old = await prisma.subscriptionPlan.findUnique({ where: { code: legacy } });
     const already = await prisma.subscriptionPlan.findUnique({ where: { code: next } });
@@ -54,6 +58,9 @@ export async function ensureLiveVendorPlans() {
       }
     });
   }
+  } catch {
+    return;
+  }
 }
 
 export async function resolveVendorListingPlan(code: string) {
@@ -71,6 +78,7 @@ export async function listAdminGrantableVendorPlans() {
 }
 
 export async function listPublicVendorPlans(): Promise<VendorListingPlanView[]> {
+  if (duringNextBuild() || !process.env.DATABASE_URL) return defaultVendorListingPlans();
   await ensureLiveVendorPlans();
   const rows = await prisma.subscriptionPlan.findMany({
     where: { active: true },

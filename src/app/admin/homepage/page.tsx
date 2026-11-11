@@ -4,6 +4,8 @@ import { HomepageConsole } from "@/components/admin/homepage-console";
 import { prisma } from "@/lib/db";
 import { HOME_SECTIONS_CONFIG_KEY, parseHomeSections } from "@/lib/home-sections";
 
+export const dynamic = "force-dynamic";
+
 export default async function Page() {
   const { editable } = await requireAdminScreen("homepage");
   const [row, categories, vendors, services] = await Promise.all([

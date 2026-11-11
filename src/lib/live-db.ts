@@ -15,3 +15,8 @@ export function isLiveDatabase(): boolean {
 export function usingDemoListings(): boolean {
   return !isLiveDatabase();
 }
+
+/** Next.js executes pages while collecting data; skip live Prisma then so `next build` does not need Postgres. */
+export function duringNextBuild() {
+  return process.env.NEXT_PHASE === "phase-production-build";
+}
