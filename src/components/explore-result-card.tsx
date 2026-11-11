@@ -1,5 +1,5 @@
 "use client";
-
+import { notifyAction } from "@/lib/action-feedback";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -85,7 +85,7 @@ export function ExploreResultCard({ result: r }: { result: ExploreResult }) {
         router.push("/login?next=/account/favourites");
         return;
       }
-      if (res.ok) setSaved(true);
+      if (res.ok) {setSaved(true);notifyAction("success","Added to favourites.");} else if(res.status!==401) notifyAction("error","Could not update favourites. Please try again.");
     } catch {
       router.push("/login?next=/account/favourites");
     }

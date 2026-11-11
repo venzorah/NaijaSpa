@@ -665,8 +665,9 @@ export async function getPublicVendor(slug: string) {
   try {
   const { prisma } = await import("./db");
   const { vendorEntitlement } = await import("./entitlements");
+  const alias = await prisma.vendorSlugAlias.findUnique({ where: { slug }, select: { vendorId: true } });
   const vendor = await prisma.vendor.findUnique({
-    where: { slug },
+    where: alias ? { id: alias.vendorId } : { slug },
     include: {
       owner: { select: { email: true } },
       services: { where: { active: true }, include: { category: { select: { name: true, slug: true } } } },

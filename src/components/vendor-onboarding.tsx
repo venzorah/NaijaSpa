@@ -3,6 +3,8 @@ import { useToast, useToastMessage } from "@/components/vendor/toasts";
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { BrandLogo } from "@/components/brand-logo";
+import { useTheme } from "@/components/theme-provider";
 import { NIGERIA_STATES, nigeriaStateLabel } from "@/lib/nigeria";
 import { ListingPlanCard } from "@/components/listing-plan-card";
 import { BankSearchSelect } from "@/components/bank-search-select";
@@ -17,8 +19,8 @@ function LightLogo({ className }: { className?: string }) {
 }
 
 const fieldClass =
-  "min-h-12 w-full rounded-2xl border border-white/15 bg-white/95 px-4 text-base text-ink outline-none placeholder:text-ink2 focus:border-gold";
-const labelClass = "mb-1.5 block text-xs font-bold uppercase tracking-[0.14em] text-gold";
+  "min-h-12 w-full rounded-2xl border border-line bg-card px-4 text-base text-ink outline-none placeholder:text-ink2 focus:border-gold";
+const labelClass = "block text-xs font-bold uppercase tracking-[0.14em] text-goldink";
 
 const PROVIDERS = [
   { id: "spa", title: "Spa or salon", copy: "A fixed wellness space with rooms and staff." },
@@ -93,6 +95,7 @@ function readSavedStep(embedded: boolean) {
 }
 
 export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
+  const { theme } = useTheme();
   const [step, setStep] = useState(() => readSavedStep(embedded));
   const [maxSeen, setMaxSeen] = useState(() => readSavedStep(embedded));
   const [form, setForm] = useState<Form>(empty);
@@ -190,7 +193,6 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
     [embedded]
   );
   const safeStep = Math.min(step, Math.max(0, flow.length - 1));
-  const progress = useMemo(() => ((safeStep + 1) / flow.length) * 100, [safeStep, flow.length]);
   const current = flow[safeStep] ?? flow[0];
 
   function set<K extends keyof Form>(key: K, value: Form[K]) {
@@ -281,8 +283,8 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
   }
 
   return (
-    <div className={embedded ? "grid min-h-[36rem] overflow-hidden rounded-2xl border border-line bg-[#04140f] text-white lg:grid-cols-2" : "fixed inset-0 z-[60] grid h-dvh overflow-hidden bg-[#04140f] text-white lg:grid-cols-2"}>
-      <aside className="relative hidden overflow-hidden lg:block">
+    <div className={embedded ? "grid min-h-[36rem] overflow-hidden rounded-2xl border border-line bg-bg text-ink lg:grid-cols-2" : "fixed inset-0 z-[60] grid h-dvh overflow-hidden bg-bg text-ink lg:grid-cols-2"}>
+      <aside className="relative hidden overflow-hidden text-white lg:block">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/photos/spa.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#04140f] via-[#064E3B]/80 to-[#064E3B]/40" />
@@ -312,50 +314,49 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
         </div>
       </aside>
 
-      <section className="flex h-full min-h-0 flex-col bg-[#0b1f18] px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-5 sm:px-10 sm:pt-8">
+      <section className="flex h-full min-h-0 flex-col bg-card px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-5 sm:px-10 sm:pt-8">
         <div className="mb-4 flex shrink-0 items-center justify-between gap-3 lg:hidden">
-          <LightLogo className="h-9 w-auto object-contain object-left" />
-          <Link href="/vendor/dashboard" className="text-xs font-semibold text-gold">
+          <BrandLogo className="h-9 w-auto object-contain object-left" />
+          <Link href="/vendor/dashboard" className="text-xs font-semibold text-goldink">
             Dashboard
           </Link>
         </div>
 
         <div className="mb-5 shrink-0">
-          <div className="flex items-center justify-between gap-3 text-xs font-semibold uppercase tracking-[0.16em] text-gold">
+          <div className="flex items-center justify-between gap-3 text-xs font-semibold uppercase tracking-[0.16em] text-goldink">
             {safeStep > 0 && !done ? (
-              <button type="button" onClick={back} className="text-left text-gold">
+              <button type="button" onClick={back} className="text-left text-goldink">
                 ← Previous step
               </button>
             ) : (
               <span>{done ? "Application" : current.kicker}</span>
             )}
-            <Link href="/vendor/dashboard" className="hidden text-white/60 hover:text-gold lg:inline">
+            <Link href="/vendor/dashboard" className="hidden text-ink2 hover:text-goldink lg:inline">
               Exit
             </Link>
           </div>
-          <div className="mt-3 h-1 overflow-hidden rounded-full bg-white/10">
-            <div className="h-full rounded-full bg-gold transition-all" style={{ width: `${done ? 100 : progress}%` }} />
-          </div>
-          <div className="mt-3 flex gap-1.5">
+          <div className="mt-4 flex gap-1.5" role="group" aria-label="Application steps">
             {flow.map((s, i) => (
               <button
                 key={s.id}
                 type="button"
                 aria-label={`Go to ${s.title}`}
+                aria-current={i === safeStep ? "step" : undefined}
+                disabled={busy || done || i > maxSeen}
                 onClick={() => goTo(i)}
-                className={`h-1.5 flex-1 rounded-full ${i <= safeStep || done ? "bg-gold" : "bg-white/15"}`}
-              />
+                className="flex min-h-6 flex-1 items-center rounded-full focus-visible:outline-2 focus-visible:outline-gold"
+              ><span aria-hidden className={`h-1.5 w-full rounded-full ${i <= safeStep || done ? "bg-gold" : "bg-elev"}`} /></button>
             ))}
           </div>
         </div>
 
         <div className={`mx-auto flex min-h-0 w-full flex-1 flex-col ${safeStep === 5 ? "max-w-3xl" : "max-w-lg"}`}>
           {done ? (
-            <div className="my-auto rounded-[2rem] border border-gold/30 bg-white/[0.04] p-8 text-center">
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-gold">Submitted</p>
+            <div className="my-auto rounded-[2rem] border border-gold/30 bg-elev p-8 text-center">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-goldink">Submitted</p>
               <h2 className="mt-3 font-display text-4xl">Your spa is in review</h2>
-              <p className="mt-3 text-sm text-white/70">
-                Status: <span className="font-semibold text-gold">{status.replace("_", " ")}</span>. We will email you when the listing is approved.
+              <p className="mt-3 text-sm text-ink2">
+                Status: <span className="font-semibold text-goldink">{status.replace("_", " ")}</span>. We will email you when the listing is approved.
               </p>
               <div className="mt-8 flex flex-col items-center gap-3">
                 <Link href="/vendor/dashboard" className="inline-flex min-h-12 items-center rounded-full bg-gold px-8 text-base font-bold text-ongold">
@@ -367,7 +368,7 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
                       ? "/vendor/subscriptions"
                       : `/vendor/subscriptions/checkout?plan=${encodeURIComponent(form.planCode)}`
                   }
-                  className="inline-flex min-h-12 items-center rounded-full border border-white/20 px-8 text-base font-semibold"
+                  className="inline-flex min-h-12 items-center rounded-full border border-line px-8 text-base font-semibold"
                 >
                   {form.planCode === "FREE" ? "View listing plans" : `Pay for ${plans.find((p) => p.code === form.planCode)?.name || "your listing plan"}`}
                 </Link>
@@ -376,22 +377,23 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
           ) : (
             <>
               <h2 className="font-display text-3xl leading-tight sm:text-4xl">{current.title}</h2>
-              <p className="mt-1 text-sm text-white/60">{current.kicker} · You can go back any time. Your answers stay.</p>
+              <p className="mt-1 text-sm text-ink2">{current.kicker} · You can go back any time. Your answers stay.</p>
 
-              <div className="mt-6 min-h-0 flex-1 space-y-4 overflow-y-auto pb-4">
+              <div className="mt-6 min-h-0 flex-1 space-y-5 overflow-y-auto pb-5">
                 {safeStep === 0 && (
                   <div className="grid gap-3 sm:grid-cols-2">
                     {PROVIDERS.map((p) => (
                       <button
                         key={p.id}
                         type="button"
+                        aria-pressed={form.providerType === p.id}
                         onClick={() => set("providerType", p.id)}
                         className={`rounded-3xl border p-4 text-left transition ${
-                          form.providerType === p.id ? "border-gold bg-gold/10" : "border-white/10 bg-white/[0.04] hover:border-white/25"
+                          form.providerType === p.id ? "border-gold bg-gold/10" : "border-line bg-elev hover:border-gold"
                         }`}
                       >
                         <p className="font-display text-xl">{p.title}</p>
-                        <p className="mt-1 text-sm text-white/65">{p.copy}</p>
+                        <p className="mt-1 text-sm text-ink2">{p.copy}</p>
                       </button>
                     ))}
                   </div>
@@ -399,11 +401,11 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
 
                 {safeStep === 1 && (
                   <>
-                    <label>
+                    <label className="block space-y-2">
                       <span className={labelClass}>Business name</span>
                       <input className={fieldClass} value={form.businessName} onChange={(e) => set("businessName", e.target.value)} required />
                     </label>
-                    <label>
+                    <label className="block space-y-2">
                       <span className={labelClass}>About your spa</span>
                       <textarea
                         rows={4}
@@ -418,21 +420,21 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
 
                 {safeStep === 2 && (
                   <>
-                    <p className="text-sm text-white/65">Paid listing plans show WhatsApp, email (your login) and Instagram on Explore. Free listings keep them private until a customer pays for a booking.</p>
-                    <label>
+                    <p className="text-sm text-ink2">Paid listing plans show WhatsApp, email (your login) and Instagram on Explore. Free listings keep them private until a customer pays for a booking.</p>
+                    <label className="block space-y-2">
                       <span className={labelClass}>Phone</span>
                       <input className={fieldClass} inputMode="tel" value={form.privatePhone} onChange={(e) => set("privatePhone", e.target.value)} />
                     </label>
-                    <label>
+                    <label className="block space-y-2">
                       <span className={labelClass}>WhatsApp</span>
                       <input className={fieldClass} inputMode="tel" value={form.privateWhatsapp} onChange={(e) => set("privateWhatsapp", e.target.value)} />
                     </label>
-                    <label>
+                    <label className="block space-y-2">
                       <span className={labelClass}>Instagram</span>
                       <input className={fieldClass} value={form.instagramUrl} onChange={(e) => set("instagramUrl", e.target.value)} placeholder="@yourspa or instagram.com/yourspa" />
                     </label>
-                    <p className="pt-2 text-sm text-white/65">Payout account — confirmed visits pay this NUBAN. Search the bank, enter the 10-digit number, and we pull the account name.</p>
-                    <label>
+                    <p className="pt-2 text-sm text-ink2">Payout account — confirmed visits pay this NUBAN. Search the bank, enter the 10-digit number, and we pull the account name.</p>
+                    <label className="block space-y-2">
                       <span className={labelClass}>Account number</span>
                       <input
                         className={fieldClass}
@@ -443,7 +445,7 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
                         placeholder="10-digit NUBAN"
                       />
                     </label>
-                    <label>
+                    <label className="block space-y-2">
                       <span className={labelClass}>Payout bank</span>
                       <BankSearchSelect
                         banks={banks}
@@ -452,22 +454,22 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
                         className={fieldClass}
                       />
                     </label>
-                    {payout.loading ? <p className="text-sm text-white/65">Looking up account name…</p> : null}
+                    {payout.loading ? <p className="text-sm text-ink2">Looking up account name…</p> : null}
                     {payout.accountName ? (
-                      <p className="rounded-2xl border border-gold/40 bg-gold/10 px-4 py-3 text-sm font-semibold text-gold">
+                      <p className="rounded-2xl border border-gold/40 bg-gold/10 px-4 py-3 text-sm font-semibold text-goldink">
                         Account name · {payout.accountName}
                       </p>
                     ) : null}
-                    {payout.error ? <p className="text-sm text-red-300">{payout.error}</p> : null}
+                    {payout.error ? <p className="text-sm text-red-700 dark:text-red-300">{payout.error}</p> : null}
                   </>
                 )}
 
                 {safeStep === 3 && (
                   <>
-                    <label>
+                    <label className="block space-y-2">
                       <span className={labelClass}>State</span>
                       <select
-                        className={fieldClass}
+                        className={`${fieldClass} appearance-none`}
                         value={form.state}
                         onChange={(e) => {
                           const state = e.target.value;
@@ -481,17 +483,17 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
                           </option>
                         ))}
                       </select>
-                      <p className="mt-1 text-sm text-white/65">You can take bookings from anywhere in this state. Abuja / FCT covers the whole territory.</p>
+                      <p className="mt-1 text-sm text-ink2">You can take bookings from anywhere in this state. Abuja / FCT covers the whole territory.</p>
                     </label>
-                    <label>
+                    <label className="block space-y-2">
                       <span className={labelClass}>City</span>
                       <input className={fieldClass} value={form.city} onChange={(e) => set("city", e.target.value)} placeholder="Ikeja" />
                     </label>
-                    <label>
+                    <label className="block space-y-2">
                       <span className={labelClass}>Neighbourhood</span>
                       <input className={fieldClass} value={form.neighbourhood} onChange={(e) => set("neighbourhood", e.target.value)} placeholder="GRA" />
                     </label>
-                    <label>
+                    <label className="block space-y-2">
                       <span className={labelClass}>Street address</span>
                       <input className={fieldClass} value={form.address} onChange={(e) => set("address", e.target.value)} />
                     </label>
@@ -501,16 +503,16 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
                 {safeStep === 4 && (
                   <>
                     <div className="grid grid-cols-2 gap-3">
-                      <label>
+                      <label className="block space-y-2">
                         <span className={labelClass}>Opens</span>
                         <input type="time" className={fieldClass} value={form.openTime} onChange={(e) => set("openTime", e.target.value)} />
                       </label>
-                      <label>
+                      <label className="block space-y-2">
                         <span className={labelClass}>Closes</span>
                         <input type="time" className={fieldClass} value={form.closeTime} onChange={(e) => set("closeTime", e.target.value)} />
                       </label>
                     </div>
-                    <label>
+                    <label className="block space-y-2">
                       <span className={labelClass}>Cancellation policy</span>
                       <textarea
                         rows={4}
@@ -524,11 +526,11 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
 
                 {safeStep === 5 && (
                   <>
-                    <p className="text-sm text-white/65">Therapist listing packages only. Start on Free, or pick Silver, Gold or Platinum and subscribe after you submit.</p>
+                    <p className="text-sm text-ink2">Therapist listing packages only. Start on Free, or pick Silver, Gold or Platinum and subscribe after you submit.</p>
                     <div className="grid gap-3 sm:grid-cols-2">
                       {plans.map((plan) => (
                         <button key={plan.code} type="button" onClick={() => set("planCode", plan.code)} className="text-left">
-                          <ListingPlanCard plan={plan} selected={form.planCode === plan.code} tone="dark" badge={form.planCode === plan.code ? "Selected" : undefined} />
+                          <ListingPlanCard plan={plan} selected={form.planCode === plan.code} tone={theme} badge={form.planCode === plan.code ? "Selected" : undefined} />
                         </button>
                       ))}
                     </div>
@@ -536,23 +538,23 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
                 )}
 
                 {safeStep === 6 && (
-                  <div className="space-y-3 rounded-[1.75rem] border border-white/10 bg-white/[0.04] p-5 text-sm text-white/80">
+                  <div className="space-y-3 rounded-[1.75rem] border border-line bg-elev p-5 text-sm text-ink2">
                     <p>
-                      <span className="text-gold">Provider</span> · {PROVIDERS.find((p) => p.id === form.providerType)?.title}
+                      <span className="text-goldink">Provider</span> · {PROVIDERS.find((p) => p.id === form.providerType)?.title}
                     </p>
                     <p>
-                      <span className="text-gold">Business</span> · {form.businessName || "—"}
+                      <span className="text-goldink">Business</span> · {form.businessName || "—"}
                     </p>
                     <p>
-                      <span className="text-gold">Location</span> · {[form.neighbourhood, form.city, form.state].filter(Boolean).join(", ")}
+                      <span className="text-goldink">Location</span> · {[form.neighbourhood, form.city, form.state].filter(Boolean).join(", ")}
                     </p>
                     <p>
-                      <span className="text-gold">Hours</span> · {form.openTime} – {form.closeTime}
+                      <span className="text-goldink">Hours</span> · {form.openTime} – {form.closeTime}
                     </p>
                     <p>
-                      <span className="text-gold">Listing plan</span> · {plans.find((p) => p.code === form.planCode)?.name || "Free"}
+                      <span className="text-goldink">Listing plan</span> · {plans.find((p) => p.code === form.planCode)?.name || "Free"}
                     </p>
-                    <p className="text-white/60">
+                    <p className="text-ink2">
                       {form.planCode === "FREE"
                         ? "You start on Free. After approval you can subscribe or upgrade from Listing plans."
                         : `After you submit, open Listing plans to subscribe to ${plans.find((p) => p.code === form.planCode)?.name || form.planCode}.`}
@@ -561,14 +563,14 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
                 )}
               </div>
 
-              {error && <p className={`mt-3 shrink-0 text-sm ${error === "Saved." ? "text-gold" : "text-red-300"}`}>{error}</p>}
+              {error && <p className={`mt-3 shrink-0 text-sm ${error === "Saved." ? "text-goldink" : "text-red-700 dark:text-red-300"}`}>{error}</p>}
 
-              <div className="mt-auto flex shrink-0 gap-3 border-t border-white/10 bg-[#0b1f18] pt-4">
+              <div className="mt-auto flex shrink-0 gap-3 border-t border-line bg-card pt-4">
                 {safeStep > 0 && (
                   <button
                     type="button"
                     onClick={back}
-                    className="min-h-12 flex-1 rounded-full border border-white/20 text-base font-semibold"
+                    className="min-h-12 flex-1 rounded-full border border-line text-base font-semibold"
                   >
                     Back
                   </button>

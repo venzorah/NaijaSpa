@@ -18,6 +18,8 @@ export async function GET(_req: Request, ctx: { params: Promise<{ file: string }
   if (!/^[a-zA-Z0-9._-]+$/.test(file)) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+  const removed = await prisma.mediaAsset.findUnique({ where: { url: categoryMediaUrl(file) }, select: { deletedAt: true } });
+  if (removed?.deletedAt) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const fromDb = await prisma.category
     .findFirst({
       where: { imageUrl: categoryMediaUrl(file) },

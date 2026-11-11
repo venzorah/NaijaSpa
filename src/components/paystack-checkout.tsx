@@ -1,5 +1,5 @@
 "use client";
-
+import { useToast, useToastMessage } from "@/components/vendor/toasts";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -58,7 +58,9 @@ export function PaystackCheckout({
   alreadyConfirmed: boolean;
 }) {
   const router = useRouter();
-  const [msg, setMsg] = useState(alreadyConfirmed ? "This booking is already paid." : "");
+  const toast = useToast();
+  const [msg, setMsgState] = useState(alreadyConfirmed ? "This booking is already paid." : "");
+  function setMsg(message:string, kind:"error"|"info"="error"){setMsgState(message);if(message)toast[kind](message);}
   const [busy, setBusy] = useState(false);
 
   async function pay() {
@@ -93,7 +95,7 @@ export function PaystackCheckout({
               const reference = transaction.reference || json.reference || "";
               router.push(`/checkout/verify?reference=${encodeURIComponent(reference)}`);
             },
-            onCancel: () => setMsg("Payment window closed. You can try again when you are ready.")
+            onCancel: () => setMsg("Payment window closed. You can try again when you are ready.","info")
           });
           return;
         }

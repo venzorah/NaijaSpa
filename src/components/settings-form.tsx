@@ -1,5 +1,5 @@
 "use client";
-
+import { useToastMessage } from "@/components/vendor/toasts";
 import { useState } from "react";
 import { Moon, Sun, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
@@ -39,7 +39,7 @@ export function SettingsForm({
 }) {
   const { theme, setTheme } = useTheme();
   const [language, setLanguage] = useState(locale);
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useToastMessage();
   const [savingProfile, setSavingProfile] = useState(false);
   const [notif, setNotif] = useState(notificationPreferences);
   const [savingPreferences, setSavingPreferences] = useState(false);
@@ -73,7 +73,7 @@ export function SettingsForm({
                   neighbourhood: fd.get("address")
                 })
               });
-              setStatus(res.ok ? "Profile saved" : "Could not save profile.");
+              setStatus(res.ok ? "Profile saved" : "Could not save profile.", res.ok ? "success" : "error");
             } catch { setStatus("Could not save profile. Please try again."); }
             finally { setSavingProfile(false); }
           }}
@@ -133,7 +133,7 @@ export function SettingsForm({
                 try {
                   const response = await fetch("/api/account/notifications", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(next) });
                   if (!response.ok) throw new Error("Could not save notification preferences");
-                  setStatus("Notification preferences saved");
+                  setStatus("Notification preferences saved", "success");
                 } catch { setNotif(previous); setStatus("Could not save notification preferences. Try again."); }
                 finally { setSavingPreferences(false); }
               }}
@@ -173,13 +173,10 @@ export function SettingsForm({
               type="button"
               role="radio"
               aria-checked={language === l.code}
-              onClick={() => {
-                setLanguage(l.code);
-                fetch("/api/account/profile", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ locale: l.code })
-                }).catch(() => {});
+              onClick={async () => {
+                const previous=language; setLanguage(l.code);
+                try { const res=await fetch("/api/account/profile",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({locale:l.code})}); if(!res.ok)throw Error();setStatus("Language preference saved.","success"); }
+                catch { setLanguage(previous);setStatus("Could not save language preference. Please try again."); }
               }}
               className={`min-h-[52px] rounded-2xl border text-sm font-semibold ${
                 language === l.code ? "border-gold bg-gold/10 text-ink" : "border-line text-ink2"
@@ -228,7 +225,7 @@ export function SettingsForm({
               if (!response.ok) throw new Error("Deletion request failed");
               setDel(false);
               setConfirm("");
-              setStatus("Deletion requested — we’ll email you within 30 days.");
+              setStatus("Deletion requested — we’ll email you within 30 days.", "info");
             } catch { setStatus("Could not request account deletion. Please try again."); }
           }}
         >

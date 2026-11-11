@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import Link from "next/link";
 import { BadgeCheck, Info, MapPin, Star } from "lucide-react";
 import { getPublicVendor } from "@/lib/catalog";
@@ -17,6 +17,7 @@ export default async function ProviderPage({ params }: { params: Promise<{ slug:
   const data = await getPublicVendor(slug);
   if (!data) notFound();
   const { vendor, description, services, galleries, videoLinks } = data;
+  if (decodeURIComponent(slug) !== vendor.slug) permanentRedirect(`/providers/${encodeURIComponent(vendor.slug)}`);
   const verified = vendor.verificationStatus === "verified";
   const from = services.length ? Math.min(...services.map((s) => s.basePriceKobo)) : 0;
   let reviews: { author: string; rating: number; body: string }[] = [];

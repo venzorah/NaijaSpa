@@ -1,12 +1,13 @@
 "use client";
-
+import { useToast, useToastMessage } from "@/components/vendor/toasts";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export function ConfirmVisit({ bookingId }: { bookingId: string }) {
   const router = useRouter();
+  const toast = useToast();
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useToastMessage();
 
   return (
     <div>
@@ -21,7 +22,7 @@ export function ConfirmVisit({ bookingId }: { bookingId: string }) {
             const res = await fetch(`/api/account/bookings/${bookingId}/complete`, { method: "POST" });
             const json = await res.json();
             if (!res.ok) setError(json.error || "Could not confirm this visit.");
-            else router.push(`/account/bookings/${bookingId}/review`);
+            else { toast.success("Visit confirmed."); router.push(`/account/bookings/${bookingId}/review`); }
           } catch {
             setError("Could not confirm this visit.");
           } finally {

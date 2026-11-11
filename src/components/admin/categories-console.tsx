@@ -1,4 +1,5 @@
 "use client";
+import { notifyAction } from "@/lib/action-feedback";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowDown, ArrowUp, FolderPlus, FolderTree, Save } from "lucide-react";
@@ -28,8 +29,8 @@ export function CategoriesConsole({ rows, editable }: { rows: AdminCategory[]; e
   function change<K extends keyof AdminCategory>(key: K, value: AdminCategory[K]) { setDraft(current => current ? { ...current, [key]: value } : null); }
   async function run(fn: () => Promise<void>, success: string) {
     if (busy) return; setBusy(true); setMessage("");
-    try { await fn(); setMessage(success); router.refresh(); }
-    catch (error) { setMessage(error instanceof Error ? error.message : "Request failed"); }
+    try { await fn(); notifyAction("success",success); setMessage(success); router.refresh(); }
+    catch (error) { setMessage(error instanceof Error ? error.message : "Request failed"); notifyAction("error",error instanceof Error ? error.message : "Request failed"); }
     finally { setBusy(false); }
   }
   function move(index: number, dir: number) { const next = [...list]; [next[index], next[index + dir]] = [next[index + dir], next[index]]; setList(next); }

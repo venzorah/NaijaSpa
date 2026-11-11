@@ -1,0 +1,25 @@
+import {beforeEach, expect, it, vi} from "vitest";
+const m=vi.hoisted(()=>({session:vi.fn(),read:vi.fn(),update:vi.fn(),rename:vi.fn(),grant:vi.fn(),audit:vi.fn(),invalidate:vi.fn()}));
+vi.mock("../src/lib/auth",()=>({getSession:m.session,requireUser:(user:unknown)=>{if(!user)throw Object.assign(Error("Unauthorized"),{status:401});return user;}}));
+vi.mock("../src/lib/db",()=>({prisma:{vendor:{findUniqueOrThrow:m.read,update:m.update}}}));
+vi.mock("../src/lib/vendor-slugs",()=>({updateVendorWithSlug:m.rename}));
+vi.mock("../src/lib/subscription-lifecycle",()=>({grantVendorPlan:m.grant}));
+vi.mock("../src/lib/audit",()=>({audit:m.audit}));
+vi.mock("../src/lib/admin-account-actions",()=>({deleteVendor:vi.fn()}));
+vi.mock("next/cache",()=>({revalidateTag:m.invalidate}));
+import {PATCH} from "../src/app/api/admin/vendors/[id]/route";
+const request=(body:unknown)=>PATCH(new Request("https://naijaspa.com/api/admin/vendors/vendor",{method:"PATCH",body:JSON.stringify(body)}),{params:Promise.resolve({id:"vendor"})});
+beforeEach(()=>{vi.clearAllMocks();m.session.mockResolvedValue({id:"admin",role:"operations_admin"});m.read.mockResolvedValue({id:"vendor",state:"Lagos",city:"Ikeja",applicationStatus:"approved"});m.update.mockResolvedValue({id:"vendor"});m.rename.mockResolvedValue({id:"vendor",slug:"vendor-renamed-spa"});});
+it("allows delegated managers to edit details, preserves URL history, and audits the change",async()=>{
+ m.session.mockResolvedValue({id:"admin",role:"custom_editor",permissions:["admin.access","vendors.manage"]});
+ expect((await request({businessName:"Renamed Spa",privatePhone:"08012345678",description:"Updated"})).status).toBe(200);
+ expect(m.rename).toHaveBeenCalledWith("vendor",{businessName:"Renamed Spa",privatePhone:"08012345678",description:"Updated"});
+ expect(m.audit).toHaveBeenCalledWith(expect.objectContaining({action:"vendor.update",entityId:"vendor"}));expect(m.invalidate).toHaveBeenCalledWith("home-catalog");
+});
+it.each(["verification_officer","customer","finance_officer"])("rejects profile editing by %s before reading or writing vendor details",async role=>{m.session.mockResolvedValue({id:"reader",role});expect((await request({businessName:"Changed"})).status).toBe(403);expect(m.read).not.toHaveBeenCalled();expect(m.rename).not.toHaveBeenCalled();});
+it("rejects a custom role whose manage permission was removed",async()=>{m.session.mockResolvedValue({id:"reader",role:"custom_editor",permissions:["admin.access","vendors.verify"]});expect((await request({description:"Changed"})).status).toBe(403);});
+it("rejects unknown account, payout and ownership fields",async()=>{expect((await request({businessName:"Changed",ownerId:"someone",payoutAccountNumber:"0123456789"})).status).toBe(400);expect(m.rename).not.toHaveBeenCalled();expect(m.update).not.toHaveBeenCalled();});
+it("validates the complete state and city before saving",async()=>{expect((await request({state:"Lagos",city:"Abuja"})).status).toBe(400);expect(m.update).not.toHaveBeenCalled();expect((await request({state:"Federal Capital Territory",city:"Abuja"})).status).toBe(200);expect(m.update).toHaveBeenCalledWith({where:{id:"vendor"},data:{state:"FCT",city:"Abuja"}});});
+it("does not change deleted vendor profiles",async()=>{m.read.mockResolvedValue({applicationStatus:"deleted"});expect((await request({businessName:"Restore"})).status).toBe(404);expect(m.rename).not.toHaveBeenCalled();});
+it("rejects malformed contact numbers without updating the profile",async()=>{expect((await request({privatePhone:"bad phone"})).status).toBe(400);expect(m.update).not.toHaveBeenCalled();});
+it("keeps plan grants separate from profile edits",async()=>{expect((await request({planCode:"GOLD",businessName:"Changed"})).status).toBe(400);expect(m.grant).not.toHaveBeenCalled();expect((await request({planCode:"GOLD"})).status).toBe(200);expect(m.grant).toHaveBeenCalledWith("vendor","GOLD","admin_grant");});

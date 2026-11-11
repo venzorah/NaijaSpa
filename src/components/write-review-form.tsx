@@ -1,5 +1,5 @@
 "use client";
-
+import { useToast, useToastMessage } from "@/components/vendor/toasts";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { StarRating } from "@/components/star-rating";
@@ -16,10 +16,11 @@ export function WriteReviewForm({
   serviceSlug: string;
 }) {
   const router = useRouter();
+  const toast = useToast();
   const [rating, setRating] = useState(0);
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useToastMessage();
 
   return (
     <form
@@ -43,6 +44,7 @@ export function WriteReviewForm({
             setError(json.error || "Could not send your review.");
             return;
           }
+          toast.success("Review submitted.");
           router.replace(`/account/bookings/${encodeURIComponent(bookingId)}/review`);
           router.refresh();
         } catch {

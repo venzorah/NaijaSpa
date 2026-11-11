@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireVendor } from "@/lib/vendor-auth";
 import { prisma } from "@/lib/db";
+import { updateVendorWithSlug } from "@/lib/vendor-slugs";
 import { jsonError } from "@/lib/http";
 import { vendorStateForLocation } from "@/lib/nigeria";
 import { revalidateTag } from "next/cache";
@@ -59,9 +60,7 @@ export async function PATCH(req: Request) {
     if (["approved", "suspended"].includes(current.applicationStatus) && body.submit) {
       return NextResponse.json({ error: "This listing cannot be resubmitted." }, { status: 409 });
     }
-    const vendor = await prisma.vendor.update({
-      where: { id: user.vendorId },
-      data: {
+    const vendor = await updateVendorWithSlug(user.vendorId, {
         providerType: body.providerType,
         businessName: body.businessName,
         description: body.description,
@@ -75,7 +74,6 @@ export async function PATCH(req: Request) {
         cancellationPolicy: body.cancellationPolicy,
         hoursJson: body.hoursJson ?? current.hoursJson,
         applicationStatus: body.submit ? "submitted" : current.applicationStatus === "draft" ? "draft" : current.applicationStatus
-      }
     });
     revalidateTag("home-catalog");
     return NextResponse.json({ ok: true, applicationStatus: vendor.applicationStatus });

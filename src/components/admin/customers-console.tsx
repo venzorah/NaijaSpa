@@ -1,5 +1,6 @@
 "use client";
 
+import { EditorModal } from "./editor-modal";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Ban, Mail, Phone, RotateCcw, Trash2, UserRound, UserX } from "lucide-react";
@@ -36,7 +37,7 @@ export function CustomersConsole({ rows, editable }: { rows: AdminCustomer[]; ed
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
-  const [selectedId, setSelectedId] = useState(rows[0]?.id ?? "");
+  const [selectedId, setSelectedId] = useState("");
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase();
@@ -50,7 +51,7 @@ export function CustomersConsole({ rows, editable }: { rows: AdminCustomer[]; ed
     });
   }, [rows, query, filter]);
 
-  const selected = filtered.find((c) => c.id === selectedId) ?? filtered[0] ?? null;
+  const selected = rows.find((c) => c.id === selectedId) ?? null;
 
   async function patch(id: string, body: Record<string, unknown>) {
     await adminJson(`/api/admin/users/${id}`, { method: "PATCH", body: JSON.stringify(body) });
@@ -58,8 +59,8 @@ export function CustomersConsole({ rows, editable }: { rows: AdminCustomer[]; ed
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
-      <Panel className="xl:col-span-3" bodyClassName="p-0">
+    <div>
+      <Panel bodyClassName="p-0">
         <div className="flex flex-col gap-2 border-b border-line p-3 lg:flex-row lg:items-center lg:justify-between">
           <SearchInput value={query} onChange={setQuery} label="Search customers" placeholder="Name, email, phone or city" className="lg:w-72" />
           <FilterChips
@@ -99,7 +100,7 @@ export function CustomersConsole({ rows, editable }: { rows: AdminCustomer[]; ed
                       <span className="flex items-center gap-2.5">
                         <PersonAvatar name={c.name} />
                         <span className="min-w-0">
-                          <span className="block text-xs font-medium">{c.name}</span>
+                          <button type="button" aria-label={`View customer ${c.name}`} className="block text-left text-xs font-medium hover:text-goldink" onClick={event=>{event.stopPropagation();setSelectedId(c.id);}}>{c.name}</button>
                           <span className="block truncate text-[11px] text-ink2">{c.email}</span>
                         </span>
                       </span>
@@ -120,9 +121,7 @@ export function CustomersConsole({ rows, editable }: { rows: AdminCustomer[]; ed
           </div>
         )}
       </Panel>
-      <div className="space-y-4 xl:col-span-2">
-        {selected ? (
-          <>
+      {selected ? <EditorModal title="Customer details" onClose={()=>setSelectedId("")}><div className="space-y-4">
             <Panel>
               <div className="flex items-start gap-3">
                 <PersonAvatar name={selected.name} size="lg" />
@@ -131,7 +130,7 @@ export function CustomersConsole({ rows, editable }: { rows: AdminCustomer[]; ed
                     <h2 className="text-base font-semibold">{selected.name}</h2>
                     <AdminStatusPill status={selected.status} />
                   </div>
-                  <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-ink2">
+                  <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1 break-all text-xs text-ink2">
                     <span className="inline-flex items-center gap-1">
                       <Mail className="h-3 w-3" aria-hidden />
                       {selected.email}
@@ -148,7 +147,7 @@ export function CustomersConsole({ rows, editable }: { rows: AdminCustomer[]; ed
               <div className="mt-4">
                 <KeyValue
                   items={[
-                    { label: "Customer ID", value: <span className="font-mono text-xs">{selected.id}</span> },
+                    { label: "Customer ID", value: <span className="break-all font-mono text-xs">{selected.id}</span> },
                     { label: "City", value: selected.city || "—" },
                     { label: "Joined", value: selected.joined },
                     { label: "Last active", value: selected.lastActive },
@@ -218,13 +217,7 @@ export function CustomersConsole({ rows, editable }: { rows: AdminCustomer[]; ed
                 </ul>
               )}
             </Panel>
-          </>
-        ) : (
-          <Panel>
-            <EmptyState icon={UserX} title="Select a customer" text="Choose a customer from the list to see their profile." />
-          </Panel>
-        )}
-      </div>
+      </div></EditorModal> : null}
     </div>
   );
 }

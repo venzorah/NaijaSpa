@@ -19,6 +19,8 @@ export async function GET(_req: Request, ctx: { params: Promise<{ vendorId: stri
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
   const resolved = resolveMediaPath([vendorId, file]);
+  const removed = await prisma.mediaAsset.findUnique({ where: { url: mediaUrl(vendorId, file) }, select: { deletedAt: true } });
+  if (removed?.deletedAt) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const fromDb = await prisma.therapistGalleryImage.findFirst({
     where: { url: mediaUrl(vendorId, file), gallery: { vendorId } },
     select: { payload: true, mimeType: true, byteSize: true }

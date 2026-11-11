@@ -3,14 +3,15 @@ import { prisma } from "@/lib/db";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { VendorsConsole } from "@/components/admin/vendors-console";
 import { listAdminGrantableVendorPlans } from "@/lib/vendor-plans-live";
+import { hasPermission } from "@/lib/rbac";
 
 export default async function AdminVendorsPage() {
-  const { editable } = await requireAdminScreen("vendors");
+  const { user, editable } = await requireAdminScreen("vendors");
   const [vendors, listingPlans] = await Promise.all([
     prisma.vendor.findMany({
       where: { applicationStatus: { not: "deleted" } },
       include: {
-        owner: { select: { name: true, email: true } },
+        owner: { select: { name: true, email: true, phone: true } },
         subscriptions: {
           where: { status: { in: ["active", "grace"] } },
           include: { plan: true },
@@ -28,6 +29,7 @@ export default async function AdminVendorsPage() {
       <AdminPageHeader screen="vendors" />
       <VendorsConsole
         editable={editable}
+        canInvite={hasPermission(user, "vendors.invite")}
         listingPlans={listingPlans.map((p) => ({
           code: p.code,
           name: p.name,
@@ -39,6 +41,12 @@ export default async function AdminVendorsPage() {
           id: v.id,
           businessName: v.businessName,
           slug: v.slug,
+          description: v.description,
+          providerType: v.providerType,
+          state: v.state,
+          address: v.address,
+          instagramUrl: v.instagramUrl || "",
+          cancellationPolicy: v.cancellationPolicy,
           city: v.city,
           neighbourhood: v.neighbourhood,
           applicationStatus: v.applicationStatus,
@@ -48,6 +56,8 @@ export default async function AdminVendorsPage() {
           reviewCount: v.reviewCount,
           ownerName: v.owner.name,
           ownerEmail: v.owner.email,
+          mobile: v.privatePhone || v.owner.phone || "",
+          whatsapp: v.privateWhatsapp || "",
           plan: v.subscriptions[0]?.plan.name ?? "Free",
           planCode: v.subscriptions[0]?.plan.code ?? "FREE",
           services: v._count.services
