@@ -13,7 +13,7 @@ export async function HomeDiscovery({ place, layout }: { place: LivePlace | null
   const data = await getHomeDiscovery(place).catch(() => null);
   if (!data) return null;
   const collectionsSection = homeSection(layout, "collections");
-  const collections = collectionsSection.visible ? curateCategories(data.collections, collectionsSection) : [];
+  const collections = collectionsSection.visible ? curateCategories(data.collections, collectionsSection, 4) : [];
   return <>
     <HomeServiceGrid id="popular-treatments" title="Popular treatments" layout="popular" subtitle="Ranked by completed bookings." seeAllHref={exploreHref(place)} cards={data.popular} />
     <VendorCarousel title="Verified providers" vendors={data.verified} />

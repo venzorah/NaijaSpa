@@ -67,6 +67,22 @@ describe("homepage section layout", () => {
       (row) => row.id
     );
     expect(picked.map((row) => row.id)).toEqual(["s-c", "s-a", "s-b"]);
+    expect(
+      curateCategories(
+        [{ slug: "spa" }, { slug: "massage" }, { slug: "nuru" }, { slug: "body" }, { slug: "beauty" }],
+        {
+          id: "collections",
+          title: "Featured collections",
+          subtitle: "",
+          visible: true,
+          source: "auto",
+          serviceIds: [],
+          vendorIds: [],
+          categorySlugs: []
+        },
+        4
+      ).map((row) => row.slug)
+    ).toEqual(["spa", "massage", "nuru", "body"]);
   });
 
   it("exposes the homepage curator to content and marketing staff", () => {

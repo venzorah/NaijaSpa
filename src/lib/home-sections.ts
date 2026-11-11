@@ -230,7 +230,7 @@ export function orderByKeys<T>(items: T[], keys: string[], keyOf: (item: T) => s
   return out;
 }
 
-export function curateCategories<T extends { slug: string }>(categories: T[], section: HomeSection) {
+export function curateCategories<T extends { slug: string }>(categories: T[], section: HomeSection, autoLimit?: number) {
   if (!section.visible) return [];
   if (section.source === "manual" && section.categorySlugs.length) {
     return orderByKeys(categories, section.categorySlugs, (item) => item.slug);
@@ -238,6 +238,7 @@ export function curateCategories<T extends { slug: string }>(categories: T[], se
   if (section.categorySlugs.length) {
     return categories.filter((item) => section.categorySlugs.includes(item.slug));
   }
+  if (autoLimit != null) return categories.slice(0, autoLimit);
   return categories;
 }
 
@@ -262,10 +263,8 @@ export function pickManualIds<T>(
   for (const vendorId of section.vendorIds) {
     for (const item of servicesForVendor(vendorId)) add(item);
   }
-  if (!section.serviceIds.length) {
-    for (const slug of section.categorySlugs) {
-      for (const item of servicesForCategory(slug)) add(item);
-    }
+  for (const slug of section.categorySlugs) {
+    for (const item of servicesForCategory(slug)) add(item);
   }
   return out;
 }

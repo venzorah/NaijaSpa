@@ -255,6 +255,49 @@ async function loadHomeCatalog(place: LivePlace | null) {
     6000
   );
 
+  const missingPinned = pinnedServiceIds.filter((id) => !services.some((s) => s.id === id));
+  if (missingPinned.length) {
+    const extra = await prisma.service.findMany({
+      where: {
+        id: { in: missingPinned },
+        active: true,
+        vendor: { visibility: "public", applicationStatus: "approved" }
+      },
+      select: {
+        id: true,
+        vendorId: true,
+        slug: true,
+        name: true,
+        imageUrl: true,
+        basePriceKobo: true,
+        durationMin: true,
+        staff: { select: { staff: { select: { id: true, active: true } } } },
+        spaEnabled: true,
+        hotelEnabled: true,
+        homeEnabled: true,
+        vendor: {
+          select: {
+            id: true,
+            slug: true,
+            businessName: true,
+            state: true,
+            city: true,
+            neighbourhood: true,
+            ratingAvg: true,
+            reviewCount: true,
+            verificationStatus: true,
+            logoUrl: true,
+            coverUrl: true,
+            privatePhone: true,
+            privateWhatsapp: true
+          }
+        },
+        category: { select: { name: true, slug: true } }
+      }
+    });
+    services.push(...extra);
+  }
+
   const [entitlements, availability] = await Promise.all([withTimeout(
     vendorEntitlements([...services.map((s) => s.vendorId), ...campaigns.map((c) => c.vendorId)]),
     4000
@@ -315,22 +358,25 @@ async function loadHomeCatalog(place: LivePlace | null) {
     return out;
   };
 
-  const servicesForVendor = (vendorId: string) => services.filter((row) => row.vendorId === vendorId);
+  const servicesForVendor = (vendorId: string, slugs: string[] = []) =>
+    services.filter((row) => row.vendorId === vendorId && (!slugs.length || (row.category?.slug && slugs.includes(row.category.slug))));
   const servicesForCategory = (slug: string) => services.filter((row) => row.category?.slug === slug);
   const matchesSectionCategories = (card: HomeCard, slugs: string[]) => {
     if (!slugs.length) return true;
     const service = byId.get(card.service.id);
     return Boolean(service?.category?.slug && slugs.includes(service.category.slug));
   };
-  const manualCards = (sectionId: "featured" | "premium" | "promo" | "spotlight", badge: string, limit: number) =>
-    pickManualIds(
-      homeSection(layout, sectionId),
+  const manualCards = (sectionId: "featured" | "premium" | "promo" | "spotlight", badge: string, limit: number) => {
+    const section = homeSection(layout, sectionId);
+    return pickManualIds(
+      section,
       limit,
       (id) => byId.get(id),
-      servicesForVendor,
+      (vendorId) => servicesForVendor(vendorId, section.categorySlugs),
       servicesForCategory,
       (row) => row.id
     ).map((row) => cardFromService(row, badge, sectionId === "spotlight"));
+  };
 
   const autoRail = (campaignCards: HomeCard[], pool: HomeCard[], badge: string, limit: number, slugs: string[]) =>
     sortByPlace(
