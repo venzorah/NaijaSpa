@@ -41,6 +41,18 @@ describe("homepage section layout", () => {
       }).map((row) => row.slug)
     ).toEqual(["nuru", "spa"]);
     expect(HOME_SECTION_IDS.includes("categories" as (typeof HOME_SECTION_IDS)[number])).toBe(false);
+    expect(
+      curateCategories(categories, {
+        id: "collections",
+        title: "Featured collections",
+        subtitle: "",
+        visible: true,
+        source: "manual",
+        serviceIds: [],
+        vendorIds: [],
+        categorySlugs: []
+      })
+    ).toEqual([]);
   });
 
   it("fills a manual rail from services, then providers, then categories", () => {

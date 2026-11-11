@@ -375,7 +375,7 @@ async function loadHomeCatalog(place: LivePlace | null) {
       (vendorId) => servicesForVendor(vendorId, section.categorySlugs),
       servicesForCategory,
       (row) => row.id
-    ).map((row) => cardFromService(row, badge, sectionId === "spotlight"));
+    ).map((row) => cardFromService(row, badge, false));
   };
 
   const autoRail = (campaignCards: HomeCard[], pool: HomeCard[], badge: string, limit: number, slugs: string[]) =>

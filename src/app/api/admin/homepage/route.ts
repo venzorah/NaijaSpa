@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { revalidateTag } from "next/cache";
-import { getSession, requireUser } from "@/lib/auth";
-import { assertPermission, assertAnyPermission, hasPermission } from "@/lib/rbac";
+import { requireAdmin } from "@/lib/admin-auth";
+import { hasPermission } from "@/lib/rbac";
 import { prisma, setConfig } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { jsonError } from "@/lib/http";
@@ -23,6 +23,18 @@ const sectionSchema = z.object({
   categorySlugs: z.array(z.string().min(1).max(80)).max(24)
 });
 
+const putSchema = z.object({
+  sections: z
+    .array(sectionSchema)
+    .length(HOME_SECTION_IDS.length)
+    .superRefine((rows, ctx) => {
+      const ids = rows.map((row) => row.id);
+      if (new Set(ids).size !== HOME_SECTION_IDS.length) {
+        ctx.addIssue({ code: "custom", message: "Every homepage section must be included once." });
+      }
+    })
+});
+
 async function loadLayout() {
   const row = await prisma.systemConfig.findUnique({ where: { key: HOME_SECTIONS_CONFIG_KEY } });
   return parseHomeSections(row?.value);
@@ -30,8 +42,7 @@ async function loadLayout() {
 
 export async function GET() {
   try {
-    const user = requireUser(await getSession());
-    assertAnyPermission(user, ["cms.manage", "campaigns.manage"]);
+    const user = await requireAdmin(["cms.manage", "campaigns.manage"]);
     const [layout, categories, vendors, services] = await Promise.all([
       loadLayout(),
       prisma.category.findMany({
@@ -79,10 +90,9 @@ export async function GET() {
 
 export async function PUT(req: Request) {
   try {
-    const user = requireUser(await getSession());
-    assertPermission(user, "cms.manage");
+    const user = await requireAdmin("cms.manage");
     const before = await loadLayout();
-    const body = z.object({ sections: z.array(sectionSchema).min(1).max(HOME_SECTION_IDS.length) }).parse(await req.json());
+    const body = putSchema.parse(await req.json());
     const layout = parseHomeSections(JSON.stringify(body.sections));
     await setConfig(HOME_SECTIONS_CONFIG_KEY, JSON.stringify(layout));
     revalidateTag("home-catalog");

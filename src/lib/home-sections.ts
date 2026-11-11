@@ -232,8 +232,8 @@ export function orderByKeys<T>(items: T[], keys: string[], keyOf: (item: T) => s
 
 export function curateCategories<T extends { slug: string }>(categories: T[], section: HomeSection, autoLimit?: number) {
   if (!section.visible) return [];
-  if (section.source === "manual" && section.categorySlugs.length) {
-    return orderByKeys(categories, section.categorySlugs, (item) => item.slug);
+  if (section.source === "manual") {
+    return section.categorySlugs.length ? orderByKeys(categories, section.categorySlugs, (item) => item.slug) : [];
   }
   if (section.categorySlugs.length) {
     return categories.filter((item) => section.categorySlugs.includes(item.slug));
