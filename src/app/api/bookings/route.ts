@@ -36,7 +36,7 @@ export async function POST(req: Request) {
         locationType: z.enum(["spa", "hotel", "home"]),
         locationDetails: z.string().default(""),
         startsAt: z.string().datetime({ offset: true }),
-        addonIds: z.array(z.string()).optional(),
+        addonIds: z.array(z.string().min(1).max(64)).max(20).optional(),
         idempotencyKey: z.string().min(8),
         promoCode: z.string().optional()
       })

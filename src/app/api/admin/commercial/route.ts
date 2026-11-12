@@ -68,7 +68,7 @@ export async function PUT(req: Request) {
             })
           )
           .optional(),
-        extraStates: z.array(z.string()).optional()
+        extraStates: z.array(z.string().min(2).max(80)).max(40).optional()
       })
       .parse(await req.json());
     for (const key of ["spaSurchargeKobo", "hotelSurchargeKobo", "homeSurchargeKobo", "surchargeRecipient", "freeCommissionBps", "paidCommissionBps", "graceDays"] as const) {

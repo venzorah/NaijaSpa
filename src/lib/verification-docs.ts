@@ -6,6 +6,7 @@ import { detectImageMime, extensionForMime } from "./galleries";
 import { deleteMediaObject, getMediaObject, putMediaObject, uploadStorage } from "./object-storage";
 import {
   MAX_VERIFICATION_DOC_BYTES,
+  verificationDocLabel,
   type VerificationDocKind
 } from "./verification-doc-kinds";
 
@@ -102,23 +103,27 @@ export async function verificationDocBytes(doc: {
   mimeType: string;
   imagePayload: Uint8Array | Buffer | null;
 }) {
+  const sniff = (bytes: Buffer) => {
+    const mime = detectImageMime(bytes);
+    if (!mime) return null;
+    return { bytes, mime };
+  };
   if (doc.imagePayload && doc.imagePayload.length) {
-    const bytes = Buffer.from(doc.imagePayload);
-    return { bytes, mime: doc.mimeType || "image/jpeg" };
+    return sniff(Buffer.from(doc.imagePayload));
   }
   try {
     const object = await getMediaObject(doc.filePath);
-    if (object) return object;
+    if (object) return sniff(Buffer.from(object.bytes));
   } catch {
     throw Object.assign(new Error("Document storage is temporarily unavailable."), { status: 503 });
   }
   if (!doc.filePath.startsWith("kyc/")) return null;
   const rest = doc.filePath.slice("kyc/".length);
+  if (!/^[a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+\.(png|jpg|jpeg|webp|gif)$/.test(rest)) return null;
   const resolved = path.resolve(kycUploadsRoot(), rest);
   if (!resolved.startsWith(kycUploadsRoot() + path.sep)) return null;
   try {
-    const bytes = await readFile(resolved);
-    return { bytes, mime: doc.mimeType || "image/jpeg" };
+    return sniff(await readFile(resolved));
   } catch {
     return null;
   }

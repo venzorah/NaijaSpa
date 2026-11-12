@@ -39,7 +39,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         imageUrl: z.string().max(500).nullable().optional(),
         active: z.boolean().optional(),
         sortOrder: z.number().int().optional(),
-        order: z.array(z.string()).optional()
+        order: z.array(z.string().min(1).max(64)).max(200).optional()
       })
       .parse(input);
     if (body.order) {

@@ -30,7 +30,7 @@ export async function PUT(req: Request) {
             endMin: z.number().int().min(1).max(24 * 60),
             bufferMin: z.number().int().min(0).max(180)
           }).refine((s) => s.endMin > s.startMin, "End time must follow start time")
-        )
+        ).max(168)
       })
       .parse(await req.json());
     const staffId = body.staffId ?? null;
