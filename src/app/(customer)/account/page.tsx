@@ -6,6 +6,7 @@ import {
   FileText,
   Heart,
   HelpCircle,
+  Inbox,
   Info,
   LayoutDashboard,
   Mail,
@@ -17,6 +18,7 @@ import {
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { LogoutButton } from "@/components/logout-button";
+import { announcementInboxWhere } from "@/lib/announcement-inbox";
 
 function initials(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -30,6 +32,7 @@ const sections: { title: string; items: { href: string; label: string; icon: typ
     title: "My NaijaSpa",
     items: [
       { href: "/account/dashboard", label: "Overview", icon: LayoutDashboard },
+      { href: "/account/messages", label: "Messages", icon: Inbox },
       { href: "/account/bookings", label: "Bookings", icon: CalendarDays },
       { href: "/account/favourites", label: "Favourites", icon: Heart },
       { href: "/account/payments", label: "Payments & receipts", icon: CreditCard },
@@ -81,9 +84,12 @@ export default async function AccountPage() {
     );
   }
 
-  const bookingCount = await prisma.booking.count({
-    where: { customerId: user.id, status: { in: ["confirmed", "pending", "awaiting_payment", "in_progress"] } }
-  });
+  const [bookingCount, unreadMessages] = await Promise.all([
+    prisma.booking.count({
+      where: { customerId: user.id, status: { in: ["confirmed", "pending", "awaiting_payment", "in_progress"] } }
+    }),
+    prisma.notification.count({ where: { ...announcementInboxWhere(user.id), readAt: null } })
+  ]);
 
   return (
     <div className="mx-auto max-w-3xl px-4 pt-6 lg:px-8">
@@ -99,7 +105,11 @@ export default async function AccountPage() {
       <HubSection
         title="My NaijaSpa"
         items={sections[0].items.map((item) =>
-          item.href === "/account/bookings" ? { ...item, hint: bookingCount ? `${bookingCount} open` : undefined } : item
+          item.href === "/account/bookings"
+            ? { ...item, hint: bookingCount ? `${bookingCount} open` : undefined }
+            : item.href === "/account/messages"
+              ? { ...item, hint: unreadMessages ? `${unreadMessages} new` : undefined }
+              : item
         )}
       />
       {sections.slice(1).map((s) => (

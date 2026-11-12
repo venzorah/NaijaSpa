@@ -4,6 +4,7 @@ import { Bell, Sparkles } from "lucide-react";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { formatNgn } from "@/lib/money";
+import { announcementInboxWhere, announcementPreview, isAnnouncementInboxActionUrl } from "@/lib/announcement-inbox";
 import { PageHeader } from "@/components/page-header";
 import { StatusPill } from "@/components/status-pill";
 import { LogoutButton } from "@/components/logout-button";
@@ -32,7 +33,7 @@ export default async function AccountDashboardPage() {
       orderBy: { startsAt: "desc" },
       take: 3
     }),
-    prisma.notification.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 5 })
+    prisma.notification.findMany({ where: announcementInboxWhere(user.id), orderBy: { createdAt: "desc" }, take: 5 })
   ]);
   const next = upcoming[0];
   const first = user.name.split(" ")[0] || "there";
@@ -120,18 +121,28 @@ export default async function AccountDashboardPage() {
           </ul>
         </section>
         <section>
-          <h2 className="mb-3 font-display text-3xl font-semibold">Notifications</h2>
+          <div className="mb-3 flex items-end justify-between">
+            <h2 className="font-display text-3xl font-semibold">Messages</h2>
+            <Link href="/account/messages" className="text-sm font-semibold text-goldink">
+              See all
+            </Link>
+          </div>
           <ul className="space-y-2">
-            {notes.map((n) => (
-              <li key={n.id} className="flex gap-3 rounded-2xl border border-line bg-card p-4">
-                <Bell className="mt-0.5 h-5 w-5 text-leaf" aria-hidden />
-                <div>
-                  <p className="text-sm font-semibold text-ink">{n.title}</p>
-                  <p className="mt-0.5 text-sm text-ink2">{n.body}</p>
-                </div>
-              </li>
-            ))}
-            {notes.length === 0 ? <p className="text-sm text-ink2">No notifications yet.</p> : null}
+            {notes.map((n) => {
+              const href = isAnnouncementInboxActionUrl(n.actionUrl) ? `/account/messages/${n.id}` : "/account/messages";
+              return (
+                <li key={n.id}>
+                  <Link href={href} className="flex gap-3 rounded-2xl border border-line bg-card p-4 hover:border-gold/40">
+                    <Bell className="mt-0.5 h-5 w-5 text-leaf" aria-hidden />
+                    <div>
+                      <p className="text-sm font-semibold text-ink">{n.title}</p>
+                      <p className="mt-0.5 text-sm text-ink2">{announcementPreview(n.body)}</p>
+                    </div>
+                  </Link>
+                </li>
+              );
+            })}
+            {notes.length === 0 ? <p className="text-sm text-ink2">No messages from NaijaSpa yet.</p> : null}
           </ul>
           <Link href="/ai" className="mt-4 flex w-full items-center gap-3 rounded-2xl border border-gold/40 bg-gold/10 p-4 text-left">
             <Sparkles className="h-5 w-5 text-goldink" aria-hidden />

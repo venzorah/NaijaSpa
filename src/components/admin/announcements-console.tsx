@@ -73,7 +73,11 @@ export function AnnouncementsConsole({ initial }: { initial: Payload }) {
       audience === "individuals"
         ? `Sends to ${picked.length} selected ${picked.length === 1 ? "person" : "people"}.`
         : `Sends to about ${count} ${audienceLabel.toLowerCase()} with alerts on.`,
-      channel === "message" ? "In-app message only — no email." : channel === "email" ? "Email only — no in-app alert." : "Email plus an in-app notification.",
+      channel === "message"
+        ? "In-app Messages screen only — no email."
+        : channel === "email"
+          ? "Email only — no in-app message."
+          : "Email plus a full message in the recipient’s Messages screen.",
       images.length ? `${images.length} image${images.length === 1 ? "" : "s"} in the email.` : "No extra images attached.",
       "Deleted accounts are skipped. Email opt-outs skip inbox only."
     ],

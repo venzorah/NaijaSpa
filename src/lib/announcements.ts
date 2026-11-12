@@ -5,6 +5,7 @@ import { parseNotificationPreferences } from "./notification-preferences";
 import { announcementEmail, mailConfigured, sendMail } from "./mail";
 import { appUrl } from "./payments";
 import type { AnnouncementImage, AnnouncementLink } from "./announcement-content";
+import { announcementInboxPath, encodeAnnouncementInboxBody } from "./announcement-inbox";
 
 export type { AnnouncementImage, AnnouncementLink } from "./announcement-content";
 export {
@@ -114,9 +115,6 @@ export function absoluteAnnouncementHref(href: string) {
   return href;
 }
 
-function inAppUrl(role: string) {
-  return role === ROLES.VENDOR_OWNER || role === ROLES.VENDOR_STAFF ? "/vendor/dashboard" : "/account/dashboard";
-}
 
 async function loadHistory() {
   const row = await prisma.systemConfig.findUnique({ where: { key: ANNOUNCEMENTS_CONFIG_KEY } });
@@ -247,7 +245,10 @@ export async function sendAnnouncement(input: AnnouncementSendInput) {
   let sent = 0;
   let failed = 0;
   let skipped = 0;
-  const notify: { userId: string; title: string; body: string; actionUrl: string }[] = [];
+  const notify: { id: string; userId: string; title: string; body: string; actionUrl: string }[] = [];
+  const inboxCta =
+    input.ctaLabel && input.ctaHref ? { label: input.ctaLabel, href: input.ctaHref } : null;
+  const inboxBody = encodeAnnouncementInboxBody(input.intro, input.body, inboxCta);
 
   await mapPool(users, sendEmail ? EMAIL_CONCURRENCY : 8, async (user) => {
     let delivered = false;
@@ -263,11 +264,13 @@ export async function sendAnnouncement(input: AnnouncementSendInput) {
       }
     }
     if (sendMessage) {
+      const id = randomUUID();
       notify.push({
+        id,
         userId: user.id,
         title: input.title,
-        body: input.intro,
-        actionUrl: inAppUrl(user.role)
+        body: inboxBody,
+        actionUrl: announcementInboxPath(user.role, id)
       });
       delivered = true;
     }

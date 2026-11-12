@@ -152,6 +152,9 @@ describe("admin announcement emails", () => {
     expect(mock.sendMail).toHaveBeenCalledTimes(1);
     expect(mock.sendMail.mock.calls[0][0].to).toBe("a@example.com");
     expect(mock.createMany).toHaveBeenCalled();
+    const created = mock.createMany.mock.calls[0][0].data as { body: string; actionUrl: string }[];
+    expect(created[0].body).toContain("We now list therapists");
+    expect(created[0].actionUrl).toMatch(/^\/account\/messages\//);
     expect(mock.audit).toHaveBeenCalled();
     expect(mock.setConfig).toHaveBeenCalled();
   });

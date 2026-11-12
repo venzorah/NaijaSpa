@@ -10,6 +10,7 @@ import {
   CalendarCheck2,
   CalendarDays,
   Crown,
+  Inbox,
   LayoutDashboard,
   LifeBuoy,
   LoaderCircle,
@@ -71,6 +72,7 @@ export const VENDOR_NAV: { label: string; items: PortalLink[] }[] = [
   {
     label: "Account",
     items: [
+      { href: "/vendor/messages", label: "Messages", icon: Inbox },
       { href: "/vendor/settings", label: "Settings", icon: Settings },
       { href: "/vendor/support", label: "Support", icon: LifeBuoy }
     ]
