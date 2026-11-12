@@ -72,6 +72,13 @@ describe("admin homepage section curator", () => {
     expect(mock.setConfig).not.toHaveBeenCalled();
   });
 
+  it("rejects duplicate order numbers", async () => {
+    const sections = DEFAULT_HOME_SECTIONS.map((row, index) => ({ ...row, sortOrder: index === 0 ? 1 : row.sortOrder }));
+    sections[1] = { ...sections[1], sortOrder: 1 };
+    expect((await PUT(req({ sections }))).status).toBe(400);
+    expect(mock.setConfig).not.toHaveBeenCalled();
+  });
+
   it("saves a complete layout and refreshes the public homepage", async () => {
     expect((await PUT(req({ sections: DEFAULT_HOME_SECTIONS }))).status).toBe(200);
     expect(mock.setConfig).toHaveBeenCalled();

@@ -8,7 +8,7 @@ import { readServiceRequest, saveService } from "@/lib/service-editor";
 import { jsonError } from "@/lib/http";
 export async function POST(request: Request) {
   try {
-    const actor = await requireAdmin("catalog.manage");
+    const actor = await requireAdmin(["catalog.manage", "vendors.manage"]);
     const { data, file } = await readServiceRequest(request);
     const { vendorId } = z.object({ vendorId: z.string().min(1) }).parse(data);
     if (!await prisma.vendor.findUnique({ where: { id: vendorId }, select: { id: true } })) return NextResponse.json({ error: "Business not found" }, { status: 404 });

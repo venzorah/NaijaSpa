@@ -69,7 +69,7 @@ export function ServiceEditorModal({ value, categories, vendors, admin = false, 
     }
     setError(""); setFile(chosen); setGalleryId(""); setRemoved(false);
   }
-  return <EditorModal title={value ? "Edit service" : "New service"} busy={busy} onClose={onClose}>
+  return <EditorModal title={value ? "Edit service" : "New service"} busy={busy} stacked onClose={onClose}>
     <form onSubmit={save} className="space-y-4">
       {admin && !value ? <FormRow label="Business" htmlFor="svc-business"><select required id="svc-business" className={adminField} value={vendorId} onChange={event => { setVendorId(event.target.value); setFile(null); setGalleryId(""); setPreview(""); }}><option value="">Select a business</option>{vendors?.map(vendor => <option key={vendor.id} value={vendor.id}>{vendor.businessName}</option>)}</select></FormRow> : null}
       <div className="rounded-xl border border-line bg-elev/30 p-4"><label className="mb-2 block text-sm font-semibold" htmlFor="svc-featured">Featured image</label>

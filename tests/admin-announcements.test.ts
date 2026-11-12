@@ -103,6 +103,7 @@ describe("admin announcement emails", () => {
     expect(mail.html).toContain("Hi &lt;script&gt;");
     expect(mail.html).toContain("Line one<br />Line two");
     expect(mail.html).not.toContain("<script>");
+    expect(mail.html).toContain("logo-horizontal-dark.png");
   });
 
   it("exposes the console to content staff and hides it from analysts", () => {
@@ -177,6 +178,35 @@ describe("admin announcement emails", () => {
     );
     expect(res.status).toBe(400);
     expect(mock.sendMail).not.toHaveBeenCalled();
+  });
+
+  it("requires selected people when sending to individuals", async () => {
+    const res = await POST(
+      new Request("http://localhost/api/admin/announcements", {
+        method: "POST",
+        body: JSON.stringify({ ...payload, audience: "individuals", channel: "message" })
+      })
+    );
+    expect(res.status).toBe(400);
+    expect(mock.sendMail).not.toHaveBeenCalled();
+  });
+
+  it("sends an in-app message to selected people without email", async () => {
+    const res = await POST(
+      new Request("http://localhost/api/admin/announcements", {
+        method: "POST",
+        body: JSON.stringify({
+          ...payload,
+          audience: "individuals",
+          channel: "message",
+          userIds: ["c1"]
+        })
+      })
+    );
+    expect(res.status).toBe(200);
+    expect(mock.sendMail).not.toHaveBeenCalled();
+    expect(mock.createMany).toHaveBeenCalled();
+    expect(mock.findMany.mock.calls[0][0].where.id.in).toEqual(["c1"]);
   });
 
   it("rejects javascript on an attached image link", async () => {

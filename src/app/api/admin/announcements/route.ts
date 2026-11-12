@@ -1,14 +1,17 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/admin-auth";
-import { hasPermission } from "@/lib/rbac";
+import { hasPermission, ROLES } from "@/lib/rbac";
 import { audit } from "@/lib/audit";
 import { jsonError } from "@/lib/http";
+import { prisma } from "@/lib/db";
 import { publicContentUrl } from "@/lib/public-content";
 import { mailConfigured } from "@/lib/mail";
 import { normalizeAnnouncementImages, normalizeAnnouncementLinks } from "@/lib/announcement-content";
 import {
   ANNOUNCEMENT_AUDIENCES,
+  ANNOUNCEMENT_CHANNELS,
+  MAX_ANNOUNCEMENT_RECIPIENTS,
   announcementAudienceCounts,
   listAnnouncementHistory,
   sendAnnouncement
@@ -27,12 +30,31 @@ const postSchema = z.object({
   ctaHref: z.string().trim().max(500).optional(),
   images: z.array(z.unknown()).max(6).optional(),
   links: z.array(z.unknown()).max(8).optional(),
-  inApp: z.boolean().optional()
+  inApp: z.boolean().optional(),
+  channel: z.enum(ANNOUNCEMENT_CHANNELS).optional(),
+  userIds: z.array(z.string().min(1).max(64)).max(MAX_ANNOUNCEMENT_RECIPIENTS).optional()
 });
 
-export async function GET() {
+function searchPeople(q: string) {
+  return prisma.user.findMany({
+    where: {
+      status: "active",
+      role: { in: [ROLES.CUSTOMER, ROLES.VENDOR_OWNER, ROLES.VENDOR_STAFF] },
+      OR: [{ email: { contains: q, mode: "insensitive" } }, { name: { contains: q, mode: "insensitive" } }]
+    },
+    take: 20,
+    orderBy: { name: "asc" },
+    select: { id: true, name: true, email: true, role: true }
+  });
+}
+
+export async function GET(req?: Request) {
   try {
     const user = await requireAdmin(["cms.manage", "campaigns.manage"]);
+    const q = req ? new URL(req.url).searchParams.get("q")?.trim() ?? "" : "";
+    if (q.length >= 2) {
+      return NextResponse.json({ people: await searchPeople(q.slice(0, 80)) });
+    }
     const [counts, history] = await Promise.all([announcementAudienceCounts(), listAnnouncementHistory()]);
     return NextResponse.json({
       canEdit: hasPermission(user, "cms.manage"),
@@ -63,6 +85,8 @@ export async function POST(req: Request) {
     }
     const images = normalizeAnnouncementImages(body.images);
     const links = normalizeAnnouncementLinks(body.links);
+    const channel =
+      body.channel ?? (body.inApp === false ? "email" : "both");
     const result = await sendAnnouncement({
       audience: body.audience,
       subject: body.subject,
@@ -73,7 +97,8 @@ export async function POST(req: Request) {
       ctaHref: ctaHref || undefined,
       images,
       links,
-      inApp: body.inApp !== false
+      channel,
+      userIds: body.audience === "individuals" ? body.userIds : undefined
     });
     await audit({
       actorId: user.id,

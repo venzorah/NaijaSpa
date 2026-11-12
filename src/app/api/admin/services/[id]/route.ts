@@ -11,7 +11,7 @@ import { readServiceRequest, saveService } from "@/lib/service-editor";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const actor = await requireAdmin("catalog.manage");
+    const actor = await requireAdmin(["catalog.manage", "vendors.manage"]);
     const { id } = await params;
     const before = await prisma.service.findUniqueOrThrow({ where: { id } });
     if (before.deletedAt) return NextResponse.json({error:"Service not found"},{status:404});

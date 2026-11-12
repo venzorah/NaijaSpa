@@ -8,7 +8,7 @@ export const runtime = "nodejs";
 
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
-    await requireAdmin("vendors.verify");
+    await requireAdmin(["vendors.verify", "vendors.manage"]);
     const { id } = await ctx.params;
     const doc = await prisma.verificationDoc.findUnique({
       where: { id },

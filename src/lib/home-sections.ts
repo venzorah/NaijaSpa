@@ -21,6 +21,7 @@ export type HomeSection = {
   subtitle: string;
   visible: boolean;
   source: HomeSectionSource;
+  sortOrder: number;
   serviceIds: string[];
   vendorIds: string[];
   categorySlugs: string[];
@@ -79,6 +80,7 @@ export const DEFAULT_HOME_SECTIONS: HomeSection[] = [
     subtitle: "",
     visible: true,
     source: "auto",
+    sortOrder: 1,
     serviceIds: [],
     vendorIds: [],
     categorySlugs: []
@@ -89,6 +91,7 @@ export const DEFAULT_HOME_SECTIONS: HomeSection[] = [
     subtitle: "",
     visible: true,
     source: "auto",
+    sortOrder: 2,
     serviceIds: [],
     vendorIds: [],
     categorySlugs: []
@@ -99,6 +102,7 @@ export const DEFAULT_HOME_SECTIONS: HomeSection[] = [
     subtitle: "Sponsored placements are paid promotions. Ratings remain from customer bookings.",
     visible: true,
     source: "auto",
+    sortOrder: 3,
     serviceIds: [],
     vendorIds: [],
     categorySlugs: []
@@ -109,6 +113,7 @@ export const DEFAULT_HOME_SECTIONS: HomeSection[] = [
     subtitle: "",
     visible: true,
     source: "auto",
+    sortOrder: 4,
     serviceIds: [],
     vendorIds: [],
     categorySlugs: []
@@ -119,6 +124,7 @@ export const DEFAULT_HOME_SECTIONS: HomeSection[] = [
     subtitle: "Paid-plan vendors with enhanced visibility and public contact.",
     visible: true,
     source: "auto",
+    sortOrder: 5,
     serviceIds: [],
     vendorIds: [],
     categorySlugs: []
@@ -129,6 +135,7 @@ export const DEFAULT_HOME_SECTIONS: HomeSection[] = [
     subtitle: "Limited-time prices and campaign offers.",
     visible: true,
     source: "auto",
+    sortOrder: 6,
     serviceIds: [],
     vendorIds: [],
     categorySlugs: []
@@ -139,6 +146,7 @@ export const DEFAULT_HOME_SECTIONS: HomeSection[] = [
     subtitle: "Hot stone, hammam and deep tissue — book the hour your body has been asking for.",
     visible: true,
     source: "auto",
+    sortOrder: 7,
     serviceIds: [],
     vendorIds: [],
     categorySlugs: []
@@ -149,6 +157,7 @@ export const DEFAULT_HOME_SECTIONS: HomeSection[] = [
     subtitle: "Couples rituals with two therapists, private suites, and prices in Naira.",
     visible: true,
     source: "auto",
+    sortOrder: 8,
     serviceIds: [],
     vendorIds: [],
     categorySlugs: []
@@ -189,20 +198,29 @@ export function parseHomeSections(raw: string | null | undefined): HomeSection[]
     if (!row || typeof row !== "object" || !("id" in row)) continue;
     byId.set(String((row as { id: unknown }).id), row as Record<string, unknown>);
   }
-  return DEFAULT_HOME_SECTIONS.map((def) => {
+  const built: HomeSection[] = DEFAULT_HOME_SECTIONS.map((def, index) => {
     const row = byId.get(def.id);
     if (!row) return { ...def, serviceIds: [], vendorIds: [], categorySlugs: [] };
+    const rawOrder = Number(row.sortOrder);
     return {
       id: def.id,
       title: clampText(row.title, def.title, 80),
       subtitle: clampText(row.subtitle, def.subtitle, 240),
       visible: row.visible !== false,
       source: row.source === "manual" ? "manual" : "auto",
+      sortOrder: Number.isInteger(rawOrder) && rawOrder >= 1 && rawOrder <= HOME_SECTION_IDS.length ? rawOrder : index + 1,
       serviceIds: uniqStrings(row.serviceIds, 48, (id) => id.trim()),
       vendorIds: uniqStrings(row.vendorIds, 48, (id) => id.trim()),
       categorySlugs: uniqStrings(row.categorySlugs, 24, (slug) => slug.trim().toLowerCase())
     };
   });
+  return [...built]
+    .sort((a, b) => a.sortOrder - b.sortOrder || HOME_SECTION_IDS.indexOf(a.id) - HOME_SECTION_IDS.indexOf(b.id))
+    .map((section, index) => ({ ...section, sortOrder: index + 1 }));
+}
+
+export function orderedHomeSections(layout: HomeSection[] | undefined) {
+  return [...(layout ?? DEFAULT_HOME_SECTIONS)].sort((a, b) => a.sortOrder - b.sortOrder);
 }
 
 export function homeSection(layout: HomeSection[] | undefined, id: HomeSectionId): HomeSection {

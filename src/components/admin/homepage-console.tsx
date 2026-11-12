@@ -6,7 +6,6 @@ import { adminBtn, adminField, FormRow } from "@/components/admin/form-row";
 import { Panel } from "@/components/admin/panel";
 import { adminJson } from "@/components/admin/json";
 import {
-  HOME_SECTION_IDS,
   HOME_SECTION_META,
   type HomeSection,
   type HomeSectionPickKind
@@ -130,20 +129,44 @@ export function HomepageConsole({ initial }: { initial: Payload }) {
       {message ? <p role="status" className="text-sm text-goldink">{message}</p> : null}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="max-w-2xl text-sm text-ink2">
-          The hero banner and category tiles are not edited here. Automatic keeps ranking and paid ads. Manual shows only what you pick. Hide a rail to remove it without deleting ads.
+          The hero banner and category tiles stay first. Number the rails below so 1 is the first section after those. Automatic keeps ranking and paid ads. Manual shows only what you pick.
         </p>
         <button className={adminBtn} disabled={!initial.canEdit || busy} onClick={() => void save()}>
           <Save className="h-3.5 w-3.5" />
           {busy ? "Saving…" : "Save homepage"}
         </button>
       </div>
-      {HOME_SECTION_IDS.map((id) => {
-        const section = layout.find((row) => row.id === id);
-        if (!section) return null;
+      {[...layout].sort((a, b) => a.sortOrder - b.sortOrder).map((section) => {
+        const id = section.id;
         const meta = HOME_SECTION_META[id];
         return (
-          <Panel key={id} title={meta.label} description={meta.hint}>
+          <Panel key={id} title={`${section.sortOrder}. ${meta.label}`} description={meta.hint}>
             <div className="grid gap-3">
+              <FormRow label="Show order" htmlFor={`${id}-order`} hint="1 appears first after the hero and category carousel. Numbers swap if you reuse one.">
+                <input
+                  id={`${id}-order`}
+                  type="number"
+                  min={1}
+                  max={layout.length}
+                  className={`${adminField} max-w-24`}
+                  disabled={!initial.canEdit}
+                  value={section.sortOrder}
+                  onChange={(e) => {
+                    const parsed = Number(e.target.value);
+                    if (!Number.isInteger(parsed)) return;
+                    const next = Math.min(layout.length, Math.max(1, parsed));
+                    setLayout((rows) => {
+                      const current = rows.find((row) => row.id === id);
+                      if (!current || current.sortOrder === next) return rows;
+                      return rows.map((row) => {
+                        if (row.id === id) return { ...row, sortOrder: next };
+                        if (row.sortOrder === next) return { ...row, sortOrder: current.sortOrder };
+                        return row;
+                      });
+                    });
+                  }}
+                />
+              </FormRow>
               <label className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"

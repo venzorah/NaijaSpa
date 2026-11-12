@@ -100,8 +100,8 @@ export function brandedEmailHtml({
       <td class="pad" align="center" bgcolor="${forest}" style="background-color:${forest}!important">
         <table class="card" role="presentation" width="560" cellpadding="0" cellspacing="0" bgcolor="${forest}" style="max-width:560px;width:100%;background-color:${forest}!important;border:1px solid ${gold}">
           <tr>
-            <td align="center" bgcolor="${forestDeep}" style="padding:28px 28px 12px;text-align:center;background-color:${forestDeep}!important">
-              <img src="${escapeAttr(logo)}" alt="NaijaSpa" width="220" height="64" style="display:block;margin:0 auto;max-width:220px;height:auto;border:0;outline:none" />
+            <td align="center" bgcolor="${forestDeep}" style="padding:0;text-align:center;background-color:${forestDeep}!important;border-bottom:3px solid ${gold}">
+              <img src="${escapeAttr(logo)}" alt="NaijaSpa" width="560" style="display:block;width:100%;max-width:560px;height:auto;margin:0 auto;padding:32px 48px;box-sizing:border-box;background-color:${forestDeep};border:0;outline:none" />
             </td>
           </tr>
           <tr>

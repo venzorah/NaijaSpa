@@ -1,24 +1,19 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Pencil, Plus, Star, Store } from "lucide-react";
+import { Plus, Star, Store } from "lucide-react";
 import { EditorModal } from "./editor-modal";
-import { VendorDetailsForm } from "./vendor-details-form";
+import { VendorWorkspace } from "./vendor-workspace";
 import { EmptyState } from "@/components/empty-state";
-import { ConfirmAction } from "@/components/admin/confirm-action";
 import { FilterChips } from "@/components/admin/filter-chips";
 import { adminBtn, adminBtnOutline, adminField, FormRow } from "@/components/admin/form-row";
-import { KeyValue } from "@/components/admin/key-value";
 import { Panel } from "@/components/admin/panel";
 import { SearchInput } from "@/components/admin/search-input";
 import { AdminStatusPill } from "@/components/admin/status-pill";
 import { adminJson } from "@/components/admin/json";
 import { vendorStatusLabel } from "@/lib/admin";
 import { cn } from "@/lib/cn";
-import { formatNgn } from "@/lib/money";
-import { vendorPlanBillingLabel } from "@/lib/vendor-plans";
 
 export type AdminVendorRow = {
   id: string;
@@ -61,7 +56,6 @@ export function VendorsConsole({
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | "Approved" | "Pending" | "Suspended">("all");
   const [selectedId, setSelectedId] = useState("");
-  const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [creating, setCreating] = useState(false);
   const [msg, setMsg] = useState("");
@@ -75,7 +69,7 @@ export function VendorsConsole({
     });
   }, [rows, query, filter]);
   const selected = rows.find((v) => v.id === selectedId);
-  function close() { setSelectedId(""); setCreating(false); setEditing(false); setMsg(""); }
+  function close() { setSelectedId(""); setCreating(false); setMsg(""); }
 
   async function patchStatus(id: string, applicationStatus: string, extra: Record<string, string> = {}) {
     await adminJson(`/api/admin/vendors/${id}`, { method: "PATCH", body: JSON.stringify({ applicationStatus, ...extra }) });
@@ -85,7 +79,7 @@ export function VendorsConsole({
   return (
     <div>
       <div className="mb-4 flex justify-end">
-        <button type="button" className={adminBtn} disabled={!canInvite} onClick={() => { setCreating(true); setSelectedId(""); setEditing(false); setMsg(""); }}>
+        <button type="button" className={adminBtn} disabled={!canInvite} onClick={() => { setCreating(true); setSelectedId(""); setMsg(""); }}>
           <Plus className="h-3.5 w-3.5" aria-hidden /> Create vendor
         </button>
       </div>
@@ -119,7 +113,6 @@ export function VendorsConsole({
                       aria-label={`View vendor ${v.businessName}`}
                       onClick={() => {
                         setSelectedId(v.id);
-                        setEditing(false);
                         setMsg("");
                         setCreating(false);
                       }}
@@ -154,7 +147,7 @@ export function VendorsConsole({
             </ul>
           )}
         </Panel>
-        {(creating || selected) ? <EditorModal title={creating ? "Create vendor" : "Vendor details"} busy={busy} onClose={close}><div className="min-w-0">
+        {(creating || selected) ? <EditorModal size={creating ? "md" : "lg"} title={creating ? "Create vendor" : selected?.businessName ?? "Vendor"} busy={busy} onClose={close}><div className="min-w-0">
           {creating ? (
             <Panel title="Create vendor" description="Sends a setup invite. No password is shown to admins.">
               <form
@@ -198,92 +191,16 @@ export function VendorsConsole({
               </form>
             </Panel>
           ) : selected ? (
-            editing && editable ? <VendorDetailsForm key={selected.id} vendor={selected} busy={busy} setBusy={setBusy} onCancel={() => setEditing(false)} onSaved={() => { setEditing(false); router.refresh(); }} /> : <Panel className="min-w-0 [&_header_p]:break-all" title={selected.businessName} description={`${selected.slug} · ${selected.plan}`} actions={<AdminStatusPill status={vendorStatusLabel(selected.applicationStatus)} />}>
-              <KeyValue
-                items={[
-                  { label: "Owner", value: selected.ownerName },
-                  { label: "Email", value: <span className="break-all">{selected.ownerEmail}</span> },
-                  { label: "State", value: selected.state },
-                  { label: "Address", value: <span className="break-words">{selected.address || "Not provided"}</span> },
-                  { label: "Mobile number", value: selected.mobile ? <a href={`tel:${selected.mobile}`} className="text-goldink underline">{selected.mobile}</a> : "Not provided" },
-                  { label: "WhatsApp number", value: selected.whatsapp || "Not provided" },
-                  { label: "City", value: `${selected.neighbourhood ? `${selected.neighbourhood}, ` : ""}${selected.city}` },
-                  { label: "Verification", value: selected.verificationStatus },
-                  { label: "Visibility", value: selected.visibility },
-                  { label: "Services", value: selected.services },
-                  { label: "Reviews", value: `${selected.reviewCount} · ${selected.ratingAvg.toFixed(1)} avg` },
-                  { label: "Plan", value: selected.plan }
-                ]}
-              />
-              {editable ? <button type="button" className={`${adminBtn} mt-4`} onClick={() => setEditing(true)}><Pencil className="h-3.5 w-3.5" aria-hidden /> Edit vendor details</button> : <p className="mt-4 text-xs text-ink2">Your role can view vendor details. Editing requires the Manage vendors permission.</p>}
-              <form
-                className="mt-4 grid gap-2 border-t border-line pt-4 sm:grid-cols-[1fr_auto] sm:items-end"
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  const fd = new FormData(e.currentTarget);
-                  const planCode = String(fd.get("planCode") || "");
-                  setMsg("");
-                  try {
-                    await adminJson(`/api/admin/vendors/${selected.id}`, {
-                      method: "PATCH",
-                      body: JSON.stringify({ planCode })
-                    });
-                    const granted = listingPlans.find((p) => p.code === planCode);
-                    setMsg(
-                      granted && granted.priceKobo > 0
-                        ? `${granted.name} granted for one billing period. Paystack is not charged.`
-                        : "Listing plan updated."
-                    );
-                    router.refresh();
-                  } catch (err) {
-                    setMsg(err instanceof Error ? err.message : "Could not update listing plan.");
-                  }
-                }}
-              >
-                <FormRow label="Grant listing plan" htmlFor="vendor-plan">
-                  <select id="vendor-plan" name="planCode" defaultValue={selected.planCode} disabled={!editable} className={adminField} key={selected.id + selected.planCode}>
-                    {listingPlans.map((p) => (
-                      <option key={p.code} value={p.code}>
-                        {p.name}
-                        {p.priceKobo > 0 ? ` · ${formatNgn(p.priceKobo)} · ${vendorPlanBillingLabel(p.durationDays, p.priceKobo)}` : " · ₦0"}
-                        {p.active ? "" : " (paused)"}
-                      </option>
-                    ))}
-                  </select>
-                </FormRow>
-                <button className={adminBtn} disabled={!editable}>
-                  Grant plan
-                </button>
-                <p className="sm:col-span-2 text-xs text-ink2">
-                  Upgrade to Silver, Gold, Platinum, or any extra package from Commercial config. This is an admin grant — the vendor is not billed on Paystack.
-                </p>
-              </form>
-              <div className="mt-4 flex flex-wrap gap-2 border-t border-line pt-4">
-                <Link href={`/providers/${encodeURIComponent(selected.slug)}`} className={adminBtnOutline} target="_blank" rel="noreferrer">
-                  View spa page
-                </Link>
-                <ConfirmAction
-                  triggerLabel="Approve"
-                  triggerVariant="default"
-                  disabled={!editable || selected.applicationStatus === "approved"}
-                  title={`Approve ${selected.businessName}?`}
-                  description="The listing can go public. The owner already has a setup path if they were invited."
-                  confirmLabel="Approve vendor"
-                  onConfirm={() => patchStatus(selected.id, "approved", { visibility: "public", verificationStatus: "verified" })}
-                />
-                <ConfirmAction
-                  triggerLabel="Suspend"
-                  disabled={!editable || selected.applicationStatus === "suspended"}
-                  title={`Suspend ${selected.businessName}?`}
-                  description="The listing is hidden from search. Existing bookings stay unless cancelled separately."
-                  confirmLabel="Suspend vendor"
-                  requireReason
-                  onConfirm={() => patchStatus(selected.id, "suspended", { visibility: "hidden" })}
-                />
-                <ConfirmAction triggerLabel="Delete vendor" triggerClassName="text-red-600 border-red-300" disabled={!editable} title={`Delete ${selected.businessName}?`} description="Remove the vendor from listings and disable its account and services. Booking, payment and payout history are preserved." confirmLabel="Delete vendor" requireReason onConfirm={async reason => { await adminJson(`/api/admin/vendors/${selected.id}`,{method:"DELETE",body:JSON.stringify({reason})});router.refresh();}} />
-              </div>
-              {msg ? <p className="mt-3 text-xs text-goldink">{msg}</p> : null}
-            </Panel>
+            <VendorWorkspace
+              vendor={selected}
+              editable={editable}
+              listingPlans={listingPlans}
+              msg={msg}
+              setMsg={setMsg}
+              busy={busy}
+              setBusy={setBusy}
+              onStatus={patchStatus}
+            />
           ) : null}
         </div></EditorModal> : null}
       </div>

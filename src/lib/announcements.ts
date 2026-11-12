@@ -16,8 +16,11 @@ export {
 } from "./announcement-content";
 
 export const ANNOUNCEMENTS_CONFIG_KEY = "admin.announcements";
-export const ANNOUNCEMENT_AUDIENCES = ["customers", "vendors", "all"] as const;
+export const ANNOUNCEMENT_AUDIENCES = ["customers", "vendors", "all", "individuals"] as const;
 export type AnnouncementAudience = (typeof ANNOUNCEMENT_AUDIENCES)[number];
+export const ANNOUNCEMENT_CHANNELS = ["email", "message", "both"] as const;
+export type AnnouncementChannel = (typeof ANNOUNCEMENT_CHANNELS)[number];
+export const MAX_ANNOUNCEMENT_RECIPIENTS = 40;
 
 export type AnnouncementRecord = {
   id: string;
@@ -30,11 +33,13 @@ export type AnnouncementRecord = {
   failed: number;
   skipped: number;
   inApp: boolean;
+  channel: AnnouncementChannel;
   imageCount: number;
   linkCount: number;
 };
 
 export function rolesForAudience(audience: AnnouncementAudience) {
+  if (audience === "individuals") return [];
   if (audience === "customers") return [ROLES.CUSTOMER];
   if (audience === "vendors") return [ROLES.VENDOR_OWNER, ROLES.VENDOR_STAFF];
   return [ROLES.CUSTOMER, ROLES.VENDOR_OWNER, ROLES.VENDOR_STAFF];
@@ -60,7 +65,13 @@ export function parseAnnouncementHistory(raw: string | null | undefined): Announ
       .map((row) => ({
         ...row,
         imageCount: typeof row.imageCount === "number" ? row.imageCount : 0,
-        linkCount: typeof row.linkCount === "number" ? row.linkCount : 0
+        linkCount: typeof row.linkCount === "number" ? row.linkCount : 0,
+        channel:
+          row.channel === "email" || row.channel === "message" || row.channel === "both"
+            ? row.channel
+            : row.inApp === false
+              ? "email"
+              : "both"
       }))
       .slice(0, 30);
   } catch {
@@ -104,15 +115,30 @@ export async function sendAnnouncement(input: {
   ctaHref?: string;
   images?: AnnouncementImage[];
   links?: AnnouncementLink[];
-  inApp: boolean;
+  channel: AnnouncementChannel;
+  userIds?: string[];
 }) {
-  if (!mailConfigured() && process.env.NODE_ENV === "production") {
+  const sendEmail = input.channel !== "message";
+  const sendMessage = input.channel !== "email";
+  if (sendEmail && !mailConfigured() && process.env.NODE_ENV === "production") {
     const err = new Error("Email is not configured. Set SMTP_HOST on the server.");
     (err as Error & { status: number }).status = 503;
     throw err;
   }
+  const memberRoles = [ROLES.CUSTOMER, ROLES.VENDOR_OWNER, ROLES.VENDOR_STAFF];
+  const userIds = [...new Set((input.userIds ?? []).map((id) => id.trim()).filter(Boolean))].slice(0, MAX_ANNOUNCEMENT_RECIPIENTS);
+  if (input.audience === "individuals") {
+    if (!userIds.length) {
+      const err = new Error("Choose at least one person to message.");
+      (err as Error & { status: number }).status = 400;
+      throw err;
+    }
+  }
   const users = await prisma.user.findMany({
-    where: { status: "active", role: { in: rolesForAudience(input.audience) } },
+    where:
+      input.audience === "individuals"
+        ? { id: { in: userIds }, status: "active", role: { in: memberRoles } }
+        : { status: "active", role: { in: rolesForAudience(input.audience) } },
     select: { id: true, email: true, name: true, role: true, notificationPreferencesJson: true }
   });
   const cta =
@@ -134,24 +160,30 @@ export async function sendAnnouncement(input: {
   const notify: { userId: string; title: string; body: string; actionUrl: string }[] = [];
 
   for (const user of users) {
-    if (!isSendableEmail(user.email) || !wantsAnnouncementEmail(user.notificationPreferencesJson)) {
-      skipped += 1;
-      continue;
-    }
-    try {
-      await sendMail({ to: user.email, subject: input.subject, html: mail.html, text: mail.text });
-      sent += 1;
-      if (input.inApp) {
-        notify.push({
-          userId: user.id,
-          title: input.title,
-          body: input.intro,
-          actionUrl: inAppUrl(user.role)
-        });
+    let delivered = false;
+    let mailFailed = false;
+    if (sendEmail) {
+      if (isSendableEmail(user.email) && wantsAnnouncementEmail(user.notificationPreferencesJson)) {
+        try {
+          await sendMail({ to: user.email, subject: input.subject, html: mail.html, text: mail.text });
+          delivered = true;
+        } catch {
+          mailFailed = true;
+        }
       }
-    } catch {
-      failed += 1;
     }
+    if (sendMessage) {
+      notify.push({
+        userId: user.id,
+        title: input.title,
+        body: input.intro,
+        actionUrl: inAppUrl(user.role)
+      });
+      delivered = true;
+    }
+    if (delivered) sent += 1;
+    else if (mailFailed) failed += 1;
+    else skipped += 1;
   }
 
   if (notify.length) {
@@ -168,7 +200,8 @@ export async function sendAnnouncement(input: {
     sent,
     failed,
     skipped,
-    inApp: input.inApp,
+    inApp: sendMessage,
+    channel: input.channel,
     imageCount: images.length,
     linkCount: (cta ? 1 : 0) + links.length
   };

@@ -20,7 +20,8 @@ const sectionSchema = z.object({
   source: z.enum(["auto", "manual"]),
   serviceIds: z.array(z.string().min(1).max(64)).max(48),
   vendorIds: z.array(z.string().min(1).max(64)).max(48),
-  categorySlugs: z.array(z.string().min(1).max(80)).max(24)
+  categorySlugs: z.array(z.string().min(1).max(80)).max(24),
+  sortOrder: z.number().int().min(1).max(HOME_SECTION_IDS.length)
 });
 
 const putSchema = z.object({
@@ -31,6 +32,10 @@ const putSchema = z.object({
       const ids = rows.map((row) => row.id);
       if (new Set(ids).size !== HOME_SECTION_IDS.length) {
         ctx.addIssue({ code: "custom", message: "Every homepage section must be included once." });
+      }
+      const orders = rows.map((row) => row.sortOrder);
+      if (new Set(orders).size !== HOME_SECTION_IDS.length) {
+        ctx.addIssue({ code: "custom", message: "Give each section a unique order number. 1 is first." });
       }
     })
 });

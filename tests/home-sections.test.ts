@@ -24,6 +24,19 @@ describe("homepage section layout", () => {
       vendorIds: ["v1"]
     });
     expect(layout.find((row) => row.id === "promo")?.title).toBe(DEFAULT_HOME_SECTIONS.find((row) => row.id === "promo")?.title);
+    expect(layout[0]?.sortOrder).toBe(1);
+  });
+
+  it("orders rails by admin sort numbers with 1 first", () => {
+    const layout = parseHomeSections(
+      JSON.stringify(
+        DEFAULT_HOME_SECTIONS.map((row) =>
+          row.id === "promo" ? { ...row, sortOrder: 1 } : row.id === "featured" ? { ...row, sortOrder: 6 } : row
+        )
+      )
+    );
+    expect(layout[0]?.id).toBe("promo");
+    expect(layout.find((row) => row.id === "featured")?.sortOrder).toBeGreaterThan(1);
   });
 
   it("orders featured-collection tiles without touching the main category carousel", () => {
@@ -35,6 +48,7 @@ describe("homepage section layout", () => {
         subtitle: "",
         visible: true,
         source: "manual",
+        sortOrder: 4,
         serviceIds: [],
         vendorIds: [],
         categorySlugs: ["nuru", "spa"]
@@ -48,6 +62,7 @@ describe("homepage section layout", () => {
         subtitle: "",
         visible: true,
         source: "manual",
+        sortOrder: 4,
         serviceIds: [],
         vendorIds: [],
         categorySlugs: []
@@ -68,6 +83,7 @@ describe("homepage section layout", () => {
         subtitle: "",
         visible: true,
         source: "manual",
+        sortOrder: 1,
         serviceIds: ["s-c"],
         vendorIds: ["v1"],
         categorySlugs: ["nuru"]
@@ -88,6 +104,7 @@ describe("homepage section layout", () => {
           subtitle: "",
           visible: true,
           source: "auto",
+          sortOrder: 4,
           serviceIds: [],
           vendorIds: [],
           categorySlugs: []

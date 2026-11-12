@@ -12,7 +12,7 @@ import { HomeServiceGrid } from "@/components/home-service-grid";
 import { categoryHref } from "@/lib/category-images";
 import { exploreHref } from "@/lib/place-urls";
 import type { HomeHeroAd, HomeHeroBanner } from "@/lib/home-hero";
-import { DEFAULT_HOME_SECTIONS, homeSection, type HomeSection } from "@/lib/home-sections";
+import { DEFAULT_HOME_SECTIONS, homeSection, orderedHomeSections, type HomeSection } from "@/lib/home-sections";
 import type { HomeCard, NearbyVendor } from "@/lib/home-types";
 import type { LivePlace } from "@/lib/nigeria";
 
@@ -46,10 +46,6 @@ export function CustomerHome({
 }) {
   const browse = (query?: Record<string, string | undefined>) => exploreHref(place, query);
   const featured = homeSection(layout, "featured");
-  const nearbySection = homeSection(layout, "nearby");
-  const spotlightSection = homeSection(layout, "spotlight");
-  const premium = homeSection(layout, "premium");
-  const promo = homeSection(layout, "promo");
   const bandSpa = homeSection(layout, "bandSpa");
   const bandCouples = homeSection(layout, "bandCouples");
   const featuredSubtitle =
@@ -81,87 +77,109 @@ export function CustomerHome({
         </Link>
       </section>
 
-      {featured.visible ? (
-        <HomeServiceGrid
-          id="featured-services"
-          title={featured.title}
-          subtitle={featuredSubtitle}
-          seeAllHref={browse()}
-          cards={rails.featured}
-        />
-      ) : null}
-
-      {featured.visible && !rails.featured.length ? (
-        <section className="mx-auto mt-10 max-w-7xl px-4 lg:px-8">
-          <div className="rounded-3xl border border-line bg-card p-6">
-            <h2 className="font-display text-2xl">Discover treatments</h2>
-            <p className="mt-2 text-sm text-ink2">
-              {place?.state
-                ? `No published treatments are available in ${place.state === "FCT" ? "Abuja / FCT" : place.state} yet.`
-                : "No treatments are available for this selection yet."}
-            </p>
-            <Link className="mt-4 inline-flex min-h-11 items-center rounded-full bg-gold px-5 text-sm font-bold text-ongold" href="/explore?state=all">
-              Browse all locations →
-            </Link>
-          </div>
-        </section>
-      ) : null}
-
-      {nearbySection.visible ? <VendorCarousel title={nearbySection.title} vendors={nearby} /> : null}
-      {spotlightSection.visible ? (
-        <HomeServiceGrid
-          id="spotlight-partners"
-          title={spotlightSection.title}
-          layout="spotlight"
-          subtitle={spotlightSection.subtitle}
-          seeAllHref={browse()}
-          cards={spotlightCards}
-        />
-      ) : null}
-
-      <HomeDiscovery place={place} layout={layout} />
-
-      {bandSpa.visible ? (
-        <ParallaxBand
-          image="/photos/band-spa.jpg"
-          kicker="At your pace"
-          title={bandSpa.title}
-          body={bandSpa.subtitle}
-          href={spaHref}
-          cta="Browse spa treatments"
-        />
-      ) : null}
-
-      {premium.visible ? (
-        <ServiceCarousel
-          id="premium-services"
-          title={premium.title}
-          subtitle={premium.subtitle}
-          seeAllHref={browse({ sort: "rating" })}
-          cards={rails.premium}
-          accent="leaf"
-        />
-      ) : null}
-      {promo.visible ? (
-        <ServiceCarousel
-          id="promo-services"
-          title={promo.title}
-          subtitle={promo.subtitle}
-          seeAllHref={browse({ sort: "price" })}
-          cards={rails.promo}
-        />
-      ) : null}
-
-      {bandCouples.visible ? (
-        <ParallaxBand
-          image="/photos/band-couples.jpg"
-          kicker="Together"
-          title={bandCouples.title}
-          body={bandCouples.subtitle}
-          href={couplesHref}
-          cta="See couples bookings"
-        />
-      ) : null}
+      {orderedHomeSections(layout).map((section) => {
+        if (section.id === "featured") {
+          return (
+            <div key={section.id}>
+              {section.visible ? (
+                <HomeServiceGrid
+                  id="featured-services"
+                  title={section.title}
+                  subtitle={featuredSubtitle}
+                  seeAllHref={browse()}
+                  cards={rails.featured}
+                />
+              ) : null}
+              {section.visible && !rails.featured.length ? (
+                <section className="mx-auto mt-10 max-w-7xl px-4 lg:px-8">
+                  <div className="rounded-3xl border border-line bg-card p-6">
+                    <h2 className="font-display text-2xl">Discover treatments</h2>
+                    <p className="mt-2 text-sm text-ink2">
+                      {place?.state
+                        ? `No published treatments are available in ${place.state === "FCT" ? "Abuja / FCT" : place.state} yet.`
+                        : "No treatments are available for this selection yet."}
+                    </p>
+                    <Link className="mt-4 inline-flex min-h-11 items-center rounded-full bg-gold px-5 text-sm font-bold text-ongold" href="/explore?state=all">
+                      Browse all locations →
+                    </Link>
+                  </div>
+                </section>
+              ) : null}
+            </div>
+          );
+        }
+        if (section.id === "nearby") {
+          return section.visible ? <VendorCarousel key={section.id} title={section.title} vendors={nearby} /> : null;
+        }
+        if (section.id === "spotlight") {
+          return section.visible ? (
+            <HomeServiceGrid
+              key={section.id}
+              id="spotlight-partners"
+              title={section.title}
+              layout="spotlight"
+              subtitle={section.subtitle}
+              seeAllHref={browse()}
+              cards={spotlightCards}
+            />
+          ) : null;
+        }
+        if (section.id === "collections") {
+          return <HomeDiscovery key={section.id} place={place} layout={layout} />;
+        }
+        if (section.id === "bandSpa") {
+          return section.visible ? (
+            <ParallaxBand
+              key={section.id}
+              image="/photos/band-spa.jpg"
+              kicker="At your pace"
+              title={section.title}
+              body={section.subtitle}
+              href={spaHref}
+              cta="Browse spa treatments"
+            />
+          ) : null;
+        }
+        if (section.id === "premium") {
+          return section.visible ? (
+            <ServiceCarousel
+              key={section.id}
+              id="premium-services"
+              title={section.title}
+              subtitle={section.subtitle}
+              seeAllHref={browse({ sort: "rating" })}
+              cards={rails.premium}
+              accent="leaf"
+            />
+          ) : null;
+        }
+        if (section.id === "promo") {
+          return section.visible ? (
+            <ServiceCarousel
+              key={section.id}
+              id="promo-services"
+              title={section.title}
+              subtitle={section.subtitle}
+              seeAllHref={browse({ sort: "price" })}
+              cards={rails.promo}
+            />
+          ) : null;
+        }
+        if (section.id === "bandCouples") {
+          return section.visible ? (
+            <ParallaxBand
+              key={section.id}
+              image="/photos/band-couples.jpg"
+              kicker="Together"
+              title={section.title}
+              body={section.subtitle}
+              href={couplesHref}
+              cta="See couples bookings"
+            />
+          ) : null;
+        }
+        return null;
+      })}
 
       <HomeExtras />
 
