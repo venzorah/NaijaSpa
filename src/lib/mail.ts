@@ -87,7 +87,7 @@ export function brandedEmailHtml({
             <td bgcolor="${forest}" style="padding:8px 28px 32px;background-color:${forest}!important;color:${cream}">
               <h1 class="gold" style="margin:16px 0 12px;font-size:24px;line-height:1.3;color:${gold}!important">${escapeHtml(title)}</h1>
               <p style="margin:0 0 12px;font-size:16px;line-height:1.6;color:${cream}!important">${escapeHtml(intro)}</p>
-              <p style="margin:0;font-size:15px;line-height:1.6;color:${cream}!important">${escapeHtml(body)}</p>
+              <p style="margin:0;font-size:15px;line-height:1.6;color:${cream}!important">${escapeHtml(body).replaceAll("\n", "<br />")}</p>
               ${codeBlock}
               ${ctaBlock}
               ${cta ? `<p style="margin:16px 0 0;font-size:12px;line-height:1.5;color:${cream}!important;word-break:break-all">${escapeHtml(cta.href)}</p>` : ""}
@@ -208,6 +208,29 @@ export async function sendPasswordResetEmail({ to, code }: { to: string; code: s
     ...mail,
     text: `Your NaijaSpa password reset code is ${code}. Enter it in the app. It expires in 15 minutes.`
   });
+}
+
+export function announcementEmail({
+  title,
+  intro,
+  body,
+  cta
+}: {
+  title: string;
+  intro: string;
+  body: string;
+  cta?: { href: string; label: string };
+}) {
+  return {
+    html: brandedEmailHtml({
+      title,
+      preheader: intro,
+      intro,
+      body,
+      cta
+    }),
+    text: [title, intro, body, cta ? `${cta.label}: ${cta.href}` : ""].filter(Boolean).join("\n\n")
+  };
 }
 
 export async function sendVendorInviteEmail({

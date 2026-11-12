@@ -8,6 +8,7 @@ import {
   KeyRound,
   LayoutDashboard,
   LifeBuoy,
+  Mail,
   Megaphone,
   Newspaper,
   ScrollText,
@@ -35,6 +36,7 @@ export type AdminScreenId =
   | "cms"
   | "hero"
   | "homepage"
+  | "announcements"
   | "library"
   | "support"
   | "ai"
@@ -197,6 +199,16 @@ export const ADMIN_SCREENS: {
     edit: ["cms.manage"]
   },
   {
+    id: "announcements",
+    href: "/admin/announcements",
+    label: "Announcements",
+    group: "Content & care",
+    icon: Mail,
+    description: "Email updates to all customers, all therapists, or both.",
+    view: ["cms.manage", "campaigns.manage"],
+    edit: ["cms.manage"]
+  },
+  {
     id: "library", href: "/admin/library", label: "Image library", group: "Content & care", icon: FolderTree, description: "Upload, browse and reuse platform images.", view: ["cms.manage", "catalog.manage", "campaigns.manage"], edit: ["cms.manage", "catalog.manage", "campaigns.manage"]
   },
   {
@@ -275,7 +287,7 @@ export const ADMIN_PERMISSION_ROWS: { area: string; action: string; permission: 
   { area: "Finance", action: "Edit plan prices and surcharges", permission: "commercial.manage" },
   { area: "Growth", action: "Edit promo codes", permission: "memberships.manage" },
   { area: "Growth", action: "Manage sponsored campaigns", permission: "campaigns.manage" },
-  { area: "Content", action: "Publish site content, hero and legal", permission: "cms.manage" },
+  { area: "Content", action: "Publish site content, hero, legal and announcement emails", permission: "cms.manage" },
   { area: "Support", action: "Resolve tickets and moderate reviews", permission: "support.manage" },
   { area: "Platform", action: "Configure AI search", permission: "ai.manage" },
   { area: "Platform", action: "Manage roles and system settings", permission: "roles.manage" },
