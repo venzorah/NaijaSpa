@@ -100,8 +100,9 @@ function readSavedStep(embedded: boolean) {
 
 export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
   const { theme } = useTheme();
-  const [step, setStep] = useState(() => readSavedStep(embedded));
-  const [maxSeen, setMaxSeen] = useState(() => readSavedStep(embedded));
+  const [step, setStep] = useState(0);
+  const [maxSeen, setMaxSeen] = useState(0);
+  const [savedScope, setSavedScope] = useState<boolean | null>(null);
   const [form, setForm] = useState<Form>(empty);
   const toast = useToast();
   const [status, setStatus] = useState("draft");
@@ -197,13 +198,22 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
   }, [embedded]);
 
   useEffect(() => {
+    // The first browser render must match SSR; restore device-only state after hydration.
+    const saved = readSavedStep(embedded);
+    setStep(saved);
+    setMaxSeen(saved);
+    setSavedScope(embedded);
+  }, [embedded]);
+
+  useEffect(() => {
+    if (savedScope !== embedded) return;
     setMaxSeen((m) => Math.max(m, step));
     try {
       sessionStorage.setItem(embedded ? `${STEP_KEY}-edit` : STEP_KEY, String(step));
     } catch {
       /* ignore */
     }
-  }, [step, embedded]);
+  }, [step, embedded, savedScope]);
 
   const flow = useMemo(
     () => (embedded ? STEPS.filter((s) => s.id !== "plan" && s.id !== "submit") : STEPS),
