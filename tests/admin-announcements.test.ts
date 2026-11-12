@@ -113,7 +113,7 @@ describe("admin announcement emails", () => {
 
   it("blocks customers from blasting the list", async () => {
     mock.role = "customer";
-    expect((await GET()).status).toBe(403);
+    expect((await GET(new Request("https://naijaspa.com/api/admin/announcements"))).status).toBe(403);
     expect(
       (
         await POST(

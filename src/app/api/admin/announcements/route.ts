@@ -48,10 +48,10 @@ function searchPeople(q: string) {
   });
 }
 
-export async function GET(req?: Request) {
+export async function GET(req: Request) {
   try {
     const user = await requireAdmin(["cms.manage", "campaigns.manage"]);
-    const q = req ? new URL(req.url).searchParams.get("q")?.trim() ?? "" : "";
+    const q = new URL(req.url).searchParams.get("q")?.trim() ?? "";
     if (q.length >= 2) {
       return NextResponse.json({ people: await searchPeople(q.slice(0, 80)) });
     }
