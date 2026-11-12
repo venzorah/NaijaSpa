@@ -127,6 +127,20 @@ describe("admin announcement emails", () => {
     expect(mock.sendMail).not.toHaveBeenCalled();
   });
 
+  it("queues large email blasts so the admin request is not killed by a timeout page", async () => {
+    mock.count.mockResolvedValue(80);
+    const res = await POST(
+      new Request("http://localhost/api/admin/announcements", {
+        method: "POST",
+        body: JSON.stringify(payload)
+      })
+    );
+    const body = await res.json();
+    expect(res.status).toBe(200);
+    expect(body.result.queued).toBe(true);
+    expect(body.result.attempted).toBe(80);
+  });
+
   it("sends to eligible customers and records the blast", async () => {
     const res = await POST(
       new Request("http://localhost/api/admin/announcements", {

@@ -120,7 +120,9 @@ export function AnnouncementsConsole({ initial }: { initial: Payload }) {
       });
       setHistory((rows) => [result.result, ...rows].slice(0, 30));
       setMessage(
-        `Sent ${result.result.sent} of ${result.result.attempted}. ${result.result.skipped} skipped, ${result.result.failed} failed.`
+        result.result.queued
+          ? `Sending to about ${result.result.attempted} people in the background. Check Recent sends in a minute — do not send the same blast again.`
+          : `Sent ${result.result.sent} of ${result.result.attempted}. ${result.result.skipped} skipped, ${result.result.failed} failed.`
       );
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Send failed");
@@ -402,7 +404,7 @@ export function AnnouncementsConsole({ initial }: { initial: Payload }) {
                     <td className="py-2 capitalize">{row.channel ?? (row.inApp ? "both" : "email")}</td>
                     <td className="py-2">{row.subject}</td>
                     <td className="py-2">
-                      {row.sent}/{row.attempted}
+                      {row.queued && !row.sent ? "Sending…" : `${row.sent}/${row.attempted}`}
                       {row.failed ? ` · ${row.failed} failed` : ""}
                     </td>
                     <td className="py-2 text-ink2">

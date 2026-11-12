@@ -1,6 +1,6 @@
 import {afterEach,beforeEach,describe,expect,it,vi} from "vitest";
 import {adminActionFeedback} from "../src/lib/action-feedback";
-import {adminJson} from "../src/components/admin/json";
+import {adminJson, messageForNonJsonResponse} from "../src/components/admin/json";
 const events=vi.fn();beforeEach(()=>{vi.stubGlobal("window",{dispatchEvent:events});events.mockClear();});afterEach(()=>{vi.unstubAllGlobals();});
 describe("platform action feedback",()=>{
  it("does not announce page loads or duplicate existing vendor/category feedback",()=>{expect(adminActionFeedback("/api/admin/settings","GET")).toBeNull();expect(adminActionFeedback("/api/vendor/services","POST")).toBeNull();expect(adminActionFeedback("/api/admin/categories","POST")).toBeNull();});
@@ -8,4 +8,11 @@ describe("platform action feedback",()=>{
  it("announces request failures without a success message",async()=>{vi.stubGlobal("fetch",vi.fn(async()=>new Response(JSON.stringify({error:"Save unavailable"}),{status:500})));await expect(adminJson("/api/admin/settings",{method:"PUT"})).rejects.toThrow("Save unavailable");expect(events).toHaveBeenCalledOnce();expect(events.mock.calls[0][0].detail.kind).toBe("error");});
  it("does not claim financial settlement from a successful request",()=>{expect(adminActionFeedback("/api/admin/payouts/id","PATCH")?.kind).toBe("info");});
  it("keeps cancelled background reads quiet",async()=>{vi.stubGlobal("fetch",vi.fn(async()=>{throw new DOMException("Cancelled","AbortError");}));await expect(adminJson("/api/admin/roles")).rejects.toThrow();expect(events).not.toHaveBeenCalled();});
+ it("explains HTML timeout pages instead of showing a JSON parse error",async()=>{
+  vi.stubGlobal("fetch",vi.fn(async()=>new Response("<html><h1>504 Gateway Time-out</h1></html>",{status:504,headers:{"Content-Type":"text/html"}})));
+  await expect(adminJson("/api/admin/announcements",{method:"POST"})).rejects.toThrow(/too long|background|error page/i);
+  expect(events.mock.calls[0][0].detail.kind).toBe("error");
+  expect(messageForNonJsonResponse(504,"<html> <h")).toMatch(/too long/i);
+ });
+ it("does not treat announcement sends as generic creates",()=>{expect(adminActionFeedback("/api/admin/announcements","POST")).toBeNull();});
 });

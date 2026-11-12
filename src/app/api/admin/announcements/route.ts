@@ -13,7 +13,10 @@ import {
   ANNOUNCEMENT_CHANNELS,
   MAX_ANNOUNCEMENT_RECIPIENTS,
   announcementAudienceCounts,
+  announcementShouldQueue,
+  enqueueAnnouncement,
   listAnnouncementHistory,
+  processAnnouncementJob,
   sendAnnouncement
 } from "@/lib/announcements";
 
@@ -87,7 +90,7 @@ export async function POST(req: Request) {
     const links = normalizeAnnouncementLinks(body.links);
     const channel =
       body.channel ?? (body.inApp === false ? "email" : "both");
-    const result = await sendAnnouncement({
+    const payload = {
       audience: body.audience,
       subject: body.subject,
       title: body.title,
@@ -99,7 +102,39 @@ export async function POST(req: Request) {
       links,
       channel,
       userIds: body.audience === "individuals" ? body.userIds : undefined
-    });
+    };
+    const counts = await announcementAudienceCounts();
+    const size =
+      body.audience === "individuals" ? (payload.userIds?.length ?? 0) : counts[body.audience];
+    if (announcementShouldQueue(channel, size)) {
+      const job = await enqueueAnnouncement(payload);
+      void processAnnouncementJob(job).catch((error) => console.error("[announcement]", error));
+      const result = {
+        id: job.id,
+        at: job.createdAt,
+        audience: body.audience,
+        subject: body.subject,
+        title: body.title,
+        attempted: size,
+        sent: 0,
+        failed: 0,
+        skipped: 0,
+        inApp: channel !== "email",
+        channel,
+        queued: true,
+        imageCount: images.length,
+        linkCount: (ctaLabel && ctaHref ? 1 : 0) + links.length
+      };
+      await audit({
+        actorId: user.id,
+        action: "announcement.queue",
+        entityType: "Announcement",
+        entityId: job.id,
+        after: result
+      });
+      return NextResponse.json({ result });
+    }
+    const result = await sendAnnouncement(payload);
     await audit({
       actorId: user.id,
       action: "announcement.send",

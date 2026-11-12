@@ -34,8 +34,37 @@ export type AnnouncementRecord = {
   skipped: number;
   inApp: boolean;
   channel: AnnouncementChannel;
+  queued?: boolean;
   imageCount: number;
   linkCount: number;
+};
+
+export const ANNOUNCEMENT_JOBS_KEY = "admin.announcement.jobs";
+export const INLINE_ANNOUNCEMENT_EMAILS = 12;
+const EMAIL_CONCURRENCY = 3;
+const NOTIFY_CHUNK = 200;
+
+export type AnnouncementSendInput = {
+  id?: string;
+  audience: AnnouncementAudience;
+  subject: string;
+  title: string;
+  intro: string;
+  body: string;
+  ctaLabel?: string;
+  ctaHref?: string;
+  images?: AnnouncementImage[];
+  links?: AnnouncementLink[];
+  channel: AnnouncementChannel;
+  userIds?: string[];
+};
+
+type AnnouncementJob = {
+  id: string;
+  status: "queued" | "running" | "done" | "failed";
+  createdAt: string;
+  error?: string;
+  input: AnnouncementSendInput;
 };
 
 export function rolesForAudience(audience: AnnouncementAudience) {
@@ -71,7 +100,8 @@ export function parseAnnouncementHistory(raw: string | null | undefined): Announ
             ? row.channel
             : row.inApp === false
               ? "email"
-              : "both"
+              : "both",
+        queued: row.queued === true
       }))
       .slice(0, 30);
   } catch {
@@ -105,19 +135,79 @@ export async function listAnnouncementHistory() {
   return loadHistory();
 }
 
-export async function sendAnnouncement(input: {
-  audience: AnnouncementAudience;
-  subject: string;
-  title: string;
-  intro: string;
-  body: string;
-  ctaLabel?: string;
-  ctaHref?: string;
-  images?: AnnouncementImage[];
-  links?: AnnouncementLink[];
-  channel: AnnouncementChannel;
-  userIds?: string[];
-}) {
+async function mapPool<T>(items: T[], size: number, worker: (item: T) => Promise<void>) {
+  const executing: Promise<void>[] = [];
+  for (const item of items) {
+    const run = worker(item).finally(() => {
+      const index = executing.indexOf(run);
+      if (index >= 0) executing.splice(index, 1);
+    });
+    executing.push(run);
+    if (executing.length >= size) await Promise.race(executing);
+  }
+  await Promise.all(executing);
+}
+
+async function loadJobs(): Promise<AnnouncementJob[]> {
+  const row = await prisma.systemConfig.findUnique({ where: { key: ANNOUNCEMENT_JOBS_KEY } });
+  try {
+    const parsed = row?.value ? JSON.parse(row.value) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+async function saveJobs(jobs: AnnouncementJob[]) {
+  await setConfig(ANNOUNCEMENT_JOBS_KEY, JSON.stringify(jobs.slice(0, 10)));
+}
+
+export async function enqueueAnnouncement(input: AnnouncementSendInput) {
+  const job: AnnouncementJob = {
+    id: input.id || randomUUID(),
+    status: "queued",
+    createdAt: new Date().toISOString(),
+    input
+  };
+  const jobs = (await loadJobs()).filter((row) => row.id !== job.id);
+  await saveJobs([job, ...jobs]);
+  return job;
+}
+
+export async function processAnnouncementJob(job: AnnouncementJob) {
+  const jobs = await loadJobs();
+  const current = jobs.find((row) => row.id === job.id) ?? job;
+  current.status = "running";
+  await saveJobs([current, ...jobs.filter((row) => row.id !== current.id)]);
+  try {
+    const result = await sendAnnouncement({ ...current.input, id: current.id });
+    current.status = "done";
+    await saveJobs([current, ...jobs.filter((row) => row.id !== current.id)]);
+    return result;
+  } catch (error) {
+    current.status = "failed";
+    current.error = error instanceof Error ? error.message : "Send failed";
+    await saveJobs([current, ...jobs.filter((row) => row.id !== current.id)]);
+    throw error;
+  }
+}
+
+export async function processQueuedAnnouncements() {
+  const jobs = await loadJobs();
+  const stale = Date.now() - 15 * 60 * 1000;
+  const next = jobs.find(
+    (job) => job.status === "queued" || (job.status === "running" && Date.parse(job.createdAt) < stale)
+  );
+  if (!next) return { processed: 0 };
+  await processAnnouncementJob(next);
+  return { processed: 1 };
+}
+
+export function announcementShouldQueue(channel: AnnouncementChannel, recipientCount: number) {
+  return channel !== "message" && recipientCount > INLINE_ANNOUNCEMENT_EMAILS;
+}
+
+export async function sendAnnouncement(input: AnnouncementSendInput) {
   const sendEmail = input.channel !== "message";
   const sendMessage = input.channel !== "email";
   if (sendEmail && !mailConfigured() && process.env.NODE_ENV === "production") {
@@ -159,7 +249,7 @@ export async function sendAnnouncement(input: {
   let skipped = 0;
   const notify: { userId: string; title: string; body: string; actionUrl: string }[] = [];
 
-  for (const user of users) {
+  await mapPool(users, sendEmail ? EMAIL_CONCURRENCY : 8, async (user) => {
     let delivered = false;
     let mailFailed = false;
     if (sendEmail) {
@@ -184,14 +274,14 @@ export async function sendAnnouncement(input: {
     if (delivered) sent += 1;
     else if (mailFailed) failed += 1;
     else skipped += 1;
-  }
+  });
 
-  if (notify.length) {
-    await prisma.notification.createMany({ data: notify });
+  for (let i = 0; i < notify.length; i += NOTIFY_CHUNK) {
+    await prisma.notification.createMany({ data: notify.slice(i, i + NOTIFY_CHUNK) });
   }
 
   const record: AnnouncementRecord = {
-    id: randomUUID(),
+    id: input.id || randomUUID(),
     at: new Date().toISOString(),
     audience: input.audience,
     subject: input.subject,
