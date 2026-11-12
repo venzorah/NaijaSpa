@@ -6,6 +6,7 @@ import { audit } from "@/lib/audit";
 import { jsonError } from "@/lib/http";
 import { publicContentUrl } from "@/lib/public-content";
 import { mailConfigured } from "@/lib/mail";
+import { normalizeAnnouncementImages, normalizeAnnouncementLinks } from "@/lib/announcement-content";
 import {
   ANNOUNCEMENT_AUDIENCES,
   announcementAudienceCounts,
@@ -24,6 +25,8 @@ const postSchema = z.object({
   body: z.string().trim().min(12).max(4000),
   ctaLabel: z.string().trim().max(40).optional(),
   ctaHref: z.string().trim().max(500).optional(),
+  images: z.array(z.unknown()).max(6).optional(),
+  links: z.array(z.unknown()).max(8).optional(),
   inApp: z.boolean().optional()
 });
 
@@ -58,6 +61,8 @@ export async function POST(req: Request) {
       (err as Error & { status: number }).status = 400;
       throw err;
     }
+    const images = normalizeAnnouncementImages(body.images);
+    const links = normalizeAnnouncementLinks(body.links);
     const result = await sendAnnouncement({
       audience: body.audience,
       subject: body.subject,
@@ -66,6 +71,8 @@ export async function POST(req: Request) {
       body: body.body,
       ctaLabel: ctaLabel || undefined,
       ctaHref: ctaHref || undefined,
+      images,
+      links,
       inApp: body.inApp !== false
     });
     await audit({

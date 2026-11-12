@@ -25,7 +25,9 @@ export function brandedEmailHtml({
   intro,
   body,
   code,
-  cta
+  cta,
+  images,
+  links
 }: {
   title: string;
   preheader?: string;
@@ -33,6 +35,8 @@ export function brandedEmailHtml({
   body: string;
   code?: string;
   cta?: { href: string; label: string };
+  images?: { src: string; href?: string }[];
+  links?: { href: string; label: string }[];
 }) {
   const logo = brandLogoUrl();
   const forest = "#064E3B";
@@ -48,10 +52,27 @@ export function brandedEmailHtml({
         </tr>
       </table>`
     : "";
+  const imageBlock = (images ?? [])
+    .map((image) => {
+      const img = `<img src="${escapeAttr(image.src)}" alt="" width="504" style="display:block;width:100%;max-width:504px;height:auto;border:0;outline:none;border-radius:12px" />`;
+      const inner = image.href
+        ? `<a href="${escapeAttr(image.href)}" style="display:block;text-decoration:none">${img}</a>`
+        : img;
+      return `<p style="margin:20px 0 0">${inner}</p>`;
+    })
+    .join("");
   const ctaBlock = cta
     ? `<p style="margin:28px 0 8px;text-align:center">
         <a href="${escapeAttr(cta.href)}" style="display:inline-block;background-color:${gold}!important;color:${forest}!important;font-weight:700;text-decoration:none;padding:14px 28px;border-radius:999px">${escapeHtml(cta.label)}</a>
       </p>`
+    : "";
+  const linksBlock = (links ?? []).length
+    ? `<p style="margin:20px 0 0;font-size:15px;line-height:1.8">${(links ?? [])
+        .map(
+          (link) =>
+            `<a href="${escapeAttr(link.href)}" style="color:${gold}!important;font-weight:700;text-decoration:underline">${escapeHtml(link.label)}</a>`
+        )
+        .join("<br />")}</p>`
     : "";
   return `<!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml" style="background-color:${forest}!important">
@@ -88,9 +109,11 @@ export function brandedEmailHtml({
               <h1 class="gold" style="margin:16px 0 12px;font-size:24px;line-height:1.3;color:${gold}!important">${escapeHtml(title)}</h1>
               <p style="margin:0 0 12px;font-size:16px;line-height:1.6;color:${cream}!important">${escapeHtml(intro)}</p>
               <p style="margin:0;font-size:15px;line-height:1.6;color:${cream}!important">${escapeHtml(body).replaceAll("\n", "<br />")}</p>
+              ${imageBlock}
               ${codeBlock}
               ${ctaBlock}
               ${cta ? `<p style="margin:16px 0 0;font-size:12px;line-height:1.5;color:${cream}!important;word-break:break-all">${escapeHtml(cta.href)}</p>` : ""}
+              ${linksBlock}
               <p style="margin:28px 0 0;font-size:13px;line-height:1.5;color:${cream}!important">NaijaSpa · Lagos · Abuja · Port Harcourt · Delta · Anambra<br />Sent from ${escapeHtml(MAIL_FROM_ADDRESS)}</p>
             </td>
           </tr>
@@ -214,12 +237,16 @@ export function announcementEmail({
   title,
   intro,
   body,
-  cta
+  cta,
+  images,
+  links
 }: {
   title: string;
   intro: string;
   body: string;
   cta?: { href: string; label: string };
+  images?: { src: string; href?: string }[];
+  links?: { href: string; label: string }[];
 }) {
   return {
     html: brandedEmailHtml({
@@ -227,9 +254,20 @@ export function announcementEmail({
       preheader: intro,
       intro,
       body,
-      cta
+      cta,
+      images,
+      links
     }),
-    text: [title, intro, body, cta ? `${cta.label}: ${cta.href}` : ""].filter(Boolean).join("\n\n")
+    text: [
+      title,
+      intro,
+      body,
+      ...(images ?? []).map((image) => (image.href ? `${image.src} (${image.href})` : image.src)),
+      cta ? `${cta.label}: ${cta.href}` : "",
+      ...(links ?? []).map((link) => `${link.label}: ${link.href}`)
+    ]
+      .filter(Boolean)
+      .join("\n\n")
   };
 }
 

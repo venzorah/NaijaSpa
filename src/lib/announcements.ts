@@ -4,6 +4,16 @@ import { ROLES } from "./rbac";
 import { parseNotificationPreferences } from "./notification-preferences";
 import { announcementEmail, mailConfigured, sendMail } from "./mail";
 import { appUrl } from "./payments";
+import type { AnnouncementImage, AnnouncementLink } from "./announcement-content";
+
+export type { AnnouncementImage, AnnouncementLink } from "./announcement-content";
+export {
+  MAX_ANNOUNCEMENT_IMAGES,
+  MAX_ANNOUNCEMENT_LINKS,
+  isAnnouncementImageSrc,
+  normalizeAnnouncementImages,
+  normalizeAnnouncementLinks
+} from "./announcement-content";
 
 export const ANNOUNCEMENTS_CONFIG_KEY = "admin.announcements";
 export const ANNOUNCEMENT_AUDIENCES = ["customers", "vendors", "all"] as const;
@@ -20,6 +30,8 @@ export type AnnouncementRecord = {
   failed: number;
   skipped: number;
   inApp: boolean;
+  imageCount: number;
+  linkCount: number;
 };
 
 export function rolesForAudience(audience: AnnouncementAudience) {
@@ -44,7 +56,12 @@ export function parseAnnouncementHistory(raw: string | null | undefined): Announ
     const parsed = raw ? JSON.parse(raw) : [];
     if (!Array.isArray(parsed)) return [];
     return parsed
-      .filter((row): row is AnnouncementRecord => Boolean(row && typeof row === "object" && typeof row.id === "string"))
+      .filter((row): row is AnnouncementRecord => Boolean(row && typeof row === "object" && typeof (row as { id?: unknown }).id === "string"))
+      .map((row) => ({
+        ...row,
+        imageCount: typeof row.imageCount === "number" ? row.imageCount : 0,
+        linkCount: typeof row.linkCount === "number" ? row.linkCount : 0
+      }))
       .slice(0, 30);
   } catch {
     return [];
@@ -85,6 +102,8 @@ export async function sendAnnouncement(input: {
   body: string;
   ctaLabel?: string;
   ctaHref?: string;
+  images?: AnnouncementImage[];
+  links?: AnnouncementLink[];
   inApp: boolean;
 }) {
   if (!mailConfigured() && process.env.NODE_ENV === "production") {
@@ -100,7 +119,15 @@ export async function sendAnnouncement(input: {
     input.ctaLabel && input.ctaHref
       ? { label: input.ctaLabel, href: absoluteAnnouncementHref(input.ctaHref) }
       : undefined;
-  const mail = announcementEmail({ title: input.title, intro: input.intro, body: input.body, cta });
+  const images = (input.images ?? []).map((image) => ({
+    src: absoluteAnnouncementHref(image.src),
+    href: image.href ? absoluteAnnouncementHref(image.href) : undefined
+  }));
+  const links = (input.links ?? []).map((link) => ({
+    label: link.label,
+    href: absoluteAnnouncementHref(link.href)
+  }));
+  const mail = announcementEmail({ title: input.title, intro: input.intro, body: input.body, cta, images, links });
   let sent = 0;
   let failed = 0;
   let skipped = 0;
@@ -141,7 +168,9 @@ export async function sendAnnouncement(input: {
     sent,
     failed,
     skipped,
-    inApp: input.inApp
+    inApp: input.inApp,
+    imageCount: images.length,
+    linkCount: (cta ? 1 : 0) + links.length
   };
   const history = [record, ...(await loadHistory())].slice(0, 30);
   await setConfig(ANNOUNCEMENTS_CONFIG_KEY, JSON.stringify(history));

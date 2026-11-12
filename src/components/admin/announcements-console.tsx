@@ -2,11 +2,13 @@
 
 import { useMemo, useState } from "react";
 import { Mail, Send, Users, Store } from "lucide-react";
-import { adminBtn, adminField, FormRow } from "@/components/admin/form-row";
+import { adminField, FormRow } from "@/components/admin/form-row";
 import { Panel } from "@/components/admin/panel";
 import { ConfirmAction } from "@/components/admin/confirm-action";
 import { adminJson } from "@/components/admin/json";
+import { AnnouncementMedia } from "@/components/admin/announcement-media";
 import { cn } from "@/lib/cn";
+import type { AnnouncementImage, AnnouncementLink } from "@/lib/announcement-content";
 import type { AnnouncementAudience, AnnouncementRecord } from "@/lib/announcements";
 
 type Payload = {
@@ -30,6 +32,8 @@ export function AnnouncementsConsole({ initial }: { initial: Payload }) {
   const [body, setBody] = useState("");
   const [ctaLabel, setCtaLabel] = useState("Open NaijaSpa");
   const [ctaHref, setCtaHref] = useState("/explore");
+  const [images, setImages] = useState<AnnouncementImage[]>([]);
+  const [links, setLinks] = useState<AnnouncementLink[]>([]);
   const [inApp, setInApp] = useState(true);
   const [history, setHistory] = useState(initial.history);
   const [message, setMessage] = useState("");
@@ -37,7 +41,15 @@ export function AnnouncementsConsole({ initial }: { initial: Payload }) {
 
   const count = initial.counts[audience];
   const audienceLabel = AUDIENCES.find((item) => item.id === audience)?.label ?? audience;
-  const ready = subject.trim().length >= 4 && title.trim().length >= 4 && intro.trim().length >= 8 && body.trim().length >= 12;
+  const linksReady = links.every(
+    (link) => (!link.label.trim() && !link.href.trim()) || (link.label.trim() && link.href.trim())
+  );
+  const ready =
+    subject.trim().length >= 4 &&
+    title.trim().length >= 4 &&
+    intro.trim().length >= 8 &&
+    body.trim().length >= 12 &&
+    linksReady;
   const previewTitle = title.trim() || "Announcement title";
   const previewIntro = intro.trim() || "A short opening line appears here.";
   const previewBody = body.trim() || "The rest of the update is shown in the branded NaijaSpa email.";
@@ -45,10 +57,11 @@ export function AnnouncementsConsole({ initial }: { initial: Payload }) {
   const impact = useMemo(
     () => [
       `Sends to about ${count} ${audienceLabel.toLowerCase()} with email alerts on.`,
+      images.length ? `${images.length} image${images.length === 1 ? "" : "s"} in the email.` : "No images attached.",
       inApp ? "Also posts an in-app notification." : "Email only — no in-app alert.",
       "People who turned email off, or deleted accounts, are skipped."
     ],
-    [audienceLabel, count, inApp]
+    [audienceLabel, count, images.length, inApp]
   );
 
   async function send() {
@@ -66,6 +79,8 @@ export function AnnouncementsConsole({ initial }: { initial: Payload }) {
           body: body.trim(),
           ctaLabel: ctaLabel.trim(),
           ctaHref: ctaHref.trim(),
+          images,
+          links,
           inApp
         })
       });
@@ -168,8 +183,9 @@ export function AnnouncementsConsole({ initial }: { initial: Payload }) {
                 placeholder="Write the update. Keep it clear. Avoid pasting HTML."
               />
             </FormRow>
+            <AnnouncementMedia images={images} links={links} disabled={!initial.canEdit} onImages={setImages} onLinks={setLinks} />
             <div className="grid gap-3 sm:grid-cols-2">
-              <FormRow label="Button label" htmlFor="ann-cta-label">
+              <FormRow label="Main button label" htmlFor="ann-cta-label">
                 <input
                   id="ann-cta-label"
                   className={adminField}
@@ -219,8 +235,24 @@ export function AnnouncementsConsole({ initial }: { initial: Payload }) {
             <h3 className="mt-3 font-display text-2xl text-[#D4AF37]">{previewTitle}</h3>
             <p className="mt-3 text-sm leading-relaxed">{previewIntro}</p>
             <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed opacity-90">{previewBody}</p>
+            {images.length ? (
+              <div className="mt-4 grid gap-2">
+                {images.map((image, index) => (
+                  <img key={`${image.src}-${index}`} src={image.src} alt="" className="max-h-36 w-full rounded-xl object-cover" />
+                ))}
+              </div>
+            ) : null}
             {ctaLabel.trim() && ctaHref.trim() ? (
               <p className="mt-5 inline-flex rounded-full bg-[#D4AF37] px-4 py-2 text-xs font-bold text-[#064E3B]">{ctaLabel.trim()}</p>
+            ) : null}
+            {links.some((link) => link.label.trim() && link.href.trim()) ? (
+              <ul className="mt-4 space-y-1 text-sm text-[#D4AF37] underline">
+                {links
+                  .filter((link) => link.label.trim() && link.href.trim())
+                  .map((link, index) => (
+                    <li key={`${link.href}-${index}`}>{link.label.trim()}</li>
+                  ))}
+              </ul>
             ) : null}
           </div>
         </Panel>
@@ -236,6 +268,7 @@ export function AnnouncementsConsole({ initial }: { initial: Payload }) {
                   <th className="pb-2 font-medium">To</th>
                   <th className="pb-2 font-medium">Subject</th>
                   <th className="pb-2 font-medium">Sent</th>
+                  <th className="pb-2 font-medium">Attach</th>
                 </tr>
               </thead>
               <tbody>
@@ -249,6 +282,9 @@ export function AnnouncementsConsole({ initial }: { initial: Payload }) {
                     <td className="py-2">
                       {row.sent}/{row.attempted}
                       {row.failed ? ` · ${row.failed} failed` : ""}
+                    </td>
+                    <td className="py-2 text-ink2">
+                      {row.imageCount || 0} img · {row.linkCount || 0} link
                     </td>
                   </tr>
                 ))}

@@ -7,6 +7,11 @@ import {
 } from "../src/lib/announcements";
 import { visibleAdminScreens } from "../src/lib/admin";
 import { announcementEmail } from "../src/lib/mail";
+import {
+  isAnnouncementImageSrc,
+  normalizeAnnouncementImages,
+  normalizeAnnouncementLinks
+} from "../src/lib/announcement-content";
 
 const mock = vi.hoisted(() => ({
   role: "super_admin" as string | null,
@@ -136,11 +141,52 @@ describe("admin announcement emails", () => {
     expect(mock.setConfig).toHaveBeenCalled();
   });
 
+  it("accepts library images and extra links, and rejects javascript", () => {
+    expect(isAnnouncementImageSrc("/api/media/library/promo.jpg")).toBe(true);
+    expect(isAnnouncementImageSrc("javascript:alert(1)")).toBe(false);
+    expect(normalizeAnnouncementImages([{ src: "/api/media/library/promo.jpg", href: "/explore" }])).toEqual([
+      { src: "/api/media/library/promo.jpg", href: "/explore" }
+    ]);
+    expect(normalizeAnnouncementLinks([{ label: "Book now", href: "/explore" }])).toEqual([
+      { label: "Book now", href: "/explore" }
+    ]);
+    expect(() => normalizeAnnouncementImages([{ src: "javascript:alert(1)" }])).toThrow();
+    expect(() => normalizeAnnouncementLinks([{ label: "x", href: "javascript:alert(1)" }])).toThrow();
+  });
+
+  it("embeds attached images and extra links in the branded template", () => {
+    const mail = announcementEmail({
+      title: "Update",
+      intro: "Hello",
+      body: "Details here.",
+      images: [{ src: "https://naijaspa.com/api/media/library/promo.jpg", href: "https://naijaspa.com/explore" }],
+      links: [{ label: "See listings", href: "https://naijaspa.com/explore" }]
+    });
+    expect(mail.html).toContain('src="https://naijaspa.com/api/media/library/promo.jpg"');
+    expect(mail.html).toContain('href="https://naijaspa.com/explore"');
+    expect(mail.html).toContain("See listings");
+    expect(mail.text).toContain("See listings: https://naijaspa.com/explore");
+  });
+
   it("rejects javascript links on the call-to-action", async () => {
     const res = await POST(
       new Request("http://localhost/api/admin/announcements", {
         method: "POST",
         body: JSON.stringify({ ...payload, ctaHref: "javascript:alert(1)" })
+      })
+    );
+    expect(res.status).toBe(400);
+    expect(mock.sendMail).not.toHaveBeenCalled();
+  });
+
+  it("rejects javascript on an attached image link", async () => {
+    const res = await POST(
+      new Request("http://localhost/api/admin/announcements", {
+        method: "POST",
+        body: JSON.stringify({
+          ...payload,
+          images: [{ src: "/api/media/library/promo.jpg", href: "javascript:alert(1)" }]
+        })
       })
     );
     expect(res.status).toBe(400);
