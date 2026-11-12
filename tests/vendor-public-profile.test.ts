@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { vendorPublicProfileState } from "../src/lib/vendor-public-profile";
+import { PUBLIC_LIVE_VENDOR_WHERE, vendorPublicProfileState } from "../src/lib/vendor-public-profile";
 
 describe("vendor public profile availability", () => {
-  it("offers the public link only for approved public listings", () => {
+  it("offers the public link only for approved public listings with a live treatment", () => {
     expect(vendorPublicProfileState("public", "approved")).toEqual({ available: true, message: "" });
+    expect(vendorPublicProfileState("public", "approved", 2).available).toBe(true);
+    expect(vendorPublicProfileState("public", "approved", 0).available).toBe(false);
+    expect(vendorPublicProfileState("public", "approved", 0).message).toMatch(/treatment/i);
     expect(vendorPublicProfileState("hidden", "approved").available).toBe(false);
+    expect(PUBLIC_LIVE_VENDOR_WHERE.services.some.active).toBe(true);
   });
   it("explains a suspension even when visibility is public", () => {
     for (const visibility of ["hidden", "public"]) {

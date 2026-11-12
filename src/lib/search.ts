@@ -5,6 +5,7 @@ import { usingDemoListings } from "./live-db";
 import { placeRank, prismaServiceAreaFilter, serviceAreaState, vendorMatchesPlace } from "./nigeria";
 import { tokenizeSearch } from "./query-match";
 import { serviceAvailabilityLabels } from "./service-availability";
+import { LIVE_SERVICE_WHERE, PUBLIC_LIVE_VENDOR_WHERE } from "./vendor-public-profile";
 export type { SearchFilters } from "./search-types";
 export type { ExploreCityCard, ExploreCityFilters } from "./explore-cities";
 import type { SearchFilters, SearchTherapist } from "./search-types";
@@ -29,10 +30,8 @@ async function liveExploreCities(filters: ExploreCityFilters) {
   const { prisma } = await import("./db");
   const vendors = await prisma.vendor.findMany({
     where: {
-      visibility: "public",
-      applicationStatus: "approved",
-      ...(serviceAreaState(filters) ? prismaServiceAreaFilter(serviceAreaState(filters)) : {}),
-      services: { some: { active: true } }
+      ...PUBLIC_LIVE_VENDOR_WHERE,
+      ...(serviceAreaState(filters) ? prismaServiceAreaFilter(serviceAreaState(filters)) : {})
     },
     select: { state: true, city: true, neighbourhood: true, coverUrl: true }
   });
@@ -61,12 +60,11 @@ async function searchLive(filters: SearchFilters) {
   });
   const areaState = serviceAreaState(filters);
   const where: Record<string, unknown> = {
-    active: true,
+    ...LIVE_SERVICE_WHERE,
     vendor: {
       AND: [
         {
-          visibility: "public",
-          applicationStatus: "approved",
+          ...PUBLIC_LIVE_VENDOR_WHERE,
           ...(filters.verified ? { verificationStatus: "verified" } : {}),
           ...(filters.minRating ? { ratingAvg: { gte: filters.minRating } } : {})
         },

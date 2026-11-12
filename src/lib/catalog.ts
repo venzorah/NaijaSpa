@@ -45,6 +45,7 @@ import {
 } from "./home-sections";
 import { PHOTOS, publicWellnessPhoto } from "./photos";
 import { serviceAvailabilityLabels } from "./service-availability";
+import { LIVE_SERVICE_WHERE, PUBLIC_LIVE_VENDOR_WHERE } from "./vendor-public-profile";
 
 export { usingDemoListings } from "./live-db";
 export type { HomeCard, HomeFeedConfig, HomeRails, NearbyVendor } from "./home-types";
@@ -186,7 +187,7 @@ async function loadHomeCatalog(place: LivePlace | null) {
   const now = new Date();
   const pinnedServiceIds = collectedManualServiceIds(layout);
   const pinnedVendorIds = collectedManualVendorIds(layout);
-  const areaVendor = { visibility: "public" as const, applicationStatus: "approved" as const, ...(serviceAreaState(place) ? prismaServiceAreaFilter(serviceAreaState(place)) : {}) };
+  const areaVendor = { ...PUBLIC_LIVE_VENDOR_WHERE, ...(serviceAreaState(place) ? prismaServiceAreaFilter(serviceAreaState(place)) : {}) };
   const [categories, services, faqs, campaigns] = await withTimeout(
     Promise.all([
     prisma.category.findMany({
@@ -196,14 +197,14 @@ async function loadHomeCatalog(place: LivePlace | null) {
     }).then((rows) => (rows.length ? rows : demoCategories.map(({ slug, name, imageUrl }) => ({ slug, name, imageUrl })))),
     prisma.service.findMany({
       where: {
-        active: true,
+        ...LIVE_SERVICE_WHERE,
         OR: [
           { vendor: areaVendor },
           ...(pinnedServiceIds.length
-            ? [{ id: { in: pinnedServiceIds }, vendor: { visibility: "public" as const, applicationStatus: "approved" as const } }]
+            ? [{ id: { in: pinnedServiceIds }, vendor: PUBLIC_LIVE_VENDOR_WHERE }]
             : []),
           ...(pinnedVendorIds.length
-            ? [{ vendorId: { in: pinnedVendorIds }, vendor: { visibility: "public" as const, applicationStatus: "approved" as const } }]
+            ? [{ vendorId: { in: pinnedVendorIds }, vendor: PUBLIC_LIVE_VENDOR_WHERE }]
             : [])
         ]
       },
@@ -260,8 +261,8 @@ async function loadHomeCatalog(place: LivePlace | null) {
     const extra = await prisma.service.findMany({
       where: {
         id: { in: missingPinned },
-        active: true,
-        vendor: { visibility: "public", applicationStatus: "approved" }
+        ...LIVE_SERVICE_WHERE,
+        vendor: PUBLIC_LIVE_VENDOR_WHERE
       },
       select: {
         id: true,
@@ -458,7 +459,7 @@ async function loadHomeCatalog(place: LivePlace | null) {
       const missingVendorIds = nearbySection.vendorIds.filter((id) => !nearbyByVendorId.has(id));
       if (missingVendorIds.length) {
         const extraVendors = await prisma.vendor.findMany({
-          where: { id: { in: missingVendorIds }, visibility: "public", applicationStatus: "approved" },
+          where: { id: { in: missingVendorIds }, ...PUBLIC_LIVE_VENDOR_WHERE },
           select: {
             id: true,
             slug: true,
@@ -716,13 +717,13 @@ export async function getPublicVendor(slug: string) {
     where: alias ? { id: alias.vendorId } : { slug },
     include: {
       owner: { select: { email: true } },
-      services: { where: { active: true }, include: { category: { select: { name: true, slug: true } } } },
+      services: { where: LIVE_SERVICE_WHERE, include: { category: { select: { name: true, slug: true } } } },
       galleries: { include: { images: PUBLIC_GALLERY_IMAGES }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] },
       videoLinks: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] }
     }
   });
   if (!vendor) return usingDemoListings() ? demoVendorBySlug(slug) : null;
-  if (vendor.visibility !== "public" || vendor.applicationStatus !== "approved") return null;
+  if (vendor.visibility !== "public" || vendor.applicationStatus !== "approved" || vendor.services.length === 0) return null;
   const ent = await vendorEntitlement(vendor.id);
   return {
     vendor: sanitizePublicVendor(

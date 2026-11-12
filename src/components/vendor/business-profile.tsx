@@ -52,7 +52,7 @@ export function VendorBusinessProfile({ initial, slug, coverUrl, logoUrl, images
     visibility: string;
 }) {
     const router = useRouter();
-    const publicProfile = vendorPublicProfileState(visibility, applicationStatus);
+    const publicProfile = vendorPublicProfileState(visibility, applicationStatus, services.length);
     const fileInput = useRef<HTMLInputElement>(null);
     const deviceTarget = useRef<'cover' | 'logo'>('cover');
     function openDevice(target: 'cover' | 'logo') { deviceTarget.current = target; fileInput.current?.click(); }
