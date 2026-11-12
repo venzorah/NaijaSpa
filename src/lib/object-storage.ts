@@ -24,15 +24,16 @@ function client() {
 }
 
 function validKey(key: string) {
-  if (!/^(galleries\/[a-zA-Z0-9_-]+|categories|library)\/[a-zA-Z0-9_-]+\.(png|jpg|jpeg|gif|webp)$/.test(key)) throw new Error("Invalid media object key");
+  if (!/^(galleries\/[a-zA-Z0-9_-]+|categories|library|kyc\/[a-zA-Z0-9_-]+)\/[a-zA-Z0-9_-]+\.(png|jpg|jpeg|gif|webp)$/.test(key)) throw new Error("Invalid media object key");
   return key;
 }
 
 export async function putMediaObject(key: string, bytes: Uint8Array, mime: string) {
   const storage = client();
+  const privateObject = key.startsWith("kyc/");
   try {
     await storage.send(new PutObjectCommand({ Bucket: process.env.R2_BUCKET_NAME!.trim(), Key: validKey(key), Body: bytes,
-      ContentType: mime, CacheControl: "public, max-age=31536000, immutable" }), { abortSignal: AbortSignal.timeout(20000) });
+      ContentType: mime, CacheControl: privateObject ? "private, no-store" : "public, max-age=31536000, immutable" }), { abortSignal: AbortSignal.timeout(20000) });
   } catch { throw Object.assign(new Error("R2 upload failed. Check bucket access and credentials."), { status: 503 }); }
   finally { storage.destroy(); }
 }

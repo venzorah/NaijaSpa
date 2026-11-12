@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { updateVendorWithSlug } from "@/lib/vendor-slugs";
 import { jsonError } from "@/lib/http";
 import { vendorStateForLocation } from "@/lib/nigeria";
+import { vendorDocumentView } from "@/lib/verification-docs";
 import { revalidateTag } from "next/cache";
 
 const bodySchema = z.object({
@@ -27,7 +28,10 @@ export async function GET() {
   try {
     const user = await requireVendor();
     if (!user.vendorId) return NextResponse.json({ error: "Not a vendor" }, { status: 403 });
-    const vendor = await prisma.vendor.findUniqueOrThrow({ where: { id: user.vendorId } });
+    const vendor = await prisma.vendor.findUniqueOrThrow({
+      where: { id: user.vendorId },
+      include: { documents: { select: { id: true, kind: true, status: true } }, _count: { select: { services: { where: { deletedAt: null } } } } }
+    });
     return NextResponse.json({
       vendor: {
         providerType: vendor.providerType,
@@ -42,7 +46,9 @@ export async function GET() {
         address: vendor.address,
         cancellationPolicy: vendor.cancellationPolicy,
         hoursJson: vendor.hoursJson,
-        applicationStatus: vendor.applicationStatus
+        applicationStatus: vendor.applicationStatus,
+        documents: vendor.documents.map(vendorDocumentView),
+        serviceCount: vendor._count.services
       }
     });
   } catch (e) {
@@ -59,6 +65,15 @@ export async function PATCH(req: Request) {
     const current = await prisma.vendor.findUniqueOrThrow({ where: { id: user.vendorId } });
     if (["approved", "suspended"].includes(current.applicationStatus) && body.submit) {
       return NextResponse.json({ error: "This listing cannot be resubmitted." }, { status: 409 });
+    }
+    if (body.submit) {
+      const docs = await prisma.verificationDoc.count({ where: { vendorId: user.vendorId } });
+      if (!docs) {
+        return NextResponse.json(
+          { error: "Upload at least one document: a government ID, business registration, or practice licence." },
+          { status: 400 }
+        );
+      }
     }
     const vendor = await updateVendorWithSlug(user.vendorId, {
         providerType: body.providerType,

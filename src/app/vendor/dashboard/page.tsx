@@ -11,6 +11,7 @@ import { StatCard } from "@/components/vendor/stat-card";
 import { AdminStatusPill } from "@/components/admin/status-pill";
 import { EarningsChart } from "@/components/vendor/earnings-chart";
 import { lagosDayStart } from "@/lib/vendor-calendar";
+import { verificationDocLabel } from "@/lib/verification-doc-kinds";
 function greeting() {
     const hour = (new Date().getUTCHours() + 1) % 24;
     if (hour < 12)
@@ -168,7 +169,7 @@ export default async function VendorHome() {
               {docs.length === 0 ? <li>No documents uploaded yet.</li> : null}
               {docs.map((d) => (<li key={d.id} className="flex items-center gap-2">
                   <BadgeCheck className="h-4 w-4 text-forest" aria-hidden/>
-                  {d.kind} · {d.status}
+                  {verificationDocLabel(d.kind)} · {d.status}
                 </li>))}
             </ul>
           </Panel>

@@ -12,6 +12,7 @@ import { Panel } from "@/components/admin/panel";
 import { AdminStatusPill } from "@/components/admin/status-pill";
 import { adminJson } from "@/components/admin/json";
 import { cn } from "@/lib/cn";
+import { verificationDocLabel } from "@/lib/verification-doc-kinds";
 
 export type AdminApplication = {
   id: string;
@@ -107,15 +108,16 @@ export function ApplicationsConsole({
                 >
                   <FileText className="h-4 w-4 text-ink2" aria-hidden />
                   <span>
-                    <span className="block font-medium">{d.kind}</span>
+                    <span className="block font-medium">{verificationDocLabel(d.kind)}</span>
                     <AdminStatusPill status={d.status} className="mt-0.5" />
                   </span>
                 </button>
               ))}
             </div>
-            <Panel title={doc.kind} description={canViewProtected ? "Protected document" : "Redacted for your role"}>
+            <Panel title={verificationDocLabel(doc.kind)} description={canViewProtected ? "Protected document" : "Redacted for your role"}>
               {canViewProtected ? (
-                <p className="break-all font-mono text-xs text-ink2">{doc.filePath}</p>
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={`/api/admin/documents/${doc.id}/file`} alt="" className="max-h-[28rem] w-full rounded-xl bg-elev object-contain" />
               ) : (
                 <p className="text-sm text-ink2">Only Super administrators and verification officers can open KYC files.</p>
               )}
@@ -171,7 +173,7 @@ export function ApplicationsConsole({
                   {d.status === "verified" ? <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 text-forest" aria-label="Passed" /> : null}
                   {d.status === "rejected" ? <XCircle className="mt-0.5 h-3.5 w-3.5 text-red-600" aria-label="Failed" /> : null}
                   {d.status === "submitted" ? <Circle className="mt-0.5 h-3.5 w-3.5 text-ink2" aria-label="Pending" /> : null}
-                  {d.kind} · {d.status}
+                  {verificationDocLabel(d.kind)} · {d.status}
                 </li>
               ))}
             </ul>

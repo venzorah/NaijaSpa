@@ -2,7 +2,9 @@
 import { useToast, useToastMessage } from "@/components/vendor/toasts";
 
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
+import { Sparkles } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { useTheme } from "@/components/theme-provider";
 import { NIGERIA_STATES, nigeriaStateLabel } from "@/lib/nigeria";
@@ -10,6 +12,7 @@ import { ListingPlanCard } from "@/components/listing-plan-card";
 import { BankSearchSelect } from "@/components/bank-search-select";
 import { usePayoutLookup } from "@/components/use-payout-lookup";
 import { defaultVendorListingPlans, type VendorListingPlanView } from "@/lib/vendor-plans";
+import { VendorOnboardingDocs, type OnboardingDoc } from "@/components/vendor-onboarding-docs";
 
 function LightLogo({ className }: { className?: string }) {
   return (
@@ -30,13 +33,14 @@ const PROVIDERS = [
 ] as const;
 
 const STEPS = [
-  { id: "type", title: "Choose your space", kicker: "Step 1 of 7" },
-  { id: "business", title: "Your business", kicker: "Step 2 of 7" },
-  { id: "contact", title: "Contact details", kicker: "Step 3 of 7" },
-  { id: "address", title: "Where you operate", kicker: "Step 4 of 7" },
-  { id: "hours", title: "Hours & policy", kicker: "Step 5 of 7" },
-  { id: "plan", title: "Listing plan", kicker: "Step 6 of 7" },
-  { id: "submit", title: "Review & submit", kicker: "Step 7 of 7" }
+  { id: "type", title: "Choose your space" },
+  { id: "business", title: "Your business" },
+  { id: "contact", title: "Contact details" },
+  { id: "address", title: "Where you operate" },
+  { id: "hours", title: "Hours & policy" },
+  { id: "plan", title: "Listing plan" },
+  { id: "documents", title: "ID or certificates" },
+  { id: "submit", title: "Review & submit" }
 ] as const;
 
 type Form = {
@@ -106,6 +110,9 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
   const [done, setDone] = useState(false);
   const [banks, setBanks] = useState<Array<{ code: string; name: string }>>([]);
   const [plans, setPlans] = useState<VendorListingPlanView[]>(defaultVendorListingPlans());
+  const [docs, setDocs] = useState<OnboardingDoc[]>([]);
+  const [serviceCount, setServiceCount] = useState(0);
+  const [askServices, setAskServices] = useState(false);
   const payout = usePayoutLookup(form.payoutBankCode, form.payoutAccountNumber);
 
   useEffect(() => {
@@ -132,9 +139,18 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
           .catch(() => undefined);
         const res = await fetch("/api/vendor/onboarding");
         if (!res.ok) throw new Error("Could not load your application. Please reload and try again.");
-        const json = (await res.json()) as { vendor?: Partial<Form> & { hoursJson?: string; applicationStatus?: string } };
+        const json = (await res.json()) as {
+          vendor?: Partial<Form> & {
+            hoursJson?: string;
+            applicationStatus?: string;
+            documents?: OnboardingDoc[];
+            serviceCount?: number;
+          };
+        };
         const v = json.vendor;
         if (!v) return;
+        if (v.documents) setDocs(v.documents);
+        if (typeof v.serviceCount === "number") setServiceCount(v.serviceCount);
         let openTime = "09:00";
         let closeTime = "18:00";
         try {
@@ -171,6 +187,7 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
             (v.applicationStatus === "submitted" || v.applicationStatus === "under_review" || v.applicationStatus === "approved")
           ) {
             setDone(true);
+            if (v.serviceCount === 0) setAskServices(true);
           }
         }
       } catch {
@@ -194,15 +211,18 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
   );
   const safeStep = Math.min(step, Math.max(0, flow.length - 1));
   const current = flow[safeStep] ?? flow[0];
+  const kicker = `Step ${safeStep + 1} of ${flow.length}`;
 
   function set<K extends keyof Form>(key: K, value: Form[K]) {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
   function valid() {
-    if (safeStep === 1) return form.businessName.trim().length >= 2;
-    if (safeStep === 2) return form.privatePhone.trim().length >= 8;
-    if (safeStep === 3) return form.city.trim().length >= 2 && form.address.trim().length >= 4;
+    if (current.id === "business") return form.businessName.trim().length >= 2;
+    if (current.id === "contact") return form.privatePhone.trim().length >= 8;
+    if (current.id === "address") return form.city.trim().length >= 2 && form.address.trim().length >= 4;
+    if (current.id === "documents") return docs.length >= 1;
+    if (current.id === "submit") return docs.length >= 1;
     return true;
   }
 
@@ -244,11 +264,18 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
         if (!pay.ok) {
           const payJson = (await pay.json()) as { error?: string };
           setError(payJson.error || "Profile saved, but the payout account could not be verified. You can retry on Earnings.");
-          if (submit) setDone(true);
+          if (submit) {
+            setDone(true);
+            if (serviceCount === 0) setAskServices(true);
+          }
           return true;
         }
       }
-      if (submit) { setDone(true); toast.success("Application submitted for review."); }
+      if (submit) {
+        setDone(true);
+        toast.success("Application submitted for review.");
+        if (serviceCount === 0) setAskServices(true);
+      }
       else if (embedded) setError("Saved.", "success");
       else toast.success("Progress saved.");
       return true;
@@ -274,7 +301,11 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
 
   async function next() {
     if (!valid()) {
-      setError("Please complete the required fields on this screen.");
+      setError(
+        current.id === "documents"
+          ? "Upload at least one document photo. One of ID, registration or licence is enough."
+          : "Please complete the required fields on this screen."
+      );
       return;
     }
     setError("");
@@ -329,7 +360,7 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
                 ← Previous step
               </button>
             ) : (
-              <span>{done ? "Application" : current.kicker}</span>
+              <span>{done ? "Application" : kicker}</span>
             )}
             <Link href="/vendor/dashboard" className="hidden text-ink2 hover:text-goldink lg:inline">
               Exit
@@ -350,7 +381,7 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
           </div>
         </div>
 
-        <div className={`mx-auto flex min-h-0 w-full flex-1 flex-col ${safeStep === 5 ? "max-w-3xl" : "max-w-lg"}`}>
+        <div className={`mx-auto flex min-h-0 w-full flex-1 flex-col ${current.id === "plan" || current.id === "documents" ? "max-w-3xl" : "max-w-lg"}`}>
           {done ? (
             <div className="my-auto rounded-[2rem] border border-gold/30 bg-elev p-8 text-center">
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-goldink">Submitted</p>
@@ -377,10 +408,10 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
           ) : (
             <>
               <h2 className="font-display text-3xl leading-tight sm:text-4xl">{current.title}</h2>
-              <p className="mt-1 text-sm text-ink2">{current.kicker} · You can go back any time. Your answers stay.</p>
+              <p className="mt-1 text-sm text-ink2">{kicker} · You can go back any time. Your answers stay.</p>
 
               <div className="mt-6 min-h-0 flex-1 space-y-5 overflow-y-auto pb-5">
-                {safeStep === 0 && (
+                {current.id === "type" && (
                   <div className="grid gap-3 sm:grid-cols-2">
                     {PROVIDERS.map((p) => (
                       <button
@@ -399,7 +430,7 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
                   </div>
                 )}
 
-                {safeStep === 1 && (
+                {current.id === "business" && (
                   <>
                     <label className="block space-y-2">
                       <span className={labelClass}>Business name</span>
@@ -418,7 +449,7 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
                   </>
                 )}
 
-                {safeStep === 2 && (
+                {current.id === "contact" && (
                   <>
                     <p className="text-sm text-ink2">Paid listing plans show WhatsApp, email (your login) and Instagram on Explore. Free listings keep them private until a customer pays for a booking.</p>
                     <label className="block space-y-2">
@@ -464,7 +495,7 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
                   </>
                 )}
 
-                {safeStep === 3 && (
+                {current.id === "address" && (
                   <>
                     <label className="block space-y-2">
                       <span className={labelClass}>State</span>
@@ -500,7 +531,7 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
                   </>
                 )}
 
-                {safeStep === 4 && (
+                {current.id === "hours" && (
                   <>
                     <div className="grid grid-cols-2 gap-3">
                       <label className="block space-y-2">
@@ -524,7 +555,7 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
                   </>
                 )}
 
-                {safeStep === 5 && (
+                {current.id === "plan" && (
                   <>
                     <p className="text-sm text-ink2">Therapist listing packages only. Start on Free, or pick Silver, Gold or Platinum and subscribe after you submit.</p>
                     <div className="grid gap-3 sm:grid-cols-2">
@@ -537,7 +568,11 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
                   </>
                 )}
 
-                {safeStep === 6 && (
+                {current.id === "documents" && (
+                  <VendorOnboardingDocs docs={docs} disabled={busy} onChange={setDocs} onError={setError} />
+                )}
+
+                {current.id === "submit" && (
                   <div className="space-y-3 rounded-[1.75rem] border border-line bg-elev p-5 text-sm text-ink2">
                     <p>
                       <span className="text-goldink">Provider</span> · {PROVIDERS.find((p) => p.id === form.providerType)?.title}
@@ -553,6 +588,9 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
                     </p>
                     <p>
                       <span className="text-goldink">Listing plan</span> · {plans.find((p) => p.code === form.planCode)?.name || "Free"}
+                    </p>
+                    <p>
+                      <span className="text-goldink">Documents</span> · {docs.length ? docs.map((d) => d.label).join(", ") : "None yet — go back and upload one"}
                     </p>
                     <p className="text-ink2">
                       {form.planCode === "FREE"
@@ -588,7 +626,13 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
                   <button
                     type="button"
                     disabled={busy}
-                    onClick={() => void save(!embedded)}
+                    onClick={() => {
+                      if (!embedded && !docs.length) {
+                        setError("Upload at least one document photo. One of ID, registration or licence is enough.");
+                        return;
+                      }
+                      void save(!embedded);
+                    }}
                     className="min-h-12 flex-[2] rounded-full bg-gold text-base font-bold text-ongold disabled:opacity-60"
                   >
                     {busy ? (embedded ? "Saving…" : "Submitting…") : embedded ? "Save changes" : "Submit for review"}
@@ -599,6 +643,37 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
           )}
         </div>
       </section>
+      {askServices && typeof document !== "undefined"
+        ? createPortal(
+            <div className="fixed inset-0 z-[120] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="add-services-title">
+              <button type="button" className="absolute inset-0 bg-black/60" aria-label="Close" onClick={() => setAskServices(false)} />
+              <div className="relative w-full max-w-md rounded-[1.75rem] border border-gold/40 bg-card p-6 shadow-xl">
+                <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-gold/15 text-goldink">
+                  <Sparkles className="h-5 w-5" aria-hidden />
+                </div>
+                <h2 id="add-services-title" className="font-display text-3xl">
+                  Add your services
+                </h2>
+                <p className="mt-2 text-sm text-ink2">
+                  Your application is in. Customers book treatments, not empty listings. Continue now and add at least one
+                  service with a price and duration.
+                </p>
+                <div className="mt-6 flex flex-col gap-3">
+                  <Link
+                    href="/vendor/services?new=1"
+                    className="inline-flex min-h-12 items-center justify-center rounded-full bg-gold px-6 text-base font-bold text-ongold"
+                  >
+                    Continue and add services
+                  </Link>
+                  <button type="button" className="min-h-11 text-sm font-semibold text-ink2" onClick={() => setAskServices(false)}>
+                    I’ll do this later
+                  </button>
+                </div>
+              </div>
+            </div>,
+            document.body
+          )
+        : null}
     </div>
   );
 }

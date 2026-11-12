@@ -2,7 +2,8 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { VendorServicesConsole } from "@/components/vendor/services-console";
 
-export default async function Page() {
+export default async function Page({ searchParams }: { searchParams: Promise<{ new?: string }> }) {
+  const query = await searchParams;
   const user = await getSession();
   const vendorId = user?.vendorId || "";
   const [services, categories] = await Promise.all([
@@ -15,6 +16,7 @@ export default async function Page() {
   ]);
   return (
     <VendorServicesConsole
+      openNew={query.new === "1"}
       categories={categories}
       rows={services.map((s) => ({
         id: s.id,

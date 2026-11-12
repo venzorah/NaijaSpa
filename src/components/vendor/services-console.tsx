@@ -1,6 +1,6 @@
 "use client";
 import { useToast } from "@/components/vendor/toasts";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Infinity as InfinityIcon, Pencil, Plus, Search } from "lucide-react";
@@ -31,12 +31,13 @@ type Row = {
     hotelAddonKobo: number;
     homeAddonKobo: number;
 };
-export function VendorServicesConsole({ rows, categories }: {
+export function VendorServicesConsole({ rows, categories, openNew = false }: {
     rows: Row[];
     categories: {
         id: string;
         name: string;
     }[];
+    openNew?: boolean;
 }) {
     const router = useRouter();
     const toast = useToast();
@@ -53,6 +54,12 @@ export function VendorServicesConsole({ rows, categories }: {
         .map((c) => ({ category: c, items: filtered.filter((s) => s.category === c) }))
         .filter((g) => g.items.length);
     function startNew() { setEditing(null); setOpen(true); }
+    useEffect(() => {
+        if (openNew && categories.length) {
+            setEditing(null);
+            setOpen(true);
+        }
+    }, [openNew, categories.length]);
     function startEdit(row: Row) { setEditing(row); setOpen(true); }
     async function toggle(s: Row, active: boolean) {
         if (busy)
