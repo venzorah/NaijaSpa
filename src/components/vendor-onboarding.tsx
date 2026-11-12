@@ -22,7 +22,7 @@ function LightLogo({ className }: { className?: string }) {
 }
 
 const fieldClass =
-  "min-h-12 w-full rounded-2xl border border-line bg-card px-4 text-base text-ink outline-none placeholder:text-ink2 focus:border-gold";
+  "min-h-12 w-full rounded-2xl border border-line bg-card px-4 text-base text-ink outline-none placeholder:italic placeholder:text-ink2/80 focus:border-gold";
 const labelClass = "block text-xs font-bold uppercase tracking-[0.14em] text-goldink";
 
 const PROVIDERS = [
@@ -75,7 +75,7 @@ const empty: Form = {
   address: "",
   openTime: "09:00",
   closeTime: "18:00",
-  cancellationPolicy: "Free cancellation up to 12 hours before the appointment.",
+  cancellationPolicy: "",
   planCode: "FREE",
   payoutBankCode: "",
   payoutAccountNumber: ""
@@ -434,7 +434,13 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
                   <>
                     <label className="block space-y-2">
                       <span className={labelClass}>Business name</span>
-                      <input className={fieldClass} value={form.businessName} onChange={(e) => set("businessName", e.target.value)} required />
+                      <input
+                        className={fieldClass}
+                        value={form.businessName}
+                        onChange={(e) => set("businessName", e.target.value)}
+                        placeholder="Add business name"
+                        required
+                      />
                     </label>
                     <label className="block space-y-2">
                       <span className={labelClass}>About your spa</span>
@@ -443,7 +449,7 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
                         className={`${fieldClass} py-3`}
                         value={form.description}
                         onChange={(e) => set("description", e.target.value)}
-                        placeholder="Signature treatments, rooms, who you serve…"
+                        placeholder="Add a short description"
                       />
                     </label>
                   </>
@@ -454,15 +460,32 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
                     <p className="text-sm text-ink2">Paid listing plans show WhatsApp, email (your login) and Instagram on Explore. Free listings keep them private until a customer pays for a booking.</p>
                     <label className="block space-y-2">
                       <span className={labelClass}>Phone</span>
-                      <input className={fieldClass} inputMode="tel" value={form.privatePhone} onChange={(e) => set("privatePhone", e.target.value)} />
+                      <input
+                        className={fieldClass}
+                        inputMode="tel"
+                        value={form.privatePhone}
+                        onChange={(e) => set("privatePhone", e.target.value)}
+                        placeholder="Add phone number"
+                      />
                     </label>
                     <label className="block space-y-2">
                       <span className={labelClass}>WhatsApp</span>
-                      <input className={fieldClass} inputMode="tel" value={form.privateWhatsapp} onChange={(e) => set("privateWhatsapp", e.target.value)} />
+                      <input
+                        className={fieldClass}
+                        inputMode="tel"
+                        value={form.privateWhatsapp}
+                        onChange={(e) => set("privateWhatsapp", e.target.value)}
+                        placeholder="Add WhatsApp number"
+                      />
                     </label>
                     <label className="block space-y-2">
                       <span className={labelClass}>Instagram</span>
-                      <input className={fieldClass} value={form.instagramUrl} onChange={(e) => set("instagramUrl", e.target.value)} placeholder="@yourspa or instagram.com/yourspa" />
+                      <input
+                        className={fieldClass}
+                        value={form.instagramUrl}
+                        onChange={(e) => set("instagramUrl", e.target.value)}
+                        placeholder="Add Instagram"
+                      />
                     </label>
                     <p className="pt-2 text-sm text-ink2">Payout account — confirmed visits pay this NUBAN. Search the bank, enter the 10-digit number, and we pull the account name.</p>
                     <label className="block space-y-2">
@@ -473,7 +496,7 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
                         maxLength={10}
                         value={form.payoutAccountNumber}
                         onChange={(e) => set("payoutAccountNumber", e.target.value.replace(/\D/g, "").slice(0, 10))}
-                        placeholder="10-digit NUBAN"
+                        placeholder="Add account number"
                       />
                     </label>
                     <label className="block space-y-2">
@@ -483,6 +506,7 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
                         value={form.payoutBankCode}
                         onChange={(code) => set("payoutBankCode", code)}
                         className={fieldClass}
+                        placeholder="Add payout bank"
                       />
                     </label>
                     {payout.loading ? <p className="text-sm text-ink2">Looking up account name…</p> : null}
@@ -518,15 +542,15 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
                     </label>
                     <label className="block space-y-2">
                       <span className={labelClass}>City</span>
-                      <input className={fieldClass} value={form.city} onChange={(e) => set("city", e.target.value)} placeholder="Ikeja" />
+                      <input className={fieldClass} value={form.city} onChange={(e) => set("city", e.target.value)} placeholder="Add city" />
                     </label>
                     <label className="block space-y-2">
                       <span className={labelClass}>Neighbourhood</span>
-                      <input className={fieldClass} value={form.neighbourhood} onChange={(e) => set("neighbourhood", e.target.value)} placeholder="GRA" />
+                      <input className={fieldClass} value={form.neighbourhood} onChange={(e) => set("neighbourhood", e.target.value)} placeholder="Add neighbourhood" />
                     </label>
                     <label className="block space-y-2">
                       <span className={labelClass}>Street address</span>
-                      <input className={fieldClass} value={form.address} onChange={(e) => set("address", e.target.value)} />
+                      <input className={fieldClass} value={form.address} onChange={(e) => set("address", e.target.value)} placeholder="Add street address" />
                     </label>
                   </>
                 )}
@@ -550,6 +574,7 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
                         className={`${fieldClass} py-3`}
                         value={form.cancellationPolicy}
                         onChange={(e) => set("cancellationPolicy", e.target.value)}
+                        placeholder="Add cancellation policy"
                       />
                     </label>
                   </>
