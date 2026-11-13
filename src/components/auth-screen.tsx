@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useState, type InputHTMLAttributes, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { Eye, EyeOff, Lock, Moon, Sparkles, Store, Sun, User } from "lucide-react";
-import { BrandLogo } from "@/components/brand-logo";
 import { useTheme } from "@/components/theme-provider";
 
 export const authFieldClass =
@@ -36,12 +35,21 @@ export function AuthScreen({ children }: { children: ReactNode }) {
           {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
         </button>
       </div>
-      <div className="mt-2 flex justify-center">
-        <Link href="/" aria-label="NaijaSpa home">
-          <BrandLogo className="h-[3.6rem] w-auto max-w-[14.5rem] object-contain sm:h-16" />
-        </Link>
-      </div>
-      <div className="relative z-10 flex-1">{children}</div>
+      <link rel="preload" as="image" href="/brand/auth-hero.webp" type="image/webp" />
+      <Link href="/" aria-label="NaijaSpa home" className="relative z-10 mt-1 -mx-5 block">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/brand/auth-hero.webp"
+          alt="NaijaSpa — Find, book and grow wellness and beauty services"
+          width={880}
+          height={294}
+          fetchPriority="high"
+          decoding="async"
+          className="h-auto w-full object-cover object-center"
+        />
+        <span className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-b from-transparent to-bg" aria-hidden />
+      </Link>
+      <div className="relative z-10 -mt-8 flex-1">{children}</div>
       <div className="pointer-events-none relative -mx-5 mt-6 h-[4.5rem] shrink-0" aria-hidden>
         <svg viewBox="0 0 400 72" className="h-full w-full" preserveAspectRatio="none">
           <path d="M0 28C70 8 130 48 200 28C270 8 330 44 400 22V72H0Z" fill="#064E3B" />
