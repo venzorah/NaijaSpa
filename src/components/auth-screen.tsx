@@ -36,7 +36,7 @@ export function AuthScreen({ children }: { children: ReactNode }) {
         </button>
       </div>
       <link rel="preload" as="image" href="/brand/auth-hero.webp" type="image/webp" />
-      <Link href="/" aria-label="NaijaSpa home" className="relative z-10 mt-1 -mx-5 block">
+      <Link href="/" aria-label="NaijaSpa home" className="relative z-10 mx-auto mt-1 block w-[88%] max-w-[21.5rem]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/brand/auth-hero.webp"
@@ -45,11 +45,12 @@ export function AuthScreen({ children }: { children: ReactNode }) {
           height={294}
           fetchPriority="high"
           decoding="async"
-          className="h-auto w-full object-cover object-center"
+          className="h-auto w-full object-contain object-center"
         />
-        <span className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-b from-transparent to-bg" aria-hidden />
+        <span className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-bg to-transparent" aria-hidden />
+        <span className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-b from-transparent to-bg" aria-hidden />
       </Link>
-      <div className="relative z-10 -mt-8 flex-1">{children}</div>
+      <div className="relative z-10 -mt-5 flex-1">{children}</div>
       <div className="pointer-events-none relative -mx-5 mt-6 h-[4.5rem] shrink-0" aria-hidden>
         <svg viewBox="0 0 400 72" className="h-full w-full" preserveAspectRatio="none">
           <path d="M0 28C70 8 130 48 200 28C270 8 330 44 400 22V72H0Z" fill="#064E3B" />
