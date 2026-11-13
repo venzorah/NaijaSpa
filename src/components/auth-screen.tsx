@@ -49,6 +49,8 @@ export function AuthScreen({ children }: { children: ReactNode }) {
         />
         <span className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-bg to-transparent" aria-hidden />
         <span className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-b from-transparent to-bg" aria-hidden />
+        <span className="pointer-events-none absolute inset-y-0 left-0 w-10 bg-gradient-to-r from-bg to-transparent" aria-hidden />
+        <span className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-bg to-transparent" aria-hidden />
       </Link>
       <div className="relative z-10 -mt-5 flex-1">{children}</div>
       <div className="pointer-events-none relative -mx-5 mt-6 h-[4.5rem] shrink-0" aria-hidden>
