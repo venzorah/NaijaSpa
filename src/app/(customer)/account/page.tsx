@@ -8,6 +8,7 @@ import {
   HelpCircle,
   Inbox,
   Info,
+  MessageCircle,
   LayoutDashboard,
   Mail,
   Settings,
@@ -33,6 +34,7 @@ const sections: { title: string; items: { href: string; label: string; icon: typ
     items: [
       { href: "/account/dashboard", label: "Overview", icon: LayoutDashboard },
       { href: "/account/messages", label: "Messages", icon: Inbox },
+      { href: "/account/chats", label: "Chats", icon: MessageCircle },
       { href: "/account/bookings", label: "Bookings", icon: CalendarDays },
       { href: "/account/favourites", label: "Favourites", icon: Heart },
       { href: "/account/payments", label: "Payments & receipts", icon: CreditCard },

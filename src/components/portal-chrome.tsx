@@ -16,6 +16,7 @@ import {
   LoaderCircle,
   Menu,
   Megaphone,
+  MessageCircle,
   Moon,
   Phone,
   Search,
@@ -43,6 +44,7 @@ export const VENDOR_NAV: { label: string; items: PortalLink[] }[] = [
     items: [
       { href: "/vendor/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { href: "/vendor/bookings", label: "Bookings", icon: CalendarCheck2 },
+      { href: "/vendor/chats", label: "Chats", icon: MessageCircle },
       { href: "/vendor/availability", label: "Availability", icon: CalendarDays }
     ]
   },

@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   LifeBuoy,
   Mail,
+  MessageCircle,
   Megaphone,
   Newspaper,
   ScrollText,
@@ -29,6 +30,7 @@ export type AdminScreenId =
   | "categories"
   | "services"
   | "bookings"
+  | "chats"
   | "finance"
   | "commercial"
   | "memberships"
@@ -127,6 +129,16 @@ export const ADMIN_SCREENS: {
     description: "Live booking operations and exceptions.",
     view: ["bookings.manage", "finance.view"],
     edit: ["bookings.manage"]
+  },
+  {
+    id: "chats",
+    href: "/admin/chats",
+    label: "Chats",
+    group: "Marketplace",
+    icon: MessageCircle,
+    description: "Read customer and therapist booking chats. Admins cannot send messages.",
+    view: ["bookings.manage", "support.manage"],
+    edit: ["bookings.manage", "support.manage"]
   },
   {
     id: "finance",

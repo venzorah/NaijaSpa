@@ -75,6 +75,13 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
       </div>
 
       <div className="mt-4">
+        {showChat ? (
+          <p className="mb-3">
+            <Link href={`/account/chats/${booking.id}`} className="text-sm font-semibold text-leaf hover:underline">
+              Open full chat
+            </Link>
+          </p>
+        ) : null}
         <BookingChat
           bookingId={booking.id}
           lockedHint={showChat ? undefined : "WhatsApp and in-app chat open after Paystack confirms your payment."}

@@ -146,6 +146,59 @@ export async function listBookingMessages(bookingId: string, party: ChatParty, u
   };
 }
 
+export async function listAdminBookingMessages(bookingId: string, viewerId: string) {
+  const booking = await prisma.booking.findFirst({
+    where: { id: bookingId },
+    select: {
+      id: true,
+      customerId: true,
+      vendor: { select: { businessName: true } },
+      customer: { select: { name: true } },
+      service: { select: { name: true } }
+    }
+  });
+  if (!booking) {
+    throw Object.assign(new Error("Booking not found"), { status: 404 });
+  }
+  await purgeExpiredChatImages(booking.id);
+  const rows = await listMessageRows(booking.id);
+  return {
+    booking,
+    messages: rows.map((row) =>
+      mapChatMessage(
+        {
+          id: row.id,
+          senderId: row.senderId,
+          body: row.body,
+          createdAt: row.createdAt,
+          hasImage: sqlBool(row.hasPayload),
+          imageExpiresAt: row.imageExpiresAt
+        },
+        viewerId
+      )
+    )
+  };
+}
+
+export async function readAdminChatImage(bookingId: string, messageId: string) {
+  await purgeExpiredChatImages(bookingId);
+  const rows = await prisma.$queryRaw<Array<{ imagePayload: Buffer | Uint8Array | null; imageMime: string | null; imageExpiresAt: Date | null }>>`
+    SELECT "imagePayload", "imageMime", "imageExpiresAt"
+    FROM "BookingMessage"
+    WHERE id = ${messageId} AND "bookingId" = ${bookingId}
+    LIMIT 1
+  `;
+  const row = rows[0];
+  if (!row) {
+    throw Object.assign(new Error("Photo not found."), { status: 404 });
+  }
+  if (!row.imagePayload || !isChatImageLive(row.imageExpiresAt)) {
+    throw Object.assign(new Error("This photo has expired."), { status: 410 });
+  }
+  const bytes = Buffer.isBuffer(row.imagePayload) ? row.imagePayload : Buffer.from(row.imagePayload);
+  return { bytes, mime: row.imageMime || "image/jpeg" };
+}
+
 async function notifyChat(
   booking: { id: string; customerId: string; vendor: { ownerId: string; businessName: string }; customer: { name: string } },
   party: ChatParty,
@@ -158,7 +211,7 @@ async function notifyChat(
       userId: recipientId,
       title: `Message · ${from}`,
       body: preview.slice(0, 180),
-      actionUrl: party === "customer" ? "/vendor/bookings" : `/account/bookings/${booking.id}`
+      actionUrl: party === "customer" ? `/vendor/chats/${booking.id}` : `/account/chats/${booking.id}`
     }
   });
 }
