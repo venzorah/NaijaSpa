@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ImagePlus, Pencil, Plus } from "lucide-react";
 import { VendorDetailsForm } from "./vendor-details-form";
@@ -19,6 +18,9 @@ import { vendorPlanBillingLabel } from "@/lib/vendor-plans";
 import { verificationDocLabel } from "@/lib/verification-doc-kinds";
 import { cn } from "@/lib/cn";
 import type { AdminVendorRow } from "./vendors-console";
+import { AdminVendorPageLink } from "./vendor-page-link";
+import { CopyAdLinks } from "./copy-ad-links";
+import { formatAdClicks, formatAdminClicks, formatViews } from "@/lib/listing-views";
 
 type Tab = "overview" | "profile" | "photos" | "services" | "kyc";
 type Doc = { id: string; kind: string; status: string; createdAt: string; mimeType: string; byteSize: number };
@@ -29,6 +31,7 @@ type Detail = {
   documents: Doc[];
   services: ServiceRow[];
 };
+type HitRow = { id: string; kind: string; channel: string; source: string; campaign: string; createdAt: string };
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "overview", label: "Overview" },
@@ -64,25 +67,33 @@ export function VendorWorkspace({
   const [loadError, setLoadError] = useState("");
   const [editor, setEditor] = useState<ServiceRow | "new" | null>(null);
   const [preview, setPreview] = useState<Doc | null>(null);
+  const [hits, setHits] = useState<HitRow[]>([]);
+  const [hitTotals, setHitTotals] = useState({ views: vendor.publicViewCount, adClicks: vendor.publicClickCount, adminClicks: vendor.adminClickCount, organicClicks: 0 });
 
   useEffect(() => {
     let ignore = false;
     setDetail(null);
     setLoadError("");
     setTab("overview");
-    void fetch(`/api/admin/vendors/${vendor.id}`)
-      .then(async (res) => {
+    void Promise.all([
+      fetch(`/api/admin/vendors/${vendor.id}`).then(async (res) => {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Could not load vendor.");
-        if (!ignore) {
-          setDetail({
-            coverUrl: data.vendor.coverUrl || "",
-            logoUrl: data.vendor.logoUrl || "",
-            documents: data.vendor.documents ?? [],
-            services: data.vendor.services ?? []
-          });
-          setCategories(data.categories ?? []);
-        }
+        return data;
+      }),
+      fetch(`/api/admin/vendors/${vendor.id}/hits`).then(async (res) => (res.ok ? res.json() : { hits: [], totals: null }))
+    ])
+      .then(([data, traffic]) => {
+        if (ignore) return;
+        setDetail({
+          coverUrl: data.vendor.coverUrl || "",
+          logoUrl: data.vendor.logoUrl || "",
+          documents: data.vendor.documents ?? [],
+          services: data.vendor.services ?? []
+        });
+        setCategories(data.categories ?? []);
+        setHits(traffic.hits ?? []);
+        if (traffic.totals) setHitTotals(traffic.totals);
       })
       .catch((error) => {
         if (!ignore) setLoadError(error instanceof Error ? error.message : "Could not load vendor.");
@@ -145,9 +156,78 @@ export function VendorWorkspace({
               { label: "Visibility", value: vendor.visibility },
               { label: "Services", value: detail?.services.length ?? vendor.services },
               { label: "Reviews", value: `${vendor.reviewCount} · ${vendor.ratingAvg.toFixed(1)} avg` },
-              { label: "Plan", value: vendor.plan }
+              { label: "Public views", value: formatViews(hitTotals.views || vendor.publicViewCount) },
+              { label: "Ad clicks", value: formatAdClicks(hitTotals.adClicks || vendor.publicClickCount) },
+              { label: "Admin clicks", value: formatAdminClicks(hitTotals.adminClicks || vendor.adminClickCount) },
+              { label: "Plan", value: vendor.plan },
+              { label: "Public contact", value: vendor.publicContactEnabled ? "Visible on Explore" : "Hidden" }
             ]}
           />
+          <div className="mt-4 border-t border-line pt-4">
+            <p className="text-sm font-medium">Ad landing links</p>
+            <p className="mt-1 text-xs text-ink2">
+              Paste these into Facebook, Instagram, Google or TikTok. Each tap is stored as an ad click, then the page view is counted separately.
+            </p>
+            <div className="mt-2">
+              <CopyAdLinks slug={vendor.slug} kind="vendor" campaign={vendor.slug} />
+            </div>
+            {detail?.services.length ? (
+              <ul className="mt-3 space-y-2">
+                {detail.services.map((service) => (
+                  <li key={service.id} className="rounded-lg border border-line px-3 py-2">
+                    <p className="text-xs font-medium">{service.name}</p>
+                    <div className="mt-1">
+                      <CopyAdLinks slug={service.slug} kind="service" campaign={vendor.slug} />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {hits.length ? (
+              <ul className="mt-3 max-h-40 overflow-y-auto text-[11px] text-ink2">
+                {hits.slice(0, 12).map((hit) => (
+                  <li key={hit.id} className="flex justify-between gap-2 border-t border-line py-1">
+                    <span>
+                      {hit.kind} · {hit.channel}
+                      {hit.source ? ` · ${hit.source}` : ""}
+                      {hit.campaign ? ` · ${hit.campaign}` : ""}
+                    </span>
+                    <span className="shrink-0 tabular-nums">{new Date(hit.createdAt).toLocaleString("en-NG")}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-2 text-[11px] text-ink2">No recorded clicks or views yet. Use the ad links above so every campaign tap is stored.</p>
+            )}
+          </div>
+          <form
+            className="mt-4 grid gap-2 border-t border-line pt-4 sm:grid-cols-[1fr_auto] sm:items-end"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              setMsg("");
+              try {
+                await adminJson(`/api/admin/vendors/${vendor.id}`, {
+                  method: "PATCH",
+                  body: JSON.stringify({ publicContactEnabled: !vendor.publicContactEnabled })
+                });
+                setMsg(
+                  vendor.publicContactEnabled
+                    ? "Public phone, WhatsApp, email and Instagram are hidden on Explore."
+                    : "Public contact is now visible on Explore and the provider page."
+                );
+                router.refresh();
+              } catch (err) {
+                setMsg(err instanceof Error ? err.message : "Could not update public contact.");
+              }
+            }}
+          >
+            <p className="text-sm text-ink2">
+              Contact and social links stay off Explore until you turn them on. Customers still get WhatsApp and in-app chat after they pay.
+            </p>
+            <button className={adminBtnOutline} disabled={!editable} type="submit">
+              {vendor.publicContactEnabled ? "Hide public contact" : "Show public contact"}
+            </button>
+          </form>
           <form
             className="mt-4 grid gap-2 border-t border-line pt-4 sm:grid-cols-[1fr_auto] sm:items-end"
             onSubmit={async (e) => {
@@ -191,9 +271,7 @@ export function VendorWorkspace({
             </p>
           </form>
           <div className="mt-4 flex flex-wrap gap-2 border-t border-line pt-4">
-            <Link href={`/providers/${encodeURIComponent(vendor.slug)}`} className={adminBtnOutline} target="_blank" rel="noreferrer">
-              View spa page
-            </Link>
+            <AdminVendorPageLink vendorId={vendor.id} slug={vendor.slug} />
             <ConfirmAction
               triggerLabel="Approve"
               triggerVariant="default"

@@ -2,7 +2,6 @@
 import { useToastMessage } from "@/components/vendor/toasts";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { Panel } from "@/components/admin/panel";
 import { adminBtn, adminField, FormRow } from "@/components/admin/form-row";
 
@@ -69,7 +68,7 @@ export function VendorListingContactForm({ highlightMissing = false }: { highlig
       }
       setPaid(Boolean(json.paid));
       setVisible(Boolean(json.public));
-      setMessage(json.public ? "Saved. These details now show on your public listing." : "Saved. They stay private until you subscribe to a paid listing plan.", "success");
+      setMessage(json.public ? "Saved. NaijaSpa has turned public contact on for your listing." : "Saved. These stay private on Explore. Customers see WhatsApp and in-app chat after they pay.", "success");
     } catch {
       setMessage("Could not save. Check your connection.");
     } finally {
@@ -79,11 +78,11 @@ export function VendorListingContactForm({ highlightMissing = false }: { highlig
 
   return (
     <Panel
-      title="Public listing details"
+      title="Contact details"
       description={
         visible
-          ? "Paid listing. Phone, WhatsApp, login email and Instagram appear on Explore and your provider page."
-          : "These stay private on Free. After you upgrade, save them here so customers can reach you."
+          ? "NaijaSpa has turned public contact on. Phone, WhatsApp, login email and Instagram appear on Explore."
+          : "These stay hidden on Explore. After a customer pays, they can WhatsApp you and use in-app chat."
       }
     >
       {highlightMissing && paid && missing ? (
@@ -132,11 +131,9 @@ export function VendorListingContactForm({ highlightMissing = false }: { highlig
           <button type="submit" className={adminBtn} disabled={busy}>
             {busy ? "Saving…" : "Save listing details"}
           </button>
-          {!paid ? (
-            <Link href="/vendor/subscriptions" className="text-sm font-semibold text-leaf">
-              Upgrade to show these publicly
-            </Link>
-          ) : null}
+          {visible ? null : (
+            <p className="text-sm text-ink2">Public contact is switched on by NaijaSpa, not by a listing plan.</p>
+          )}
         </div>
       </form>
       {message && feedbackKind === "error" ? <p className="mt-3 text-sm text-ink2">{message}</p> : null}

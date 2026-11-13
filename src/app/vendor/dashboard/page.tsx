@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { vendorEntitlement } from "@/lib/entitlements";
 import { formatCount, formatNgn, formatNgnCompact } from "@/lib/money";
+import { viewCount } from "@/lib/listing-views";
 import { formatRating } from "@/lib/booking-ui";
 import { VendorPageHeader } from "@/components/vendor/page-header";
 import { Panel } from "@/components/admin/panel";
@@ -84,7 +85,7 @@ export default async function VendorHome() {
         <StatCard href="/vendor/bookings" label="Today’s bookings" value={formatCount(bookings.length)} icon={CalendarCheck2} sub="Appointments scheduled today (WAT)"/>
         <StatCard href="/vendor/availability" label="Occupancy today" progress={occupancy} value={`${occupancy}%`} icon={Gauge} sub={hoursToday ? `${hoursToday.toFixed(0)} therapist-hours on the roster` : "Add availability to measure occupancy"}/>
         <StatCard href="/vendor/earnings" label="Payable this week" value={formatNgnCompact(weekPayable)} icon={Wallet} sub={paid ? "0% commission" : `after ${ent.commissionBps / 100}% commission`} emphasis="gold"/>
-        <StatCard label="Rating" value={formatRating(vendor.ratingAvg) || "—"} icon={Star} sub={`${vendor.reviewCount} reviews`}/>
+        <StatCard label="Rating" value={formatRating(vendor.ratingAvg) || "—"} icon={Star} sub={`${vendor.reviewCount} reviews · ${formatCount(viewCount(vendor))} views · ${formatCount(viewCount(vendor, "publicClickCount"))} ad clicks`}/>
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
@@ -176,7 +177,7 @@ export default async function VendorHome() {
           <Panel>
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium">Public contact</p>
-              <AdminStatusPill status={ent.publicDirectContact ? "Visible" : "Hidden"}/>
+              <AdminStatusPill status={vendor.publicContactEnabled ? "Visible" : "Hidden"}/>
             </div>
             <div className="mt-3 space-y-2">
               {[
@@ -188,7 +189,7 @@ export default async function VendorHome() {
                   <c.icon className="h-4 w-4 text-ink2" aria-hidden/>
                   <span className="text-xs text-ink2">{c.label}</span>
                   <span className="ml-auto max-w-[55%] truncate font-mono text-xs">
-                    {ent.publicDirectContact
+                    {vendor.publicContactEnabled
                 ? c.value || "Not set"
                 : c.label === "Email"
                     ? "••••@••••"
@@ -196,13 +197,12 @@ export default async function VendorHome() {
                         ? "@••••"
                         : "+234 ••• ••• ••••"}
                   </span>
-                  {!ent.publicDirectContact ? <Lock className="h-3.5 w-3.5 text-ink2" aria-hidden/> : null}
+                  {!vendor.publicContactEnabled ? <Lock className="h-3.5 w-3.5 text-ink2" aria-hidden/> : null}
                 </div>))}
             </div>
-            <Link href={paid ? "/vendor/listing" : "/vendor/subscriptions"} className={paid
-            ? "mt-3 inline-flex min-h-10 items-center text-sm font-semibold text-leaf"
-            : "mt-3 inline-flex min-h-10 items-center rounded-full bg-gold px-4 text-sm font-bold text-ongold"}>
-              {paid ? "Add or edit public contact" : "Pay to unlock public contact"}
+            <p className="mt-3 text-xs text-ink2">Explore stays private unless NaijaSpa turns public contact on. Paid customers still get WhatsApp and in-app chat.</p>
+            <Link href="/vendor/listing" className="mt-3 inline-flex min-h-10 items-center text-sm font-semibold text-leaf">
+              Add or edit contact details
             </Link>
           </Panel>
         </div>

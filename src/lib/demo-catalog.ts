@@ -68,11 +68,13 @@ const osun = {
   verificationStatus: "verified",
   ratingAvg: 4.9,
   reviewCount: 128,
+  publicViewCount: 0,
   logoUrl: "/brand/icon-white.png",
   coverUrl: "/photos/band-spa.jpg",
   privatePhone: "+2348011111111",
   privateWhatsapp: "+2348011111111",
   instagramUrl: "@osunwellness",
+  publicContactEnabled: false,
   owner: { email: "hello@osun.example" },
   cancellationPolicy: "Free cancellation up to 12 hours before the appointment.",
   entitlement: paidEnt,
@@ -103,11 +105,13 @@ const calm = {
   verificationStatus: "verified",
   ratingAvg: 4.6,
   reviewCount: 41,
+  publicViewCount: 0,
   logoUrl: "/brand/icon-white.png",
   coverUrl: "/photos/spa.jpg",
   privatePhone: "+2348022222222",
   privateWhatsapp: "+2348022222222",
   instagramUrl: "@calmhouse",
+  publicContactEnabled: false,
   owner: { email: "calm@example.com" },
   cancellationPolicy: "Free cancellation up to 12 hours before the appointment.",
   entitlement: FREE_ENTITLEMENT,
@@ -135,11 +139,13 @@ const olive = {
   verificationStatus: "verified",
   ratingAvg: 4.8,
   reviewCount: 96,
+  publicViewCount: 0,
   logoUrl: "/brand/icon-white.png",
   coverUrl: "/photos/bg.jpg",
   privatePhone: "+2348033333333",
   privateWhatsapp: "+2348033333333",
   instagramUrl: "@oliveroom",
+  publicContactEnabled: false,
   owner: { email: "olive@example.com" },
   cancellationPolicy: "Free cancellation up to 24 hours before the appointment.",
   entitlement: paidEnt,
@@ -159,11 +165,13 @@ const maitama = {
   verificationStatus: "verified",
   ratingAvg: 4.7,
   reviewCount: 54,
+  publicViewCount: 0,
   logoUrl: "/brand/icon-white.png",
   coverUrl: "/photos/spa.jpg",
   privatePhone: "+2348044444444",
   privateWhatsapp: "+2348044444444",
   instagramUrl: "@maitamahands",
+  publicContactEnabled: false,
   owner: { email: "maitama@example.com" },
   cancellationPolicy: "Free cancellation up to 12 hours before the appointment.",
   entitlement: paidEnt,
@@ -453,7 +461,7 @@ export const demoFaqs = [
   {
     id: "f2",
     question: "Why can’t I see a vendor’s WhatsApp?",
-    answer: "Public phone and WhatsApp are available only for vendors on an active paid plan, and only when the number is valid."
+    answer: "Vendor phone, WhatsApp, email and Instagram stay hidden on Explore. After you pay, you can WhatsApp the therapist and use in-app chat on the booking."
   },
   {
     id: "f3",
@@ -527,7 +535,7 @@ export function demoSearch(filters: SearchFilters) {
     if (filters.locationType === "spa" && !s.spaEnabled) return false;
     if (filters.locationType === "hotel" && !s.hotelEnabled) return false;
     if (filters.locationType === "home" && !s.homeEnabled) return false;
-    if (filters.publicContact && !s.vendor.entitlement.publicDirectContact) return false;
+    if (filters.publicContact && !s.vendor.publicContactEnabled) return false;
     return true;
   });
   if (filters.sort === "price") rows = [...rows].sort((a, b) => a.basePriceKobo - b.basePriceKobo);
@@ -683,7 +691,7 @@ export function demoVendorBySlug(slug: string) {
   return {
     vendor: publicVendor(vendor),
     description: vendor.description,
-    services: demoServices.filter((s) => s.vendorId === vendor.id),
+    services: demoServices.filter((s) => s.vendorId === vendor.id).map((s) => ({ ...s, publicViewCount: 0 })),
     galleries: vendor.galleries ?? [],
     videoLinks: publicVideoLinks(vendor.videoLinks ?? [], vendor.entitlement)
   };

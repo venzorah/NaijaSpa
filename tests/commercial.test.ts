@@ -132,9 +132,10 @@ describe("commission and surcharges", () => {
     expect(ent.activePaid).toBe(false);
     expect(ent.publicDirectContact).toBe(false);
     expect(publicContactAllowed(ent)).toBe(false);
+    expect(publicContactAllowed(ent, { publicContactEnabled: true })).toBe(true);
   });
 
-  it("hides public contact on Free listings", () => {
+  it("hides public contact on listings unless admin enables it", () => {
     const pub = sanitizePublicVendor(
       {
         privatePhone: "+2348011111111",
@@ -153,8 +154,8 @@ describe("commission and surcharges", () => {
     expect("owner" in pub).toBe(false);
   });
 
-  it("shows WhatsApp, email and Instagram on paid listings", () => {
-    const pub = sanitizePublicVendor(
+  it("keeps paid listings private until admin turns public contact on", () => {
+    const hidden = sanitizePublicVendor(
       {
         privatePhone: "+2348011111111",
         privateWhatsapp: "08011111111",
@@ -163,6 +164,24 @@ describe("commission and surcharges", () => {
         businessName: "Osun Wellness"
       },
       { ...FREE_ENTITLEMENT, publicDirectContact: true, activePaid: true }
+    );
+    expect(hidden.publicPhone).toBeNull();
+    expect(hidden.publicWhatsapp).toBeNull();
+    expect(hidden.publicEmail).toBeNull();
+    expect(hidden.publicInstagram).toBeNull();
+  });
+
+  it("shows WhatsApp, email and Instagram when admin enables public contact", () => {
+    const pub = sanitizePublicVendor(
+      {
+        privatePhone: "+2348011111111",
+        privateWhatsapp: "08011111111",
+        instagramUrl: "@osunwellness",
+        owner: { email: "hello@osun.example" },
+        businessName: "Osun Wellness",
+        publicContactEnabled: true
+      },
+      FREE_ENTITLEMENT
     );
     expect(pub.publicPhone).toBe("+2348011111111");
     expect(pub.publicWhatsapp).toBe("https://wa.me/2348011111111");

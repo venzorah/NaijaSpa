@@ -156,11 +156,15 @@ export function quoteBooking(input: QuoteInput): Quote {
   };
 }
 
-export function publicContactAllowed(entitlement: Entitlement): boolean {
-  return entitlement.publicDirectContact && entitlement.activePaid;
+/** Public Explore/provider contact is admin-only. Paid listing plans do not publish phone, WhatsApp, email or Instagram. */
+export function publicContactAllowed(
+  _entitlement?: Entitlement | null,
+  vendor?: { publicContactEnabled?: boolean | null }
+): boolean {
+  return Boolean(vendor?.publicContactEnabled);
 }
 
-/** Phone/WhatsApp unlock only after a successful booking payment. */
+/** WhatsApp and in-app chat unlock only after a successful booking payment. */
 export function bookingUnlocksVendorContact(status: string, paymentSucceeded: boolean) {
   if (!paymentSucceeded) return false;
   return status === "confirmed" || status === "in_progress" || status === "completed";
@@ -195,13 +199,15 @@ export function sanitizePublicVendor<T extends {
   privatePhone?: string | null;
   privateWhatsapp?: string | null;
   instagramUrl?: string | null;
+  publicContactEnabled?: boolean | null;
   owner?: { email?: string | null } | null;
 }>(vendor: T, entitlement?: Entitlement) {
-  const allow = entitlement ? publicContactAllowed(entitlement) : false;
+  const allow = publicContactAllowed(entitlement, vendor);
   const {
     privatePhone,
     privateWhatsapp,
     instagramUrl,
+    publicContactEnabled: _publicContactEnabled,
     owner,
     entitlement: _e,
     galleries: _galleries,

@@ -32,7 +32,7 @@ export default async function VendorPlanCheckoutPage({
     <div className="mx-auto max-w-lg">
       <VendorPageHeader
         title={`Pay for ${plan.name}`}
-        description="Paystack collects this listing plan. Your public contact and commission update after the charge is verified."
+        description="Paystack collects this listing plan. Your commission and visibility update after the charge is verified."
       />
       <div className="rounded-3xl border border-line bg-card p-5">
         <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-goldink">Listing plan</p>

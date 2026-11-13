@@ -113,14 +113,14 @@ export function vendorPlanPerks(plan: VendorListingPlanView) {
       "No weekly, monthly or yearly listing fee",
       commission,
       "WhatsApp, email and Instagram stay private on Explore",
-      "Customers still see contact on a paid booking",
+      "Customers get WhatsApp and in-app chat after they pay",
       "Unlimited service listings"
     ];
   }
   return [
     vendorPlanBillingLabel(plan.durationDays, plan.priceKobo),
     commission,
-    plan.publicDirectContact ? "Public WhatsApp, email and Instagram on your listing" : "Public contact hidden",
+    "Phone, WhatsApp and Instagram stay hidden on Explore unless NaijaSpa turns them on",
     plan.enhancedVisibility ? "Enhanced Explore visibility" : "Standard Explore placement",
     plan.sponsoredEligible ? "Eligible for sponsored placement" : "Sponsored placement not included",
     "Unlimited service listings"

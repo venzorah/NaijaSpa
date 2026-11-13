@@ -1,6 +1,6 @@
 import { notFound, permanentRedirect } from "next/navigation";
 import Link from "next/link";
-import { BadgeCheck, Info, MapPin, Star } from "lucide-react";
+import { BadgeCheck, Eye, Info, MapPin, Star } from "lucide-react";
 import { getPublicVendor } from "@/lib/catalog";
 import { hasPublicVendorContact, pickPublicVendorContact } from "@/lib/public-contact";
 import { PublicVendorContact } from "@/components/public-vendor-contact";
@@ -9,6 +9,8 @@ import { formatRating } from "@/lib/booking-ui";
 import { TherapistGalleries } from "@/components/therapist-galleries";
 import { usingDemoListings } from "@/lib/live-db";
 import { demoReviewsForVendor } from "@/lib/demo-catalog";
+import { ListingViewBeacon } from "@/components/listing-view-beacon";
+import { formatViews } from "@/lib/listing-views";
 
 export const dynamic = "force-dynamic";
 
@@ -44,8 +46,11 @@ export default async function ProviderPage({ params }: { params: Promise<{ slug:
   const ratingLabel = formatRating(vendor.ratingAvg);
   const first = services[0];
 
+  const vendorViews = "publicViewCount" in vendor ? Number(vendor.publicViewCount) || 0 : 0;
+
   return (
     <div className="mx-auto max-w-7xl pb-24 lg:px-8 lg:pb-8">
+      <ListingViewBeacon vendorId={vendor.id} />
       <div className="px-4 pt-4 lg:px-0 lg:pt-6">
         <TherapistGalleries
           galleries={galleries}
@@ -75,6 +80,10 @@ export default async function ProviderPage({ params }: { params: Promise<{ slug:
               <MapPin className="h-4 w-4 text-leaf" aria-hidden />
               {vendor.neighbourhood}, {vendor.city}
             </span>
+            <span className="flex items-center gap-1 text-ink2">
+              <Eye className="h-4 w-4 text-leaf" aria-hidden />
+              {formatViews(vendorViews)}
+            </span>
           </div>
           <div className="mt-5">
             {hasPublicVendorContact(vendor) ? (
@@ -82,7 +91,7 @@ export default async function ProviderPage({ params }: { params: Promise<{ slug:
             ) : (
               <p className="flex items-start gap-2 rounded-2xl bg-bg2 px-4 py-3 text-xs text-ink2">
                 <Info className="mt-0.5 h-4 w-4 shrink-0 text-leaf" aria-hidden />
-                Contact stays private on Free listings until you pay for a booking. Paid providers show WhatsApp, email and Instagram here.
+                Contact stays private here. After you pay, WhatsApp and in-app chat open on your booking.
               </p>
             )}
           </div>
@@ -95,6 +104,7 @@ export default async function ProviderPage({ params }: { params: Promise<{ slug:
                   <p className="font-semibold text-ink">{s.name}</p>
                   <p className="text-sm text-goldink">
                     {formatNgn(s.basePriceKobo)} · {s.durationMin} min
+                    {"publicViewCount" in s ? ` · ${formatViews(Number(s.publicViewCount) || 0)}` : ""}
                   </p>
                 </div>
                 <Link href={`/services/${encodeURIComponent(s.slug)}`} className="rounded-full bg-gold px-4 py-2 text-sm font-bold text-ongold">

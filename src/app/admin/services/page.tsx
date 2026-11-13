@@ -2,6 +2,7 @@ import { requireAdminScreen } from "@/lib/admin-auth";
 import { prisma } from "@/lib/db";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { ServicesConsole } from "@/components/admin/services-console";
+import { viewCount } from "@/lib/listing-views";
 
 export default async function ServicesPage() {
   const { editable } = await requireAdminScreen("services");
@@ -34,7 +35,8 @@ export default async function ServicesPage() {
           duration: s.durationMin,
           active: s.active,
           locations: [s.spaEnabled ? "Spa/Office" : null, s.hotelEnabled ? "Hotel" : null, s.homeEnabled ? "Home" : null].filter(Boolean) as string[],
-          createdAt: s.createdAt.toLocaleDateString("en-NG")
+          createdAt: s.createdAt.toLocaleDateString("en-NG"),
+          publicViewCount: viewCount(s)
         }))}
       />
     </div>

@@ -363,7 +363,7 @@ async function main() {
 
   const faqs = [
     ["How do bookings work?", "Choose a service, pick Spa/Office, Hotel or Home, select a time, then pay. The booking is only confirmed after payment is verified by NaijaSpa."],
-    ["Why can’t I see a vendor’s WhatsApp?", "Public phone and WhatsApp are available only for vendors on an active paid plan, and only when the number is valid."],
+    ["Why can’t I see a vendor’s WhatsApp?", "Vendor phone, WhatsApp, email and Instagram stay hidden on Explore. After you pay, you can WhatsApp the therapist and use in-app chat on the booking."],
     ["What is the hotel or home service add-on?", "Spa/Office has no extra charge. Vendors set their own Hotel service and Home service add-on prices. The selected add-on is added to the treatment total."],
     ["Do you offer Darkroom?", "No. NaijaSpa is a professional spa and wellness marketplace only."]
   ];

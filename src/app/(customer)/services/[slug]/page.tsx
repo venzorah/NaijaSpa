@@ -1,8 +1,9 @@
 import { notFound, permanentRedirect } from "next/navigation";
 import Link from "next/link";
-import { BadgeCheck, Heart, MapPin, Star } from "lucide-react";
+import { BadgeCheck, Eye, Heart, MapPin, Star } from "lucide-react";
 import { getPublicService } from "@/lib/catalog";
 import { publicWellnessPhoto } from "@/lib/photos";
+import { formatCount } from "@/lib/money";
 import { formatRating, formatReviewDate, locationLabel, numericRating } from "@/lib/booking-ui";
 import { StarRating } from "@/components/star-rating";
 import { ServiceBookingCard } from "@/components/service-booking-card";
@@ -10,6 +11,8 @@ import { VendorProfileGallery } from "@/components/vendor-profile-gallery";
 import { collectProfileGalleryImages } from "@/lib/galleries";
 import { hasPublicVendorContact, pickPublicVendorContact } from "@/lib/public-contact";
 import { PublicVendorContact } from "@/components/public-vendor-contact";
+import { ListingViewBeacon } from "@/components/listing-view-beacon";
+import { formatViews } from "@/lib/listing-views";
 
 export const dynamic = "force-dynamic";
 
@@ -41,8 +44,13 @@ export default async function ServicePage({ params, searchParams }: {
   const offered = quotes.map((q) => locationLabel(q.l)).join(" · ");
   const ratingLabel = formatRating(vendor.ratingAvg);
 
+  const serviceViews = "publicViewCount" in service ? Number(service.publicViewCount) || 0 : 0;
+  const vendorViews = "publicViewCount" in vendor ? Number(vendor.publicViewCount) || 0 : 0;
+  const vendorId = "id" in vendor ? String(vendor.id || "") : "";
+
   return (
     <div className="bg-bg2">
+      {vendorId ? <ListingViewBeacon vendorId={vendorId} serviceId={service.id} /> : null}
       {galleryImages.length ? (
         <div className="px-4 pt-4 lg:hidden">
           <VendorProfileGallery images={galleryImages} heading="" />
@@ -104,6 +112,10 @@ export default async function ServicePage({ params, searchParams }: {
                     {locationLine}
                   </span>
                 )}
+                <span className="inline-flex items-center gap-1">
+                  <Eye className="h-4 w-4" aria-hidden />
+                  {formatViews(serviceViews)}
+                </span>
               </p>
             </div>
           </header>
@@ -142,6 +154,10 @@ export default async function ServicePage({ params, searchParams }: {
               </dd>
             </div>
             <div>
+              <dt className="text-[11px] font-bold uppercase tracking-wide text-ink2">Service views</dt>
+              <dd className="mt-1 font-display text-3xl">{formatCount(serviceViews)}</dd>
+            </div>
+            <div>
               <dt className="text-[11px] font-bold uppercase tracking-wide text-ink2">Locations</dt>
               <dd className="mt-1 font-display text-3xl">{quotes.length || "—"}</dd>
               {offered ? <p className="mt-1 text-[11px] leading-snug text-ink2">{offered}</p> : null}
@@ -166,10 +182,11 @@ export default async function ServicePage({ params, searchParams }: {
               <Link href={`/providers/${encodeURIComponent(vendor.slug)}`} className="font-semibold text-leaf">
                 View provider
               </Link>
+              <span className="ml-2 text-xs text-ink2">{formatViews(vendorViews)} on their page</span>
               {hasPublicVendorContact(vendor) ? (
                 <PublicVendorContact vendor={pickPublicVendorContact(vendor)} variant="inline" />
               ) : (
-                <span className="ml-2 text-xs text-ink2">Free listings keep contact private until you pay. Paid providers show WhatsApp, email and Instagram.</span>
+                <span className="ml-2 text-xs text-ink2">Contact stays private here. After you pay, WhatsApp and in-app chat open on your booking.</span>
               )}
             </p>
           </section>

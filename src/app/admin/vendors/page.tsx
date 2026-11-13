@@ -4,6 +4,7 @@ import { AdminPageHeader } from "@/components/admin/page-header";
 import { VendorsConsole } from "@/components/admin/vendors-console";
 import { listAdminGrantableVendorPlans } from "@/lib/vendor-plans-live";
 import { hasPermission } from "@/lib/rbac";
+import { viewCount } from "@/lib/listing-views";
 
 export default async function AdminVendorsPage() {
   const { user, editable } = await requireAdminScreen("vendors");
@@ -60,7 +61,11 @@ export default async function AdminVendorsPage() {
           whatsapp: v.privateWhatsapp || "",
           plan: v.subscriptions[0]?.plan.name ?? "Free",
           planCode: v.subscriptions[0]?.plan.code ?? "FREE",
-          services: v._count.services
+          services: v._count.services,
+          publicContactEnabled: v.publicContactEnabled,
+          publicViewCount: viewCount(v),
+          publicClickCount: viewCount(v, "publicClickCount"),
+          adminClickCount: viewCount(v, "adminClickCount")
         }))}
       />
     </div>

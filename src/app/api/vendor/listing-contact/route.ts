@@ -18,13 +18,13 @@ export async function GET() {
     const [vendor, ent] = await Promise.all([
       prisma.vendor.findUniqueOrThrow({
         where: { id: user.vendorId },
-        select: { privatePhone: true, privateWhatsapp: true, instagramUrl: true }
+        select: { privatePhone: true, privateWhatsapp: true, instagramUrl: true, publicContactEnabled: true }
       }),
       vendorEntitlement(user.vendorId)
     ]);
     return NextResponse.json({
       paid: ent.activePaid,
-      public: publicContactAllowed(ent),
+      public: publicContactAllowed(ent, vendor),
       email: user.email,
       privatePhone: vendor.privatePhone ?? "",
       privateWhatsapp: vendor.privateWhatsapp ?? "",
@@ -46,13 +46,13 @@ export async function PATCH(req: Request) {
         privateWhatsapp: body.privateWhatsapp?.trim() || null,
         instagramUrl: body.instagramUrl?.trim() || null
       },
-      select: { privatePhone: true, privateWhatsapp: true, instagramUrl: true }
+      select: { privatePhone: true, privateWhatsapp: true, instagramUrl: true, publicContactEnabled: true }
     });
     const ent = await vendorEntitlement(user.vendorId);
     return NextResponse.json({
       ok: true,
       paid: ent.activePaid,
-      public: publicContactAllowed(ent),
+      public: publicContactAllowed(ent, vendor),
       email: user.email,
       privatePhone: vendor.privatePhone ?? "",
       privateWhatsapp: vendor.privateWhatsapp ?? "",

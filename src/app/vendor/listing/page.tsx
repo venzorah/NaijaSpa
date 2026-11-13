@@ -6,7 +6,7 @@ export default function VendorListingPage() {
     <div>
       <VendorPageHeader
         title="Listing details"
-        description="After a paid upgrade, add phone, WhatsApp and Instagram that Free listings keep private, then save."
+        description="Save phone and WhatsApp for paid bookings. Explore stays private unless NaijaSpa turns public contact on."
       />
       <VendorListingContactForm highlightMissing />
     </div>

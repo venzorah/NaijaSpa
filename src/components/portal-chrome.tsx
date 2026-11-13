@@ -236,7 +236,7 @@ export function PortalChrome({
               <p className="text-sm font-medium">{planPaid ? planLabel || "Paid" : "Free plan · 10% commission"}</p>
             </div>
             <p className="mt-1 text-xs text-ink2">
-              {planPaid ? "0% commission while this plan is active." : "Go Paid to keep 100% and show phone & WhatsApp."}
+              {planPaid ? "0% commission while this plan is active." : "Go Paid to keep 100% of service revenue."}
             </p>
             <Link
               href="/vendor/subscriptions"

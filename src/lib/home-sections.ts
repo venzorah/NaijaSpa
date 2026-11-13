@@ -121,7 +121,7 @@ export const DEFAULT_HOME_SECTIONS: HomeSection[] = [
   {
     id: "premium",
     title: "Premium",
-    subtitle: "Paid-plan vendors with enhanced visibility and public contact.",
+    subtitle: "Paid-plan vendors with enhanced visibility.",
     visible: true,
     source: "auto",
     sortOrder: 5,

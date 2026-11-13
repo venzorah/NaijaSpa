@@ -31,6 +31,7 @@ model User {
   staffMemberships   VendorStaff[]
   customerProfile    CustomerProfile?
   bookings           Booking[]
+  bookingMessages    BookingMessage[]
   reviews            Review[]
   favourites         Favourite[]
   tickets            SupportTicket[]       @relation("TicketAuthor")
@@ -40,6 +41,7 @@ model User {
   memberships        CustomerMembership[]
   auditLogs          AuditLog[]
   invitesSent        VendorInvite[]        @relation("InviteSender")
+  listingClicks      AdminListingClick[]
 }
 
 model Session {
@@ -94,6 +96,7 @@ model Vendor {
   privatePhone         String?
   privateWhatsapp      String?
   instagramUrl         String?
+  publicContactEnabled Boolean   @default(false)
   payoutBankCode       String?
   payoutBankName       String?
   payoutAccountNumber  String?
@@ -106,6 +109,9 @@ model Vendor {
   suspendedAt          DateTime?
   ratingAvg            Float     @default(0)
   reviewCount          Int       @default(0)
+  publicViewCount      Int       @default(0)
+  publicClickCount     Int       @default(0)
+  adminClickCount      Int       @default(0)
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
@@ -123,6 +129,44 @@ model Vendor {
   galleries            TherapistGallery[]
   videoLinks           VendorVideoLink[]
   heroAds              HeroAd[]
+  adminClicks          AdminListingClick[]
+  listingHits          ListingHit[]
+}
+
+model ListingHit {
+  id        String   @id @default(cuid())
+  vendorId  String
+  serviceId String?
+  kind      String
+  channel   String
+  source    String   @default("")
+  medium    String   @default("")
+  campaign  String   @default("")
+  content   String   @default("")
+  term      String   @default("")
+  path      String   @default("")
+  referrer  String   @default("")
+  ipHash    String   @default("")
+  userAgent String   @default("")
+  createdAt DateTime @default(now())
+  vendor    Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  service   Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+
+  @@index([vendorId, createdAt])
+  @@index([serviceId, createdAt])
+  @@index([kind, channel, createdAt])
+}
+
+model AdminListingClick {
+  id        String   @id @default(cuid())
+  vendorId  String
+  actorId   String
+  createdAt DateTime @default(now())
+  vendor    Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  actor     User     @relation(fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@index([vendorId, createdAt])
+  @@index([actorId])
 }
 
 model VendorSlugAlias {
@@ -259,6 +303,8 @@ model Service {
   hotelAddonKobo       Int      @default(0)
   homeAddonKobo        Int      @default(0)
   cancellationRules    String   @default("")
+  publicViewCount      Int      @default(0)
+  publicClickCount     Int      @default(0)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
@@ -270,6 +316,7 @@ model Service {
   favourites           Favourite[]
   campaigns            Campaign[]
   slugAliases          ServiceSlugAlias[]
+  listingHits          ListingHit[]
 
   @@index([vendorId, active])
 }
@@ -446,10 +493,23 @@ model Booking {
   earning               VendorEarning?
   review                Review?
   statusHistory         BookingStatusEvent[]
+  messages              BookingMessage[]
 
   @@index([vendorId, startsAt])
   @@index([customerId, status])
   @@index([staffId, startsAt])
+}
+
+model BookingMessage {
+  id        String   @id @default(cuid())
+  bookingId String
+  senderId  String
+  body      String
+  createdAt DateTime @default(now())
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  sender    User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId, createdAt])
 }
 
 model BookingStatusEvent {

@@ -13,6 +13,7 @@ import { Panel } from "@/components/admin/panel";
 import { AdminStatusPill } from "@/components/admin/status-pill";
 import { adminJson } from "@/components/admin/json";
 import { formatNgn } from "@/lib/money";
+import { formatViews } from "@/lib/listing-views";
 import { ServiceEditorModal } from "@/components/service-editor-modal";
 import { cn } from "@/lib/cn";
 
@@ -36,6 +37,7 @@ export type AdminServiceRow = {
   active: boolean;
   locations: string[];
   createdAt: string;
+  publicViewCount: number;
 };
 
 function detectIssues(s: AdminServiceRow): string[] {
@@ -59,8 +61,16 @@ export function ServicesConsole({ rows, editable, vendors, categories }: { rows:
     });
   }, [rows, query, filter]);
   const [selectedId, setSelectedId] = useState(filtered[0]?.id ?? rows[0]?.id ?? "");
+  const [checked, setChecked] = useState<string[]>([]);
   const selected = filtered.find((s) => s.id === selectedId) ?? filtered[0];
   const issues = selected ? detectIssues(selected) : [];
+
+  async function runBulk(action: "approve" | "hide", reason?: string) {
+    if (!editable || !checked.length) return;
+    await adminJson("/api/admin/services/bulk", { method: "POST", body: JSON.stringify({ ids: checked, action, reason }) });
+    setChecked([]);
+    router.refresh();
+  }
 
   return (
     <div>
@@ -79,6 +89,26 @@ export function ServicesConsole({ rows, editable, vendors, categories }: { rows:
           />
         </div>
       </div>
+      {checked.length ? (
+        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-line bg-card p-3">
+          <p className="mr-auto text-sm font-medium">{checked.length} selected</p>
+          <button type="button" className={adminBtn} disabled={!editable} onClick={() => void runBulk("approve")}>
+            Approve
+          </button>
+          <ConfirmAction
+            triggerLabel="Hide"
+            disabled={!editable}
+            title={`Hide ${checked.length} services?`}
+            description="Selected treatments come off Explore until you approve them again."
+            confirmLabel="Hide selected"
+            requireReason
+            onConfirm={(reason) => runBulk("hide", reason)}
+          />
+          <button type="button" className={adminBtnOutline} onClick={() => setChecked([])}>
+            Clear
+          </button>
+        </div>
+      ) : null}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
         <Panel className="xl:col-span-2" bodyClassName="p-0">
           {filtered.length === 0 ? (
@@ -89,22 +119,40 @@ export function ServicesConsole({ rows, editable, vendors, categories }: { rows:
             />
           ) : (
             <ul className="divide-y divide-line">
+              <li className="flex items-center gap-2 px-3 py-2 text-[11px] text-ink2">
+                <input
+                  type="checkbox"
+                  aria-label="Select all visible services"
+                  checked={filtered.length > 0 && filtered.every((s) => checked.includes(s.id))}
+                  onChange={() => {
+                    const visible = filtered.map((s) => s.id);
+                    const allOn = visible.every((id) => checked.includes(id));
+                    setChecked(allOn ? checked.filter((id) => !visible.includes(id)) : [...new Set([...checked, ...visible])]);
+                  }}
+                />
+                Select all in this queue
+              </li>
               {filtered.map((s) => (
-                <li key={s.id}>
+                <li key={s.id} className={cn("flex items-start gap-2 p-3 hover:bg-elev/60", selected?.id === s.id && "bg-gold/5 shadow-[inset_2px_0_0_#d4af37]")}>
+                  <input
+                    type="checkbox"
+                    className="mt-1"
+                    aria-label={`Select ${s.name}`}
+                    checked={checked.includes(s.id)}
+                    onChange={() => setChecked((ids) => (ids.includes(s.id) ? ids.filter((id) => id !== s.id) : [...ids, s.id]))}
+                  />
                   <button
                     type="button"
                     onClick={() => setSelectedId(s.id)}
-                    className={cn("flex w-full gap-3 p-3 text-left hover:bg-elev/60", selected?.id === s.id && "bg-gold/5 shadow-[inset_2px_0_0_#d4af37]")}
+                    className="min-w-0 flex-1 text-left"
                   >
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-xs font-medium">{s.name}</span>
-                      <span className="block truncate text-[11px] text-ink2">
-                        {s.vendor} · {s.category}
-                      </span>
-                      <span className="mt-1 flex items-center gap-2 text-[11px]">
-                        <span className="tabular-nums">{formatNgn(s.price)}</span>
-                        {detectIssues(s).length > 0 ? <AdminStatusPill status={`${detectIssues(s).length} issues`} /> : null}
-                      </span>
+                    <span className="block truncate text-xs font-medium">{s.name}</span>
+                    <span className="block truncate text-[11px] text-ink2">
+                      {s.vendor} · {s.category} · {formatViews(s.publicViewCount)}
+                    </span>
+                    <span className="mt-1 flex items-center gap-2 text-[11px]">
+                      <span className="tabular-nums">{formatNgn(s.price)}</span>
+                      {detectIssues(s).length > 0 ? <AdminStatusPill status={`${detectIssues(s).length} issues`} /> : null}
                     </span>
                   </button>
                 </li>

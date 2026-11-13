@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { duringNextBuild, usingDemoListings } from "./live-db";
+import { viewCount } from "./listing-views";
 import { withTimeout } from "./timeout";
 import {
   quoteBooking,
@@ -234,7 +235,8 @@ async function loadHomeCatalog(place: LivePlace | null) {
             logoUrl: true,
             coverUrl: true,
             privatePhone: true,
-            privateWhatsapp: true
+            privateWhatsapp: true,
+            publicContactEnabled: true
           }
         },
         category: { select: { name: true, slug: true } }
@@ -290,7 +292,8 @@ async function loadHomeCatalog(place: LivePlace | null) {
             logoUrl: true,
             coverUrl: true,
             privatePhone: true,
-            privateWhatsapp: true
+            privateWhatsapp: true,
+            publicContactEnabled: true
           }
         },
         category: { select: { name: true, slug: true } }
@@ -590,7 +593,7 @@ function demoPublicService(slug: string) {
   const vendor = sanitizePublicVendor(service.vendor, service.vendor.entitlement);
   return {
     demo: true as const,
-    service,
+    service: { ...service, publicViewCount: 0 },
     vendor,
     quotes: locationQuotes(service, service.vendor.entitlement, DEFAULT_COMMERCIAL),
     treatments: demoTreatmentsForVendor(service.vendorId),
@@ -659,10 +662,12 @@ export async function getPublicService(slug: string) {
       verificationStatus: service.vendor.verificationStatus,
       ratingAvg: Number(service.vendor.ratingAvg) || 0,
       reviewCount: Number(service.vendor.reviewCount) || 0,
+      publicViewCount: viewCount(service.vendor),
       cancellationPolicy: service.vendor.cancellationPolicy,
       privatePhone: service.vendor.privatePhone,
       privateWhatsapp: service.vendor.privateWhatsapp,
       instagramUrl: service.vendor.instagramUrl,
+      publicContactEnabled: service.vendor.publicContactEnabled,
       owner: service.vendor.owner
     },
     ent
@@ -686,7 +691,8 @@ export async function getPublicService(slug: string) {
       imageUrl: publicWellnessPhoto(service.imageUrl, PHOTOS.massage),
       spaEnabled: service.spaEnabled,
       hotelEnabled: service.hotelEnabled,
-      homeEnabled: service.homeEnabled
+      homeEnabled: service.homeEnabled,
+      publicViewCount: viewCount(service)
     },
     vendor,
     galleries: mapPublicGalleries(service.vendor.galleries),
@@ -740,10 +746,12 @@ export async function getPublicVendor(slug: string) {
         verificationStatus: vendor.verificationStatus,
         ratingAvg: Number(vendor.ratingAvg) || 0,
         reviewCount: Number(vendor.reviewCount) || 0,
+        publicViewCount: viewCount(vendor),
         cancellationPolicy: vendor.cancellationPolicy,
         privatePhone: vendor.privatePhone,
         privateWhatsapp: vendor.privateWhatsapp,
         instagramUrl: vendor.instagramUrl,
+        publicContactEnabled: vendor.publicContactEnabled,
         owner: vendor.owner
       },
       ent
@@ -755,7 +763,8 @@ export async function getPublicVendor(slug: string) {
       name: s.name,
       durationMin: s.durationMin,
       basePriceKobo: s.basePriceKobo,
-      imageUrl: publicWellnessPhoto(s.imageUrl, PHOTOS.massage)
+      imageUrl: publicWellnessPhoto(s.imageUrl, PHOTOS.massage),
+      publicViewCount: viewCount(s)
     })),
     galleries: mapPublicGalleries(vendor.galleries),
     videoLinks: publicVideoLinks(

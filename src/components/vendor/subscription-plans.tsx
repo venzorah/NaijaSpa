@@ -23,7 +23,7 @@ export function SubscriptionPlans({ plans, current, canPay }: {
   const features: { label: string; value: (plan: VendorListingPlanView) => string | boolean }[] = [
     { label: "Unlimited service listings", value: () => true },
     { label: "Booking commission", value: plan => `${plan.commissionBps / 100}%` },
-    { label: "Public phone & WhatsApp on profile", value: plan => plan.publicDirectContact },
+    { label: "Public contact on Explore", value: () => "Hidden unless NaijaSpa turns it on" },
     { label: "Search visibility", value: plan => plan.enhancedVisibility ? "Enhanced" : "Standard" },
     { label: "Eligible for sponsored placements", value: plan => plan.sponsoredEligible },
     { label: "Booking analytics", value: () => "Included" },
@@ -39,7 +39,7 @@ export function SubscriptionPlans({ plans, current, canPay }: {
         const selected = cta.kind === "current";
         const perks = [
           { label: `${plan.commissionBps / 100}% commission`, included: true },
-          { label: plan.publicDirectContact ? "Public phone & WhatsApp" : "No public contact", included: plan.publicDirectContact },
+          { label: "Explore contact hidden", included: true },
           { label: plan.enhancedVisibility ? "Enhanced visibility" : "Standard visibility", included: true },
           { label: "Sponsored eligibility", included: plan.sponsoredEligible }
         ];

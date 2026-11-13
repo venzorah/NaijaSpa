@@ -153,7 +153,7 @@ export function VendorPlansConsole() {
                     defaultChecked={p.code !== "FREE" && p.publicDirectContact}
                     disabled={!canEdit || p.code === "FREE"}
                   />
-                  Public phone & WhatsApp {p.code === "FREE" ? "(paid plans only)" : ""}
+                  Legacy plan flag (ignored — public contact is per vendor on Admin → Vendors)
                 </label>
                 <label className="col-span-2 flex min-h-10 items-center gap-2 text-sm">
                   <input name="visibility" type="checkbox" defaultChecked={p.enhancedVisibility} disabled={!canEdit} />
@@ -166,8 +166,8 @@ export function VendorPlansConsole() {
                 <p className="col-span-2 flex items-start gap-2 text-xs text-ink2">
                   <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-leaf" aria-hidden />
                   {p.code === "FREE"
-                    ? "No weekly, monthly or annual fee. Commission applies on successful bookings. Phone and WhatsApp stay hidden from the public."
-                    : "If the vendor does not renew after grace, the listing returns to Free and public contact is hidden."}
+                    ? "No weekly, monthly or annual fee. Commission applies on successful bookings. Phone, WhatsApp and social links stay hidden on Explore unless you turn public contact on for that vendor."
+                    : "If the vendor does not renew after grace, the listing returns to Free. Public contact is still only on when you enable it on the vendor."}
                 </p>
                 {canEdit ? <button className={`${adminBtn} col-span-2`}>Save listing plan</button> : null}
               </form>

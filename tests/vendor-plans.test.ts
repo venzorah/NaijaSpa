@@ -26,9 +26,9 @@ const gold = {
 const platinum = { ...gold, code: "PLATINUM", name: "Platinum", priceKobo: 51_000_000, durationDays: 365 };
 
 describe("vendor listing plans", () => {
-  it("keeps Free contact private and paid contact public", () => {
+  it("keeps listing contact private on every plan", () => {
     expect(vendorPlanPerks(free).some((p) => /private/i.test(p))).toBe(true);
-    expect(vendorPlanPerks(gold).some((p) => /Instagram/i.test(p))).toBe(true);
+    expect(vendorPlanPerks(gold).some((p) => /hidden on Explore/i.test(p))).toBe(true);
   });
 
   it("maps legacy weekly/monthly codes onto live paid plans", () => {

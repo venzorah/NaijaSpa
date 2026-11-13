@@ -23,12 +23,13 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ b
   const local = new Date(now.getTime() + 3600000);
   const monthStart = new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), 1) - 3600000);
   const nextMonth = new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth() + 1, 1) - 3600000);
-  const [plans, ent, config, bookings] = await Promise.all([
+  const [plans, ent, config, bookings, vendor] = await Promise.all([
     listPublicVendorPlans(), vendorEntitlement(user.vendorId), getCommercialConfig(),
     prisma.booking.findMany({
       where: { vendorId: user.vendorId, startsAt: { gte: monthStart, lt: nextMonth }, status: "completed" },
       select: { status: true, basePriceKobo: true, commissionKobo: true }
-    })
+    }),
+    prisma.vendor.findUniqueOrThrow({ where: { id: user.vendorId }, select: { publicContactEnabled: true } })
   ]);
   // Resolve the subscription after entitlement reconciliation can expire an old period.
   const current = await prisma.vendorSubscription.findFirst({
@@ -46,12 +47,12 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ b
   const name = currentPlan?.name ?? (ent.activePaid ? ent.planCode : "Free");
 
   return <div className="subscription-page">
-    <VendorPageHeader title="Subscription" description="Free forever, or choose a paid plan for enhanced visibility and public contact." actions={<BillingHistoryButton initiallyOpen={billing === "1"} />} />
+    <VendorPageHeader title="Subscription" description="Free forever, or choose a paid plan for lower commission and enhanced visibility. Public contact is hidden unless NaijaSpa turns it on." actions={<BillingHistoryButton initiallyOpen={billing === "1"} />} />
     <div className="mb-8 grid gap-4 xl:grid-cols-[1.3fr_1fr]">
       <section aria-label="Current subscription" className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-line bg-card">
         <div className="flex items-start gap-4 p-5 sm:p-6"><span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gold/10 text-goldink"><Crown className="h-6 w-6" aria-hidden /></span><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><h2 className="subscription-plan-name">{ent.activePaid ? `Paid · ${name}` : name}</h2><AdminStatusPill status={paidCurrent ? paidCurrent.status : "Free"} tone={ent.activePaid ? "success" : "neutral"} /></div><p className="mt-1 text-xs leading-relaxed text-ink2">{paidCurrent ? `Started ${date(paidCurrent.startsAt)} · ${current?.cancelAtPeriodEnd ? "Ends" : "Renew by"} ${date(paidCurrent.endsAt)}` : "No subscription fee. Keep your services listed and accept bookings on NaijaSpa."}</p></div></div>
         <dl className="grid grid-cols-2 divide-x divide-line border-y border-line sm:grid-cols-4">{[
-          ["Commission", `${ent.commissionBps / 100}%`], ["Public contact", ent.publicDirectContact ? "Visible" : "Private"],
+          ["Commission", `${ent.commissionBps / 100}%`], ["Public contact", vendor.publicContactEnabled ? "Visible" : "Hidden"],
           ["Visibility", ent.enhancedVisibility ? "Enhanced" : "Standard"], ["Sponsored", ent.sponsoredEligible ? "Eligible" : "Not included"]
         ].map(([label, value]) => <div key={label} className="px-5 py-4"><dt className="text-[11px] text-ink2">{label}</dt><dd className="mt-1 text-xs font-semibold">{value}</dd></div>)}</dl>
         <div className="mt-auto flex flex-wrap items-center justify-between gap-3 px-5 py-4"><p className="flex items-center gap-2 text-xs text-ink2"><RefreshCw className="h-3.5 w-3.5" aria-hidden />{ent.activePaid ? "Manual renewal" : "No recurring listing fee"}</p><Link href="/vendor/support" className="rounded-lg border border-line px-3 py-2 text-xs font-semibold hover:bg-elev">{ent.activePaid ? "Manage renewal" : "Plan support"}</Link></div>

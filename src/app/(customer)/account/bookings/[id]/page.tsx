@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { CalendarClock, Instagram, Mail, MapPin, MessageCircle, Receipt, ShieldCheck, Star, User } from "lucide-react";
+import { CalendarClock, MapPin, MessageCircle, Receipt, ShieldCheck, Star, User } from "lucide-react";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { formatNgn } from "@/lib/money";
@@ -8,9 +8,10 @@ import { PageHeader } from "@/components/page-header";
 import { StatusPill } from "@/components/status-pill";
 import { CancelBooking } from "@/components/cancel-booking";
 import { ConfirmVisit } from "@/components/confirm-visit";
+import { BookingChat } from "@/components/booking-chat";
 import { PHOTOS, publicWellnessPhoto } from "@/lib/photos";
 import { locationLabel } from "@/lib/booking-ui";
-import { bookingUnlocksVendorContact, toInstagramLink, toWhatsAppLink } from "@/lib/commercial";
+import { bookingUnlocksVendorContact, toWhatsAppLink } from "@/lib/commercial";
 
 export default async function BookingDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await getSession();
@@ -18,16 +19,13 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
   const { id } = await params;
   const booking = await prisma.booking.findUnique({
     where: { id },
-    include: { service: true, vendor: { include: { owner: { select: { email: true } } } }, staff: true, payments: true, review: true }
+    include: { service: true, vendor: true, staff: true, payments: true, review: true }
   });
   if (!booking || booking.customerId !== user.id) notFound();
   const active = ["awaiting_payment", "confirmed", "pending"].includes(booking.status);
   const paid = booking.payments.find((p) => p.status === "success");
-  const showContact = bookingUnlocksVendorContact(booking.status, Boolean(paid));
-  const phone = showContact ? booking.vendor.privatePhone : null;
-  const whatsapp = showContact ? toWhatsAppLink(booking.vendor.privateWhatsapp || booking.vendor.privatePhone) : null;
-  const email = showContact ? booking.vendor.owner?.email ?? null : null;
-  const instagram = showContact ? toInstagramLink(booking.vendor.instagramUrl) : null;
+  const showChat = bookingUnlocksVendorContact(booking.status, Boolean(paid));
+  const whatsapp = showChat ? toWhatsAppLink(booking.vendor.privateWhatsapp || booking.vendor.privatePhone) : null;
   const photo = publicWellnessPhoto(booking.service.imageUrl, PHOTOS.massage);
 
   return (
@@ -59,40 +57,28 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
               {locationLabel(booking.locationType)}
               {booking.locationDetails ? ` · ${booking.locationDetails}` : ""}
             </li>
-            {showContact && (phone || whatsapp || email || instagram) ? (
+            {showChat && whatsapp ? (
               <li className="flex flex-wrap items-center gap-3 text-ink">
                 <MessageCircle className="h-4 w-4 text-leaf" aria-hidden />
-                {phone ? (
-                  <a href={`tel:${phone.replace(/\s/g, "")}`} className="font-semibold text-leaf hover:underline">
-                    {phone}
-                  </a>
-                ) : null}
-                {whatsapp ? (
-                  <a href={whatsapp} className="font-semibold text-leaf hover:underline">
-                    WhatsApp
-                  </a>
-                ) : null}
-                {email ? (
-                  <a href={`mailto:${email}`} className="inline-flex items-center gap-1 font-semibold text-leaf hover:underline">
-                    <Mail className="h-3.5 w-3.5" aria-hidden />
-                    Email
-                  </a>
-                ) : null}
-                {instagram ? (
-                  <a href={instagram} className="inline-flex items-center gap-1 font-semibold text-leaf hover:underline" target="_blank" rel="noreferrer">
-                    <Instagram className="h-3.5 w-3.5" aria-hidden />
-                    Instagram
-                  </a>
-                ) : null}
+                <a href={whatsapp} className="font-semibold text-leaf hover:underline" target="_blank" rel="noreferrer">
+                  WhatsApp the therapist
+                </a>
               </li>
             ) : (
               <li className="flex items-start gap-3 text-ink2">
                 <ShieldCheck className="h-4 w-4 shrink-0 text-leaf" aria-hidden />
-                Therapist contact appears here after Paystack confirms your payment.
+                WhatsApp and in-app chat appear here after Paystack confirms your payment.
               </li>
             )}
           </ul>
         </div>
+      </div>
+
+      <div className="mt-4">
+        <BookingChat
+          bookingId={booking.id}
+          lockedHint={showChat ? undefined : "WhatsApp and in-app chat open after Paystack confirms your payment."}
+        />
       </div>
 
       <section className="mt-4 rounded-3xl border border-line bg-card p-5">

@@ -95,11 +95,16 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         address: z.string().trim().min(4).max(500).optional(),
         cancellationPolicy: z.string().trim().max(5000).optional(),
         coverUrl: z.union([publicContentUrl, z.literal("")]).optional(),
-        logoUrl: z.union([publicContentUrl, z.literal("")]).optional()
+        logoUrl: z.union([publicContentUrl, z.literal("")]).optional(),
+        publicContactEnabled: z.boolean().optional()
       })
       .strict()
       .refine(body => Object.keys(body).length > 0, "Choose details to update")
       .refine(body => !body.planCode || Object.keys(body).length === 1, "Update the listing plan separately from vendor details")
+      .refine(
+        body => !("publicContactEnabled" in body) || Object.keys(body).length === 1,
+        "Turn public contact on or off separately from other vendor details"
+      )
       .parse(await req.json());
     const { planCode, coverUrl, logoUrl, ...rest } = body;
     const data = {

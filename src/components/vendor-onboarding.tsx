@@ -344,7 +344,7 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
               </li>
               <li className="flex gap-3">
                 <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-gold" />
-                Phone and WhatsApp stay private until you unlock them
+                Phone and WhatsApp stay private on Explore
               </li>
               <li className="flex gap-3">
                 <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-gold" />
@@ -467,7 +467,7 @@ export function VendorOnboarding({ embedded = false }: { embedded?: boolean }) {
 
                 {current.id === "contact" && (
                   <>
-                    <p className="text-sm text-ink2">Paid listing plans show WhatsApp, email (your login) and Instagram on Explore. Free listings keep them private until a customer pays for a booking.</p>
+                    <p className="text-sm text-ink2">These stay hidden on Explore. After a customer pays, they can WhatsApp you and use in-app chat. NaijaSpa can turn public contact on later.</p>
                     <label className="block space-y-2">
                       <span className={labelClass}>Phone</span>
                       <input

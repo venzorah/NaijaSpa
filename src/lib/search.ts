@@ -114,7 +114,7 @@ async function searchLive(filters: SearchFilters) {
       vendor: { select: {
         id: true, slug: true, businessName: true, state: true, city: true, neighbourhood: true,
         verificationStatus: true, ratingAvg: true, reviewCount: true, logoUrl: true, coverUrl: true,
-        privatePhone: true, privateWhatsapp: true, instagramUrl: true, owner: { select: { email: true } }
+        privatePhone: true, privateWhatsapp: true, instagramUrl: true, publicContactEnabled: true, owner: { select: { email: true } }
       } },
       category: { select: { name: true, slug: true } },
       staff: { select: { staff: { select: { id: true, name: true, active: true, gender: true } } } }
@@ -126,7 +126,7 @@ async function searchLive(filters: SearchFilters) {
   const results = [];
   for (const row of rows) {
     const ent = entitlements.get(row.vendorId) ?? FREE_ENTITLEMENT;
-    if (filters.publicContact && !ent.publicDirectContact) continue;
+    if (filters.publicContact && !row.vendor.publicContactEnabled) continue;
     const vendorPlace = {
       state: "state" in row.vendor ? String(row.vendor.state ?? "") : "",
       city: row.vendor.city,
@@ -149,6 +149,7 @@ async function searchLive(filters: SearchFilters) {
         privatePhone: row.vendor.privatePhone,
         privateWhatsapp: row.vendor.privateWhatsapp,
         instagramUrl: row.vendor.instagramUrl,
+        publicContactEnabled: row.vendor.publicContactEnabled,
         owner: { email: row.vendor.owner?.email ?? "" }
       },
       ent
