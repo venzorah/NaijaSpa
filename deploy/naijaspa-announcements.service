@@ -1,0 +1,17 @@
+[Unit]
+Description=Process NaijaSpa queued announcements
+After=naijaspa-web.service
+
+[Service]
+Type=oneshot
+User=naijaspa
+Group=naijaspa
+WorkingDirectory=/srv/naijaspa/current
+EnvironmentFile=/srv/naijaspa/shared/.env
+ExecStart=/usr/bin/node /srv/naijaspa/current/deploy/run-announcements.mjs
+TimeoutStartSec=260
+MemoryMax=128M
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict

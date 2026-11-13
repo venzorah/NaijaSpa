@@ -1,0 +1,10 @@
+[Unit]
+Description=Check NaijaSpa announcement queue every minute
+
+[Timer]
+OnBootSec=2min
+OnUnitInactiveSec=1min
+Unit=naijaspa-announcements.service
+
+[Install]
+WantedBy=timers.target
