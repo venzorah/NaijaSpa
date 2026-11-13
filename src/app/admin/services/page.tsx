@@ -8,8 +8,7 @@ export default async function ServicesPage() {
   const services = await prisma.service.findMany({
     where: { deletedAt: null, vendor: {applicationStatus: {not:"deleted"}} },
     include: { vendor: { select: { businessName: true } }, category: { select: { name: true } } },
-    orderBy: { createdAt: "desc" },
-    take: 200
+    orderBy: { createdAt: "desc" }
   });
   const [vendors, categories] = await Promise.all([prisma.vendor.findMany({ select: { id: true, businessName: true }, orderBy: { businessName: "asc" } }), prisma.category.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { sortOrder: "asc" } })]);
   return (

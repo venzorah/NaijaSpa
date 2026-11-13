@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, CheckCircle2, Clock, MapPin, PencilLine, ShieldCheck, XCircle } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { ConfirmAction } from "@/components/admin/confirm-action";
 import { FilterChips } from "@/components/admin/filter-chips";
+import { SearchInput } from "@/components/admin/search-input";
 import { adminBtn, adminBtnOutline } from "@/components/admin/form-row";
 import { Panel } from "@/components/admin/panel";
 import { AdminStatusPill } from "@/components/admin/status-pill";
@@ -48,8 +49,15 @@ function detectIssues(s: AdminServiceRow): string[] {
 export function ServicesConsole({ rows, editable, vendors, categories }: { rows: AdminServiceRow[]; editable: boolean; vendors: { id: string; businessName: string }[]; categories: { id: string; name: string }[] }) {
   const [editor, setEditor] = useState<AdminServiceRow | "new" | null>(null);
   const router = useRouter();
+  const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"pending" | "live" | "hidden">("pending");
-  const filtered = rows.filter((s) => (filter === "live" ? s.active : filter === "hidden" ? !s.active : !s.active));
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return rows.filter((s) => {
+      const inQueue = filter === "live" ? s.active : !s.active;
+      return inQueue && (!q || s.vendor.toLowerCase().includes(q));
+    });
+  }, [rows, query, filter]);
   const [selectedId, setSelectedId] = useState(filtered[0]?.id ?? rows[0]?.id ?? "");
   const selected = filtered.find((s) => s.id === selectedId) ?? filtered[0];
   const issues = selected ? detectIssues(selected) : [];
@@ -58,20 +66,27 @@ export function ServicesConsole({ rows, editable, vendors, categories }: { rows:
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <button type="button" disabled={!editable || !categories.length || !vendors.length} onClick={() => setEditor("new")} className={adminBtn}>New service</button>
-        <FilterChips
-          label="Moderation queue"
-          value={filter}
-          onChange={setFilter}
-          options={[
-            { value: "pending", label: "Hidden / pending", count: rows.filter((s) => !s.active).length },
-            { value: "live", label: "Live", count: rows.filter((s) => s.active).length }
-          ]}
-        />
+        <div className="flex min-w-0 flex-1 flex-col gap-2 sm:max-w-md">
+          <SearchInput value={query} onChange={setQuery} label="Search by vendor name" placeholder="Search by vendor name" />
+          <FilterChips
+            label="Moderation queue"
+            value={filter}
+            onChange={setFilter}
+            options={[
+              { value: "pending", label: "Hidden / pending", count: rows.filter((s) => !s.active).length },
+              { value: "live", label: "Live", count: rows.filter((s) => s.active).length }
+            ]}
+          />
+        </div>
       </div>
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
         <Panel className="xl:col-span-2" bodyClassName="p-0">
           {filtered.length === 0 ? (
-            <EmptyState icon={ShieldCheck} title="Nothing in this queue" text="Nothing needs your attention here." />
+            <EmptyState
+              icon={ShieldCheck}
+              title={query.trim() ? "No matching vendor" : "Nothing in this queue"}
+              text={query.trim() ? "Try another vendor name, or switch between Hidden and Live." : "Nothing needs your attention here."}
+            />
           ) : (
             <ul className="divide-y divide-line">
               {filtered.map((s) => (

@@ -30,4 +30,11 @@ describe("admin filtered record selection", () => {
     expect(html).toContain("Nothing in this queue");
     expect(html).not.toContain("Live-only sample treatment");
   });
+  it("exposes vendor-name search on the service moderation queue", () => {
+    const html = renderToStaticMarkup(createElement(ServicesConsole, { editable: true, vendors: [], categories: [], rows: [
+      { id: "pending", slug: "pending", name: "Deep tissue", description: "", imageUrl: null, vendor: "Ada Spa", vendorId: "vendor", categoryId: "category", spaEnabled: true, hotelEnabled: false, homeEnabled: false, hotelAddonKobo: 0, homeAddonKobo: 0, category: "Massage", price: 5000000, duration: 60, active: false, locations: ["spa"], createdAt: "31 Oct" }
+    ] }));
+    expect(html).toContain("Search by vendor name");
+    expect(html).toContain("Ada Spa");
+  });
 });

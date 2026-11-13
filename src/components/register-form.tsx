@@ -3,16 +3,18 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { ArrowRight, Mail, Store, User } from "lucide-react";
 import { GoogleAuthButton } from "@/components/google-auth-button";
 import {
+  AccountTypeCards,
   AuthHeading,
   AuthHint,
   AuthLabel,
+  AuthOrDivider,
   AuthPassword,
   AuthScreen,
-  RoleSwitch,
-  authCtaClass,
-  authFieldClass
+  AuthTextField,
+  authGoldCtaClass
 } from "@/components/auth-screen";
 
 export function RegisterForm() {
@@ -31,12 +33,15 @@ export function RegisterForm() {
 
   return (
     <AuthScreen>
-      <AuthHeading title="Create Account" subtitle="Join our exclusive wellness community." />
-      <RoleSwitch asVendor={asVendor} onChange={pick} />
-      <AuthHint>
+      <AuthHeading
+        title={asVendor ? "Service Provider Sign Up" : "Customer Sign Up"}
+        subtitle="Join Nigeria's beauty, grooming and wellness community."
+      />
+      <AccountTypeCards asVendor={asVendor} onChange={pick} />
+      <AuthHint icon={asVendor ? Store : User}>
         {asVendor
-          ? "Create a spa therapist account to list your services, take bookings, and grow your studio."
-          : "Create a client account to browse therapists, book sessions, and access exclusive VIP experiences."}
+          ? "Create a service provider account to showcase your services, attract customers and grow on NaijaSpa."
+          : "Create a customer account to book treatments, save favourites and enjoy wellness on NaijaSpa."}
       </AuthHint>
 
       <form
@@ -69,73 +74,65 @@ export function RegisterForm() {
         }}
       >
         <div className="grid grid-cols-2 gap-3">
-          <div>
-            <AuthLabel htmlFor="firstName">First Name</AuthLabel>
-            <input
-              id="firstName"
-              name="firstName"
-              required
-              autoComplete="given-name"
-              placeholder="First Name"
-              className={authFieldClass}
-            />
-          </div>
-          <div>
-            <AuthLabel htmlFor="lastName">Last Name</AuthLabel>
-            <input
-              id="lastName"
-              name="lastName"
-              required
-              autoComplete="family-name"
-              placeholder="Last Name"
-              className={authFieldClass}
-            />
-          </div>
-        </div>
-        <div>
-          <AuthLabel htmlFor="email">Email Address</AuthLabel>
-          <input
-            id="email"
-            name="email"
-            type="email"
+          <AuthTextField
+            id="firstName"
+            name="firstName"
+            label="First Name"
+            icon={User}
             required
-            autoComplete="email"
-            placeholder="Enter your email"
-            className={authFieldClass}
+            autoComplete="given-name"
+            placeholder="Enter first name"
+          />
+          <AuthTextField
+            id="lastName"
+            name="lastName"
+            label="Last Name"
+            icon={User}
+            required
+            autoComplete="family-name"
+            placeholder="Enter last name"
           />
         </div>
+        <AuthTextField
+          id="email"
+          name="email"
+          type="email"
+          label="Email Address"
+          icon={Mail}
+          required
+          autoComplete="email"
+          placeholder="Enter your email address"
+        />
         <div>
           <AuthLabel htmlFor="password">Password</AuthLabel>
-          <AuthPassword />
+          <AuthPassword placeholder="Create a password (min. 10 characters)" />
         </div>
         {error ? <p className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
-        <button disabled={busy} className={authCtaClass}>
-          {busy ? "Creating…" : asVendor ? "Create Therapist Account" : "Create Client Account"}
+        <button disabled={busy} className={authGoldCtaClass}>
+          {busy ? "Creating…" : asVendor ? "Create Service Provider Account" : "Create Customer Account"}
+          {busy ? null : <ArrowRight className="h-4 w-4" aria-hidden />}
         </button>
       </form>
 
       <p className="mt-4 text-center text-[12px] leading-relaxed text-ink2">
         By creating an account you agree to our{" "}
-        <Link href="/terms" className="font-semibold text-ink underline decoration-line underline-offset-2">
-          Terms
+        <Link href="/terms" className="font-semibold text-forest underline underline-offset-2">
+          Terms of Service
         </Link>{" "}
-        &{" "}
-        <Link href="/privacy" className="font-semibold text-ink underline decoration-line underline-offset-2">
+        and{" "}
+        <Link href="/privacy" className="font-semibold text-forest underline underline-offset-2">
           Privacy Policy
         </Link>
         .
       </p>
 
-      <div className="mt-6">
-        <GoogleAuthButton
-          portal={portal}
-          next={next}
-          from="register"
-          label={asVendor ? "Create therapist account with Gmail" : "Create client account with Gmail"}
-        />
+      <AuthOrDivider />
+
+      <div className="mt-4">
+        <GoogleAuthButton portal={portal} next={next} from="register" label="Continue with Google" />
       </div>
 
-      <p className="mt-6 text-center text-sm text-ink2">
+      <p className="mt-6 pb-2 text-center text-sm text-ink2">
         Already have an account?{" "}
         <Link href={asVendor ? "/login/vendor" : "/login"} className="font-semibold text-ink">
           Sign in

@@ -3,14 +3,15 @@ import { portalNext } from "@/lib/portal-auth";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Store, User } from "lucide-react";
 import { GoogleAuthButton } from "@/components/google-auth-button";
 import {
+  AccountTypeCards,
   AuthHeading,
   AuthHint,
   AuthLabel,
   AuthPassword,
   AuthScreen,
-  RoleSwitch,
   authCtaClass,
   authFieldClass
 } from "@/components/auth-screen";
@@ -33,8 +34,12 @@ export function PortalLogin({
   const [asVendor, setAsVendor] = useState(portal === "vendor");
   const split = portal !== "admin";
   const expect = split ? (asVendor ? "vendor" : "customer") : "admin";
-  const heading = split ? "Welcome Back" : title;
-  const sub = split ? "Sign in to your wellness account." : subtitle;
+  const heading = split ? (asVendor ? "Service Provider Sign In" : "Customer Sign In") : title;
+  const sub = split
+    ? asVendor
+      ? "Sign in to manage services, bookings and earnings."
+      : "Sign in to book treatments and manage your appointments."
+    : subtitle;
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -55,11 +60,11 @@ export function PortalLogin({
       <AuthHeading title={heading} subtitle={sub} />
       {split ? (
         <>
-          <RoleSwitch asVendor={asVendor} onChange={pick} />
-          <AuthHint>
+          <AccountTypeCards asVendor={asVendor} onChange={pick} />
+          <AuthHint icon={asVendor ? Store : User}>
             {asVendor
-              ? "Sign in as a spa therapist to manage services, galleries, bookings and earnings."
-              : "Sign in as a client to book sessions, manage appointments and pay with Paystack."}
+              ? "Sign in as a service provider to manage services, galleries, bookings and earnings."
+              : "Sign in as a customer to book treatments, manage appointments and pay with Paystack."}
           </AuthHint>
         </>
       ) : (
@@ -115,7 +120,7 @@ export function PortalLogin({
           <AuthPassword autoComplete="current-password" minLength={1} placeholder="Enter your password" />
         </div>
         <button disabled={busy} className={authCtaClass}>
-          {busy ? "Signing in…" : split ? (asVendor ? "Sign in as Therapist" : "Sign in as Client") : "Sign in"}
+          {busy ? "Signing in…" : split ? (asVendor ? "Sign in as Service Provider" : "Sign in as Customer") : "Sign in"}
         </button>
       </form>
 
@@ -124,13 +129,7 @@ export function PortalLogin({
           portal={expect}
           next={next}
           from="login"
-          label={
-            expect === "admin"
-              ? "Continue with Gmail"
-              : asVendor
-                ? "Sign in with Gmail as therapist"
-                : "Sign in with Gmail as client"
-          }
+          label={expect === "admin" ? "Continue with Gmail" : "Continue with Google"}
         />
       </div>
 
@@ -151,9 +150,9 @@ export function PortalLogin({
         <p className="mt-8 text-center text-xs text-ink2">
           <Link href="/">NaijaSpa home</Link>
           {" · "}
-          <Link href="/login">Client</Link>
+          <Link href="/login">Customer</Link>
           {" · "}
-          <Link href="/login/vendor">Therapist</Link>
+          <Link href="/login/vendor">Service Provider</Link>
         </p>
       ) : null}
     </AuthScreen>
