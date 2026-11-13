@@ -38,6 +38,7 @@ export type AdminScreenId =
   | "cms"
   | "hero"
   | "homepage"
+  | "ticker"
   | "announcements"
   | "library"
   | "support"
@@ -208,6 +209,16 @@ export const ADMIN_SCREENS: {
     icon: LayoutDashboard,
     description: "Choose which services and providers appear in homepage rails. The hero banner and category tiles stay on their existing screens.",
     view: ["cms.manage", "campaigns.manage"],
+    edit: ["cms.manage"]
+  },
+  {
+    id: "ticker",
+    href: "/admin/ticker",
+    label: "Top bar ticker",
+    group: "Content & care",
+    icon: Newspaper,
+    description: "Up to three moving updates on the customer top bar. Separate from email and in-app announcement blasts.",
+    view: ["cms.manage"],
     edit: ["cms.manage"]
   },
   {

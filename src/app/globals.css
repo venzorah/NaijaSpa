@@ -217,3 +217,27 @@ img,
 picture {
   -webkit-user-drag: none;
 }
+
+@keyframes naijaspa-ticker {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.naijaspa-ticker {
+  animation: naijaspa-ticker 28s linear infinite;
+}
+
+.naijaspa-ticker:hover,
+.naijaspa-ticker:focus-within {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .naijaspa-ticker {
+    animation: none;
+  }
+}

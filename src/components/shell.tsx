@@ -9,6 +9,8 @@ import { LocationHubPicker } from "./location-hub-picker";
 import { SiteFooter } from "./site-footer";
 import { LogoutButton } from "./logout-button";
 import { BrandLogo } from "./brand-logo";
+import type { TickerItem } from "@/lib/ticker";
+import { TopBarTicker, useTopBarTicker } from "./top-bar-ticker";
 
 function isAuthPath(path: string) {
   return (
@@ -44,9 +46,10 @@ function customerNavActive(path: string, href: string) {
   return path === href || path.startsWith(`${href}/`);
 }
 
-export function TopBar({ signedIn = false }: { signedIn?: boolean }) {
+export function TopBar({ signedIn = false, tickerItems = [] }: { signedIn?: boolean; tickerItems?: TickerItem[] }) {
   const { theme, toggle } = useTheme();
   const path = usePathname();
+  const ticker = useTopBarTicker(tickerItems);
   const desktopLinks = [
     ["/", "Home"],
     ["/explore", "Explore"],
@@ -55,6 +58,7 @@ export function TopBar({ signedIn = false }: { signedIn?: boolean }) {
     ["/account", "Profile"]
   ] as const;
   return (
+    <>
     <header className="fixed inset-x-0 top-0 z-50 border-b border-line bg-bg/92 pt-safe backdrop-blur-xl dark:bg-bg/95">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-2 px-4 lg:px-8">
         <Link href="/" className="flex min-w-0 shrink-0 items-center" aria-label="NaijaSpa home">
@@ -96,7 +100,13 @@ export function TopBar({ signedIn = false }: { signedIn?: boolean }) {
           ) : null}
         </div>
       </div>
+      <TopBarTicker items={ticker} />
     </header>
+    <div
+      aria-hidden
+      className={ticker.length ? "h-[calc(6rem+env(safe-area-inset-top))]" : "h-[calc(4rem+env(safe-area-inset-top))]"}
+    />
+    </>
   );
 }
 
@@ -134,7 +144,15 @@ export function BottomNav() {
   );
 }
 
-export function CustomerShell({ children, signedIn = false }: { children: React.ReactNode; signedIn?: boolean }) {
+export function CustomerShell({
+  children,
+  signedIn = false,
+  tickerItems = []
+}: {
+  children: React.ReactNode;
+  signedIn?: boolean;
+  tickerItems?: TickerItem[];
+}) {
   const path = usePathname();
   if (isAuthPath(path)) {
     return (
@@ -161,8 +179,7 @@ export function CustomerShell({ children, signedIn = false }: { children: React.
         />
         <div className="absolute inset-0 bg-bg/86 dark:bg-bg/93" />
       </div>
-      <TopBar signedIn={signedIn} />
-      <div aria-hidden className="h-[calc(4rem+env(safe-area-inset-top))]" />
+      <TopBar signedIn={signedIn} tickerItems={tickerItems} />
       <main id="main" className="relative min-w-0 w-full pb-[calc(7.5rem+env(safe-area-inset-bottom))] lg:pb-8">
         {children}
         {hideSiteFooter(path) ? null : <SiteFooter />}
