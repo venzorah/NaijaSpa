@@ -31,9 +31,9 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
 
   const [customerCount, activeCustomerCount, vendorGroups, bookings, payments, audits, subscriptions, campaigns, refunds, payouts] =
     await Promise.all([
-      prisma.user.count({ where: { role: "customer" } }),
+      prisma.user.count({ where: { role: "customer", status: { not: "deleted" } } }),
       prisma.user.count({ where: { role: "customer", status: "active" } }),
-      prisma.vendor.groupBy({ by: ["applicationStatus"], _count: true }),
+      prisma.vendor.groupBy({ where: { applicationStatus: { not: "deleted" } }, by: ["applicationStatus"], _count: true }),
       prisma.booking.findMany({ where: { createdAt: { gte: bookingSince } }, select: { status: true, customerTotalKobo: true, commissionKobo: true, createdAt: true } }),
       prisma.payment.findMany({ where: { status: "success", createdAt: { gte: bookingSince } }, orderBy: { createdAt: "desc" }, select: { id: true, reference: true, purpose: true, amountKobo: true, createdAt: true } }),
       prisma.auditLog.findMany({ orderBy: { createdAt: "desc" }, take: 8, include: { actor: { select: { name: true } } } }),
