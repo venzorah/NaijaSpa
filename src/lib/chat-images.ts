@@ -8,20 +8,8 @@ export function chatImageExpiresAt(sharedAt: Date, now = new Date()) {
 export function isChatImageLive(expiresAt: Date | string | null | undefined, now = new Date()) {
   if (!expiresAt) return false;
   const expires = typeof expiresAt === "string" ? new Date(expiresAt) : expiresAt;
-  return expires.getTime() > now.getTime();
-}
-
-export function chatImageRemainingMs(expiresAt: Date | string | null | undefined, now = new Date()) {
-  if (!expiresAt) return 0;
-  const expires = typeof expiresAt === "string" ? new Date(expiresAt) : expiresAt;
-  return Math.max(0, expires.getTime() - now.getTime());
-}
-
-export function formatChatImageCountdown(remainingMs: number) {
-  const total = Math.max(0, Math.ceil(remainingMs / 1000));
-  const minutes = Math.floor(total / 60);
-  const seconds = total % 60;
-  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  const at = expires.getTime();
+  return Number.isFinite(at) && at > now.getTime();
 }
 
 export function mapChatMessage(
@@ -35,15 +23,17 @@ export function mapChatMessage(
   },
   currentUserId: string
 ) {
-  const expiresAt = row.imageExpiresAt ? new Date(row.imageExpiresAt).toISOString() : null;
-  const hasImage = Boolean(row.hasImage) && isChatImageLive(row.imageExpiresAt);
+  const expiresAt = row.imageExpiresAt ? new Date(row.imageExpiresAt) : null;
+  const live = Boolean(row.hasImage) && isChatImageLive(expiresAt);
+  const imageExpired = Boolean(row.imageExpiresAt) && !isChatImageLive(expiresAt);
   return {
     id: row.id,
     body: row.body,
     senderId: row.senderId,
     mine: row.senderId === currentUserId,
     createdAt: row.createdAt.toISOString(),
-    hasImage,
-    imageExpiresAt: hasImage ? expiresAt : null
+    hasImage: live,
+    imageExpired,
+    imageExpiresAt: live && expiresAt ? expiresAt.toISOString() : null
   };
 }

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ImagePlus, MessageCircle, Send, X } from "lucide-react";
+import { CHAT_IMAGE_MAX_BYTES } from "@/lib/chat-images";
 import { ProtectedChatPhoto } from "@/components/protected-chat-photo";
 
 type ChatRow = {
@@ -10,6 +11,7 @@ type ChatRow = {
   mine: boolean;
   createdAt: string;
   hasImage?: boolean;
+  imageExpired?: boolean;
   imageExpiresAt?: string | null;
 };
 
@@ -31,20 +33,28 @@ export function BookingChat({
   const [locked, setLocked] = useState(Boolean(lockedHint));
   const bottom = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const fetchGen = useRef(0);
 
   const load = useCallback(async () => {
+    const gen = ++fetchGen.current;
     try {
       const res = await fetch(path, { cache: "no-store" });
       const json = await res.json();
+      if (gen !== fetchGen.current) return;
       if (res.status === 403) {
         setLocked(true);
         return;
       }
       if (!res.ok) throw new Error(json.error || "Could not load chat.");
       setLocked(false);
+      setError("");
       setMessages(json.messages || []);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not load chat.");
+      if (gen !== fetchGen.current) return;
+      setError((current) => {
+        if (current) return current;
+        return e instanceof Error ? e.message : "Could not load chat.";
+      });
     }
   }, [path]);
 
@@ -58,12 +68,28 @@ export function BookingChat({
     bottom.current?.scrollIntoView({ block: "nearest" });
   }, [messages.length]);
 
+  function pickPhoto(file: File | null) {
+    if (file && file.size > CHAT_IMAGE_MAX_BYTES) {
+      setError("Photos must be 2 MB or smaller.");
+      if (fileRef.current) fileRef.current.value = "";
+      setPhoto(null);
+      return;
+    }
+    setError("");
+    setPhoto(file);
+  }
+
   async function send(e: React.FormEvent) {
     e.preventDefault();
     const body = draft.trim();
     if ((!body && !photo) || busy) return;
+    if (photo && photo.size > CHAT_IMAGE_MAX_BYTES) {
+      setError("Photos must be 2 MB or smaller.");
+      return;
+    }
     setBusy(true);
     setError("");
+    fetchGen.current += 1;
     try {
       let res: Response;
       if (photo) {
@@ -83,7 +109,7 @@ export function BookingChat({
       setDraft("");
       setPhoto(null);
       if (fileRef.current) fileRef.current.value = "";
-      setMessages((rows) => [...rows, json.message]);
+      setMessages((rows) => (rows.some((row) => row.id === json.message.id) ? rows : [...rows, json.message]));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not send.");
     } finally {
@@ -117,7 +143,10 @@ export function BookingChat({
             className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${m.mine ? "ml-auto bg-forest text-white" : "bg-card text-ink"}`}
           >
             {m.hasImage ? <ProtectedChatPhoto src={`${path}/${m.id}/image`} expiresAt={m.imageExpiresAt || null} mine={m.mine} /> : null}
-            {m.body ? <p className={m.hasImage ? "mt-1" : ""}>{m.body}</p> : null}
+            {m.imageExpired && !m.hasImage ? (
+              <p className={`text-xs ${m.mine ? "text-white/80" : "text-ink2"}`}>Photo expired after 10 minutes.</p>
+            ) : null}
+            {m.body ? <p className={m.hasImage || m.imageExpired ? "mt-1" : ""}>{m.body}</p> : null}
           </div>
         ))}
         <div ref={bottom} />
@@ -130,10 +159,7 @@ export function BookingChat({
               type="button"
               className="ml-auto inline-flex h-6 w-6 items-center justify-center rounded-full"
               aria-label="Remove photo"
-              onClick={() => {
-                setPhoto(null);
-                if (fileRef.current) fileRef.current.value = "";
-              }}
+              onClick={() => pickPhoto(null)}
             >
               <X className="h-3.5 w-3.5" aria-hidden />
             </button>
@@ -145,7 +171,7 @@ export function BookingChat({
             type="file"
             accept="image/jpeg,image/png,image/webp,image/gif"
             className="sr-only"
-            onChange={(e) => setPhoto(e.target.files?.[0] || null)}
+            onChange={(e) => pickPhoto(e.target.files?.[0] || null)}
           />
           <button
             type="button"

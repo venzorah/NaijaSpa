@@ -1,12 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  CHAT_IMAGE_TTL_MS,
-  chatImageExpiresAt,
-  chatImageRemainingMs,
-  formatChatImageCountdown,
-  isChatImageLive,
-  mapChatMessage
-} from "../src/lib/chat-images";
+import { CHAT_IMAGE_TTL_MS, chatImageExpiresAt, isChatImageLive, mapChatMessage } from "../src/lib/chat-images";
 
 describe("chat image expiry", () => {
   it("expires ten minutes after share", () => {
@@ -22,12 +15,6 @@ describe("chat image expiry", () => {
     expect(isChatImageLive(null)).toBe(false);
   });
 
-  it("formats a countdown", () => {
-    expect(formatChatImageCountdown(chatImageRemainingMs("2026-11-13T10:10:00.000Z", new Date("2026-11-13T10:07:05.000Z")))).toBe(
-      "2:55"
-    );
-  });
-
   it("omits expired images from chat payloads", () => {
     const live = mapChatMessage(
       {
@@ -41,6 +28,20 @@ describe("chat image expiry", () => {
       "u1"
     );
     expect(live.hasImage).toBe(false);
+    expect(live.imageExpired).toBe(true);
+    const purged = mapChatMessage(
+      {
+        id: "m1",
+        senderId: "u1",
+        body: "",
+        createdAt: new Date("2026-11-13T10:00:00.000Z"),
+        hasImage: false,
+        imageExpiresAt: new Date("2026-11-13T10:10:00.000Z")
+      },
+      "u1"
+    );
+    expect(purged.hasImage).toBe(false);
+    expect(purged.imageExpired).toBe(true);
     const mapped = mapChatMessage(
       {
         id: "m1",
@@ -53,6 +54,7 @@ describe("chat image expiry", () => {
       "u1"
     );
     expect(mapped.hasImage).toBe(true);
+    expect(mapped.imageExpired).toBe(false);
     expect(mapped.imageExpiresAt).toBeTruthy();
   });
 });

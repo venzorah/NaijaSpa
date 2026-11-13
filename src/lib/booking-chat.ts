@@ -31,6 +31,11 @@ function sqlBool(value: unknown) {
   return value === true || value === 1 || value === "t" || value === "true";
 }
 
+function missingChatImageColumn(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return /imagepayload|imagemime|imageexpiresat|column .* does not exist/i.test(message);
+}
+
 function paymentSucceeded(payments: Array<{ status: string }>) {
   return payments.some((p) => p.status === "success");
 }
@@ -65,41 +70,58 @@ export async function loadPaidBookingChat(bookingId: string, party: ChatParty, u
 }
 
 export async function purgeExpiredChatImages(bookingId?: string) {
-  if (bookingId) {
+  const now = new Date();
+  try {
+    if (bookingId) {
+      await prisma.$executeRaw`
+        UPDATE "BookingMessage"
+        SET "imagePayload" = NULL, "imageMime" = ''
+        WHERE "bookingId" = ${bookingId}
+          AND "imagePayload" IS NOT NULL
+          AND "imageExpiresAt" IS NOT NULL
+          AND "imageExpiresAt" <= ${now}
+      `;
+      return;
+    }
     await prisma.$executeRaw`
       UPDATE "BookingMessage"
       SET "imagePayload" = NULL, "imageMime" = ''
-      WHERE "bookingId" = ${bookingId}
-        AND "imagePayload" IS NOT NULL
+      WHERE "imagePayload" IS NOT NULL
         AND "imageExpiresAt" IS NOT NULL
-        AND "imageExpiresAt" <= NOW()
+        AND "imageExpiresAt" <= ${now}
     `;
-    return;
+  } catch (error) {
+    if (!missingChatImageColumn(error)) throw error;
   }
-  await prisma.$executeRaw`
-    UPDATE "BookingMessage"
-    SET "imagePayload" = NULL, "imageMime" = ''
-    WHERE "imagePayload" IS NOT NULL
-      AND "imageExpiresAt" IS NOT NULL
-      AND "imageExpiresAt" <= NOW()
-  `;
 }
 
 async function listMessageRows(bookingId: string): Promise<ChatImageRow[]> {
-  return prisma.$queryRaw<ChatImageRow[]>`
-    SELECT
-      id,
-      "senderId",
-      body,
-      "createdAt",
-      COALESCE("imageMime", '') as "imageMime",
-      "imageExpiresAt",
-      ("imagePayload" IS NOT NULL) as "hasPayload"
-    FROM "BookingMessage"
-    WHERE "bookingId" = ${bookingId}
-    ORDER BY "createdAt" ASC
-    LIMIT 200
-  `;
+  try {
+    const rows = await prisma.$queryRaw<ChatImageRow[]>`
+      SELECT
+        id,
+        "senderId",
+        body,
+        "createdAt",
+        COALESCE("imageMime", '') as "imageMime",
+        "imageExpiresAt",
+        ("imagePayload" IS NOT NULL) as "hasPayload"
+      FROM "BookingMessage"
+      WHERE "bookingId" = ${bookingId}
+      ORDER BY "createdAt" DESC
+      LIMIT 200
+    `;
+    return rows.reverse();
+  } catch (error) {
+    if (!missingChatImageColumn(error)) throw error;
+    const rows = await prisma.bookingMessage.findMany({
+      where: { bookingId },
+      orderBy: { createdAt: "desc" },
+      take: 200,
+      select: { id: true, senderId: true, body: true, createdAt: true }
+    });
+    return rows.reverse().map((row) => ({ ...row, imageMime: "", imageExpiresAt: null, hasPayload: false }));
+  }
 }
 
 export async function listBookingMessages(bookingId: string, party: ChatParty, userId: string, vendorId?: string) {
@@ -210,7 +232,10 @@ export async function readLiveChatImage(
     LIMIT 1
   `;
   const row = rows[0];
-  if (!row?.imagePayload || !isChatImageLive(row.imageExpiresAt)) {
+  if (!row) {
+    throw Object.assign(new Error("Photo not found."), { status: 404 });
+  }
+  if (!row.imagePayload || !isChatImageLive(row.imageExpiresAt)) {
     throw Object.assign(new Error("This photo has expired."), { status: 410 });
   }
   const bytes = Buffer.isBuffer(row.imagePayload) ? row.imagePayload : Buffer.from(row.imagePayload);

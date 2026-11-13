@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { chatImageRemainingMs, formatChatImageCountdown, isChatImageLive } from "@/lib/chat-images";
+import { isChatImageLive } from "@/lib/chat-images";
 
 export function ProtectedChatPhoto({
   src,
@@ -14,14 +14,13 @@ export function ProtectedChatPhoto({
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "expired" | "error">("loading");
-  const [remaining, setRemaining] = useState(() => chatImageRemainingMs(expiresAt));
 
   useEffect(() => {
-    const tick = window.setInterval(() => {
-      const left = chatImageRemainingMs(expiresAt);
-      setRemaining(left);
-      if (left <= 0) setStatus("expired");
-    }, 1000);
+    const markExpired = () => {
+      if (!isChatImageLive(expiresAt)) setStatus("expired");
+    };
+    markExpired();
+    const tick = window.setInterval(markExpired, 5000);
     return () => window.clearInterval(tick);
   }, [expiresAt]);
 
@@ -51,6 +50,7 @@ export function ProtectedChatPhoto({
         });
         URL.revokeObjectURL(url);
         revoked = "";
+        if (ac.signal.aborted) return;
         const canvas = canvasRef.current;
         if (!canvas) return;
         const maxW = 320;
@@ -70,7 +70,7 @@ export function ProtectedChatPhoto({
           }
         }
         ctx.restore();
-        setStatus("ready");
+        if (!ac.signal.aborted) setStatus("ready");
       } catch {
         if (!ac.signal.aborted) setStatus("error");
       }
@@ -81,7 +81,7 @@ export function ProtectedChatPhoto({
     };
   }, [src, expiresAt]);
 
-  if (status === "expired" || remaining <= 0) {
+  if (status === "expired") {
     return <p className={`text-xs ${mine ? "text-white/80" : "text-ink2"}`}>Photo expired after 10 minutes.</p>;
   }
 
@@ -101,9 +101,6 @@ export function ProtectedChatPhoto({
         onDragStart={(e) => e.preventDefault()}
         aria-hidden
       />
-      <p className={`relative z-10 mt-1 text-[10px] ${mine ? "text-white/75" : "text-ink2"}`}>
-        Deletes in {formatChatImageCountdown(remaining)}
-      </p>
     </div>
   );
 }
