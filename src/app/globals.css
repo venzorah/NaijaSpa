@@ -203,3 +203,17 @@ html.ns-splash .ns-splash-layer {
   width: min(58vw, 15rem);
   height: auto;
 }
+
+img,
+picture,
+video,
+canvas {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+img,
+picture {
+  -webkit-user-drag: none;
+}

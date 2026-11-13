@@ -501,15 +501,19 @@ model Booking {
 }
 
 model BookingMessage {
-  id        String   @id @default(cuid())
-  bookingId String
-  senderId  String
-  body      String
-  createdAt DateTime @default(now())
-  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  sender    User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  id             String    @id @default(cuid())
+  bookingId      String
+  senderId       String
+  body           String    @default("")
+  imageMime      String    @default("")
+  imagePayload   Bytes?
+  imageExpiresAt DateTime?
+  createdAt      DateTime  @default(now())
+  booking        Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  sender         User      @relation(fields: [senderId], references: [id], onDelete: Cascade)
 
   @@index([bookingId, createdAt])
+  @@index([imageExpiresAt])
 }
 
 model BookingStatusEvent {

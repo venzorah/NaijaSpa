@@ -3,6 +3,10 @@
     {
       "path": "/api/jobs/subscriptions",
       "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/jobs/chat-images",
+      "schedule": "* * * * *"
     }
   ]
 }
