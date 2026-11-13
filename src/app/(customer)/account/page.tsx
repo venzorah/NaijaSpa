@@ -36,6 +36,7 @@ const sections: { title: string; items: { href: string; label: string; icon: typ
       { href: "/account/messages", label: "Messages", icon: Inbox },
       { href: "/account/chats", label: "Chats", icon: MessageCircle },
       { href: "/account/bookings", label: "Bookings", icon: CalendarDays },
+      { href: "/find-bookings", label: "Find guest bookings", icon: FileText },
       { href: "/account/favourites", label: "Favourites", icon: Heart },
       { href: "/account/payments", label: "Payments & receipts", icon: CreditCard },
       { href: "/account/reviews", label: "Reviews", icon: Star }

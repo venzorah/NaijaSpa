@@ -38,7 +38,8 @@ export async function POST(req: Request) {
         startsAt: z.string().datetime({ offset: true }),
         addonIds: z.array(z.string().min(1).max(64)).max(20).optional(),
         idempotencyKey: z.string().min(8),
-        promoCode: z.string().optional()
+        promoCode: z.string().optional(),
+        customerNotes: z.string().max(1000).optional()
       })
       .parse(await req.json());
     const booking = await createBooking({
@@ -47,6 +48,7 @@ export async function POST(req: Request) {
       staffId: body.staffId,
       locationType: body.locationType,
       locationDetails: body.locationDetails,
+      customerNotes: body.customerNotes,
       startsAt: new Date(body.startsAt),
       addonIds: body.addonIds,
       idempotencyKey: body.idempotencyKey,

@@ -25,6 +25,7 @@ export type SessionUser = {
   locale: string;
   theme: string | null;
   vendorId?: string | null;
+  accountKind?: string;
 };
 
 export async function hashPassword(password: string) {
@@ -87,6 +88,7 @@ export const getSession = cache(async (): Promise<SessionUser | null> => {
               locale: true,
               theme: true,
               status: true,
+              accountKind: true,
               vendorOwned: { select: { id: true, applicationStatus: true } },
               staffMemberships: { where: { active: true, vendor: { applicationStatus: { not: "deleted" } } }, select: { vendorId: true }, take: 1 }
             }
@@ -106,6 +108,7 @@ export const getSession = cache(async (): Promise<SessionUser | null> => {
       role: user.role as Role,
       locale: user.locale,
       theme: user.theme,
+      accountKind: user.accountKind,
       vendorId: (user.vendorOwned?.applicationStatus !== "deleted" ? user.vendorOwned?.id : null) ?? user.staffMemberships[0]?.vendorId ?? null
     };
   } catch {

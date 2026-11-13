@@ -30,6 +30,7 @@ export async function createBooking(input: {
   addonIds?: string[];
   idempotencyKey: string;
   promoCode?: string;
+  customerNotes?: string;
 }) {
   const existing = await prisma.booking.findUnique({ where: { idempotencyKey: input.idempotencyKey } });
   if (existing) {
@@ -165,6 +166,7 @@ export async function createBooking(input: {
         staffId,
         locationType: loc,
         locationDetails: input.locationDetails,
+        customerNotes: (input.customerNotes || "").slice(0, 1000),
         startsAt: input.startsAt,
         endsAt,
         status: "awaiting_payment",
@@ -231,7 +233,7 @@ export async function confirmBookingFromPayment(bookingId: string, actorId?: str
       userId: booking.customerId,
       title: "Booking confirmed",
       actionUrl: `/account/bookings/${bookingId}`,
-      body: "Your NaijaSpa appointment is confirmed. We will send a reminder before your visit."
+      body: `Your NaijaSpa appointment is confirmed. Reference ${bookingId.slice(-8).toUpperCase()}. We will send a reminder before your visit.`
     }
   });
   return updated;

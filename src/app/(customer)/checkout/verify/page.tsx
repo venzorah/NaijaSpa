@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 import { formatNgn } from "@/lib/money";
 import { verifyPaystack } from "@/lib/payments";
 import { locationLabel } from "@/lib/booking-ui";
+import { bookingReference } from "@/lib/phone";
 
 export default async function CheckoutVerifyPage({
   searchParams
@@ -60,15 +61,19 @@ export default async function CheckoutVerifyPage({
         <span className="flex h-20 w-20 items-center justify-center rounded-full border border-gold/50 bg-gold/15">
           <Check className="h-10 w-10 text-goldink" aria-hidden />
         </span>
-        <h1 className="mt-5 font-display text-4xl font-semibold text-ink">{booked ? "You’re booked in" : ok ? "Payment received" : "Payment still pending"}</h1>
-        <p className="mt-2 max-w-sm text-sm text-ink2">
-          {ok && !booked
+        <h1 className="mt-5 font-display text-4xl font-semibold text-ink">
+          {booked ? "Your booking has been successfully submitted!" : ok ? "Payment received" : "Payment still pending"}
+        </h1>
+        <p className="mt-2 max-w-lg text-sm text-ink2">
+          {booked && booking
+            ? `Your booking reference is ${bookingReference(booking.id)}. Your booking details have been saved securely. You can access your booking and chat with your service provider anytime by verifying your phone number.`
+            : ok && !booked
             ? booking?.status === "refund_pending"
               ? "Your appointment is cancelled. Your payment has been recorded and a refund is pending review."
               : "Your payment has been recorded. View your booking for its current status."
             : ok
-            ? "Paystack verified this charge. We’ve saved your receipt and the provider has been notified."
-            : "If you completed payment, wait a moment and refresh. The Paystack webhook will also confirm the booking."}
+              ? "Paystack verified this charge. We’ve saved your receipt and the provider has been notified."
+              : "If you completed payment, wait a moment and refresh. The Paystack webhook will also confirm the booking."}
         </p>
       </div>
 
@@ -130,19 +135,28 @@ export default async function CheckoutVerifyPage({
         </div>
       </section>
 
-      <div className="mt-6 flex flex-col gap-2 sm:flex-row">
-        <Link href={booking ? `/account/bookings/${booking.id}` : "/account/bookings"} className="inline-flex min-h-11 flex-1 items-center justify-center rounded-full bg-gold px-5 text-sm font-bold text-ongold">
-          View my bookings
+      <div className="mt-6 grid gap-2 sm:grid-cols-2">
+        <Link href={booking ? `/account/bookings/${booking.id}` : "/account/bookings"} className="inline-flex min-h-11 items-center justify-center rounded-full bg-gold px-5 text-sm font-bold text-ongold">
+          View Booking
         </Link>
+        {booked && booking ? (
+          <Link href={`/account/chats/${booking.id}`} className="inline-flex min-h-11 items-center justify-center rounded-full border border-gold/50 px-5 text-sm font-semibold text-goldink">
+            Chat with Vendor
+          </Link>
+        ) : null}
+        <Link href="/account/bookings" className="inline-flex min-h-11 items-center justify-center rounded-full border border-line px-5 text-sm font-semibold">
+          My Bookings
+        </Link>
+        {user.accountKind === "guest" ? (
+          <Link href="/register" className="inline-flex min-h-11 items-center justify-center rounded-full border border-line px-5 text-sm font-semibold">
+            Create an Account
+          </Link>
+        ) : null}
         {!ok && existing.bookingId ? (
-          <Link href={`/checkout/${existing.bookingId}`} className="inline-flex min-h-11 flex-1 items-center justify-center rounded-full border border-gold/50 px-5 text-sm font-semibold text-goldink">
+          <Link href={`/checkout/${existing.bookingId}`} className="inline-flex min-h-11 items-center justify-center rounded-full border border-gold/50 px-5 text-sm font-semibold text-goldink sm:col-span-2">
             Try Paystack again
           </Link>
-        ) : (
-          <Link href="/" className="inline-flex min-h-11 flex-1 items-center justify-center rounded-full border border-gold/50 px-5 text-sm font-semibold text-goldink">
-            Back to home
-          </Link>
-        )}
+        ) : null}
       </div>
     </div>
   );

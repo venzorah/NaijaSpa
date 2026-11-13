@@ -145,6 +145,14 @@ export function PortalLogin({
         <Link href="/forgot" className="text-ink2 underline decoration-line underline-offset-2">
           Forgot password
         </Link>
+        {expect === "customer" ? (
+          <>
+            {" · "}
+            <Link href="/find-bookings" className="text-ink2 underline decoration-line underline-offset-2">
+              Find a guest booking
+            </Link>
+          </>
+        ) : null}
       </p>
       {!split ? (
         <p className="mt-8 text-center text-xs text-ink2">

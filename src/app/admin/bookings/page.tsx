@@ -4,6 +4,7 @@ import { bookingBucket } from "@/lib/admin";
 import { hasPermission } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import { formatCount } from "@/lib/money";
+import { bookingReference, displayNgPhone, isGuestAccountKind } from "@/lib/phone";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { StatCard } from "@/components/admin/stat-card";
 import { BookingsConsole } from "@/components/admin/bookings-console";
@@ -16,7 +17,7 @@ export default async function Page() {
   const rows = await prisma.booking.findMany({
     include: {
       service: true,
-      customer: { select: { name: true } },
+      customer: { select: { name: true, phone: true, phoneNormalized: true, accountKind: true } },
       vendor: { select: { businessName: true } },
       payments: { select: { status: true } }
     },
@@ -41,8 +42,11 @@ export default async function Page() {
         canSeeMoney={hasPermission(user, "finance.view") || editable}
         rows={rows.map((b) => ({
           id: b.id,
-          ref: b.id.slice(-8).toUpperCase(),
+          ref: bookingReference(b.id),
           customer: b.customer.name,
+          customerKind: isGuestAccountKind(b.customer.accountKind) ? "guest" : "registered",
+          phone: b.customer.phone || (b.customer.phoneNormalized ? displayNgPhone(b.customer.phoneNormalized) : ""),
+          notes: b.customerNotes,
           vendor: b.vendor.businessName,
           service: b.service.name,
           when: b.startsAt.toLocaleString("en-NG"),

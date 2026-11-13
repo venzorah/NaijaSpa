@@ -3,6 +3,7 @@ import { prisma } from "./db";
 import { confirmBookingFromPayment } from "./booking";
 import { canonicalVendorPlanCode } from "./vendor-plans";
 import { paystackMode, reusablePaystackCheckout } from "./paystack-checkout";
+import { paystackEmailFor } from "./phone";
 
 export function paystackConfigured() {
   return Boolean(process.env.PAYSTACK_SECRET_KEY);
@@ -119,7 +120,7 @@ export async function initPayment(input: {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      email: input.email,
+      email: paystackEmailFor(input.email),
       amount: input.amountKobo,
       currency: "NGN",
       reference,

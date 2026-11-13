@@ -18,6 +18,9 @@ export type AdminBookingRow = {
   id: string;
   ref: string;
   customer: string;
+  customerKind?: string;
+  phone?: string;
+  notes?: string;
   vendor: string;
   service: string;
   when: string;
@@ -32,7 +35,7 @@ export type AdminBookingRow = {
   bucket: string;
 };
 
-type Filter = "all" | "Upcoming" | "In progress" | "Completed" | "Cancelled";
+type Filter = "all" | "Upcoming" | "In progress" | "Completed" | "Cancelled" | "guest" | "registered";
 
 export function BookingsConsole({ rows, editable, canSeeMoney }: { rows: AdminBookingRow[]; editable: boolean; canSeeMoney: boolean }) {
   const router = useRouter();
@@ -41,7 +44,10 @@ export function BookingsConsole({ rows, editable, canSeeMoney }: { rows: AdminBo
   const [selectedId, setSelectedId] = useState(rows[0]?.id ?? "");
   const filtered = useMemo(() => {
     const q = query.toLowerCase();
-    return rows.filter((b) => (filter === "all" || b.bucket === filter) && (!q || [b.ref, b.customer, b.vendor].some((x) => x.toLowerCase().includes(q))));
+    return rows.filter((b) => {
+      const kindOk = filter === "guest" || filter === "registered" ? b.customerKind === filter : filter === "all" || b.bucket === filter;
+      return kindOk && (!q || [b.ref, b.customer, b.vendor, b.phone, b.status].some((x) => (x || "").toLowerCase().includes(q)));
+    });
   }, [rows, query, filter]);
   const b = filtered.find((x) => x.id === selectedId) ?? filtered[0];
 
@@ -54,9 +60,9 @@ export function BookingsConsole({ rows, editable, canSeeMoney }: { rows: AdminBo
             label="Filter by status"
             value={filter}
             onChange={setFilter}
-            options={(["all", "Upcoming", "In progress", "Completed", "Cancelled"] as Filter[]).map((v) => ({
+            options={(["all", "Upcoming", "In progress", "Completed", "Cancelled", "guest", "registered"] as Filter[]).map((v) => ({
               value: v,
-              label: v === "all" ? "All" : v
+              label: v === "all" ? "All" : v === "guest" ? "Guest" : v === "registered" ? "Registered" : v
             }))}
           />
         </div>
@@ -82,7 +88,9 @@ export function BookingsConsole({ rows, editable, canSeeMoney }: { rows: AdminBo
                     <td className="px-4 py-2 font-mono text-xs">{x.ref}</td>
                     <td className="px-2 py-2 text-xs">
                       {x.customer}
-                      <span className="block text-[11px] text-ink2">{x.vendor}</span>
+                      <span className="block text-[11px] text-ink2">
+                        {x.customerKind === "guest" ? "Guest" : "Registered"} · {x.vendor}
+                      </span>
                     </td>
                     <td className="whitespace-nowrap px-2 py-2 text-xs">{x.when}</td>
                     <td className="px-2 py-2 text-xs">{x.location}</td>
@@ -106,6 +114,18 @@ export function BookingsConsole({ rows, editable, canSeeMoney }: { rows: AdminBo
             <div>
               <dt className="text-ink2">Customer</dt>
               <dd className="font-medium">{b.customer}</dd>
+            </div>
+            <div>
+              <dt className="text-ink2">Customer type</dt>
+              <dd className="font-medium">{b.customerKind === "guest" ? "Guest Customer" : "Registered Customer"}</dd>
+            </div>
+            <div>
+              <dt className="text-ink2">Phone</dt>
+              <dd className="font-medium">{b.phone || "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-ink2">Instructions</dt>
+              <dd className="font-medium">{b.notes || "—"}</dd>
             </div>
             <div>
               <dt className="text-ink2">Vendor</dt>
@@ -147,6 +167,9 @@ export function BookingsConsole({ rows, editable, canSeeMoney }: { rows: AdminBo
               </dl>
             </div>
           ) : null}
+          <a href={`/admin/chats/${b.id}`} className="mt-3 inline-block text-sm font-semibold text-leaf hover:underline">
+            Open chat
+          </a>
           <div className="mt-4 flex flex-wrap gap-2 border-t border-line pt-4">
             <ConfirmAction
               triggerLabel="Cancel"

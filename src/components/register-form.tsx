@@ -17,7 +17,7 @@ import {
   authGoldCtaClass
 } from "@/components/auth-screen";
 
-export function RegisterForm() {
+export function RegisterForm({ guestUpgrade = false }: { guestUpgrade?: boolean }) {
   const router = useRouter();
   const search = useSearchParams();
   const [asVendor, setAsVendor] = useState(search.get("asVendor") === "1");
@@ -41,7 +41,9 @@ export function RegisterForm() {
       <AuthHint icon={asVendor ? Store : User}>
         {asVendor
           ? "Create a service provider account to showcase your services, attract customers and grow on NaijaSpa."
-          : "Create a customer account to book treatments, save favourites and enjoy wellness on NaijaSpa."}
+          : guestUpgrade
+            ? "Keep every guest booking and chat on this phone number, then add a password for next time."
+            : "Create a customer account to book treatments, save favourites and enjoy wellness on NaijaSpa."}
       </AuthHint>
 
       <form
@@ -53,15 +55,14 @@ export function RegisterForm() {
           const fd = new FormData(e.currentTarget);
           const name = `${String(fd.get("firstName") || "").trim()} ${String(fd.get("lastName") || "").trim()}`.trim();
           try {
-            const res = await fetch("/api/auth/register", {
+            const res = await fetch(guestUpgrade && !asVendor ? "/api/account/upgrade" : "/api/auth/register", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                name,
-                email: fd.get("email"),
-                password: fd.get("password"),
-                asVendor
-              })
+              body: JSON.stringify(
+                guestUpgrade && !asVendor
+                  ? { email: fd.get("email"), password: fd.get("password") }
+                  : { name, email: fd.get("email"), password: fd.get("password"), asVendor }
+              )
             });
             const json = await res.json();
             if (!res.ok) setError(json.error);
@@ -73,6 +74,7 @@ export function RegisterForm() {
           }
         }}
       >
+        {guestUpgrade ? null : (
         <div className="grid grid-cols-2 gap-3">
           <AuthTextField
             id="firstName"
@@ -93,6 +95,7 @@ export function RegisterForm() {
             placeholder="Enter last name"
           />
         </div>
+        )}
         <AuthTextField
           id="email"
           name="email"
