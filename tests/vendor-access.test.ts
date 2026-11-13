@@ -34,6 +34,10 @@ it("overwrites forged destination headers with the actual requested vendor route
   const result = middleware(new NextRequest("https://naijaspa.com/vendor/bookings?page=2", { headers: { "x-naijaspa-vendor-path": "//evil.example" } }));
   expect(result.headers.get("x-middleware-request-x-naijaspa-vendor-path")).toBe("/vendor/bookings?page=2");
 });
+it("forwards admin dashboard range onto the login return path", () => {
+  const result = middleware(new NextRequest("https://naijaspa.com/admin/dashboard?range=90d", { headers: { "x-naijaspa-admin-path": "//evil.example" } }));
+  expect(result.headers.get("x-middleware-request-x-naijaspa-admin-path")).toBe("/admin/dashboard?range=90d");
+});
 it("sends a signed-in customer to the gate without destroying their session", async () => {
   await expect(VendorLogin({ searchParams: Promise.resolve({ next: "/vendor/services" }) })).rejects.toThrow("REDIRECT:/vendor-access?next=%2Fvendor%2Fservices&back=%2Fexplore%3Fstate%3DLagos");
   expect(mock.destroy).not.toHaveBeenCalled();
