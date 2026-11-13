@@ -15,10 +15,14 @@ export async function POST(req: Request) {
       throw Object.assign(new Error("Enter a valid Nigerian phone number."), { status: 400 });
     }
     await rateLimit(`guest-otp-phone:${phoneNormalized}`, 3, 10 * 60 * 1000);
-    const user = await findCustomerByPhone(phoneNormalized);
-    if (user && user.status === "active") {
-      const issued = await issuePhoneOtp(phoneNormalized, "guest_access");
-      await deliverBookingOtp({ phoneNormalized, email: user.email, code: issued.code });
+    const user = await findCustomerByPhone(phoneNormalized, phone);
+    if (user && user.status === "active" && user.accountKind === "guest") {
+      try {
+        const issued = await issuePhoneOtp(phoneNormalized, "guest_access");
+        await deliverBookingOtp({ phoneNormalized, email: user.email, code: issued.code });
+      } catch (err) {
+        console.error("[guest-otp] delivery failed", err);
+      }
     }
     return NextResponse.json({
       ok: true,

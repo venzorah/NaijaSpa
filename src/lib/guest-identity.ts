@@ -15,23 +15,38 @@ export function sessionFromUser(user: { id: string; email: string; name: string;
   };
 }
 
-export async function findCustomerByPhone(phoneNormalized: string) {
-  return prisma.user.findFirst({
+const customerPhoneSelect = {
+  id: true,
+  email: true,
+  name: true,
+  phone: true,
+  phoneNormalized: true,
+  phoneVerifiedAt: true,
+  accountKind: true,
+  passwordHash: true,
+  locale: true,
+  theme: true,
+  role: true,
+  status: true
+} as const;
+
+export async function findCustomerByPhone(phoneNormalized: string, rawPhone?: string) {
+  const local = phoneNormalized.startsWith("234") ? `0${phoneNormalized.slice(3)}` : "";
+  const byNormalized = await prisma.user.findFirst({
     where: { phoneNormalized, role: ROLES.CUSTOMER },
-    select: {
-      id: true,
-      email: true,
-      name: true,
-      phone: true,
-      phoneNormalized: true,
-      phoneVerifiedAt: true,
-      accountKind: true,
-      passwordHash: true,
-      locale: true,
-      theme: true,
-      role: true,
-      status: true
-    }
+    select: customerPhoneSelect
+  });
+  if (byNormalized) return byNormalized;
+  const or = [
+    ...(local ? [{ phone: local }] : []),
+    { phone: `+${phoneNormalized}` },
+    { phone: phoneNormalized },
+    ...(rawPhone?.trim() ? [{ phone: rawPhone.trim() }] : [])
+  ];
+  if (!or.length) return null;
+  return prisma.user.findFirst({
+    where: { role: ROLES.CUSTOMER, phoneNormalized: null, OR: or },
+    select: customerPhoneSelect
   });
 }
 
@@ -45,12 +60,12 @@ export async function findOrCreateGuestCustomer(input: { name: string; phone: st
     throw Object.assign(new Error("Enter your full name."), { status: 400 });
   }
   const email = input.email?.trim().toLowerCase() || "";
-  const existing = await findCustomerByPhone(phoneNormalized);
+  const existing = await findCustomerByPhone(phoneNormalized, input.phone);
   if (existing) {
     if (existing.status !== "active") {
       throw Object.assign(new Error("This phone number cannot be used for bookings."), { status: 409 });
     }
-    if (existing.accountKind !== "guest" && existing.passwordHash) {
+    if (existing.accountKind !== "guest") {
       throw Object.assign(new Error("This phone number already has a NaijaSpa account. Sign in to book."), {
         status: 409,
         code: "SIGN_IN_REQUIRED"
@@ -87,7 +102,6 @@ export async function findOrCreateGuestCustomer(input: { name: string; phone: st
       email: email || guestPlaceholderEmail(phoneNormalized),
       phone: input.phone.trim(),
       phoneNormalized,
-      phoneVerifiedAt: new Date(),
       accountKind: "guest",
       role: ROLES.CUSTOMER,
       customerProfile: { create: {} }
@@ -149,6 +163,10 @@ export async function claimGuestByVerifiedPhone(registeredUserId: string, phoneN
   }
 
   await prisma.$transaction(async (tx) => {
+    await tx.user.update({
+      where: { id: guest.id },
+      data: { phoneNormalized: null }
+    });
     await tx.booking.updateMany({ where: { customerId: guest.id }, data: { customerId: registeredUserId } });
     await tx.bookingMessage.updateMany({ where: { senderId: guest.id }, data: { senderId: registeredUserId } });
     await tx.notification.updateMany({ where: { userId: guest.id }, data: { userId: registeredUserId } });
@@ -165,7 +183,6 @@ export async function claimGuestByVerifiedPhone(registeredUserId: string, phoneN
     await tx.user.update({
       where: { id: guest.id },
       data: {
-        phoneNormalized: null,
         phoneVerifiedAt: null,
         accountKind: "merged",
         status: "deleted",

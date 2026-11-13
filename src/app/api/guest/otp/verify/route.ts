@@ -15,9 +15,9 @@ export async function POST(req: Request) {
       throw Object.assign(new Error("Enter a valid Nigerian phone number."), { status: 400 });
     }
     await consumePhoneOtp(phoneNormalized, "guest_access", body.otp);
-    const user = await findCustomerByPhone(phoneNormalized);
-    if (!user || user.status !== "active") {
-      throw Object.assign(new Error("Invalid or expired code."), { status: 400 });
+    const user = await findCustomerByPhone(phoneNormalized, body.phone);
+    if (!user || user.status !== "active" || user.accountKind !== "guest") {
+      throw Object.assign(new Error("Invalid or expired code. If you already have an account, sign in."), { status: 400 });
     }
     await prisma.user.update({ where: { id: user.id }, data: { phoneVerifiedAt: new Date() } });
     await startGuestSession(user);

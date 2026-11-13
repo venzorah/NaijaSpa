@@ -158,35 +158,40 @@ export async function createBooking(input: {
       orderBy: { endsAt: "desc" }
     });
 
-    const booking = await tx.booking.create({
-      data: {
-        customerId: input.customerId,
-        vendorId: service.vendorId,
-        serviceId: service.id,
-        staffId,
-        locationType: loc,
-        locationDetails: input.locationDetails,
-        customerNotes: (input.customerNotes || "").slice(0, 1000),
-        startsAt: input.startsAt,
-        endsAt,
-        status: "awaiting_payment",
-        currency: "NGN",
-        basePriceKobo: quote.basePriceKobo,
-        surchargeKobo: quote.surchargeKobo,
-        discountKobo: quote.discountKobo,
-        feesKobo: quote.feesKobo,
-        commissionBps: quote.commissionBps,
-        commissionKobo: quote.commissionKobo,
-        customerTotalKobo: quote.customerTotalKobo,
-        vendorPayableKobo: quote.vendorPayableKobo,
-        surchargeRecipient: quote.surchargeRecipient,
-        subscriptionId: activeSub?.id,
-        planCodeSnapshot: quote.planCode,
-        idempotencyKey: input.idempotencyKey,
-        statusHistory: { create: { toStatus: "awaiting_payment", actorId: input.customerId } }
-      }
-    });
-    return booking;
+    const customerNotes = (input.customerNotes || "").slice(0, 1000);
+    const bookingData = {
+      customerId: input.customerId,
+      vendorId: service.vendorId,
+      serviceId: service.id,
+      staffId,
+      locationType: loc,
+      locationDetails: input.locationDetails,
+      startsAt: input.startsAt,
+      endsAt,
+      status: "awaiting_payment" as const,
+      currency: "NGN",
+      basePriceKobo: quote.basePriceKobo,
+      surchargeKobo: quote.surchargeKobo,
+      discountKobo: quote.discountKobo,
+      feesKobo: quote.feesKobo,
+      commissionBps: quote.commissionBps,
+      commissionKobo: quote.commissionKobo,
+      customerTotalKobo: quote.customerTotalKobo,
+      vendorPayableKobo: quote.vendorPayableKobo,
+      surchargeRecipient: quote.surchargeRecipient,
+      subscriptionId: activeSub?.id,
+      planCodeSnapshot: quote.planCode,
+      idempotencyKey: input.idempotencyKey,
+      statusHistory: { create: { toStatus: "awaiting_payment", actorId: input.customerId } }
+    };
+    try {
+      return await tx.booking.create({
+        data: customerNotes ? { ...bookingData, customerNotes } : bookingData
+      });
+    } catch (err) {
+      if (!customerNotes) throw err;
+      return tx.booking.create({ data: bookingData });
+    }
   }, { isolationLevel: "ReadCommitted" });
 }
 

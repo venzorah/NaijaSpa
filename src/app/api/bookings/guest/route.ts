@@ -10,7 +10,7 @@ import { audit } from "@/lib/audit";
 export async function POST(req: Request) {
   try {
     const existing = await getSession();
-    if (existing?.role === "customer") {
+    if (existing) {
       return NextResponse.json({ error: "You are already signed in. Use the regular checkout." }, { status: 409 });
     }
     await rateLimit(`guest-book:${clientAddress(req)}`, 8, 60 * 60 * 1000);
@@ -18,7 +18,7 @@ export async function POST(req: Request) {
       .object({
         name: z.string().trim().min(2).max(80),
         phone: z.string().trim().min(10).max(20),
-        email: z.string().trim().email().optional().or(z.literal("")),
+        email: z.union([z.string().trim().email(), z.literal("")]).optional(),
         serviceId: z.string(),
         staffId: z.string().optional(),
         locationType: z.enum(["spa", "hotel", "home"]),

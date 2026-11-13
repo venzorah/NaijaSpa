@@ -25,8 +25,13 @@ export async function POST(req: Request) {
     }
     await rateLimit(`claim:${user.id}`, 8, 10 * 60 * 1000);
     if (body.sendCode) {
-      const issued = await issuePhoneOtp(phoneNormalized, "claim");
-      await deliverBookingOtp({ phoneNormalized, email: user.email, code: issued.code });
+      try {
+        const issued = await issuePhoneOtp(phoneNormalized, "claim");
+        await deliverBookingOtp({ phoneNormalized, email: user.email, code: issued.code });
+      } catch (err) {
+        console.error("[claim-otp] delivery failed", err);
+        throw Object.assign(new Error("Could not send the verification code. Try again shortly."), { status: 502 });
+      }
       return NextResponse.json({ ok: true, sent: true });
     }
     if (!body.otp) {

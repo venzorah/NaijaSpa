@@ -8,6 +8,7 @@ import { BottomSheet } from "@/components/bottom-sheet";
 import { useTheme } from "@/components/theme-provider";
 import { LogoutButton } from "@/components/logout-button";
 import { PushSettings } from "@/components/push-settings";
+import { ClaimGuestBookings } from "@/components/claim-guest-bookings";
 import type { NotificationPreferences } from "@/lib/notification-preferences";
 
 const field = "mt-1 h-12 w-full rounded-xl border border-line bg-bg2 px-3 text-ink";
@@ -107,6 +108,8 @@ export function SettingsForm({
           </div>
         </form>
       </section>
+
+      <ClaimGuestBookings defaultPhone={phone} />
 
       <section className="mt-4 rounded-3xl border border-line bg-card p-5">
         <h2 className="font-semibold text-ink">Notifications</h2>

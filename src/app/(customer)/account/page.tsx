@@ -36,7 +36,6 @@ const sections: { title: string; items: { href: string; label: string; icon: typ
       { href: "/account/messages", label: "Messages", icon: Inbox },
       { href: "/account/chats", label: "Chats", icon: MessageCircle },
       { href: "/account/bookings", label: "Bookings", icon: CalendarDays },
-      { href: "/find-bookings", label: "Find guest bookings", icon: FileText },
       { href: "/account/favourites", label: "Favourites", icon: Heart },
       { href: "/account/payments", label: "Payments & receipts", icon: CreditCard },
       { href: "/account/reviews", label: "Reviews", icon: Star }
@@ -71,12 +70,17 @@ export default async function AccountPage() {
         <div className="rounded-3xl border border-gold/40 bg-card p-6 text-center">
           <h1 className="font-display text-3xl font-semibold text-ink">Your wellness, in one place</h1>
           <p className="mt-1 text-sm text-ink2">Sign in to see bookings and favourites.</p>
-          <div className="mt-5 flex gap-2">
-            <Link href="/login?next=/account" className="inline-flex min-h-11 flex-1 items-center justify-center rounded-full bg-gold text-sm font-bold text-ongold">
-              Sign in
-            </Link>
-            <Link href="/register" className="inline-flex min-h-11 flex-1 items-center justify-center rounded-full border border-gold/50 text-sm font-bold text-goldink">
-              Register
+          <div className="mt-5 flex flex-col gap-2">
+            <div className="flex gap-2">
+              <Link href="/login?next=/account" className="inline-flex min-h-11 flex-1 items-center justify-center rounded-full bg-gold text-sm font-bold text-ongold">
+                Sign in
+              </Link>
+              <Link href="/register" className="inline-flex min-h-11 flex-1 items-center justify-center rounded-full border border-gold/50 text-sm font-bold text-goldink">
+                Register
+              </Link>
+            </div>
+            <Link href="/find-bookings" className="inline-flex min-h-11 items-center justify-center rounded-full border border-line text-sm font-semibold">
+              Find guest bookings
             </Link>
           </div>
         </div>

@@ -68,37 +68,44 @@ export async function hasSessionCookie(): Promise<boolean> {
   return Boolean((await cookies()).get(COOKIE)?.value);
 }
 
+const sessionUserSelect = {
+  id: true,
+  email: true,
+  name: true,
+  role: true,
+  locale: true,
+  theme: true,
+  status: true,
+  vendorOwned: { select: { id: true, applicationStatus: true } },
+  staffMemberships: {
+    where: { active: true, vendor: { applicationStatus: { not: "deleted" } } },
+    select: { vendorId: true },
+    take: 1
+  }
+} as const;
+
 export const getSession = cache(async (): Promise<SessionUser | null> => {
   const jar = await cookies();
   const token = jar.get(COOKIE)?.value;
   if (!token) return null;
   try {
     await jwtVerify(token, secret());
-    const row = await withTimeout(
-      prisma.session.findUnique({
-        where: { token },
-        select: {
-          expiresAt: true,
-          user: {
-            select: {
-              id: true,
-              email: true,
-              name: true,
-              role: true,
-              locale: true,
-              theme: true,
-              status: true,
-              accountKind: true,
-              vendorOwned: { select: { id: true, applicationStatus: true } },
-              staffMemberships: { where: { active: true, vendor: { applicationStatus: { not: "deleted" } } }, select: { vendorId: true }, take: 1 }
+    const load = (withAccountKind: boolean) =>
+      withTimeout(
+        prisma.session.findUnique({
+          where: { token },
+          select: {
+            expiresAt: true,
+            user: {
+              select: withAccountKind ? { ...sessionUserSelect, accountKind: true } : sessionUserSelect
             }
           }
-        }
-      }),
-      4000
-    );
+        }),
+        4000
+      );
+    const row = await load(true).catch(() => load(false));
     if (!row || row.expiresAt < new Date()) return null;
-    const user = row.user;
+    const user = row.user as typeof row.user & { accountKind?: string };
     if (!user || user.status !== "active") return null;
     return {
       ...await getRoleAccess(user.role),
