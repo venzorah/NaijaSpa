@@ -3,11 +3,17 @@ import {
   bookingReference,
   guestPlaceholderEmail,
   isGuestPlaceholderEmail,
+  maskNgPhone,
   normalizeNgPhone,
   paystackEmailFor
 } from "../src/lib/phone";
 
 describe("guest booking helpers", () => {
+  it("masks Nigerian numbers for OTP screens", () => {
+    expect(maskNgPhone("08031234567")).toBe("0803 *** **67");
+    expect(maskNgPhone("+234 803 123 4567")).toBe("0803 *** **67");
+  });
+
   it("normalizes Nigerian mobile numbers", () => {
     expect(normalizeNgPhone("08031234567")).toBe("2348031234567");
     expect(normalizeNgPhone("+234 803 123 4567")).toBe("2348031234567");

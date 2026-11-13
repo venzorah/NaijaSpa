@@ -14,6 +14,13 @@ export function displayNgPhone(normalized: string) {
   return `0${normalized.slice(3)}`;
 }
 
+export function maskNgPhone(raw: string) {
+  const normalized = normalizeNgPhone(raw);
+  if (!normalized) return raw.trim();
+  const local = displayNgPhone(normalized);
+  return `${local.slice(0, 4)} *** **${local.slice(-2)}`;
+}
+
 export function guestPlaceholderEmail(phoneNormalized: string) {
   return `guest.${phoneNormalized}@guest.naijaspa.local`;
 }
