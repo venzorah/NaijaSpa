@@ -1,10 +1,10 @@
 import { isValidElement, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-const mock = vi.hoisted(() => ({ payments: vi.fn(), customers: vi.fn(), vendors: vi.fn() }));
+const mock = vi.hoisted(() => ({ payments: vi.fn(), customers: vi.fn(), vendors: vi.fn(), bookings: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 vi.mock("../src/lib/admin-auth", () => ({ requireAdminScreen: async () => ({ user: { role: "super_admin" }, editable: true }) }));
 vi.mock("../src/lib/db", () => ({ prisma: {
-  user: { count: mock.customers }, vendor: { groupBy: mock.vendors }, booking: { findMany: async () => [] },
+  user: { count: mock.customers }, vendor: { groupBy: mock.vendors }, booking: { findMany: mock.bookings },
   payment: { findMany: mock.payments }, auditLog: { findMany: async () => [] }, vendorSubscription: { count: async () => 0 },
   campaign: { findMany: async () => [] }, refund: { aggregate: async () => ({ _sum: { amountKobo: 0 } }) }, payout: { aggregate: async () => ({ _sum: { amountKobo: 0 } }) }
 } }));
@@ -24,7 +24,23 @@ describe("admin dashboard metric completeness", () => {
     vi.clearAllMocks();
     mock.vendors.mockResolvedValue([]);
     mock.payments.mockResolvedValue([]);
+    mock.bookings.mockResolvedValue([]);
   });
+  it("applies 7-day and 90-day filters to bookings and payments", async () => {
+    const now = Date.now();
+    const payments = [
+      { id: "p-new", reference: "new", purpose: "booking", amountKobo: 500000, createdAt: new Date(now - 2 * 864e5) },
+      { id: "p-old", reference: "old", purpose: "booking", amountKobo: 900000, createdAt: new Date(now - 40 * 864e5) }
+    ];
+    mock.payments.mockImplementation(async (query) =>
+      payments.filter((payment) => payment.createdAt >= (query.where.createdAt?.gte ?? new Date(0)))
+    );
+    const seven = await Dashboard({ searchParams: Promise.resolve({ range: "7d" }) });
+    const ninety = await Dashboard({ searchParams: Promise.resolve({ range: "90d" }) });
+    expect(collect(seven, MoneyFlow)[0].collected).toBe(500000);
+    expect(collect(ninety, MoneyFlow)[0].collected).toBe(1400000);
+  });
+
   it("keeps all payments in the selected period and customer totals after reducing query payloads", async () => {
     const payments = Array.from({ length: 100 }, (_, i) => ({ id: `payment-${i}`, reference: `test-${i}`, purpose: "booking", amountKobo: 100000, createdAt: new Date() }));
     mock.payments.mockImplementation(async (query) => {

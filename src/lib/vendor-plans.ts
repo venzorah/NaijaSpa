@@ -55,7 +55,8 @@ export function defaultVendorListingPlans(): VendorListingPlanView[] {
     commissionBps: p.commissionBps,
     publicDirectContact: p.publicDirectContact,
     enhancedVisibility: p.enhancedVisibility,
-    sponsoredEligible: p.sponsoredEligible
+    sponsoredEligible: p.sponsoredEligible,
+    features: []
   }));
 }
 
@@ -104,10 +105,50 @@ export type VendorListingPlanView = {
   publicDirectContact: boolean;
   enhancedVisibility: boolean;
   sponsoredEligible: boolean;
+  features?: string[];
 };
 
+export function parsePlanFeatures(raw: unknown): string[] {
+  if (Array.isArray(raw)) {
+    return raw.map((item) => String(item).trim()).filter((item) => item.length > 0 && item.length <= 160).slice(0, 16);
+  }
+  if (typeof raw !== "string" || !raw.trim()) return [];
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (Array.isArray(parsed)) return parsePlanFeatures(parsed);
+  } catch {
+    /* newline list from admin textarea */
+  }
+  return raw
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^[-*•]\s*/, "").trim())
+    .filter((line) => line.length > 0 && line.length <= 160)
+    .slice(0, 16);
+}
+
+export function serializePlanFeatures(features: string[]): string {
+  return JSON.stringify(parsePlanFeatures(features));
+}
+
+export const VENDOR_PLAN_FEATURES_KEY = "vendorPlanFeatures";
+
+export function parseVendorPlanFeaturesMap(raw: string | null | undefined): Record<string, string[]> {
+  if (!raw?.trim()) return {};
+  try {
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    return Object.fromEntries(
+      Object.entries(parsed).map(([code, feats]) => [code, parsePlanFeatures(feats)])
+    );
+  } catch {
+    return {};
+  }
+}
+
 export function vendorPlanPerks(plan: VendorListingPlanView) {
-  const commission = `${plan.commissionBps / 100}% commission on each successful booking`;
+  const pct = Math.round((plan.commissionBps / 100) * 10) / 10;
+  const commission = `${pct}% commission on each successful booking`;
+  const custom = parsePlanFeatures(plan.features);
+  if (custom.length) return [commission, ...custom];
   if (plan.priceKobo <= 0 || plan.code === "FREE") {
     return [
       "No weekly, monthly or yearly listing fee",

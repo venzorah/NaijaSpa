@@ -66,6 +66,21 @@ describe("commission and surcharges", () => {
     expect(hotel.customerTotalKobo).toBe(3_500_000);
   });
 
+  it("uses the listing plan commission instead of the global paid/free config", () => {
+    const ent = {
+      ...FREE_ENTITLEMENT,
+      commissionBps: 1500
+    };
+    const q = quoteBooking({
+      basePriceKobo: 20_000_00,
+      location: "spa",
+      entitlement: ent,
+      config: { ...DEFAULT_COMMERCIAL, freeCommissionBps: 1000, paidCommissionBps: 0 }
+    });
+    expect(q.commissionBps).toBe(1500);
+    expect(q.commissionKobo).toBe(300_000);
+  });
+
   it("charges 0% commission on active paid plan", () => {
     const now = new Date("2026-06-01");
     const ent = entitlementFromPlan(paidPlan, now, {

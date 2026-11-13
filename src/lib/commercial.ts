@@ -60,7 +60,8 @@ export function entitlementFromPlan(
   },
   now: Date,
   sub?: { status: string; startsAt: Date; endsAt: Date; graceUntil: Date | null; source: string },
-  graceDays = 0
+  graceDays = 0,
+  unpaidFallback: Entitlement = FREE_ENTITLEMENT
 ): Entitlement {
   const paidActive =
     !!sub &&
@@ -69,11 +70,19 @@ export function entitlementFromPlan(
     now >= sub.startsAt &&
     now.getTime() <= paidUntilMs(sub.endsAt, sub.graceUntil, graceDays);
 
-  if (!paidActive) return { ...FREE_ENTITLEMENT, unlimitedListings: true };
+  if (!paidActive) {
+    return {
+      ...unpaidFallback,
+      commissionBps: Math.max(0, Math.min(10_000, unpaidFallback.commissionBps)),
+      unlimitedListings: true,
+      activePaid: false,
+      planCode: "FREE"
+    };
+  }
 
   return {
     planCode: plan.code,
-    commissionBps: plan.commissionBps,
+    commissionBps: Math.max(0, Math.min(10_000, Math.round(plan.commissionBps))),
     publicDirectContact: plan.publicDirectContact,
     enhancedVisibility: plan.enhancedVisibility,
     sponsoredEligible: plan.sponsoredEligible,
@@ -130,9 +139,9 @@ export function quoteBooking(input: QuoteInput): Quote {
   const feesKobo = input.feesKobo ?? 0;
   const locationAddon = Math.max(0, input.locationAddonKobo ?? 0);
   const surchargeKobo = locationAddon;
-  const commissionBps = input.entitlement.activePaid
-    ? input.config.paidCommissionBps
-    : input.config.freeCommissionBps;
+  const fromPlan = Number(input.entitlement.commissionBps);
+  const fallback = input.entitlement.activePaid ? input.config.paidCommissionBps : input.config.freeCommissionBps;
+  const commissionBps = Math.max(0, Math.min(10_000, Number.isFinite(fromPlan) ? Math.round(fromPlan) : fallback));
   const commissionKobo = applyBps(input.basePriceKobo, commissionBps);
   const customerTotalKobo = input.basePriceKobo + surchargeKobo + addonKobo + feesKobo - discountKobo;
   if (customerTotalKobo < 0) {

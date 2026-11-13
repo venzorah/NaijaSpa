@@ -13,21 +13,26 @@ import { PersonAvatar } from "@/components/admin/avatar";
 import { AdminStatusPill } from "@/components/admin/status-pill";
 import { EmptyState } from "@/components/empty-state";
 import { DashboardRange } from "@/components/admin/dashboard-range";
+import {
+  adminDashboardRangeLabel,
+  adminDashboardSince,
+  dashboardTimeBuckets,
+  parseAdminDashboardRange
+} from "@/lib/admin-dashboard";
 
-const RANGES = { "7d": 7, "30d": 30, "90d": 90 } as const;
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function AdminHome({ searchParams }: { searchParams: Promise<{ range?: string }> }) {
   const { user } = await requireAdminScreen("dashboard");
   const sp = await searchParams;
-  const range = sp.range === "7d" || sp.range === "90d" ? sp.range : "30d";
-  const since = new Date(Date.now() - RANGES[range] * 864e5);
+  const range = parseAdminDashboardRange(sp.range);
+  const rangeLabel = adminDashboardRangeLabel(range);
+  const since = adminDashboardSince(range);
   const canSeeMoney = hasPermission(user, "finance.view");
   const canSeeCampaigns = hasPermission(user, "campaigns.manage") || hasPermission(user, "analytics.view");
   const canSeeAudit = hasPermission(user, "audit.view");
-  const chartSince = new Date();
-  chartSince.setMonth(chartSince.getMonth() - 5, 1);
-  chartSince.setHours(0, 0, 0, 0);
-  const bookingSince = new Date(Math.min(chartSince.getTime(), since.getTime(), Date.now() - 7 * 864e5));
+  const bookingSince = since;
 
   const [customerCount, activeCustomerCount, vendorGroups, bookings, payments, audits, subscriptions, campaigns, refunds, payouts] =
     await Promise.all([
@@ -60,29 +65,18 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
   const payoutsKobo = payouts._sum.amountKobo ?? 0;
   const completionRate = periodBookings.length ? (completed / periodBookings.length) * 100 : 0;
 
-  const months: { label: string; gbv: number; collected: number; revenue: number }[] = [];
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date();
-    d.setMonth(d.getMonth() - i, 1);
-    d.setHours(0, 0, 0, 0);
-    const end = new Date(d);
-    end.setMonth(end.getMonth() + 1);
-    const label = d.toLocaleString("en-NG", { month: "short" });
-    const g = bookings.filter((b) => b.createdAt >= d && b.createdAt < end).reduce((s, b) => s + b.customerTotalKobo, 0);
-    const c = payments.filter((p) => p.createdAt >= d && p.createdAt < end && p.purpose === "booking").reduce((s, p) => s + p.amountKobo, 0);
-    const r = bookings.filter((b) => b.createdAt >= d && b.createdAt < end).reduce((s, b) => s + b.commissionKobo, 0);
-    months.push({ label, gbv: g, collected: c, revenue: r });
-  }
+  const buckets = dashboardTimeBuckets(range);
+  const months = buckets.map((bucket) => ({
+    label: bucket.label,
+    gbv: bookings.filter((b) => b.createdAt >= bucket.from && b.createdAt < bucket.to).reduce((s, b) => s + b.customerTotalKobo, 0),
+    collected: payments.filter((p) => p.createdAt >= bucket.from && p.createdAt < bucket.to && p.purpose === "booking").reduce((s, p) => s + p.amountKobo, 0),
+    revenue: bookings.filter((b) => b.createdAt >= bucket.from && b.createdAt < bucket.to).reduce((s, b) => s + b.commissionKobo, 0)
+  }));
 
-  const weekDays = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - (6 - i));
-    d.setHours(0, 0, 0, 0);
-    const next = new Date(d);
-    next.setDate(next.getDate() + 1);
-    const done = bookings.filter((b) => b.createdAt >= d && b.createdAt < next && (b.status === "completed" || b.status === "confirmed")).length;
-    const canx = bookings.filter((b) => b.createdAt >= d && b.createdAt < next && b.status === "cancelled").length;
-    return { label: d.toLocaleDateString("en-NG", { weekday: "short" }), values: [{ key: "done", value: done, className: "bg-forest/70" }, { key: "canx", value: canx, className: "bg-red-400/70" }] };
+  const weekDays = buckets.map((bucket) => {
+    const done = bookings.filter((b) => b.createdAt >= bucket.from && b.createdAt < bucket.to && (b.status === "completed" || b.status === "confirmed")).length;
+    const canx = bookings.filter((b) => b.createdAt >= bucket.from && b.createdAt < bucket.to && b.status === "cancelled").length;
+    return { label: bucket.label, values: [{ key: "done", value: done, className: "bg-forest/70" }, { key: "canx", value: canx, className: "bg-red-400/70" }] };
   });
 
   const impressions = campaigns.reduce((s, c) => s + c.impressions, 0);
@@ -142,7 +136,7 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
             <p className="mt-1 text-xs text-ink2 tabular-nums">
               <span className="text-forest">{formatCount(completed)} completed</span> · <span className="text-red-600 dark:text-red-300">{formatCount(cancelled)} cancelled</span>
             </p>
-            <p className="mt-0.5 text-[11px] text-ink2">{completionRate.toFixed(0)}% completion rate</p>
+            <p className="mt-0.5 text-[11px] text-ink2">{completionRate.toFixed(0)}% completion · {rangeLabel}</p>
           </Link>
           <StatCard href="/admin/commercial" label="Active vendor subscriptions" value={formatCount(subscriptions)} sub="Silver · Gold · Platinum" icon={Crown} emphasis="gold" />
         </div>
@@ -150,7 +144,7 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
 
       {canSeeMoney ? (
         <>
-          <Panel title="Money flow" description="How booking activity becomes platform revenue. Gross booking value is never profit.">
+          <Panel title="Money flow" description={`How booking activity becomes platform revenue · ${rangeLabel}. Gross booking value is never profit.`}>
             <MoneyFlow
               gbv={gbv}
               collected={collected}
@@ -161,14 +155,14 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
             />
           </Panel>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
-            <StatCard label="Commission revenue" value={formatNgnCompact(commission)} icon={CircleDollarSign} emphasis="gold" definition="Commission earned on bookings in this range." />
-            <StatCard label="Subscription revenue" value={formatNgnCompact(subscriptionRevenue)} icon={Crown} definition="Verified vendor plan payments." />
+            <StatCard label="Commission revenue" value={formatNgnCompact(commission)} icon={CircleDollarSign} emphasis="gold" definition={`Commission earned on bookings ${rangeLabel}.`} />
+            <StatCard label="Subscription revenue" value={formatNgnCompact(subscriptionRevenue)} icon={Crown} definition={`Verified vendor plan payments ${rangeLabel}.`} />
             <StatCard label="Sponsored revenue" value={formatNgnCompact(sponsoredRevenue)} icon={Megaphone} definition="Campaign fees are not billed as a separate payment purpose yet." />
             <StatCard label="Refunds issued" value={formatNgnCompact(refundsKobo)} icon={CircleDollarSign} />
             <StatCard label="Vendor payouts" value={formatNgnCompact(payoutsKobo)} icon={CircleDollarSign} />
           </div>
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-            <Panel title="GBV vs collected vs revenue" description="Last 6 months" className="xl:col-span-2">
+            <Panel title="GBV vs collected vs revenue" description={rangeLabel} className="xl:col-span-2">
               <MiniBars
                 series={months.map((m) => ({
                   label: m.label,
@@ -180,7 +174,7 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
                 }))}
               />
             </Panel>
-            <Panel title="Revenue mix" description="Recognised platform revenue · this range">
+            <Panel title="Revenue mix" description={`Recognised platform revenue · ${rangeLabel}`}>
               {[
                 { label: "Commission", value: commission },
                 { label: "Subscriptions", value: subscriptionRevenue }
@@ -208,7 +202,7 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
       )}
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-        <Panel title="Bookings this week" description="Confirmed vs cancelled">
+        <Panel title="Bookings" description={`Confirmed vs cancelled · ${rangeLabel}`}>
           <MiniBars series={weekDays} />
         </Panel>
         {canSeeCampaigns ? (
@@ -247,7 +241,7 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
         {canSeeMoney ? (
           <Panel title="Recent transactions" description="Verified Paystack only" className="xl:col-span-2" bodyClassName="p-0">
             {periodPayments.length === 0 ? (
-              <p className="px-4 py-8 text-sm text-ink2">No successful payments in this range.</p>
+              <p className="px-4 py-8 text-sm text-ink2">No successful payments {rangeLabel}.</p>
             ) : (
               <ul className="divide-y divide-line">
                 {periodPayments.slice(0, 8).map((p) => (

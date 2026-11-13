@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Check, Info, Minus } from "lucide-react";
 import { formatNgn } from "@/lib/money";
-import { vendorPlanCta, type VendorListingPlanView } from "@/lib/vendor-plans";
+import { vendorPlanCta, vendorPlanPerks, type VendorListingPlanView } from "@/lib/vendor-plans";
 import { subscriptionPeriodLabel } from "@/lib/subscription-summary";
 
 const description = (plan: VendorListingPlanView) => plan.priceKobo <= 0
@@ -37,12 +37,7 @@ export function SubscriptionPlans({ plans, current, canPay }: {
       {plans.map(plan => {
         const cta = vendorPlanCta(plan, current);
         const selected = cta.kind === "current";
-        const perks = [
-          { label: `${plan.commissionBps / 100}% commission`, included: true },
-          { label: "Explore contact hidden", included: true },
-          { label: plan.enhancedVisibility ? "Enhanced visibility" : "Standard visibility", included: true },
-          { label: "Sponsored eligibility", included: plan.sponsoredEligible }
-        ];
+        const perks = vendorPlanPerks(plan).map((label) => ({ label, included: true }));
         return <li key={plan.code} className="min-w-0">
           <article aria-label={`${plan.name} plan`} className={`flex h-full flex-col rounded-xl border bg-card p-5 ${selected ? "border-gold ring-1 ring-gold/20" : "border-line"}`}>
             <div className="flex items-start justify-between gap-2"><h3 className="font-semibold">{plan.name}</h3>{selected ? <span className="rounded-full bg-gold/10 px-2 py-0.5 text-[10px] font-semibold text-goldink">Current</span> : null}</div>

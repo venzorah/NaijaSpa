@@ -21,7 +21,22 @@ type Plan = {
   sponsoredEligible: boolean;
   active: boolean;
   subscriberCount: number;
+  features?: string[];
 };
+
+function commissionPercentFromForm(raw: FormDataEntryValue | null) {
+  const n = Number(String(raw ?? "").replace("%", "").replace(",", ".").trim());
+  if (!Number.isFinite(n) || n < 0 || n > 100) return null;
+  return Math.round(n * 10) / 10;
+}
+
+function featuresFromForm(raw: FormDataEntryValue | null) {
+  return String(raw || "")
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^[-*•]\s*/, "").trim())
+    .filter(Boolean)
+    .slice(0, 16);
+}
 
 export function VendorPlansConsole() {
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -42,7 +57,7 @@ export function VendorPlansConsole() {
   return (
     <div className="mb-4">
       <p className="mb-3 text-sm text-ink2">
-        Therapist listing packages. Free takes commission on each successful booking. Silver, Gold and Platinum are billed weekly, monthly and yearly unless you change them. Missed renewal returns the listing to Free.
+        Therapist listing packages. Set commission from 0–100% on every plan. Add feature lines that vendors see on Listing plans. Silver, Gold and Platinum are billed weekly, monthly and yearly unless you change them. Missed renewal returns the listing to Free.
       </p>
       {!canEdit ? <p className="mb-3 text-sm text-ink2">View only. The live admin edits prices, billing and commission.</p> : null}
       {error ? <p className="mb-3 text-sm text-red-400">{error}</p> : null}
@@ -91,6 +106,11 @@ export function VendorPlansConsole() {
                   e.preventDefault();
                   setError("");
                   const fd = new FormData(e.currentTarget);
+                  const commissionPercent = commissionPercentFromForm(fd.get("commission"));
+                  if (commissionPercent == null) {
+                    setError("Commission must be a number from 0 to 100%.");
+                    return;
+                  }
                   try {
                     await adminJson("/api/admin/vendor-plans", {
                       method: "PATCH",
@@ -99,10 +119,12 @@ export function VendorPlansConsole() {
                         name: fd.get("name"),
                         priceKobo: Math.round(Number(fd.get("price") || 0) * 100),
                         billing: fd.get("billing"),
-                        commissionBps: Math.round(Number(fd.get("commission") || 0) * 100),
+                        commissionPercent,
+                        commissionBps: Math.round(commissionPercent * 100),
                         publicDirectContact: fd.get("contact") === "on",
                         enhancedVisibility: fd.get("visibility") === "on",
-                        sponsoredEligible: fd.get("sponsored") === "on"
+                        sponsoredEligible: fd.get("sponsored") === "on",
+                        features: featuresFromForm(fd.get("features"))
                       })
                     });
                     load();
@@ -133,19 +155,33 @@ export function VendorPlansConsole() {
                     <option value="yearly">Yearly</option>
                   </select>
                 </FormRow>
-                <FormRow label="Commission %" htmlFor={`vp-com-${p.id}`}>
+                <FormRow label="Commission % (0–100)" htmlFor={`vp-com-${p.id}`}>
                   <input
                     id={`vp-com-${p.id}`}
                     name="commission"
                     type="number"
                     min={0}
                     max={100}
-                    step={0.1}
-                    defaultValue={p.commissionBps / 100}
+                    step={1}
+                    defaultValue={Math.round(p.commissionBps / 100)}
                     disabled={!canEdit}
                     className={adminField}
                   />
                 </FormRow>
+                <div className="col-span-2">
+                  <FormRow label="Plan features (one per line)" htmlFor={`vp-feat-${p.id}`} hint="Shown to vendors on Listing plans. Commission is always listed first.">
+                    <textarea
+                      id={`vp-feat-${p.id}`}
+                      name="features"
+                      rows={5}
+                      maxLength={2000}
+                      defaultValue={(p.features || []).join("\n")}
+                      disabled={!canEdit}
+                      placeholder={"Unlimited service listings\nEnhanced Explore visibility"}
+                      className={`${adminField} h-auto min-h-[7.5rem] py-2`}
+                    />
+                  </FormRow>
+                </div>
                 <label className="col-span-2 flex min-h-10 items-center gap-2 text-sm">
                   <input
                     name="contact"
@@ -183,6 +219,11 @@ export function VendorPlansConsole() {
                 e.preventDefault();
                 setError("");
                 const fd = new FormData(e.currentTarget);
+                const commissionPercent = commissionPercentFromForm(fd.get("commission"));
+                if (commissionPercent == null) {
+                  setError("Commission must be a number from 0 to 100%.");
+                  return;
+                }
                 try {
                   await adminJson("/api/admin/vendor-plans", {
                     method: "POST",
@@ -191,7 +232,9 @@ export function VendorPlansConsole() {
                       code: fd.get("code") || undefined,
                       billing: fd.get("billing"),
                       priceKobo: Math.round(Number(fd.get("price") || 0) * 100),
-                      commissionBps: Math.round(Number(fd.get("commission") || 0) * 100)
+                      commissionPercent,
+                      commissionBps: Math.round(commissionPercent * 100),
+                      features: featuresFromForm(fd.get("features"))
                     })
                   });
                   e.currentTarget.reset();
@@ -220,8 +263,11 @@ export function VendorPlansConsole() {
                   </select>
                 </FormRow>
               </div>
-              <FormRow label="Commission %" htmlFor="new-vp-com">
-                <input id="new-vp-com" name="commission" type="number" min={0} max={100} step={0.1} defaultValue={0} className={adminField} />
+              <FormRow label="Commission % (0–100)" htmlFor="new-vp-com">
+                <input id="new-vp-com" name="commission" type="number" min={0} max={100} step={1} defaultValue={0} className={adminField} />
+              </FormRow>
+              <FormRow label="Plan features (one per line)" htmlFor="new-vp-feat">
+                <textarea id="new-vp-feat" name="features" rows={4} maxLength={2000} className={`${adminField} min-h-[6rem] h-auto py-2`} />
               </FormRow>
               <button className={adminBtn}>Create listing plan</button>
             </form>

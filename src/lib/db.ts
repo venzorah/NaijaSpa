@@ -1,4 +1,4 @@
-import { unstable_cache } from "next/cache";
+import { revalidateTag, unstable_cache } from "next/cache";
 import { PrismaClient } from "@prisma/client";
 import { DEFAULT_COMMERCIAL, type CommercialConfig } from "./commercial";
 import { parseGalleryConfig, type GalleryConfig } from "./galleries";
@@ -68,6 +68,7 @@ export const getHomeFeedConfig = unstable_cache(
 
 export async function setConfig(key: string, value: string) {
   await prisma.systemConfig.upsert({ where: { key }, create: { key, value }, update: { value } });
+  revalidateTag("system-config");
 }
 
 export async function getHeroAdDisplayLimit(): Promise<number> {
