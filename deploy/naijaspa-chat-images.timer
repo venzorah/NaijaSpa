@@ -1,0 +1,10 @@
+[Unit]
+Description=Clean expired NaijaSpa booking chat photos every minute
+
+[Timer]
+OnBootSec=2min
+OnUnitInactiveSec=1min
+Unit=naijaspa-chat-images.service
+
+[Install]
+WantedBy=timers.target

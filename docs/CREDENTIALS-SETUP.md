@@ -4,6 +4,10 @@ Put provider-issued values directly in the local `.env`. Keep the private values
 
 ## OTP and Redis
 
+Guest booking SMS verification uses Termii. In the Termii dashboard, open Settings → API token and copy the API key directly into `TERMII_API_KEY` in `.env`. Set `TERMII_SENDER_ID` to your approved sender ID. Copy the dashboard's API base URL into `TERMII_BASE_URL` (the default is `https://api.ng.termii.com`). Set `TERMII_CHANNEL` to the SMS channel enabled for your account, `generic` or `dnd`. Keep these values on the server; never use a `NEXT_PUBLIC_` variable for the API key. SMS delivery also needs an approved sender and sufficient Termii account credit. See [Termii authentication](https://developer.termii.com/authentication) and [sender IDs](https://developer.termii.com/sender-id).
+
+These settings power guest-booking verification and retrieval. Email OTP uses the existing SMTP configuration. Keep `OTP_HASH_SECRET` stable. After saving local credentials, securely update only the Termii entries on the VPS and restart NaijaSpa. Do not replace the production database settings with the local `.env`. A delivery test requires a chosen recipient; checking credentials alone does not confirm that an SMS reached a phone.
+
 The local `OTP_HASH_SECRET` has been generated. Preserve it and set the same value on deployment instances. The OTP security migration retires older unused reset codes; request a fresh code after deployment.
 
 Shared rate limiting now uses your local Redis server in Ubuntu WSL through `REDIS_URL="redis://127.0.0.1:6379"`. The real connection and atomic counter/rejection test passed. Upstash credentials are optional and can remain empty. Start/check the server with `wsl.exe -d Ubuntu -- redis-cli ping`; start its service if necessary. Run `npx tsx scripts/check-redis.ts` to check the application integration. See [AUTH-SECURITY.md](AUTH-SECURITY.md) for local startup, deployment connection settings, policies, and testing.

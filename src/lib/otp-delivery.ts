@@ -34,8 +34,18 @@ export async function deliverBookingOtp(input: {
 
   const termii = process.env.TERMII_API_KEY?.trim();
   if (wantSms && termii && input.phoneNormalized) {
-    const res = await fetch("https://api.ng.termii.com/api/sms/send", {
+    const baseUrl = new URL(process.env.TERMII_BASE_URL?.trim() || "https://api.ng.termii.com");
+    if (baseUrl.protocol !== "https:" || baseUrl.username || baseUrl.password) {
+      throw Object.assign(new Error("Termii requires an HTTPS API base URL without credentials."), { status: 503 });
+    }
+    const channel = process.env.TERMII_CHANNEL?.trim() || "generic";
+    if (channel !== "generic" && channel !== "dnd") {
+      throw Object.assign(new Error("TERMII_CHANNEL must be generic or dnd."), { status: 503 });
+    }
+    const res = await fetch(new URL("/api/sms/send", baseUrl).href, {
       method: "POST",
+      signal: AbortSignal.timeout(15_000),
+      redirect: "error",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         api_key: termii,
@@ -43,7 +53,7 @@ export async function deliverBookingOtp(input: {
         from: process.env.TERMII_SENDER_ID?.trim() || "NaijaSpa",
         sms: `NaijaSpa code: ${input.code}. Expires in 15 minutes.`,
         type: "plain",
-        channel: "generic"
+        channel
       })
     });
     if (!res.ok) throw Object.assign(new Error("Could not send the SMS code."), { status: 502 });
