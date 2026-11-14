@@ -17,6 +17,16 @@ export const DEFAULT_GALLERY_CONFIG: GalleryConfig = {
 
 export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;
 
+export const GALLERY_IMAGE_LIST_SELECT = {
+  id: true,
+  url: true,
+  caption: true,
+  therapistName: true,
+  byteSize: true,
+  sortOrder: true,
+  createdAt: true
+} as const;
+
 export function videoLinksAllowed(entitlement: Entitlement): boolean {
   return entitlement.activePaid;
 }

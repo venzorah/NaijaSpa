@@ -10,9 +10,21 @@ export default async function Page({ searchParams }: {
 }) {
     const user = await getSession();
     const sp = await searchParams;
+    if (!user?.vendorId) return (<VendorBookingsConsole initialQuery={sp.q ?? ""} rows={[]}/>);
     const bookings = await prisma.booking.findMany({
-        where: { vendorId: user?.vendorId || "" },
-        include: { service: true, customer: { select: { name: true, email: true, phone: true, phoneNormalized: true, accountKind: true } }, staff: true, payments: { select: { status: true } } },
+        where: { vendorId: user.vendorId },
+        select: {
+            id: true,
+            status: true,
+            startsAt: true,
+            locationType: true,
+            customerNotes: true,
+            vendorPayableKobo: true,
+            service: { select: { name: true } },
+            customer: { select: { name: true, email: true, phone: true, phoneNormalized: true, accountKind: true } },
+            staff: { select: { name: true } },
+            payments: { select: { status: true }, take: 3, orderBy: { createdAt: "desc" } }
+        },
         orderBy: { startsAt: "desc" },
         take: 200
     });

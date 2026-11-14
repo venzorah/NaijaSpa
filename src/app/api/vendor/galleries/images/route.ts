@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireVendor } from "@/lib/vendor-auth";
 import { getGalleryConfig, prisma } from "@/lib/db";
-import { assertCanAddImage, assertImageUrl, isProfileGalleryTitle } from "@/lib/galleries";
+import { assertCanAddImage, assertImageUrl, GALLERY_IMAGE_LIST_SELECT, isProfileGalleryTitle } from "@/lib/galleries";
 import { formImage } from "@/lib/form-file";
 import { jsonError } from "@/lib/http";
 
@@ -14,7 +14,7 @@ function requireVendorId(user: { vendorId?: string | null }) {
 async function ownedGallery(vendorId: string, galleryId: string) {
   return prisma.therapistGallery.findFirst({
     where: { id: galleryId, vendorId },
-    include: { images: true }
+    include: { images: { select: GALLERY_IMAGE_LIST_SELECT } }
   });
 }
 
@@ -95,7 +95,8 @@ export async function DELETE(req: Request) {
     if (!vendorId) return NextResponse.json({ error: "Not a vendor" }, { status: 403 });
     const id = new URL(req.url).searchParams.get("id") || "";
     const image = await prisma.therapistGalleryImage.findFirst({
-      where: { id, gallery: { vendorId } }
+      where: { id, gallery: { vendorId } },
+      select: { id: true, url: true }
     });
     if (!image) return NextResponse.json({ error: "Image not found" }, { status: 404 });
     const profileUse = await prisma.vendor.count({ where: { OR: [{ coverUrl: image.url }, { logoUrl: image.url }] } });

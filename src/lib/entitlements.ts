@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { getCommercialConfig, prisma } from "./db";
 import { entitlementFromPlan, type Entitlement } from "./commercial";
 import { lapsePaidSubscriptionToFree } from "./subscription-lifecycle";
@@ -41,7 +42,7 @@ export async function vendorEntitlements(vendorIds: string[], at = new Date()): 
   return map;
 }
 
-export async function vendorEntitlement(vendorId: string, at = new Date()): Promise<Entitlement> {
+export const vendorEntitlement = cache(async function vendorEntitlement(vendorId: string, at = new Date()): Promise<Entitlement> {
   const unpaid = await freeListingEntitlement();
   const sub = await prisma.vendorSubscription.findFirst({
     where: { vendorId, status: { in: ["active", "grace"] } },
@@ -56,4 +57,4 @@ export async function vendorEntitlement(vendorId: string, at = new Date()): Prom
     return unpaid;
   }
   return ent;
-}
+});

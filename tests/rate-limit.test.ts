@@ -63,6 +63,14 @@ describe("shared rate protection", () => {
     const result = jsonError(Object.assign(new Error("Too many requests"), { status: 429, retryAfterMs: 1500 }));
     expect(result.status).toBe(429); expect(result.headers.get("Retry-After")).toBe("2");
   });
+  it("does not leak database or internal error text to clients", async () => {
+    const prisma = jsonError({ code: "P2002", message: "Unique constraint failed on the fields: (`email`)" });
+    expect(prisma.status).toBe(409);
+    expect(await prisma.json()).toEqual({ error: "That record already exists." });
+    const raw = jsonError(new Error("ECONNREFUSED 10.0.0.12:5432"));
+    expect(raw.status).toBe(400);
+    expect(await raw.json()).toEqual({ error: "Request failed" });
+  });
   it("uses the first valid forwarded address and bounds invalid identifiers", () => {
     expect(clientAddress(new Request("https://app.test", { headers: { "x-forwarded-for": "203.0.113.1, 10.0.0.1" } }))).toBe("203.0.113.1");
     expect(clientAddress(new Request("https://app.test", { headers: { "x-forwarded-for": "invalid" } }))).toBe("unknown");

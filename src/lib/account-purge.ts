@@ -190,7 +190,6 @@ export async function purgeCustomerAccount(actorId: string, userId: string, reas
     });
     return outcome;
   });
-  await repairDeletedIdentities().catch(() => undefined);
   return { ok: true, ...result };
 }
 
@@ -285,6 +284,5 @@ export async function purgeVendorAccount(actorId: string, vendorId: string, reas
   }, { timeout: 20000 });
 
   await purgeStoredFiles(files);
-  await repairDeletedIdentities().catch(() => undefined);
   return { ok: true };
 }

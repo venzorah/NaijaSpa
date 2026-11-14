@@ -11,8 +11,17 @@ export default async function BookingsPage() {
   if (!user) redirect("/login?next=/account/bookings");
   const bookings = await prisma.booking.findMany({
     where: { customerId: user.id },
-    include: { service: true, vendor: true },
-    orderBy: { startsAt: "desc" }
+    select: {
+      id: true,
+      status: true,
+      startsAt: true,
+      locationType: true,
+      customerTotalKobo: true,
+      service: { select: { name: true, imageUrl: true } },
+      vendor: { select: { businessName: true } }
+    },
+    orderBy: { startsAt: "desc" },
+    take: 100
   });
   return (
     <div className="mx-auto max-w-3xl px-4 pt-6 lg:px-8">

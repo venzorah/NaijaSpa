@@ -14,20 +14,32 @@ export default async function Page() {
   const now = new Date();
   const startToday = new Date(now);
   startToday.setHours(0, 0, 0, 0);
-  const rows = await prisma.booking.findMany({
-    include: {
-      service: true,
-      customer: { select: { name: true, phone: true, phoneNormalized: true, accountKind: true } },
-      vendor: { select: { businessName: true } },
-      payments: { select: { status: true } }
-    },
-    take: 120,
-    orderBy: { createdAt: "desc" }
-  });
-  const upcomingToday = rows.filter((b) => b.startsAt >= startToday && ["confirmed", "awaiting_payment"].includes(b.status)).length;
-  const inProgress = rows.filter((b) => bookingBucket(b.status, b.startsAt, now) === "In progress").length;
-  const disputed = rows.filter((b) => b.status === "disputed").length;
-  const noShows = rows.filter((b) => b.status === "no_show").length;
+  const [rows, upcomingToday, inProgress, disputed, noShows] = await Promise.all([
+    prisma.booking.findMany({
+      select: {
+        id: true,
+        status: true,
+        startsAt: true,
+        locationType: true,
+        customerNotes: true,
+        customerTotalKobo: true,
+        basePriceKobo: true,
+        surchargeKobo: true,
+        commissionKobo: true,
+        vendorPayableKobo: true,
+        service: { select: { name: true } },
+        customer: { select: { name: true, phone: true, phoneNormalized: true, accountKind: true } },
+        vendor: { select: { businessName: true } },
+        payments: { select: { status: true }, take: 3, orderBy: { createdAt: "desc" } }
+      },
+      take: 120,
+      orderBy: { createdAt: "desc" }
+    }),
+    prisma.booking.count({ where: { startsAt: { gte: startToday }, status: { in: ["confirmed", "awaiting_payment"] } } }),
+    prisma.booking.count({ where: { OR: [{ status: "in_progress" }, { status: "confirmed", startsAt: { lte: now } }] } }),
+    prisma.booking.count({ where: { status: "disputed" } }),
+    prisma.booking.count({ where: { status: "no_show" } })
+  ]);
   return (
     <div>
       <AdminPageHeader screen="bookings" />

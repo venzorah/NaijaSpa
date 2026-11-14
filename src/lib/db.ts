@@ -46,13 +46,17 @@ export const getCommercialConfig = unstable_cache(
   { revalidate: 30, tags: ["system-config"] }
 );
 
-export async function getGalleryConfig(): Promise<GalleryConfig> {
-  const rows = await prisma.systemConfig.findMany({
-    where: { key: { in: ["galleryMaxImagesPerGallery", "galleryMaxImageBytes"] } }
-  });
-  const map = Object.fromEntries(rows.map((r) => [r.key, r.value]));
-  return parseGalleryConfig(map);
-}
+export const getGalleryConfig = unstable_cache(
+  async (): Promise<GalleryConfig> => {
+    const rows = await prisma.systemConfig.findMany({
+      where: { key: { in: ["galleryMaxImagesPerGallery", "galleryMaxImageBytes"] } }
+    });
+    const map = Object.fromEntries(rows.map((r) => [r.key, r.value]));
+    return parseGalleryConfig(map);
+  },
+  ["gallery-config"],
+  { revalidate: 60, tags: ["system-config"] }
+);
 
 export const getHomeFeedConfig = unstable_cache(
   async (): Promise<HomeFeedConfig> => {

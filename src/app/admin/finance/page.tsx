@@ -13,21 +13,45 @@ export const dynamic = "force-dynamic";
 
 export default async function FinancePage() {
   const { editable } = await requireAdminScreen("finance");
-  const [payments, refunds, earnings, payouts, policy] = await Promise.all([
-    prisma.payment.findMany({ orderBy: { createdAt: "desc" }, take: 80 }),
+  const [payments, refunds, earnings, payouts, policy, collectedAgg, refundedAgg, payableAgg, paidOutAgg] = await Promise.all([
+    prisma.payment.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 80,
+      select: { id: true, reference: true, purpose: true, status: true, amountKobo: true, createdAt: true }
+    }),
     prisma.refund.findMany({
       orderBy: { createdAt: "desc" },
       take: 50,
-      include: { payment: { select: { reference: true } }, booking: { select: { id: true } } }
+      select: {
+        id: true,
+        amountKobo: true,
+        penaltyKobo: true,
+        status: true,
+        reason: true,
+        createdAt: true,
+        bookingId: true,
+        payment: { select: { reference: true } }
+      }
     }),
-    prisma.vendorEarning.findMany({ include: { vendor: { select: { businessName: true } } }, take: 50 }),
-    prisma.payout.findMany({ include: { vendor: { select: { businessName: true } } }, orderBy: { createdAt: "desc" }, take: 50 }),
-    getRefundPolicy()
+    prisma.vendorEarning.findMany({
+      take: 50,
+      select: { id: true, payableKobo: true, commissionKobo: true, status: true, vendor: { select: { businessName: true } } }
+    }),
+    prisma.payout.findMany({
+      include: { vendor: { select: { businessName: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 50
+    }),
+    getRefundPolicy(),
+    prisma.payment.aggregate({ where: { status: "success" }, _sum: { amountKobo: true } }),
+    prisma.refund.aggregate({ where: { status: "processed" }, _sum: { amountKobo: true } }),
+    prisma.vendorEarning.aggregate({ where: { status: "pending" }, _sum: { payableKobo: true } }),
+    prisma.payout.aggregate({ where: { status: "paid" }, _sum: { amountKobo: true } })
   ]);
-  const collected = payments.filter((p) => p.status === "success").reduce((s, p) => s + p.amountKobo, 0);
-  const refunded = refunds.filter((r) => r.status === "processed").reduce((s, r) => s + r.amountKobo, 0);
-  const payable = earnings.filter((e) => e.status === "pending").reduce((s, e) => s + e.payableKobo, 0);
-  const paidOut = payouts.filter((p) => p.status === "paid").reduce((s, p) => s + p.amountKobo, 0);
+  const collected = collectedAgg._sum.amountKobo ?? 0;
+  const refunded = refundedAgg._sum.amountKobo ?? 0;
+  const payable = payableAgg._sum.payableKobo ?? 0;
+  const paidOut = paidOutAgg._sum.amountKobo ?? 0;
   return (
     <div>
       <AdminPageHeader screen="finance" />

@@ -7,6 +7,7 @@ import {
   assertCanCreateGallery,
   assertGalleryTitle,
   isProfileGalleryTitle,
+  GALLERY_IMAGE_LIST_SELECT,
   MAX_VENDOR_GALLERIES,
   PROFILE_GALLERY_MAX_IMAGES,
   PROFILE_GALLERY_TITLE,
@@ -30,7 +31,7 @@ export async function GET() {
         include: {
           images: {
             orderBy: { sortOrder: "asc" },
-            select: { id: true, url: true, caption: true, therapistName: true, byteSize: true, sortOrder: true, createdAt: true }
+            select: GALLERY_IMAGE_LIST_SELECT
           }
         },
         orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }]
@@ -57,7 +58,7 @@ export async function GET() {
         include: {
           images: {
             orderBy: { sortOrder: "asc" },
-            select: { id: true, url: true, caption: true, therapistName: true, byteSize: true, sortOrder: true, createdAt: true }
+            select: GALLERY_IMAGE_LIST_SELECT
           }
         },
         orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }]
@@ -98,7 +99,7 @@ export async function POST(req: Request) {
         caption: body.caption?.trim() ?? "",
         sortOrder: named.length
       },
-      include: { images: true }
+      include: { images: { select: GALLERY_IMAGE_LIST_SELECT } }
     });
     return NextResponse.json({ gallery });
   } catch (e) {
@@ -129,7 +130,7 @@ export async function PATCH(req: Request) {
         title: body.title != null ? assertGalleryTitle(body.title) : undefined,
         caption: body.caption != null ? body.caption.trim() : undefined
       },
-      include: { images: { orderBy: { sortOrder: "asc" } } }
+      include: { images: { orderBy: { sortOrder: "asc" }, select: GALLERY_IMAGE_LIST_SELECT } }
     });
     return NextResponse.json({ gallery });
   } catch (e) {
@@ -145,7 +146,7 @@ export async function DELETE(req: Request) {
     const id = new URL(req.url).searchParams.get("id") || "";
     const existing = await prisma.therapistGallery.findFirst({
       where: { id, vendorId },
-      include: { images: true }
+      include: { images: { select: { url: true } } }
     });
     if (!existing) return NextResponse.json({ error: "Gallery not found" }, { status: 404 });
     if (isProfileGalleryTitle(existing.title)) {

@@ -12,7 +12,14 @@ import type { Permission } from "./rbac";
 const COOKIE = "naijaspa_session";
 
 function secret() {
-  return new TextEncoder().encode(process.env.AUTH_SECRET || "dev-secret-change-me");
+  const value = process.env.AUTH_SECRET?.trim();
+  if (!value) {
+    if (process.env.NODE_ENV === "production") {
+      throw Object.assign(new Error("AUTH_SECRET is not configured"), { status: 503 });
+    }
+    return new TextEncoder().encode("dev-secret-change-me");
+  }
+  return new TextEncoder().encode(value);
 }
 
 export type SessionUser = {
