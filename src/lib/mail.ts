@@ -151,6 +151,19 @@ export function welcomeEmail({ name, asVendor }: { name: string; asVendor: boole
   };
 }
 
+export function guestBookingOtpEmail({ code }: { code: string }) {
+  return {
+    subject: "Your NaijaSpa guest booking code",
+    html: brandedEmailHtml({
+      title: "Guest booking code",
+      preheader: "Enter this 6-digit code to open your guest bookings. It expires in 15 minutes.",
+      intro: "Use this code on NaijaSpa to view guest bookings and chat. Do not share it.",
+      body: "The code expires in 15 minutes. If you did not ask for this, you can ignore the email — no bookings are shown until the code is entered.",
+      code
+    })
+  };
+}
+
 export function passwordResetEmail({ code }: { code: string }) {
   return {
     subject: "Your NaijaSpa password reset code",
@@ -230,6 +243,15 @@ export async function sendPasswordResetEmail({ to, code }: { to: string; code: s
     to,
     ...mail,
     text: `Your NaijaSpa password reset code is ${code}. Enter it in the app. It expires in 15 minutes.`
+  });
+}
+
+export async function sendGuestBookingOtpEmail({ to, code }: { to: string; code: string }) {
+  const mail = guestBookingOtpEmail({ code });
+  await sendMail({
+    to,
+    ...mail,
+    text: `Your NaijaSpa guest booking code is ${code}. It expires in 15 minutes.`
   });
 }
 

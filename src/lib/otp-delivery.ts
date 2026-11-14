@@ -1,18 +1,39 @@
-import { sendMail } from "./mail";
+import { sendGuestBookingOtpEmail } from "./mail";
 import { isGuestPlaceholderEmail } from "./phone";
 
-export async function deliverBookingOtp(input: { phoneNormalized: string; email?: string | null; code: string }) {
-  const email = input.email && !isGuestPlaceholderEmail(input.email) ? input.email : "";
-  if (email) {
-    await sendMail({
-      to: email,
-      subject: "Your NaijaSpa booking code",
-      html: `<p>Your NaijaSpa code is <strong>${input.code}</strong>. It expires in 15 minutes.</p>`,
-      text: `Your NaijaSpa code is ${input.code}. It expires in 15 minutes.`
-    });
+function realEmail(email?: string | null) {
+  const value = email?.trim().toLowerCase() || "";
+  if (!value || isGuestPlaceholderEmail(value)) return "";
+  return value;
+}
+
+export async function deliverBookingOtp(input: {
+  phoneNormalized?: string;
+  email?: string | null;
+  code: string;
+  via?: "sms" | "email" | "auto";
+}) {
+  const email = realEmail(input.email);
+  const via = input.via || "auto";
+  const wantEmail = via === "email" || (via === "auto" && Boolean(email));
+  const wantSms = via === "sms" || (via === "auto" && Boolean(input.phoneNormalized));
+  let emailed = false;
+
+  if (wantEmail && email) {
+    try {
+      await sendGuestBookingOtpEmail({ to: email, code: input.code });
+      emailed = true;
+      if (via === "email" || !wantSms) return { channel: "email" as const };
+    } catch (err) {
+      if (via === "email") throw err;
+      console.error("[otp] email delivery failed", err);
+    }
+  } else if (via === "email") {
+    throw Object.assign(new Error("Add a real email at checkout to receive a code."), { status: 400 });
   }
+
   const termii = process.env.TERMII_API_KEY?.trim();
-  if (termii) {
+  if (wantSms && termii && input.phoneNormalized) {
     const res = await fetch("https://api.ng.termii.com/api/sms/send", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -26,14 +47,15 @@ export async function deliverBookingOtp(input: { phoneNormalized: string; email?
       })
     });
     if (!res.ok) throw Object.assign(new Error("Could not send the SMS code."), { status: 502 });
-    return { channel: email ? "sms+email" : "sms" };
+    return { channel: emailed ? "sms+email" : "sms" };
   }
-  if (email) return { channel: "email" };
+  if (emailed) return { channel: "email" as const };
   if (process.env.NODE_ENV !== "production") {
-    console.info(`[otp] ${input.phoneNormalized} ${input.code}`);
-    return { channel: "log" };
+    console.info(`[otp] ${input.phoneNormalized || email} ${input.code}`);
+    return { channel: "log" as const };
   }
-  throw Object.assign(new Error("SMS is not configured. Add an email to receive your code, or set TERMII_API_KEY."), {
-    status: 503
-  });
+  throw Object.assign(
+    new Error("Could not send a verification code. Try email if you added one at checkout, or set TERMII_API_KEY."),
+    { status: 503 }
+  );
 }

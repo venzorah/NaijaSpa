@@ -2,7 +2,7 @@ import { prisma } from "./db";
 import { ROLES } from "./rbac";
 import { createSession, hashPassword, type SessionUser } from "./auth";
 import { audit } from "./audit";
-import { guestPlaceholderEmail, isGuestPlaceholderEmail, normalizeNgPhone } from "./phone";
+import { guestPlaceholderEmail, isGuestPlaceholderEmail, normalizeGuestEmail, normalizeNgPhone } from "./phone";
 
 export function sessionFromUser(user: { id: string; email: string; name: string; role: string; locale?: string; theme?: string | null }): SessionUser {
   return {
@@ -50,6 +50,19 @@ export async function findCustomerByPhone(phoneNormalized: string, rawPhone?: st
   });
 }
 
+export async function findGuestByEmail(email: string) {
+  const normalized = normalizeGuestEmail(email);
+  if (!normalized) return null;
+  const user = await prisma.user.findUnique({
+    where: { email: normalized },
+    select: customerPhoneSelect
+  });
+  if (!user || user.role !== ROLES.CUSTOMER || user.accountKind !== "guest" || user.status !== "active") {
+    return null;
+  }
+  return user;
+}
+
 export async function findOrCreateGuestCustomer(input: { name: string; phone: string; email?: string }) {
   const phoneNormalized = normalizeNgPhone(input.phone);
   if (!phoneNormalized) {
@@ -59,7 +72,7 @@ export async function findOrCreateGuestCustomer(input: { name: string; phone: st
   if (name.length < 2) {
     throw Object.assign(new Error("Enter your full name."), { status: 400 });
   }
-  const email = input.email?.trim().toLowerCase() || "";
+  const email = input.email ? normalizeGuestEmail(input.email) : "";
   const existing = await findCustomerByPhone(phoneNormalized, input.phone);
   if (existing) {
     if (existing.status !== "active") {

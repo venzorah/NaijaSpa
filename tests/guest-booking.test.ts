@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   bookingReference,
+  emailOtpDest,
+  guestOtpTarget,
   guestPlaceholderEmail,
   isGuestPlaceholderEmail,
+  maskEmail,
   maskNgPhone,
+  normalizeGuestEmail,
   normalizeNgPhone,
   paystackEmailFor
 } from "../src/lib/phone";
@@ -30,5 +34,30 @@ describe("guest booking helpers", () => {
     expect(isGuestPlaceholderEmail(email)).toBe(true);
     expect(paystackEmailFor(email)).toBe("guest.2348031234567@naijaspa.com");
     expect(paystackEmailFor("ada@example.com")).toBe("ada@example.com");
+  });
+
+  it("normalizes and masks guest checkout emails for OTP", () => {
+    expect(normalizeGuestEmail(" Ada@Example.com ")).toBe("ada@example.com");
+    expect(normalizeGuestEmail(guestPlaceholderEmail("2348031234567"))).toBe("");
+    expect(normalizeGuestEmail("not-an-email")).toBe("");
+    expect(maskEmail("ada@example.com")).toBe("a***@example.com");
+    expect(emailOtpDest("Ada@Example.com")).toBe("email:ada@example.com");
+  });
+
+  it("accepts phone or email for guest OTP, not both", () => {
+    expect(guestOtpTarget({ phone: "08031234567" })).toEqual({
+      kind: "phone",
+      phone: "2348031234567",
+      dest: "2348031234567",
+      rawPhone: "08031234567"
+    });
+    expect(guestOtpTarget({ email: "Ada@Example.com" })).toEqual({
+      kind: "email",
+      email: "ada@example.com",
+      dest: "email:ada@example.com"
+    });
+    expect(() => guestOtpTarget({ phone: "08031234567", email: "ada@example.com" })).toThrow(/not both/);
+    expect(() => guestOtpTarget({ phone: "123" })).toThrow(/valid Nigerian/);
+    expect(() => guestOtpTarget({ email: guestPlaceholderEmail("2348031234567") })).toThrow(/email used at guest checkout/);
   });
 });
