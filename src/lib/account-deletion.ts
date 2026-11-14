@@ -1,4 +1,5 @@
 import { prisma } from "./db";
+import { releaseUserIdentity } from "./account-purge";
 
 const CANCELLABLE_STATES = ["pending", "awaiting_payment", "confirmed", "cancellation_requested"];
 const REASON = "Account deletion requested; any refund requires finance review under the cancellation policy.";
@@ -8,7 +9,8 @@ export async function requestAccountDeletion(userId: string, now = new Date()) {
     // Booking creation takes the same customer lock, so no reservation can slip
     // between the cancellation scan and the deletion flag being saved.
     await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${userId} FOR NO KEY UPDATE`;
-    const user = await tx.user.findUniqueOrThrow({ where: { id: userId }, select: { deletionRequestedAt: true } });
+    const user = await tx.user.findUniqueOrThrow({ where: { id: userId }, select: { deletionRequestedAt: true, status: true } });
+    if (user.status === "deleted") return { cancelledBookings: 0, refundReviewBookings: 0 };
     const upcoming = await tx.booking.findMany({ where: { customerId: userId, startsAt: { gt: now }, status: { in: CANCELLABLE_STATES } }, orderBy: { id: "asc" }, select: { id: true } });
     let cancelled = 0, refundReview = 0;
     for (const { id } of upcoming) {
@@ -33,11 +35,11 @@ export async function requestAccountDeletion(userId: string, now = new Date()) {
       cancelled++;
       if (toStatus === "refund_pending") refundReview++;
     }
-    await tx.user.update({ where: { id: userId }, data: { deletionRequestedAt: user.deletionRequestedAt || now } });
-    if (!user.deletionRequestedAt || cancelled) await tx.auditLog.create({ data: {
+    await tx.auditLog.create({ data: {
       actorId: userId, action: "account.deletion_request", entityType: "User", entityId: userId,
       afterJson: JSON.stringify({ deletionRequested: true, cancelledBookings: cancelled, refundReviewBookings: refundReview })
     } });
+    await releaseUserIdentity(tx, userId);
     return { cancelledBookings: cancelled, refundReviewBookings: refundReview };
   }, { isolationLevel: "ReadCommitted", timeout: 15000 });
 }

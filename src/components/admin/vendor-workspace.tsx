@@ -295,7 +295,7 @@ export function VendorWorkspace({
               triggerClassName="text-red-600 border-red-300"
               disabled={!editable}
               title={`Delete ${vendor.businessName}?`}
-              description="Remove the vendor from listings and disable its account and services. Booking, payment and payout history are preserved."
+              description="The business, login email, phone and images are removed. Paid bookings stay for accounting without the original contact details, so the email can be used again."
               confirmLabel="Delete vendor"
               requireReason
               onConfirm={async (reason) => {

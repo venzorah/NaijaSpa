@@ -30,7 +30,7 @@ export async function cleanupDeletedImages(urls?: string[]) {
       if (key?.startsWith("galleries/")) await deleteGalleryImageFile(item.url);
       else if (key?.startsWith("categories/")) await deleteCategoryImageFile(item.url);
       else if (key) await deleteMediaObject(key);
-      await prisma.mediaAsset.update({ where: { url: item.url }, data: { storageCleanupPending: false } });
+      await prisma.mediaAsset.delete({ where: { url: item.url } });
     } catch { /* Keep the pending marker so storage deletion can be retried. */ }
   }
   }));

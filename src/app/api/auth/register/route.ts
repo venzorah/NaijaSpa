@@ -5,6 +5,7 @@ import { createSession, hashPassword } from "@/lib/auth";
 import { ROLES } from "@/lib/rbac";
 import { jsonError, rateLimit, clientAddress } from "@/lib/http";
 import { queueMail, sendWelcomeEmail } from "@/lib/mail";
+import { freeAbandonedIdentity } from "@/lib/account-purge";
 
 export async function POST(req: Request) {
   try {
@@ -14,7 +15,11 @@ export async function POST(req: Request) {
       .parse(await req.json());
     const email = body.email.toLowerCase();
     const exists = await prisma.user.findUnique({ where: { email } });
-    if (exists) return NextResponse.json({ error: "Email already registered" }, { status: 409 });
+    if (exists) {
+      const freed = await freeAbandonedIdentity(email);
+      const still = freed ? await prisma.user.findUnique({ where: { email } }) : exists;
+      if (still) return NextResponse.json({ error: "Email already registered" }, { status: 409 });
+    }
     const role = body.asVendor ? ROLES.VENDOR_OWNER : ROLES.CUSTOMER;
     const user = await prisma.user.create({
       data: {

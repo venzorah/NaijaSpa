@@ -6,13 +6,15 @@ const db = vi.hoisted(() => ({
   refund: { create: vi.fn() }, vendorEarning: { updateMany: vi.fn() }, auditLog: { create: vi.fn() }
 }));
 vi.mock("../src/lib/db", () => ({ prisma: db }));
+vi.mock("../src/lib/account-purge", () => ({ releaseUserIdentity: vi.fn(async () => ({ removed: false })) }));
 import { requestAccountDeletion } from "../src/lib/account-deletion";
+import { releaseUserIdentity } from "../src/lib/account-purge";
 const now = new Date("2026-11-02T08:00Z");
 const booking = { id: "booking", customerId: "user", status: "awaiting_payment", startsAt: new Date("2026-11-03T08:00Z"), payments: [] };
 beforeEach(() => {
   vi.resetAllMocks();
   db.$transaction.mockImplementation(async (fn) => fn(db));
-  db.user.findUniqueOrThrow.mockResolvedValue({ deletionRequestedAt: null });
+  db.user.findUniqueOrThrow.mockResolvedValue({ deletionRequestedAt: null, status: "active" });
   db.booking.findMany.mockResolvedValue([{ id: "booking" }]);
   db.booking.findUniqueOrThrow.mockResolvedValue(booking);
 });
@@ -21,7 +23,7 @@ describe("account deletion booking cleanup", () => {
     expect(await requestAccountDeletion("user", now)).toEqual({ cancelledBookings: 1, refundReviewBookings: 0 });
     expect(db.booking.update).toHaveBeenCalledWith({ where: { id: "booking" }, data: expect.objectContaining({ status: "cancelled", statusHistory: { create: expect.objectContaining({ actorId: "user", fromStatus: "awaiting_payment", toStatus: "cancelled" }) } }) });
     expect(db.refund.create).not.toHaveBeenCalled();
-    expect(db.user.update).toHaveBeenCalledWith({ where: { id: "user" }, data: { deletionRequestedAt: now } });
+    expect(releaseUserIdentity).toHaveBeenCalled();
   });
   it("queues paid appointments for refund review and cancels pending earnings", async () => {
     db.booking.findUniqueOrThrow.mockResolvedValue({ ...booking, status: "confirmed", payments: [{ id: "payment", amountKobo: 10000, refunds: [] }] });
@@ -32,11 +34,11 @@ describe("account deletion booking cleanup", () => {
   });
   it("does not create duplicate refunds or overwrite the original request date", async () => {
     const original = new Date("2026-11-01T08:00Z");
-    db.user.findUniqueOrThrow.mockResolvedValue({ deletionRequestedAt: original });
+    db.user.findUniqueOrThrow.mockResolvedValue({ deletionRequestedAt: original, status: "active" });
     db.booking.findUniqueOrThrow.mockResolvedValue({ ...booking, status: "cancellation_requested", payments: [{ id: "payment", amountKobo: 10000, refunds: [{ id: "refund" }] }] });
     await requestAccountDeletion("user", now);
     expect(db.refund.create).not.toHaveBeenCalled();
-    expect(db.user.update.mock.calls[0][0].data.deletionRequestedAt).toBe(original);
+    expect(releaseUserIdentity).toHaveBeenCalled();
   });
   it.each(["completed", "in_progress", "cancelled", "refund_pending", "refunded", "no_show"])("preserves a booking that became %s before its lock was acquired", async (status) => {
     db.booking.findUniqueOrThrow.mockResolvedValue({ ...booking, status });
@@ -50,6 +52,6 @@ describe("account deletion booking cleanup", () => {
   it("fails the transaction if a booking cannot be cancelled", async () => {
     db.booking.update.mockRejectedValue(new Error("database interrupted"));
     await expect(requestAccountDeletion("user", now)).rejects.toThrow("database interrupted");
-    expect(db.user.update).not.toHaveBeenCalled();
+    expect(releaseUserIdentity).not.toHaveBeenCalled();
   });
 });

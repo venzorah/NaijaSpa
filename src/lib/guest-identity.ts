@@ -3,6 +3,7 @@ import { ROLES } from "./rbac";
 import { createSession, hashPassword, type SessionUser } from "./auth";
 import { audit } from "./audit";
 import { guestPlaceholderEmail, isGuestPlaceholderEmail, normalizeGuestEmail, normalizeNgPhone } from "./phone";
+import { freeAbandonedIdentity } from "./account-purge";
 
 export function sessionFromUser(user: { id: string; email: string; name: string; role: string; locale?: string; theme?: string | null }): SessionUser {
   return {
@@ -33,7 +34,7 @@ const customerPhoneSelect = {
 export async function findCustomerByPhone(phoneNormalized: string, rawPhone?: string) {
   const local = phoneNormalized.startsWith("234") ? `0${phoneNormalized.slice(3)}` : "";
   const byNormalized = await prisma.user.findFirst({
-    where: { phoneNormalized, role: ROLES.CUSTOMER },
+    where: { phoneNormalized, role: ROLES.CUSTOMER, status: "active" },
     select: customerPhoneSelect
   });
   if (byNormalized) return byNormalized;
@@ -45,7 +46,7 @@ export async function findCustomerByPhone(phoneNormalized: string, rawPhone?: st
   ];
   if (!or.length) return null;
   return prisma.user.findFirst({
-    where: { role: ROLES.CUSTOMER, phoneNormalized: null, OR: or },
+    where: { role: ROLES.CUSTOMER, status: "active", phoneNormalized: null, OR: or },
     select: customerPhoneSelect
   });
 }
@@ -85,9 +86,13 @@ export async function findOrCreateGuestCustomer(input: { name: string; phone: st
       });
     }
     if (email && !isGuestPlaceholderEmail(existing.email) && existing.email !== email) {
-      const taken = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+      const taken = await prisma.user.findUnique({ where: { email }, select: { id: true, status: true, accountKind: true } });
       if (taken && taken.id !== existing.id) {
-        throw Object.assign(new Error("That email is already registered. Sign in or use a different email."), { status: 409 });
+        if (taken.status === "deleted" || taken.accountKind === "merged") await freeAbandonedIdentity(email);
+        const still = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+        if (still && still.id !== existing.id) {
+          throw Object.assign(new Error("That email is already registered. Sign in or use a different email."), { status: 409 });
+        }
       }
     }
     const updated = await prisma.user.update({
@@ -103,9 +108,11 @@ export async function findOrCreateGuestCustomer(input: { name: string; phone: st
   }
 
   if (email) {
-    const emailOwner = await prisma.user.findUnique({ where: { email }, select: { id: true, accountKind: true, role: true } });
+    const emailOwner = await prisma.user.findUnique({ where: { email }, select: { id: true, accountKind: true, role: true, status: true } });
     if (emailOwner) {
-      throw Object.assign(new Error("That email is already registered. Sign in to continue."), { status: 409 });
+      if (emailOwner.status === "deleted" || emailOwner.accountKind === "merged") await freeAbandonedIdentity(email);
+      const still = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+      if (still) throw Object.assign(new Error("That email is already registered. Sign in to continue."), { status: 409 });
     }
   }
 
@@ -135,9 +142,11 @@ export async function upgradeGuestAccount(userId: string, email: string, passwor
     throw Object.assign(new Error("This account is already registered."), { status: 409 });
   }
   const normalized = email.trim().toLowerCase();
-  const taken = await prisma.user.findUnique({ where: { email: normalized }, select: { id: true } });
+  const taken = await prisma.user.findUnique({ where: { email: normalized }, select: { id: true, status: true, accountKind: true } });
   if (taken && taken.id !== userId) {
-    throw Object.assign(new Error("Email already registered"), { status: 409 });
+    if (taken.status === "deleted" || taken.accountKind === "merged") await freeAbandonedIdentity(normalized);
+    const still = await prisma.user.findUnique({ where: { email: normalized }, select: { id: true } });
+    if (still && still.id !== userId) throw Object.assign(new Error("Email already registered"), { status: 409 });
   }
   const passwordHash = await hashPassword(password);
   const updated = await prisma.user.update({
@@ -193,15 +202,8 @@ export async function claimGuestByVerifiedPhone(registeredUserId: string, phoneN
       }
     });
     await tx.session.deleteMany({ where: { userId: guest.id } });
-    await tx.user.update({
-      where: { id: guest.id },
-      data: {
-        phoneVerifiedAt: null,
-        accountKind: "merged",
-        status: "deleted",
-        email: `merged.${guest.id}@guest.naijaspa.local`
-      }
-    });
+    const { releaseUserIdentity } = await import("./account-purge");
+    await releaseUserIdentity(tx, guest.id);
   });
   await audit({
     actorId: registeredUserId,

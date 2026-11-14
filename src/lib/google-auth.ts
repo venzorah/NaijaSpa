@@ -3,6 +3,7 @@ import { SignJWT, jwtVerify } from "jose";
 import { appUrl } from "./payments";
 import { isAdminRole, isVendorRole, portalHome, ROLES, type Role } from "./rbac";
 import { prisma } from "./db";
+import { freeAbandonedIdentity } from "./account-purge";
 import { createSession } from "./auth";
 import { queueMail, sendWelcomeEmail } from "./mail";
 
@@ -195,6 +196,13 @@ export async function signInWithGoogle(profile: { googleId: string; email: strin
     where: { OR: [{ googleId: profile.googleId }, { email: profile.email }] },
     include: { vendorOwned: true, staffMemberships: true }
   });
+  if (user && (user.status === "deleted" || user.accountKind === "merged")) {
+    await freeAbandonedIdentity(user.email);
+    user = await prisma.user.findFirst({
+      where: { OR: [{ googleId: profile.googleId }, { email: profile.email }], status: "active" },
+      include: { vendorOwned: true, staffMemberships: true }
+    });
+  }
 
   if (!user) {
     if (portal === "admin") {

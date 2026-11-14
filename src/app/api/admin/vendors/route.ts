@@ -12,6 +12,7 @@ import { appUrl } from "@/lib/payments";
 import { queueMail, sendVendorInviteEmail } from "@/lib/mail";
 import { mapNigeriaState } from "@/lib/nigeria";
 import { updateVendorWithSlug } from "@/lib/vendor-slugs";
+import { freeAbandonedIdentity } from "@/lib/account-purge";
 
 export async function GET() {
   try {
@@ -31,6 +32,7 @@ export async function POST(req: Request) {
     const body = z.object({ email: z.string().email(), businessName: z.string().min(2), city: z.string().min(2) }).parse(await req.json());
     const token = crypto.randomBytes(24).toString("hex");
     const tempPass = crypto.randomBytes(12).toString("base64url");
+    await freeAbandonedIdentity(body.email.toLowerCase());
     const owner = await prisma.user.create({
       data: {
         email: body.email.toLowerCase(),

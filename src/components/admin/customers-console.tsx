@@ -192,9 +192,9 @@ export function CustomersConsole({ rows, editable }: { rows: AdminCustomer[]; ed
                     triggerClassName="text-red-600 border-red-300"
                     triggerIcon={Trash2}
                     disabled={!editable}
-                    title="Permanently delete personal data?"
-                    description="Profile fields are redacted. Booking and payment records stay anonymised."
-                    confirmLabel="Delete personal data"
+                    title="Permanently delete this customer?"
+                    description="The login email, phone and files are removed so they can be used again. Paid booking records stay for accounting without personal contact details."
+                    confirmLabel="Delete customer"
                     requireReason
                     onConfirm={async (reason) => { await adminJson(`/api/admin/users/${selected.id}`, {method:"DELETE",body:JSON.stringify({reason})}); router.refresh(); }}
                   />

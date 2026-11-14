@@ -24,11 +24,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const data: { status?: string; name?: string; email?: string; phone?: string | null; deletionRequestedAt?: Date | null } = {};
     if (body.status) data.status = body.status;
     if (body.processDeletion) {
-      data.name = "Deleted customer";
-      data.email = `deleted-${id.slice(-8)}@redacted.naijaspa`;
-      data.phone = null;
-      data.deletionRequestedAt = null;
-      data.status = "suspended";
+      return NextResponse.json(await deleteCustomer(actor, id, body.note || "Admin processed account deletion"));
     }
     const user = await prisma.user.update({ where: { id }, data, select: customerSelect });
     await audit({

@@ -1,6 +1,6 @@
 import {beforeEach,expect,it,vi} from "vitest";
 const m=vi.hoisted(()=>({items:vi.fn(),assets:vi.fn(),pending:vi.fn(),drop:vi.fn(),gallery:vi.fn(),category:vi.fn(),saved:vi.fn(),tx:{$queryRaw:vi.fn(),service:{updateMany:vi.fn()},category:{updateMany:vi.fn()},vendor:{updateMany:vi.fn(),findMany:vi.fn(),update:vi.fn()},vendorStaff:{updateMany:vi.fn()},therapistGalleryImage:{deleteMany:vi.fn()},homeHero:{updateMany:vi.fn()},heroAd:{updateMany:vi.fn()},mediaAsset:{upsert:vi.fn()},auditLog:{create:vi.fn()}}}));
-vi.mock("../src/lib/db",()=>({prisma:{$transaction:(fn:(tx:unknown)=>unknown)=>fn(m.tx),mediaAsset:{findMany:m.assets,count:m.pending,update:m.saved}}}));
+vi.mock("../src/lib/db",()=>({prisma:{$transaction:(fn:(tx:unknown)=>unknown)=>fn(m.tx),mediaAsset:{findMany:m.assets,count:m.pending,delete:m.saved}}}));
 vi.mock("../src/lib/admin-media",()=>({adminMediaItems:m.items}));
 vi.mock("../src/lib/object-storage",()=>({deleteMediaObject:m.drop}));
 vi.mock("../src/lib/gallery-media",()=>({deleteGalleryImageFile:m.gallery}));

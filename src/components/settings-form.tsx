@@ -197,7 +197,7 @@ export function SettingsForm({
       <section className="mt-4 rounded-3xl border border-red-500/30 bg-card p-5">
         <h2 className="font-semibold text-ink">Delete account</h2>
         <p className="mt-1 text-sm text-ink2">
-          Request permanent deletion of your account and personal data under the NDPA. Upcoming bookings will be cancelled.
+          This removes your login, phone and personal data under the NDPA. Upcoming bookings will be cancelled, and you can register again with the same email.
         </p>
         <GoldButton tone="outline" className="mt-4 !border-red-500/40 !text-red-600 dark:!text-red-300" onClick={() => setDel(true)}>
           <Trash2 className="mr-1.5 h-4 w-4" aria-hidden />
