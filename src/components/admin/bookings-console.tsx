@@ -37,11 +37,25 @@ export type AdminBookingRow = {
 
 type Filter = "all" | "Upcoming" | "In progress" | "Completed" | "Cancelled" | "guest" | "registered";
 
+const ADMIN_BOOKING_STATUSES = [
+  "pending",
+  "awaiting_payment",
+  "confirmed",
+  "in_progress",
+  "completed",
+  "cancellation_requested",
+  "cancelled",
+  "refund_pending",
+  "refunded",
+  "no_show"
+] as const;
+
 export function BookingsConsole({ rows, editable, canSeeMoney }: { rows: AdminBookingRow[]; editable: boolean; canSeeMoney: boolean }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [selectedId, setSelectedId] = useState(rows[0]?.id ?? "");
+  const [statusError, setStatusError] = useState("");
   const filtered = useMemo(() => {
     const q = query.toLowerCase();
     return rows.filter((b) => {
@@ -170,17 +184,56 @@ export function BookingsConsole({ rows, editable, canSeeMoney }: { rows: AdminBo
           <a href={`/admin/chats/${b.id}`} className="mt-3 inline-block text-sm font-semibold text-leaf hover:underline">
             Open chat
           </a>
-          <div className="mt-4 flex flex-wrap gap-2 border-t border-line pt-4">
+          <div className="mt-4 flex flex-wrap items-end gap-2 border-t border-line pt-4">
+            <label className="text-[11px] text-ink2">
+              Booking status
+              <select
+                defaultValue={b.status}
+                key={b.id + b.status}
+                disabled={!editable}
+                className="ml-1 rounded-lg border border-line bg-bg px-2 py-1.5 text-sm text-ink"
+                onChange={async (e) => {
+                  const status = e.target.value;
+                  setStatusError("");
+                  try {
+                    await adminJson(`/api/admin/bookings/${b.id}`, { method: "PATCH", body: JSON.stringify({ status }) });
+                    router.refresh();
+                  } catch (err) {
+                    setStatusError(err instanceof Error ? err.message : "Could not update booking status.");
+                    e.target.value = b.status;
+                  }
+                }}
+              >
+                {ADMIN_BOOKING_STATUSES.map((status) => (
+                  <option key={status} value={status}>
+                    {status.replace(/_/g, " ")}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {statusError ? <p className="w-full text-xs text-red-600">{statusError}</p> : null}
             <ConfirmAction
               triggerLabel="Cancel"
               triggerIcon={RotateCcw}
               disabled={!editable || ["Completed", "Cancelled"].includes(b.bucket)}
               title={`Cancel ${b.ref}?`}
-              description="The booking is marked cancelled. Refunds are handled in Finance if a successful payment exists."
+              description="The visit is cancelled. If the customer already paid, a refund is queued in Finance using the live penalty rules. Send the money from Admin → Finance."
               confirmLabel="Cancel booking"
               requireReason
               onConfirm={async (reason) => {
                 await adminJson(`/api/admin/bookings/${b.id}`, { method: "PATCH", body: JSON.stringify({ status: "cancelled", reason }) });
+                router.refresh();
+              }}
+            />
+            <ConfirmAction
+              triggerLabel="Refund customer"
+              disabled={!editable}
+              title={`Queue a refund for ${b.ref}?`}
+              description="Uses Admin → Finance refund policy (free window and penalties). Sending through Paystack still happens on Finance unless auto-refund is on."
+              confirmLabel="Queue refund"
+              requireReason
+              onConfirm={async (reason) => {
+                await adminJson("/api/admin/refunds", { method: "POST", body: JSON.stringify({ bookingId: b.id, reason, send: false }) });
                 router.refresh();
               }}
             />

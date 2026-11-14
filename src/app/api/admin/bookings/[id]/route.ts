@@ -5,7 +5,7 @@ import { audit } from "@/lib/audit";
 import { prisma } from "@/lib/db";
 import { jsonError } from "@/lib/http";
 import { markBookingCompleted } from "@/lib/payouts";
-import { confirmBookingFromPayment } from "@/lib/booking";
+import { BOOKING_STATES, confirmBookingFromPayment } from "@/lib/booking";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -14,7 +14,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const before = await prisma.booking.findUniqueOrThrow({ where: { id } });
     const body = z
       .object({
-        status: z.enum(["cancelled", "completed", "confirmed", "no_show"]),
+        status: z.enum(BOOKING_STATES),
         reason: z.string().optional()
       })
       .parse(await req.json());
@@ -31,6 +31,19 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         data: { bookingId: id, fromStatus: before.status, toStatus: body.status, actorId: actor.id, note: body.reason }
       });
     }
+    if (
+      (body.status === "cancelled" || body.status === "no_show") &&
+      !["cancelled", "refund_pending", "refunded"].includes(before.status)
+    ) {
+      const { queuePaidBookingRefund } = await import("@/lib/refunds");
+      await queuePaidBookingRefund({
+        bookingId: id,
+        reason: body.reason || (body.status === "no_show" ? "Marked no-show" : "Cancelled by admin"),
+        actorId: actor.id,
+        kind: body.status === "no_show" ? "no_show" : "cancel",
+        autoSend: false
+      });
+    }
     await audit({
       actorId: actor.id,
       action: `booking.${body.status}`,
@@ -39,7 +52,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       before,
       after: booking
     });
-    return NextResponse.json({ booking });
+    return NextResponse.json({ booking: await prisma.booking.findUnique({ where: { id } }) });
   } catch (e) {
     return jsonError(e);
   }

@@ -44,7 +44,7 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
       prisma.auditLog.findMany({ orderBy: { createdAt: "desc" }, take: 8, include: { actor: { select: { name: true } } } }),
       prisma.vendorSubscription.count({ where: { status: "active" } }),
       prisma.campaign.findMany({ include: { vendor: { select: { businessName: true } } }, take: 8 }),
-      prisma.refund.aggregate({ where: { createdAt: { gte: since } }, _sum: { amountKobo: true } }),
+      prisma.refund.aggregate({ where: { createdAt: { gte: since }, status: "processed" }, _sum: { amountKobo: true } }),
       prisma.payout.aggregate({ where: { createdAt: { gte: since } }, _sum: { amountKobo: true } })
     ]);
 

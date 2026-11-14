@@ -23,7 +23,7 @@ export function CancelBooking({ bookingId }: { bookingId: string }) {
         Cancel booking
       </GoldButton>
       <BottomSheet open={open} onClose={() => setOpen(false)} title="Cancel booking?">
-        <p className="text-sm text-ink2">Tell us why you’re cancelling. Refunds follow the provider’s cancellation window.</p>
+        <p className="text-sm text-ink2">Tell us why you’re cancelling. If you already paid, any refund follows NaijaSpa’s cancellation window and may keep a penalty for late cancels.</p>
         <p className="mb-2 mt-5 text-[11px] font-bold uppercase tracking-[0.18em] text-ink2">Reason</p>
         <div className="flex flex-wrap gap-2">
           {reasons.map((r) => (

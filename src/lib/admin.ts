@@ -147,7 +147,7 @@ export const ADMIN_SCREENS: {
     label: "Finance",
     group: "Revenue",
     icon: Wallet,
-    description: "Transactions, refunds, payouts and reconciliation.",
+    description: "Transactions, Paystack refunds, penalties, payouts and reconciliation.",
     view: ["finance.view"],
     edit: ["finance.manage"]
   },
@@ -342,7 +342,7 @@ export function vendorStatusLabel(applicationStatus: string) {
 }
 
 export function bookingBucket(status: string, startsAt: Date, now = new Date()) {
-  if (status === "cancelled" || status === "refunded") return "Cancelled";
+  if (status === "cancelled" || status === "refunded" || status === "refund_pending") return "Cancelled";
   if (status === "completed") return "Completed";
   if (status === "in_progress" || (status === "confirmed" && startsAt <= now)) return "In progress";
   if (status === "disputed") return "Disputed";

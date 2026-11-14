@@ -252,15 +252,27 @@ export async function requestCancellation(bookingId: string, userId: string, rea
   if (!["awaiting_payment", "confirmed", "pending"].includes(booking.status)) {
     throw Object.assign(new Error("This booking cannot be cancelled"), { status: 400 });
   }
+  const { getRefundPolicy, queuePaidBookingRefund } = await import("./refunds");
+  const policy = await getRefundPolicy();
+  if (!policy.customerCancelEnabled && booking.status === "confirmed") {
+    throw Object.assign(new Error("Online cancellation is turned off. Message NaijaSpa or your therapist."), { status: 403 });
+  }
   const hours = (booking.startsAt.getTime() - Date.now()) / 36e5;
   const toStatus = hours > 24 && booking.status === "awaiting_payment" ? "cancelled" : "cancellation_requested";
-  const updated = await prisma.booking.update({
+  await prisma.booking.update({
     where: { id: bookingId },
     data: {
       status: toStatus,
       cancelReason: reason,
       statusHistory: { create: { fromStatus: booking.status, toStatus, actorId: userId, note: reason } }
     }
+  });
+  await queuePaidBookingRefund({
+    bookingId,
+    reason,
+    actorId: userId,
+    kind: "cancel",
+    autoSend: policy.autoRefundOnCancel
   });
   await audit({
     actorId: userId,
@@ -270,5 +282,5 @@ export async function requestCancellation(bookingId: string, userId: string, rea
     before: { status: booking.status },
     after: { status: toStatus }
   });
-  return updated;
+  return prisma.booking.findUniqueOrThrow({ where: { id: bookingId } });
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ConfirmAction } from "@/components/admin/confirm-action";
 import { Panel } from "@/components/admin/panel";
@@ -8,6 +8,7 @@ import { AdminStatusPill } from "@/components/admin/status-pill";
 import { adminJson } from "@/components/admin/json";
 import { formatNgn } from "@/lib/money";
 import { cn } from "@/lib/cn";
+import { REFUND_STATUS_OPTIONS, refundStatusLabel } from "@/lib/refund-policy";
 
 type Tab = "transactions" | "refunds" | "earnings" | "payouts";
 
@@ -19,7 +20,17 @@ export function FinanceConsole({
   editable
 }: {
   payments: { id: string; reference: string; purpose: string; status: string; amountKobo: number; createdAt: string }[];
-  refunds: { id: string; amountKobo: number; status: string; reason: string | null; createdAt: string }[];
+  refunds: {
+    id: string;
+    amountKobo: number;
+    penaltyKobo: number;
+    status: string;
+    reason: string | null;
+    createdAt: string;
+    paymentRef: string;
+    bookingId: string | null;
+    bookingRef: string | null;
+  }[];
   earnings: { id: string; vendor: string; payableKobo: number; commissionKobo: number; status: string }[];
   payouts: { id: string; vendor: string; amountKobo: number; status: string; note: string | null; createdAt: string }[];
   editable: boolean;
@@ -62,16 +73,16 @@ export function FinanceConsole({
         </Panel>
       ) : null}
       {tab === "refunds" ? (
-        <Panel title="Refunds" bodyClassName="p-0">
-          <Rows
-            items={refunds.map((r) => ({
-              id: r.id,
-              title: r.reason || "Refund",
-              sub: r.createdAt,
-              amount: r.amountKobo,
-              status: r.status
-            }))}
-          />
+        <Panel title="Refunds" description="Refunds can stay manual: set pending or completed after you pay the customer yourself. Paystack is optional.">
+          {refunds.length ? (
+            <ul className="space-y-3">
+              {refunds.map((r) => (
+                <RefundRow key={r.id} refund={r} editable={editable} />
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-ink2">No refunds queued yet.</p>
+          )}
         </Panel>
       ) : null}
       {tab === "earnings" ? (
@@ -138,6 +149,125 @@ export function FinanceConsole({
         </Panel>
       ) : null}
     </div>
+  );
+}
+
+function RefundRow({
+  refund,
+  editable
+}: {
+  refund: {
+    id: string;
+    amountKobo: number;
+    penaltyKobo: number;
+    status: string;
+    reason: string | null;
+    createdAt: string;
+    paymentRef: string;
+    bookingId: string | null;
+    bookingRef: string | null;
+  };
+  editable: boolean;
+}) {
+  const router = useRouter();
+  const [amountNaira, setAmountNaira] = useState(String(refund.amountKobo / 100));
+  const [status, setStatus] = useState(refundStatusLabel(refund.status));
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    setAmountNaira(String(refund.amountKobo / 100));
+    setStatus(refundStatusLabel(refund.status));
+  }, [refund.amountKobo, refund.status]);
+  async function saveStatus() {
+    setBusy(true);
+    setError("");
+    try {
+      const amountKobo = Math.round(Number(amountNaira) * 100);
+      if (!Number.isFinite(amountKobo) || amountKobo < 0) throw new Error("Enter a valid refund amount.");
+      await adminJson(`/api/admin/refunds/${refund.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          action: "status",
+          status,
+          amountKobo
+        })
+      });
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not update this refund.");
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <li className="rounded-xl border border-line p-3 text-sm">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="font-semibold">{refund.bookingRef || "Booking refund"}</p>
+          <p className="text-[11px] text-ink2">
+            {refund.paymentRef} · penalty {formatNgn(refund.penaltyKobo)} · {refund.createdAt}
+          </p>
+          {refund.reason ? <p className="mt-1 text-xs text-ink2">{refund.reason}</p> : null}
+        </div>
+        <AdminStatusPill status={refundStatusLabel(refund.status)} />
+      </div>
+      <div className="mt-3 flex flex-wrap items-end gap-2">
+        <label className="text-[11px] text-ink2">
+          Refund ₦
+          <input
+            type="number"
+            min={0}
+            value={amountNaira}
+            disabled={!editable}
+            onChange={(e) => setAmountNaira(e.target.value)}
+            className="ml-1 w-28 rounded border border-line bg-card px-2 py-1 text-sm text-ink"
+          />
+        </label>
+        <label className="text-[11px] text-ink2">
+          Status
+          <select
+            value={status}
+            disabled={!editable}
+            onChange={(e) => setStatus(e.target.value)}
+            className="ml-1 rounded border border-line bg-card px-2 py-1 text-sm text-ink"
+          >
+            {REFUND_STATUS_OPTIONS.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="button"
+          disabled={!editable || busy}
+          className="rounded-full bg-gold px-3 py-1.5 text-xs font-bold text-ongold disabled:opacity-50"
+          onClick={() => void saveStatus()}
+        >
+          {busy ? "Saving…" : "Save status"}
+        </button>
+        {error ? <p className="w-full text-xs text-red-600">{error}</p> : null}
+        <ConfirmAction
+          triggerLabel="Refund on Paystack"
+          disabled={!editable}
+          title="Send this refund through Paystack?"
+          description="Optional. Use this only if you want Paystack to credit the original card or transfer. For a bank transfer or cash, set status to Completed instead."
+          confirmLabel="Send via Paystack"
+          requireReason
+          onConfirm={async (reason) => {
+            await adminJson(`/api/admin/refunds/${refund.id}`, {
+              method: "PATCH",
+              body: JSON.stringify({
+                action: "send",
+                amountKobo: Math.round(Number(amountNaira) * 100),
+                reason
+              })
+            });
+            router.refresh();
+          }}
+        />
+      </div>
+    </li>
   );
 }
 
