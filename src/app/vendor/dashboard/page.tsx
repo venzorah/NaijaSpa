@@ -76,7 +76,10 @@ export default async function VendorHome() {
             <Link href="/vendor/availability" className="inline-flex min-h-11 items-center rounded-full border border-line px-4 text-sm font-semibold">
               Block time
             </Link>
-            <Link href="/vendor/bookings" className="inline-flex min-h-11 items-center gap-1 rounded-full bg-gold px-4 text-sm font-bold text-ongold">
+            <Link href="/vendor/chats" className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-gold px-4 text-sm font-bold text-ongold">
+              <MessageCircle className="h-4 w-4"/> Chat
+            </Link>
+            <Link href="/vendor/bookings" className="inline-flex min-h-11 items-center gap-1 rounded-full border border-gold/50 px-4 text-sm font-semibold text-goldink">
               View bookings <ArrowRight className="h-4 w-4"/>
             </Link>
           </>}/>
@@ -109,6 +112,10 @@ export default async function VendorHome() {
         </Panel>
         <Panel title="Pending actions" description="Items that need your attention">
           <ul className="space-y-3 text-sm">
+            <li className="flex justify-between gap-2">
+              <span>Chats</span>
+              <Link href="/vendor/chats" className="font-semibold text-goldink">Open inbox</Link>
+            </li>
             <li className="flex justify-between gap-2">
               <span>Bookings waiting</span>
               <Link href="/vendor/bookings" className="font-semibold text-goldink">{pendingBookings}</Link>

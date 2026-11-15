@@ -1,4 +1,4 @@
-import {isAdminRole,isVendorRole,type RoleAccess} from "./rbac";
+import {ADMIN_DASHBOARD,isAdminRole,isVendorRole,VENDOR_DASHBOARD,type RoleAccess} from "./rbac";
 export function assertPortalAccount(account:RoleAccess,portal:"customer"|"vendor"|"admin"){
  const role=typeof account==="string"?account:account.role;
  const allowed=portal==="customer"?role==="customer":portal==="vendor"?isVendorRole(role):isAdminRole(account);
@@ -10,4 +10,12 @@ export function portalNext(raw:string|null|undefined,portal:"customer"|"vendor"|
  if(portal==="vendor")return /^\/vendor(?:\/|\?|#|$)/.test(raw)?raw:fallback;
  if(portal==="admin")return /^\/admin(?:\/|\?|#|$)/.test(raw)?raw:fallback;
  return /^\/(?:vendor|admin|api|login|register|customer-access|vendor-access)(?:\/|\?|#|$)/.test(raw)?fallback:raw;
+}
+
+/** PWA/start URL: send signed-in vendors (and admins) to their portal. Logged-out and customer sessions stay on the public home. */
+export function appLaunchPath(role: string | null | undefined) {
+  if (!role) return null;
+  if (isVendorRole(role)) return VENDOR_DASHBOARD;
+  if (isAdminRole(role)) return ADMIN_DASHBOARD;
+  return null;
 }

@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { CustomerHome } from "@/components/customer-home";
+import { getSession } from "@/lib/auth";
 import { getHomeCatalog } from "@/lib/catalog";
+import { appLaunchPath } from "@/lib/portal-auth";
 import { inHref, parsePlacePath, placeHasLocation } from "@/lib/place-urls";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +15,8 @@ export const metadata: Metadata = {
 };
 
 export default async function LocalizedHomePage({ params }: { params: Promise<{ place?: string[] }> }) {
+  const portal = appLaunchPath((await getSession())?.role);
+  if (portal) redirect(portal);
   const { place: segments } = await params;
   if (!segments?.length) redirect("/");
   const place = parsePlacePath(segments);
