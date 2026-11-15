@@ -4,6 +4,7 @@ import { ROLES } from "./rbac";
 import { parseNotificationPreferences } from "./notification-preferences";
 import { announcementEmail, mailConfigured, sendMail } from "./mail";
 import { appUrl } from "./payments";
+import { isGuestPlaceholderEmail } from "./phone";
 import type { AnnouncementImage, AnnouncementLink } from "./announcement-content";
 import { announcementInboxPath, encodeAnnouncementInboxBody } from "./announcement-inbox";
 
@@ -79,6 +80,7 @@ export function isSendableEmail(email: string) {
   const value = email.trim().toLowerCase();
   if (!value.includes("@") || value.length > 254) return false;
   if (value.startsWith("deleted-") && value.endsWith("@redacted.naijaspa")) return false;
+  if (isGuestPlaceholderEmail(value) || value.startsWith("merged.")) return false;
   return true;
 }
 
@@ -160,15 +162,37 @@ async function saveJobs(jobs: AnnouncementJob[]) {
   await setConfig(ANNOUNCEMENT_JOBS_KEY, JSON.stringify(jobs.slice(0, 10)));
 }
 
-export async function enqueueAnnouncement(input: AnnouncementSendInput) {
+async function upsertHistory(record: AnnouncementRecord) {
+  const history = [record, ...(await loadHistory()).filter((row) => row.id !== record.id)].slice(0, 30);
+  await setConfig(ANNOUNCEMENTS_CONFIG_KEY, JSON.stringify(history));
+}
+
+export async function enqueueAnnouncement(input: AnnouncementSendInput, attempted = 0) {
+  const id = input.id || randomUUID();
   const job: AnnouncementJob = {
-    id: input.id || randomUUID(),
+    id,
     status: "queued",
     createdAt: new Date().toISOString(),
-    input
+    input: { ...input, id }
   };
   const jobs = (await loadJobs()).filter((row) => row.id !== job.id);
   await saveJobs([job, ...jobs]);
+  await upsertHistory({
+    id: job.id,
+    at: job.createdAt,
+    audience: input.audience,
+    subject: input.subject,
+    title: input.title,
+    attempted,
+    sent: 0,
+    failed: 0,
+    skipped: 0,
+    inApp: input.channel !== "email",
+    channel: input.channel,
+    queued: true,
+    imageCount: input.images?.length ?? 0,
+    linkCount: (input.ctaLabel && input.ctaHref ? 1 : 0) + (input.links?.length ?? 0)
+  });
   return job;
 }
 
@@ -191,14 +215,20 @@ export async function processAnnouncementJob(job: AnnouncementJob) {
 }
 
 export async function processQueuedAnnouncements() {
-  const jobs = await loadJobs();
   const stale = Date.now() - 15 * 60 * 1000;
-  const next = jobs.find(
-    (job) => job.status === "queued" || (job.status === "running" && Date.parse(job.createdAt) < stale)
-  );
-  if (!next) return { processed: 0 };
-  await processAnnouncementJob(next);
-  return { processed: 1 };
+  let processed = 0;
+  const deadline = Date.now() + 220_000;
+  while (Date.now() < deadline) {
+    const jobs = await loadJobs();
+    const next = jobs.find(
+      (job) => job.status === "queued" || (job.status === "running" && Date.parse(job.createdAt) < stale)
+    );
+    if (!next) break;
+    await processAnnouncementJob(next);
+    processed += 1;
+    if (processed >= 5) break;
+  }
+  return { processed };
 }
 
 export function announcementShouldQueue(channel: AnnouncementChannel, recipientCount: number) {
@@ -258,8 +288,9 @@ export async function sendAnnouncement(input: AnnouncementSendInput) {
         try {
           await sendMail({ to: user.email, subject: input.subject, html: mail.html, text: mail.text });
           delivered = true;
-        } catch {
+        } catch (error) {
           mailFailed = true;
+          console.error("[announcement] email failed", user.email, error);
         }
       }
     }
@@ -274,8 +305,8 @@ export async function sendAnnouncement(input: AnnouncementSendInput) {
       });
       delivered = true;
     }
-    if (delivered) sent += 1;
-    else if (mailFailed) failed += 1;
+    if (mailFailed) failed += 1;
+    else if (delivered) sent += 1;
     else skipped += 1;
   });
 
@@ -295,10 +326,10 @@ export async function sendAnnouncement(input: AnnouncementSendInput) {
     skipped,
     inApp: sendMessage,
     channel: input.channel,
+    queued: false,
     imageCount: images.length,
     linkCount: (cta ? 1 : 0) + links.length
   };
-  const history = [record, ...(await loadHistory())].slice(0, 30);
-  await setConfig(ANNOUNCEMENTS_CONFIG_KEY, JSON.stringify(history));
+  await upsertHistory(record);
   return record;
 }

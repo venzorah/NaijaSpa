@@ -2,7 +2,8 @@
 const secret = process.env.CRON_SECRET?.trim() || process.env.INTERNAL_JOB_SECRET?.trim();
 if (!secret) throw new Error('An announcement job secret must be configured.');
 
-const response = await fetch('http://127.0.0.1:3100/api/jobs/announcements', {
+const origin = process.env.ANNOUNCEMENT_JOB_URL?.trim() || 'http://127.0.0.1:3100/api/jobs/announcements';
+const response = await fetch(origin, {
   method: 'POST',
   headers: { authorization: `Bearer ${secret}` },
   signal: AbortSignal.timeout(240_000)

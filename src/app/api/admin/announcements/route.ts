@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/admin-auth";
 import { hasPermission, ROLES } from "@/lib/rbac";
@@ -107,8 +107,12 @@ export async function POST(req: Request) {
     const size =
       body.audience === "individuals" ? (payload.userIds?.length ?? 0) : counts[body.audience];
     if (announcementShouldQueue(channel, size)) {
-      const job = await enqueueAnnouncement(payload);
-      void processAnnouncementJob(job).catch((error) => console.error("[announcement]", error));
+      const job = await enqueueAnnouncement(payload, size);
+      try {
+        after(() => processAnnouncementJob(job).catch((error) => console.error("[announcement]", error)));
+      } catch {
+        void processAnnouncementJob(job).catch((error) => console.error("[announcement]", error));
+      }
       const result = {
         id: job.id,
         at: job.createdAt,

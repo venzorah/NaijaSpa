@@ -408,8 +408,11 @@ export function AnnouncementsConsole({ initial }: { initial: Payload }) {
                     <td className="py-2 capitalize">{row.channel ?? (row.inApp ? "both" : "email")}</td>
                     <td className="py-2">{row.subject}</td>
                     <td className="py-2">
-                      {row.queued && !row.sent ? "Sending…" : `${row.sent}/${row.attempted}`}
-                      {row.failed ? ` · ${row.failed} failed` : ""}
+                      {row.queued && !row.sent && !row.failed
+                        ? "Queued — emails send in the background"
+                        : `${row.sent}/${row.attempted}`}
+                      {row.failed ? ` · ${row.failed} email failed` : ""}
+                      {row.skipped ? ` · ${row.skipped} skipped` : ""}
                     </td>
                     <td className="py-2 text-ink2">
                       {row.imageCount || 0} img · {row.linkCount || 0} link

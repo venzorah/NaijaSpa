@@ -90,6 +90,7 @@ describe("admin announcement emails", () => {
   it("skips deleted redacted addresses and opted-out inboxes", () => {
     expect(isSendableEmail("hello@naijaspa.ng")).toBe(true);
     expect(isSendableEmail("deleted-abc@redacted.naijaspa")).toBe(false);
+    expect(isSendableEmail("guest.2348012345678@guest.naijaspa.local")).toBe(false);
     expect(wantsAnnouncementEmail(JSON.stringify({ email: false }))).toBe(false);
     expect(wantsAnnouncementEmail("{}")).toBe(true);
   });
@@ -139,6 +140,21 @@ describe("admin announcement emails", () => {
     expect(res.status).toBe(200);
     expect(body.result.queued).toBe(true);
     expect(body.result.attempted).toBe(80);
+  });
+
+  it("counts a failed SMTP send even when the in-app message is stored", async () => {
+    mock.sendMail.mockRejectedValue(new Error("SMTP 550"));
+    const res = await POST(
+      new Request("http://localhost/api/admin/announcements", {
+        method: "POST",
+        body: JSON.stringify(payload)
+      })
+    );
+    const body = await res.json();
+    expect(res.status).toBe(200);
+    expect(body.result.failed).toBe(1);
+    expect(body.result.sent).toBe(1);
+    expect(mock.createMany).toHaveBeenCalled();
   });
 
   it("sends to eligible customers and records the blast", async () => {
