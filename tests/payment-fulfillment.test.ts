@@ -75,8 +75,19 @@ describe("payment fulfillment", () => {
     vi.stubGlobal("fetch", vi.fn(async () => ({ json: async () => ({ status: true, data: {
       status: "success", amount: 10000, currency: "NGN", reference: "wrong-reference"
     } }) })));
-    await verifyPaystack("reference");
+    const result = await verifyPaystack("reference");
     expect(mocks.confirm).not.toHaveBeenCalled();
-    expect(mocks.db.payment.updateMany).toHaveBeenCalledWith({ where: { id: "payment", status: { not: "success" } }, data: { status: "failed" } });
+    expect(result.status).toBe("pending");
+    expect(mocks.db.payment.updateMany).not.toHaveBeenCalled();
+  });
+  it("leaves a payment pending when Paystack has not finished the charge yet", async () => {
+    vi.stubEnv("PAYSTACK_SECRET_KEY", "test-key");
+    vi.stubGlobal("fetch", vi.fn(async () => ({ json: async () => ({ status: true, data: {
+      status: "ongoing", amount: 10000, currency: "NGN", reference: "reference"
+    } }) })));
+    const result = await verifyPaystack("reference");
+    expect(result.status).toBe("pending");
+    expect(mocks.db.payment.updateMany).not.toHaveBeenCalled();
+    expect(mocks.confirm).not.toHaveBeenCalled();
   });
 });

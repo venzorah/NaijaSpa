@@ -199,7 +199,10 @@ export async function confirmBookingFromPayment(bookingId: string, actorId?: str
   if (!client) return prisma.$transaction((tx) => confirmBookingFromPayment(bookingId, actorId, tx));
   await client.$queryRaw`SELECT id FROM "Booking" WHERE id = ${bookingId} FOR UPDATE`;
   const booking = await client.booking.findUniqueOrThrow({ where: { id: bookingId } });
-  const paid = await client.payment.findFirst({ where: { bookingId, status: "success", amountKobo: booking.customerTotalKobo, currency: booking.currency, purpose: "booking" } });
+  const paid = await client.payment.findFirst({
+    where: { bookingId, status: "success", purpose: "booking" },
+    orderBy: { createdAt: "desc" }
+  });
   if (!paid) throw Object.assign(new Error("Successful payment required"), { status: 409 });
   if (["confirmed", "in_progress", "completed", "no_show", "cancellation_requested", "refund_pending", "refunded"].includes(booking.status)) return booking;
   if (booking.status === "cancelled") {

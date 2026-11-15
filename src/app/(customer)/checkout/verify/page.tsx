@@ -16,9 +16,6 @@ export default async function CheckoutVerifyPage({
   const user = await getSession();
   const query = await searchParams;
   const reference = query.reference || query.trxref;
-  if (!user) {
-    redirect(`/login?next=/checkout/verify${reference ? `?reference=${encodeURIComponent(reference)}` : ""}`);
-  }
   if (!reference) {
     return (
       <div className="mx-auto w-full min-w-0 max-w-lg px-4 py-12">
@@ -35,7 +32,10 @@ export default async function CheckoutVerifyPage({
     where: { reference },
     include: { booking: { include: { service: true, vendor: true } } }
   });
-  if (!existing || (existing.booking && existing.booking.customerId !== user.id)) {
+  if (!existing) {
+    redirect("/account/bookings");
+  }
+  if (user && existing.booking && existing.booking.customerId !== user.id) {
     redirect("/account/bookings");
   }
 
@@ -147,9 +147,14 @@ export default async function CheckoutVerifyPage({
         <Link href="/account/bookings" className="inline-flex min-h-11 items-center justify-center rounded-full border border-line px-5 text-sm font-semibold">
           My Bookings
         </Link>
-        {user.accountKind === "guest" ? (
+        {user?.accountKind === "guest" ? (
           <Link href="/register" className="inline-flex min-h-11 items-center justify-center rounded-full border border-line px-5 text-sm font-semibold">
             Create an Account
+          </Link>
+        ) : null}
+        {!user ? (
+          <Link href={`/login?next=${encodeURIComponent(booking ? `/account/bookings/${booking.id}` : "/account/bookings")}`} className="inline-flex min-h-11 items-center justify-center rounded-full border border-line px-5 text-sm font-semibold">
+            Sign in to view booking
           </Link>
         ) : null}
         {!ok && existing.bookingId ? (

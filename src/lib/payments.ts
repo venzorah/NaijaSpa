@@ -229,16 +229,20 @@ export async function verifyPaystack(reference: string) {
     Boolean(data.status) &&
     tx?.status === "success" &&
     tx.amount === payment.amountKobo &&
-    tx.currency === payment.currency && tx.reference === reference;
+    tx.currency === payment.currency &&
+    tx.reference === reference;
 
   if (paid) {
     return markPaymentSuccess(payment.id, payment.bookingId, String(tx?.id ?? reference));
   }
 
-  await prisma.payment.updateMany({
-    where: { id: payment.id, status: { not: "success" } },
-    data: { status: "failed" }
-  });
+  const terminal = tx?.status === "failed" || tx?.status === "abandoned" || tx?.status === "reversed";
+  if (terminal) {
+    await prisma.payment.updateMany({
+      where: { id: payment.id, status: { not: "success" } },
+      data: { status: "failed" }
+    });
+  }
   return prisma.payment.findUniqueOrThrow({ where: { id: payment.id } });
 }
 
