@@ -16,8 +16,25 @@ describe("announcement inbox", () => {
     expect(encoded).toContain("Platinum listings");
     expect(parseAnnouncementInboxBody(encoded)).toEqual({
       text: "Hello from NaijaSpa.\n\nPlatinum listings now include extra Explore placement.",
-      cta: { label: "Open Explore", href: "/explore" }
+      cta: { label: "Open Explore", href: "/explore" },
+      links: []
     });
+  });
+
+  it("stores extra links for in-app tap tabs", () => {
+    const encoded = encodeAnnouncementInboxBody("Hello", "Body", { label: "Book", href: "/explore" }, [
+      { label: "WhatsApp", href: "https://wa.me/2348000000000" },
+      { label: "Shop", href: "/shop" }
+    ]);
+    expect(parseAnnouncementInboxBody(encoded)).toEqual({
+      text: "Hello\n\nBody",
+      cta: { label: "Book", href: "/explore" },
+      links: [
+        { label: "WhatsApp", href: "https://wa.me/2348000000000" },
+        { label: "Shop", href: "/shop" }
+      ]
+    });
+    expect(announcementPreview(encoded)).toBe("Hello Body");
   });
 
   it("drops javascript CTAs and still shows the copy", () => {

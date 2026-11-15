@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "@/components/navigation-link";
+import { AppLinkTab } from "@/components/app-link-tab";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { CheckCheck, Megaphone } from "lucide-react";
@@ -59,6 +60,8 @@ export function AnnouncementMessageList({
         <ul className="space-y-3">
           {rows.map((row) => {
             const unreadRow = !row.readAt;
+            const parsed = parseAnnouncementInboxBody(row.body);
+            const linkCount = (parsed.cta ? 1 : 0) + parsed.links.length;
             return (
               <li key={row.id}>
                 <Link
@@ -84,6 +87,11 @@ export function AnnouncementMessageList({
                     </span>
                     <span className="mt-0.5 block font-display text-xl font-semibold text-ink">{row.title}</span>
                     <span className="mt-1 block text-sm text-ink2">{announcementPreview(row.body)}</span>
+                    {linkCount ? (
+                      <span className="mt-2 inline-flex rounded-full bg-gold px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-ongold">
+                        {linkCount === 1 ? "Tap to open link" : `Tap to open ${linkCount} links`}
+                      </span>
+                    ) : null}
                     <span className="mt-2 block text-xs text-ink2">{formatAnnouncementWhen(row.createdAt)}</span>
                   </span>
                 </Link>
@@ -107,7 +115,7 @@ export function AnnouncementMessageReader({
   body: string;
   createdAt: string;
 }) {
-  const { text, cta } = parseAnnouncementInboxBody(body);
+  const { text, cta, links } = parseAnnouncementInboxBody(body);
   const back = portal === "vendor" ? "/vendor/messages" : "/account/messages";
 
   return (
@@ -126,13 +134,13 @@ export function AnnouncementMessageReader({
         <div className="h-1 bg-gold" aria-hidden />
         <div className="space-y-5 p-5 sm:p-6">
           <p className="whitespace-pre-wrap text-[15px] leading-7 text-ink">{text}</p>
-          {cta ? (
-            <Link
-              href={cta.href}
-              className="inline-flex min-h-11 items-center justify-center rounded-full bg-gold px-5 text-sm font-bold text-ongold"
-            >
-              {cta.label}
-            </Link>
+          {cta || links.length ? (
+            <div className="flex flex-wrap gap-2">
+              {cta ? <AppLinkTab href={cta.href} label={cta.label} /> : null}
+              {links.map((link) => (
+                <AppLinkTab key={`${link.label}:${link.href}`} href={link.href} label={link.label} variant="outline" />
+              ))}
+            </div>
           ) : null}
           {portal === "vendor" ? (
             <div>

@@ -20,10 +20,11 @@ describe("top bar ticker", () => {
     expect(slots[2].href).toBe("");
   });
 
-  it("allows site paths and naijaspa.com links only", () => {
+  it("allows site paths and https links", () => {
     expect(sanitizeTickerHref("/explore?city=Lagos")).toBe("/explore?city=Lagos");
-    expect(sanitizeTickerHref("https://naijaspa.com/book")).toBe("/book");
-    expect(sanitizeTickerHref("https://evil.example/x")).toBe("");
+    expect(sanitizeTickerHref("https://naijaspa.com/book")).toBe("https://naijaspa.com/book");
+    expect(sanitizeTickerHref("https://wa.me/2348000000000")).toBe("https://wa.me/2348000000000");
+    expect(sanitizeTickerHref("javascript:alert(1)")).toBe("");
     expect(sanitizeTickerHref("//evil.example")).toBe("");
   });
 

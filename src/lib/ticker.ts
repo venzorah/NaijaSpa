@@ -31,7 +31,8 @@ export function sanitizeTickerHref(raw: string) {
   }
   try {
     const url = new URL(value);
-    if (url.protocol === "https:" && (url.hostname === "naijaspa.com" || url.hostname === "www.naijaspa.com")) {
+    if (url.protocol === "https:") return url.toString();
+    if (url.protocol === "http:" && (url.hostname === "naijaspa.com" || url.hostname === "www.naijaspa.com" || url.hostname === "localhost")) {
       return url.pathname + url.search;
     }
   } catch {

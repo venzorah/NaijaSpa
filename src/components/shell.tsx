@@ -104,7 +104,7 @@ export function TopBar({ signedIn = false, tickerItems = [] }: { signedIn?: bool
     </header>
     <div
       aria-hidden
-      className={ticker.length ? "h-[calc(6rem+env(safe-area-inset-top))]" : "h-[calc(4rem+env(safe-area-inset-top))]"}
+      className={ticker.length ? "h-[calc(6.5rem+env(safe-area-inset-top))]" : "h-[calc(4rem+env(safe-area-inset-top))]"}
     />
     </>
   );

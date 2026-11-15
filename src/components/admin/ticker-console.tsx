@@ -73,7 +73,7 @@ export function TickerConsole({ initial, canEdit }: { initial: TickerSlot[]; can
                   className={adminField}
                 />
               </FormRow>
-              <FormRow label="Optional link" htmlFor={`ticker-href-${slot.id}`} hint="A site path such as /explore. Leave blank for text only.">
+              <FormRow label="Optional link" htmlFor={`ticker-href-${slot.id}`} hint="A site path such as /explore, or an https:// URL. Linked items show an Open tab on the top bar.">
                 <input
                   id={`ticker-href-${slot.id}`}
                   value={slot.href}

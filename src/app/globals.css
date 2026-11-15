@@ -232,7 +232,8 @@ picture {
 }
 
 .naijaspa-ticker:hover,
-.naijaspa-ticker:focus-within {
+.naijaspa-ticker:focus-within,
+.naijaspa-ticker:active {
   animation-play-state: paused;
 }
 

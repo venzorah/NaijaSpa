@@ -1,28 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "@/components/navigation-link";
+import { AppLinkTab } from "@/components/app-link-tab";
 import type { TickerItem } from "@/lib/ticker";
 
 function TickerCopy({ item }: { item: TickerItem }) {
-  const className = "whitespace-nowrap px-6 text-[12px] font-semibold tracking-wide text-gold";
   if (item.href) {
-    return (
-      <Link href={item.href} className={`${className} underline-offset-2 hover:underline`}>
-        {item.text}
-      </Link>
-    );
+    return <AppLinkTab href={item.href} label={item.text} variant="ticker" />;
   }
-  return <span className={className}>{item.text}</span>;
+  return <span className="whitespace-nowrap px-6 text-[12px] font-semibold tracking-wide text-gold">{item.text}</span>;
 }
 
-function TickerTrack({ items }: { items: TickerItem[] }) {
+function TickerTrack({ items, hidden }: { items: TickerItem[]; hidden?: boolean }) {
   return (
-    <div className="flex min-w-full shrink-0 items-center py-1.5">
+    <div className="flex min-w-full shrink-0 items-center gap-3 py-1.5" {...(hidden ? { "aria-hidden": true, inert: true } : {})}>
       {items.map((item) => (
-        <span key={item.id} className="flex items-center">
+        <span key={item.id} className="flex items-center gap-3">
           <TickerCopy item={item} />
-          <span className="h-1 w-1 rounded-full bg-gold/80" />
+          <span className="h-1 w-1 shrink-0 rounded-full bg-gold/80" aria-hidden />
         </span>
       ))}
     </div>
@@ -32,15 +27,10 @@ function TickerTrack({ items }: { items: TickerItem[] }) {
 export function TopBarTicker({ items }: { items: TickerItem[] }) {
   if (!items.length) return null;
   return (
-    <div className="h-8 overflow-hidden border-t border-gold/40 bg-forest" role="region" aria-label="Site updates">
-      <div className="sr-only">
-        {items.map((item) => (
-          <p key={item.id}>{item.text}</p>
-        ))}
-      </div>
-      <div className="naijaspa-ticker flex w-max min-w-full" aria-hidden>
+    <div className="flex h-10 items-center overflow-hidden border-t border-gold/40 bg-forest" role="region" aria-label="Site updates">
+      <div className="naijaspa-ticker flex w-max min-w-full">
         <TickerTrack items={items} />
-        <TickerTrack items={items} />
+        <TickerTrack items={items} hidden />
       </div>
     </div>
   );

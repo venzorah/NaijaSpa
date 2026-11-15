@@ -134,7 +134,7 @@ export function AnnouncementMedia({
 
       <div className="space-y-3 rounded-xl border border-line p-3">
         <p className="text-sm font-semibold">Extra links</p>
-        <p className="text-xs text-ink2">Shown under the gold button. Use a site path like /explore or an https URL.</p>
+        <p className="text-xs text-ink2">Shown as tappable tabs in Messages (and in email). Use a site path like /explore or an https URL.</p>
         {links.length ? (
           <ul className="grid gap-3">
             {links.map((link, index) => (

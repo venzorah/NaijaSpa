@@ -278,7 +278,7 @@ export async function sendAnnouncement(input: AnnouncementSendInput) {
   const notify: { id: string; userId: string; title: string; body: string; actionUrl: string }[] = [];
   const inboxCta =
     input.ctaLabel && input.ctaHref ? { label: input.ctaLabel, href: input.ctaHref } : null;
-  const inboxBody = encodeAnnouncementInboxBody(input.intro, input.body, inboxCta);
+  const inboxBody = encodeAnnouncementInboxBody(input.intro, input.body, inboxCta, input.links);
 
   await mapPool(users, sendEmail ? EMAIL_CONCURRENCY : 8, async (user) => {
     let delivered = false;
