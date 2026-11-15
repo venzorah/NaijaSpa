@@ -3,7 +3,7 @@ import { ArrowRight, BadgeCheck, CalendarCheck2, Crown, Gauge, Instagram, Lock, 
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { vendorEntitlement } from "@/lib/entitlements";
-import { formatCount, formatNgn, formatNgnCompact } from "@/lib/money";
+import { formatCommissionPercent, formatCount, formatNgn, formatNgnCompact } from "@/lib/money";
 import { viewCount } from "@/lib/listing-views";
 import { formatRating } from "@/lib/booking-ui";
 import { VendorPageHeader } from "@/components/vendor/page-header";
@@ -87,7 +87,7 @@ export default async function VendorHome() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard href="/vendor/bookings" label="Today’s bookings" value={formatCount(bookings.length)} icon={CalendarCheck2} sub="Appointments scheduled today (WAT)"/>
         <StatCard href="/vendor/availability" label="Occupancy today" progress={occupancy} value={`${occupancy}%`} icon={Gauge} sub={hoursToday ? `${hoursToday.toFixed(0)} therapist-hours on the roster` : "Add availability to measure occupancy"}/>
-        <StatCard href="/vendor/earnings" label="Payable this week" value={formatNgnCompact(weekPayable)} icon={Wallet} sub={paid ? "0% commission" : `after ${ent.commissionBps / 100}% commission`} emphasis="gold"/>
+        <StatCard href="/vendor/earnings" label="Payable this week" value={formatNgnCompact(weekPayable)} icon={Wallet} sub={`after ${formatCommissionPercent(ent.commissionBps)}% commission`} emphasis="gold"/>
         <StatCard label="Rating" value={formatRating(vendor.ratingAvg) || "—"} icon={Star} sub={`${vendor.reviewCount} reviews · ${formatCount(viewCount(vendor))} views · ${formatCount(viewCount(vendor, "publicClickCount"))} ad clicks`}/>
       </div>
 
@@ -161,7 +161,7 @@ export default async function VendorHome() {
               </span>
               <div>
                 <p className="font-medium">{paid ? `${ent.planCode} plan` : "Free plan"}</p>
-                <p className="text-xs text-ink2">{paid ? "0% commission while active" : "10% commission on each booking"}</p>
+                <p className="text-xs text-ink2">{formatCommissionPercent(ent.commissionBps)}% commission on each booking</p>
               </div>
             </div>
             <Link href="/vendor/subscriptions" className="mt-4 inline-flex min-h-10 items-center rounded-full border border-line px-4 text-sm font-semibold">

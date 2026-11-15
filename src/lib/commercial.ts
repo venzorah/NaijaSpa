@@ -1,4 +1,4 @@
-import { applyBps } from "./money";
+import { applyBps, clampCommissionBps } from "./money";
 import { paidUntilMs } from "./subscription-renewal";
 
 export const LOCATION_SPA = "spa";
@@ -73,7 +73,7 @@ export function entitlementFromPlan(
   if (!paidActive) {
     return {
       ...unpaidFallback,
-      commissionBps: Math.max(0, Math.min(10_000, unpaidFallback.commissionBps)),
+      commissionBps: clampCommissionBps(unpaidFallback.commissionBps),
       unlimitedListings: true,
       activePaid: false,
       planCode: "FREE"
@@ -82,7 +82,7 @@ export function entitlementFromPlan(
 
   return {
     planCode: plan.code,
-    commissionBps: Math.max(0, Math.min(10_000, Math.round(plan.commissionBps))),
+    commissionBps: clampCommissionBps(plan.commissionBps),
     publicDirectContact: plan.publicDirectContact,
     enhancedVisibility: plan.enhancedVisibility,
     sponsoredEligible: plan.sponsoredEligible,
@@ -141,7 +141,7 @@ export function quoteBooking(input: QuoteInput): Quote {
   const surchargeKobo = locationAddon;
   const fromPlan = Number(input.entitlement.commissionBps);
   const fallback = input.entitlement.activePaid ? input.config.paidCommissionBps : input.config.freeCommissionBps;
-  const commissionBps = Math.max(0, Math.min(10_000, Number.isFinite(fromPlan) ? Math.round(fromPlan) : fallback));
+  const commissionBps = clampCommissionBps(Number.isFinite(fromPlan) ? fromPlan : fallback);
   const commissionKobo = applyBps(input.basePriceKobo, commissionBps);
   const customerTotalKobo = input.basePriceKobo + surchargeKobo + addonKobo + feesKobo - discountKobo;
   if (customerTotalKobo < 0) {

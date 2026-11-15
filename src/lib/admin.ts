@@ -157,7 +157,7 @@ export const ADMIN_SCREENS: {
     label: "Commercial config",
     group: "Revenue",
     icon: SlidersHorizontal,
-    description: "Free 10% commission, paid Silver / Gold / Platinum fees, galleries and hubs.",
+    description: "Listing plan prices, 0–100% commission on every plan including Free, galleries and hubs.",
     view: ["finance.view", "commercial.manage", "analytics.view"],
     edit: ["commercial.manage"]
   },

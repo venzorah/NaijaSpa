@@ -123,12 +123,6 @@ export async function PUT(req: Request) {
         data: { commissionBps: body.freeCommissionBps }
       });
     }
-    if (body.paidCommissionBps != null) {
-      await prisma.subscriptionPlan.updateMany({
-        where: { code: { in: ["SILVER", "GOLD", "PLATINUM"] } },
-        data: { commissionBps: body.paidCommissionBps }
-      });
-    }
     const [after, galleryConfig, homeFeedConfig] = await Promise.all([
       getCommercialConfig(),
       getGalleryConfig(),

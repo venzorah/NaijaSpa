@@ -81,6 +81,29 @@ describe("commission and surcharges", () => {
     expect(q.commissionKobo).toBe(300_000);
   });
 
+  it("charges the admin-set commission on an active paid plan", () => {
+    const now = new Date("2026-06-01");
+    const ent = entitlementFromPlan(
+      { ...paidPlan, commissionBps: 800 },
+      now,
+      {
+        status: "active",
+        startsAt: new Date("2026-05-01"),
+        endsAt: new Date("2026-07-01"),
+        graceUntil: null,
+        source: "payment"
+      }
+    );
+    const q = quoteBooking({
+      basePriceKobo: 20_000_00,
+      location: "spa",
+      entitlement: ent,
+      config: { ...DEFAULT_COMMERCIAL, paidCommissionBps: 0 }
+    });
+    expect(q.commissionBps).toBe(800);
+    expect(q.commissionKobo).toBe(160_000);
+  });
+
   it("charges 0% commission on active paid plan", () => {
     const now = new Date("2026-06-01");
     const ent = entitlementFromPlan(paidPlan, now, {

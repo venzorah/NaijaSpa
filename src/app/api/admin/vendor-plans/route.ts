@@ -158,8 +158,8 @@ export async function PATCH(req: Request) {
       }
     });
     if (body.features != null) await saveVendorPlanFeatures(plan.code, body.features);
-    if (before.code === "FREE" && commissionBps != null) {
-      await setConfig("freeCommissionBps", String(commissionBps));
+    if (commissionBps != null) {
+      if (before.code === "FREE") await setConfig("freeCommissionBps", String(commissionBps));
     }
     revalidateTag("system-config");
     await audit({ actorId: actor.id, action: "vendor_plan.update", entityType: "SubscriptionPlan", entityId: body.id, before, after: plan });

@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { getCommercialConfig, prisma } from "./db";
 import { entitlementFromPlan, type Entitlement } from "./commercial";
+import { clampCommissionBps } from "./money";
 import { lapsePaidSubscriptionToFree } from "./subscription-lifecycle";
 
 export async function freeListingEntitlement(): Promise<Entitlement> {
@@ -10,7 +11,7 @@ export async function freeListingEntitlement(): Promise<Entitlement> {
   ]);
   return {
     planCode: "FREE",
-    commissionBps: Math.max(0, Math.min(10_000, free?.commissionBps ?? config.freeCommissionBps)),
+    commissionBps: clampCommissionBps(free?.commissionBps ?? config.freeCommissionBps),
     publicDirectContact: false,
     enhancedVisibility: Boolean(free?.enhancedVisibility),
     sponsoredEligible: Boolean(free?.sponsoredEligible),

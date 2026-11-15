@@ -33,3 +33,14 @@ export function formatCount(n: number): string {
 export function applyBps(amountKobo: number, bps: number): number {
   return Math.round((amountKobo * bps) / 10_000);
 }
+
+export function clampCommissionBps(bps: number) {
+  if (!Number.isFinite(bps)) return 0;
+  return Math.max(0, Math.min(10_000, Math.round(bps)));
+}
+
+/** Whole or one-decimal percent from basis points, e.g. 1000 → "10", 1250 → "12.5". */
+export function formatCommissionPercent(bps: number) {
+  const pct = Math.round((clampCommissionBps(bps) / 100) * 10) / 10;
+  return Number.isInteger(pct) ? String(pct) : pct.toFixed(1);
+}

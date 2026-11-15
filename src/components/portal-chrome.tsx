@@ -35,6 +35,7 @@ import { useTheme } from "@/components/theme-provider";
 import { BrandLogo } from "@/components/brand-logo";
 import { LogoutButton } from "@/components/logout-button";
 import { ADMIN_SCREEN_GROUPS, ADMIN_SCREENS, accessForScreen, type AdminScreenId } from "@/lib/admin";
+import { formatCommissionPercent } from "@/lib/money";
 
 export type PortalLink = { href: string; label: string; icon: LucideIcon; badge?: string };
 
@@ -174,6 +175,7 @@ export function PortalChrome({
   businessName,
   planPaid,
   planLabel,
+  commissionBps = 0,
   bookingBadge,
   children
 }: {
@@ -186,6 +188,7 @@ export function PortalChrome({
   businessName?: string;
   planPaid?: boolean;
   planLabel?: string;
+  commissionBps?: number;
   bookingBadge?: string;
   children: React.ReactNode;
 }) {
@@ -235,10 +238,10 @@ export function PortalChrome({
           <div className="rounded-xl border border-line bg-elev p-3.5">
             <div className="flex items-center gap-2">
               <Crown className="h-4 w-4 text-goldink" aria-hidden />
-              <p className="text-sm font-medium">{planPaid ? planLabel || "Paid" : "Free plan · 10% commission"}</p>
+              <p className="text-sm font-medium">{planPaid ? planLabel || "Paid" : `Free plan · ${formatCommissionPercent(commissionBps)}% commission`}</p>
             </div>
             <p className="mt-1 text-xs text-ink2">
-              {planPaid ? "0% commission while this plan is active." : "Go Paid to keep 100% of service revenue."}
+              {`${formatCommissionPercent(commissionBps)}% commission on each successful booking.`}
             </p>
             <Link
               href="/vendor/subscriptions"
@@ -360,7 +363,7 @@ export function PortalChrome({
             {variant === "vendor" ? (
               <Link href="/vendor/subscriptions" className="hidden sm:block" aria-label="Listing plan status">
                 <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${planPaid ? "bg-gold/15 text-goldink" : "bg-elev text-ink2"}`}>
-                  {planPaid ? "Paid · 0%" : "Free · 10%"}
+                  {planPaid ? "Paid" : "Free"} · {formatCommissionPercent(commissionBps)}%
                 </span>
               </Link>
             ) : null}

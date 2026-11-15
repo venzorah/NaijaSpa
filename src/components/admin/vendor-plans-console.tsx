@@ -57,7 +57,7 @@ export function VendorPlansConsole() {
   return (
     <div className="mb-4">
       <p className="mb-3 text-sm text-ink2">
-        Therapist listing packages. Set commission from 0–100% on every plan. Add feature lines that vendors see on Listing plans. Silver, Gold and Platinum are billed weekly, monthly and yearly unless you change them. Missed renewal returns the listing to Free.
+        Therapist listing packages. Commission is the live platform cut on successful bookings — set any rate from 0–100% on Free, Silver, Gold, Platinum and extra packages. Add feature lines that vendors see on Listing plans. Missed renewal returns the listing to Free.
       </p>
       {!canEdit ? <p className="mb-3 text-sm text-ink2">View only. The live admin edits prices, billing and commission.</p> : null}
       {error ? <p className="mb-3 text-sm text-red-400">{error}</p> : null}
@@ -101,6 +101,7 @@ export function VendorPlansConsole() {
                 {formatCount(p.subscriberCount || 0)} listings · {p.code} · {vendorPlanBillingLabel(p.durationDays, p.priceKobo)}
               </p>
               <form
+                key={`${p.id}-${p.commissionBps}-${p.priceKobo}-${p.name}`}
                 className="mt-3 grid grid-cols-2 gap-2"
                 onSubmit={async (e) => {
                   e.preventDefault();
@@ -155,15 +156,15 @@ export function VendorPlansConsole() {
                     <option value="yearly">Yearly</option>
                   </select>
                 </FormRow>
-                <FormRow label="Commission % (0–100)" htmlFor={`vp-com-${p.id}`}>
+                <FormRow label="Commission % (0–100)" htmlFor={`vp-com-${p.id}`} hint="Applies to this plan’s bookings, including Free.">
                   <input
                     id={`vp-com-${p.id}`}
                     name="commission"
                     type="number"
                     min={0}
                     max={100}
-                    step={1}
-                    defaultValue={Math.round(p.commissionBps / 100)}
+                    step={0.1}
+                    defaultValue={Math.round(p.commissionBps / 10) / 10}
                     disabled={!canEdit}
                     className={adminField}
                   />
@@ -264,7 +265,7 @@ export function VendorPlansConsole() {
                 </FormRow>
               </div>
               <FormRow label="Commission % (0–100)" htmlFor="new-vp-com">
-                <input id="new-vp-com" name="commission" type="number" min={0} max={100} step={1} defaultValue={0} className={adminField} />
+                <input id="new-vp-com" name="commission" type="number" min={0} max={100} step={0.1} defaultValue={0} className={adminField} />
               </FormRow>
               <FormRow label="Plan features (one per line)" htmlFor="new-vp-feat">
                 <textarea id="new-vp-feat" name="features" rows={4} maxLength={2000} className={`${adminField} min-h-[6rem] h-auto py-2`} />

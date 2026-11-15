@@ -145,7 +145,7 @@ export function parseVendorPlanFeaturesMap(raw: string | null | undefined): Reco
 }
 
 export function vendorPlanPerks(plan: VendorListingPlanView) {
-  const pct = Math.round((plan.commissionBps / 100) * 10) / 10;
+  const pct = Math.round((Math.max(0, plan.commissionBps) / 100) * 10) / 10;
   const commission = `${pct}% commission on each successful booking`;
   const custom = parsePlanFeatures(plan.features);
   if (custom.length) return [commission, ...custom];

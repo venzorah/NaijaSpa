@@ -26,6 +26,11 @@ const gold = {
 const platinum = { ...gold, code: "PLATINUM", name: "Platinum", priceKobo: 51_000_000, durationDays: 365 };
 
 describe("vendor listing plans", () => {
+  it("lists the plan’s live commission including tenths of a percent", () => {
+    expect(vendorPlanPerks({ ...gold, commissionBps: 1250 })).toContain("12.5% commission on each successful booking");
+    expect(vendorPlanPerks({ ...free, commissionBps: 2500 })).toContain("25% commission on each successful booking");
+  });
+
   it("uses admin-authored feature lines when present", () => {
     expect(vendorPlanPerks({ ...gold, features: ["Priority Explore placement", "Concierge onboarding"] })).toEqual([
       "0% commission on each successful booking",
