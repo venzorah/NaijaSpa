@@ -16,6 +16,7 @@ import {
   Star,
   Store
 } from "lucide-react";
+import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { LogoutButton } from "@/components/logout-button";
@@ -64,6 +65,9 @@ const sections: { title: string; items: { href: string; label: string; icon: typ
 
 export default async function AccountPage() {
   const user = await getSession();
+  if (user && user.role !== "customer") {
+    redirect(`/customer-access?${new URLSearchParams({ next: "/account" })}`);
+  }
   if (!user) {
     return (
       <div className="mx-auto max-w-3xl px-4 pt-6 lg:px-8">

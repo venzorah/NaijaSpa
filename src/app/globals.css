@@ -115,6 +115,7 @@ h3 {
 }
 
 /* 16px inputs stop iPhone from auto-zooming on focus (and leaving the page scaled). */
+a,
 input,
 select,
 textarea,

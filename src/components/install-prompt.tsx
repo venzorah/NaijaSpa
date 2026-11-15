@@ -48,7 +48,7 @@ export function InstallPrompt() {
   }
 
   return (
-    <div className="fixed inset-x-4 bottom-24 z-[70] mx-auto max-w-md rounded-3xl border border-gold/40 bg-elev p-5 shadow-2xl lg:bottom-8">
+    <div className="fixed inset-x-4 z-[60] mx-auto max-w-md rounded-3xl border border-gold/40 bg-elev p-5 shadow-2xl max-lg:bottom-[calc(5.75rem+env(safe-area-inset-bottom))] lg:bottom-8">
       <h2 className="font-display text-2xl font-semibold">Install NaijaSpa</h2>
       {ios ? (
         <div className="mt-3 space-y-3 text-sm text-ink2">

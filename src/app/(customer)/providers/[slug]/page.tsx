@@ -143,7 +143,7 @@ export default async function ProviderPage({ params }: { params: Promise<{ slug:
         ) : null}
       </div>
       {first ? (
-        <div className="fixed inset-x-0 bottom-[64px] z-40 border-t border-line bg-bg/95 px-4 py-3 backdrop-blur lg:hidden">
+        <div className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-40 border-t border-line bg-bg/95 px-4 py-3 backdrop-blur lg:hidden">
           <div className="mx-auto flex max-w-xl items-center gap-3">
             <div className="flex-1">
               <p className="text-xs text-ink2">From</p>

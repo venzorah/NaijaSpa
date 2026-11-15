@@ -11,4 +11,4 @@ export function middleware(request: NextRequest) {
   return NextResponse.next({ request: { headers } });
 }
 
-export const config = { matcher: ["/vendor/:path*", "/account/:path*", "/checkout/:path*", "/admin/:path*"] };
+export const config = { matcher: ["/vendor/:path*", "/account", "/account/:path*", "/checkout/:path*", "/admin/:path*"] };
