@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ROLES } from "../src/lib/rbac";
 import {
+  announcementUserWhere,
   isSendableEmail,
   rolesForAudience,
   wantsAnnouncementEmail
@@ -84,7 +85,23 @@ describe("admin announcement emails", () => {
   it("maps audiences to customer or vendor roles only", () => {
     expect(rolesForAudience("customers")).toEqual([ROLES.CUSTOMER]);
     expect(rolesForAudience("vendors")).toEqual([ROLES.VENDOR_OWNER, ROLES.VENDOR_STAFF]);
+    expect(rolesForAudience("incomplete_vendors")).toEqual([ROLES.VENDOR_OWNER, ROLES.VENDOR_STAFF]);
     expect(rolesForAudience("all")).not.toContain(ROLES.SUPER_ADMIN);
+  });
+
+  it("targets listings that never submitted onboarding or have no services", () => {
+    const where = announcementUserWhere("incomplete_vendors");
+    expect(where).toMatchObject({
+      status: "active",
+      role: { in: [ROLES.VENDOR_OWNER, ROLES.VENDOR_STAFF] }
+    });
+    expect(where).toHaveProperty("OR");
+    const listing = (where as { OR: { vendorOwned: unknown }[] }).OR[0].vendorOwned as {
+      applicationStatus: { not: string };
+      OR: unknown[];
+    };
+    expect(listing.applicationStatus).toEqual({ not: "deleted" });
+    expect(listing.OR).toEqual([{ applicationStatus: { in: ["draft", "rejected"] } }, { services: { none: {} } }]);
   });
 
   it("skips deleted redacted addresses and opted-out inboxes", () => {
@@ -211,6 +228,24 @@ describe("admin announcement emails", () => {
     );
     expect(res.status).toBe(400);
     expect(mock.sendMail).not.toHaveBeenCalled();
+  });
+
+  it("sends incomplete listing blasts to the vendor filter, not every therapist", async () => {
+    const res = await POST(
+      new Request("http://localhost/api/admin/announcements", {
+        method: "POST",
+        body: JSON.stringify({ ...payload, audience: "incomplete_vendors", channel: "message" })
+      })
+    );
+    expect(res.status).toBe(200);
+    expect(mock.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          role: { in: [ROLES.VENDOR_OWNER, ROLES.VENDOR_STAFF] },
+          OR: expect.any(Array)
+        })
+      })
+    );
   });
 
   it("requires selected people when sending to individuals", async () => {

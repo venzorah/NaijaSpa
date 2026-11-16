@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Mail, MessageSquare, Send, UserRound, Users, Store } from "lucide-react";
+import { ClipboardList, Mail, MessageSquare, Send, UserRound, Users, Store } from "lucide-react";
 import { adminField, FormRow } from "@/components/admin/form-row";
 import { Panel } from "@/components/admin/panel";
 import { ConfirmAction } from "@/components/admin/confirm-action";
@@ -9,21 +9,32 @@ import { adminJson } from "@/components/admin/json";
 import { AnnouncementMedia } from "@/components/admin/announcement-media";
 import { cn } from "@/lib/cn";
 import type { AnnouncementImage, AnnouncementLink } from "@/lib/announcement-content";
-import type { AnnouncementAudience, AnnouncementChannel, AnnouncementRecord } from "@/lib/announcements";
+import {
+  ANNOUNCEMENT_AUDIENCE_LABELS,
+  type AnnouncementAudience,
+  type AnnouncementChannel,
+  type AnnouncementRecord
+} from "@/lib/announcement-audience";
 
 type Person = { id: string; name: string; email: string; role: string };
 type Payload = {
   canEdit: boolean;
   mailConfigured: boolean;
-  counts: { customers: number; vendors: number; all: number };
+  counts: { customers: number; vendors: number; incomplete_vendors: number; all: number };
   history: AnnouncementRecord[];
 };
 
 const AUDIENCES: { id: AnnouncementAudience; label: string; hint: string; icon: typeof Users }[] = [
-  { id: "customers", label: "Customers", hint: "Client accounts only", icon: Users },
-  { id: "vendors", label: "Therapists", hint: "Vendor owners and staff", icon: Store },
-  { id: "all", label: "Everyone", hint: "Customers and therapists", icon: Mail },
-  { id: "individuals", label: "Individuals", hint: "Search and pick people", icon: UserRound }
+  { id: "customers", label: ANNOUNCEMENT_AUDIENCE_LABELS.customers, hint: "Client accounts only", icon: Users },
+  { id: "vendors", label: ANNOUNCEMENT_AUDIENCE_LABELS.vendors, hint: "Every vendor owner and staff account", icon: Store },
+  {
+    id: "incomplete_vendors",
+    label: ANNOUNCEMENT_AUDIENCE_LABELS.incomplete_vendors,
+    hint: "No treatments yet, or onboarding still a draft",
+    icon: ClipboardList
+  },
+  { id: "all", label: ANNOUNCEMENT_AUDIENCE_LABELS.all, hint: "Customers and all therapists", icon: Mail },
+  { id: "individuals", label: ANNOUNCEMENT_AUDIENCE_LABELS.individuals, hint: "Search and pick people", icon: UserRound }
 ];
 
 const CHANNELS: { id: AnnouncementChannel; label: string; hint: string }[] = [
@@ -148,7 +159,7 @@ export function AnnouncementsConsole({ initial }: { initial: Payload }) {
         </p>
       ) : null}
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {AUDIENCES.map((item) => {
           const Icon = item.icon;
           const selected = audience === item.id;
@@ -404,7 +415,7 @@ export function AnnouncementsConsole({ initial }: { initial: Payload }) {
                     <td className="py-2 text-ink2">
                       {new Date(row.at).toLocaleString("en-NG", { timeZone: "Africa/Lagos" })}
                     </td>
-                    <td className="py-2 capitalize">{row.audience}</td>
+                    <td className="py-2">{ANNOUNCEMENT_AUDIENCE_LABELS[row.audience] ?? row.audience}</td>
                     <td className="py-2 capitalize">{row.channel ?? (row.inApp ? "both" : "email")}</td>
                     <td className="py-2">{row.subject}</td>
                     <td className="py-2">

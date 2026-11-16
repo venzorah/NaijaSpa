@@ -5,8 +5,15 @@ import { parseNotificationPreferences } from "./notification-preferences";
 import { announcementEmail, mailConfigured, sendMail } from "./mail";
 import { appUrl } from "./payments";
 import { isGuestPlaceholderEmail } from "./phone";
-import type { AnnouncementImage, AnnouncementLink } from "./announcement-content";
 import { announcementInboxPath, encodeAnnouncementInboxBody } from "./announcement-inbox";
+import type { AnnouncementAudience, AnnouncementChannel, AnnouncementRecord, AnnouncementSendInput } from "./announcement-audience";
+
+export type { AnnouncementAudience, AnnouncementChannel, AnnouncementRecord, AnnouncementSendInput } from "./announcement-audience";
+export {
+  ANNOUNCEMENT_AUDIENCES,
+  ANNOUNCEMENT_AUDIENCE_LABELS,
+  ANNOUNCEMENT_CHANNELS
+} from "./announcement-audience";
 
 export type { AnnouncementImage, AnnouncementLink } from "./announcement-content";
 export {
@@ -18,48 +25,12 @@ export {
 } from "./announcement-content";
 
 export const ANNOUNCEMENTS_CONFIG_KEY = "admin.announcements";
-export const ANNOUNCEMENT_AUDIENCES = ["customers", "vendors", "all", "individuals"] as const;
-export type AnnouncementAudience = (typeof ANNOUNCEMENT_AUDIENCES)[number];
-export const ANNOUNCEMENT_CHANNELS = ["email", "message", "both"] as const;
-export type AnnouncementChannel = (typeof ANNOUNCEMENT_CHANNELS)[number];
 export const MAX_ANNOUNCEMENT_RECIPIENTS = 40;
-
-export type AnnouncementRecord = {
-  id: string;
-  at: string;
-  audience: AnnouncementAudience;
-  subject: string;
-  title: string;
-  attempted: number;
-  sent: number;
-  failed: number;
-  skipped: number;
-  inApp: boolean;
-  channel: AnnouncementChannel;
-  queued?: boolean;
-  imageCount: number;
-  linkCount: number;
-};
 
 export const ANNOUNCEMENT_JOBS_KEY = "admin.announcement.jobs";
 export const INLINE_ANNOUNCEMENT_EMAILS = 12;
 const EMAIL_CONCURRENCY = 3;
 const NOTIFY_CHUNK = 200;
-
-export type AnnouncementSendInput = {
-  id?: string;
-  audience: AnnouncementAudience;
-  subject: string;
-  title: string;
-  intro: string;
-  body: string;
-  ctaLabel?: string;
-  ctaHref?: string;
-  images?: AnnouncementImage[];
-  links?: AnnouncementLink[];
-  channel: AnnouncementChannel;
-  userIds?: string[];
-};
 
 type AnnouncementJob = {
   id: string;
@@ -72,8 +43,32 @@ type AnnouncementJob = {
 export function rolesForAudience(audience: AnnouncementAudience) {
   if (audience === "individuals") return [];
   if (audience === "customers") return [ROLES.CUSTOMER];
-  if (audience === "vendors") return [ROLES.VENDOR_OWNER, ROLES.VENDOR_STAFF];
+  if (audience === "vendors" || audience === "incomplete_vendors") return [ROLES.VENDOR_OWNER, ROLES.VENDOR_STAFF];
   return [ROLES.CUSTOMER, ROLES.VENDOR_OWNER, ROLES.VENDOR_STAFF];
+}
+
+const MEMBER_ROLES = [ROLES.CUSTOMER, ROLES.VENDOR_OWNER, ROLES.VENDOR_STAFF] as const;
+
+export function incompleteVendorListingWhere() {
+  return {
+    applicationStatus: { not: "deleted" },
+    OR: [{ applicationStatus: { in: ["draft", "rejected"] } }, { services: { none: {} } }]
+  };
+}
+
+export function announcementUserWhere(audience: AnnouncementAudience, userIds: string[] = []) {
+  if (audience === "individuals") {
+    return { id: { in: userIds }, status: "active" as const, role: { in: [...MEMBER_ROLES] } };
+  }
+  if (audience === "incomplete_vendors") {
+    const listing = incompleteVendorListingWhere();
+    return {
+      status: "active" as const,
+      role: { in: [ROLES.VENDOR_OWNER, ROLES.VENDOR_STAFF] },
+      OR: [{ vendorOwned: listing }, { staffMemberships: { some: { vendor: listing } } }]
+    };
+  }
+  return { status: "active" as const, role: { in: rolesForAudience(audience) } };
 }
 
 export function isSendableEmail(email: string) {
@@ -124,11 +119,12 @@ async function loadHistory() {
 }
 
 export async function announcementAudienceCounts() {
-  const [customers, vendors] = await Promise.all([
-    prisma.user.count({ where: { status: "active", role: ROLES.CUSTOMER } }),
-    prisma.user.count({ where: { status: "active", role: { in: [ROLES.VENDOR_OWNER, ROLES.VENDOR_STAFF] } } })
+  const [customers, vendors, incomplete_vendors] = await Promise.all([
+    prisma.user.count({ where: announcementUserWhere("customers") }),
+    prisma.user.count({ where: announcementUserWhere("vendors") }),
+    prisma.user.count({ where: announcementUserWhere("incomplete_vendors") })
   ]);
-  return { customers, vendors, all: customers + vendors };
+  return { customers, vendors, incomplete_vendors, all: customers + vendors };
 }
 
 export async function listAnnouncementHistory() {
@@ -243,7 +239,6 @@ export async function sendAnnouncement(input: AnnouncementSendInput) {
     (err as Error & { status: number }).status = 503;
     throw err;
   }
-  const memberRoles = [ROLES.CUSTOMER, ROLES.VENDOR_OWNER, ROLES.VENDOR_STAFF];
   const userIds = [...new Set((input.userIds ?? []).map((id) => id.trim()).filter(Boolean))].slice(0, MAX_ANNOUNCEMENT_RECIPIENTS);
   if (input.audience === "individuals") {
     if (!userIds.length) {
@@ -253,10 +248,7 @@ export async function sendAnnouncement(input: AnnouncementSendInput) {
     }
   }
   const users = await prisma.user.findMany({
-    where:
-      input.audience === "individuals"
-        ? { id: { in: userIds }, status: "active", role: { in: memberRoles } }
-        : { status: "active", role: { in: rolesForAudience(input.audience) } },
+    where: announcementUserWhere(input.audience, userIds),
     select: { id: true, email: true, name: true, role: true, notificationPreferencesJson: true }
   });
   const cta =
