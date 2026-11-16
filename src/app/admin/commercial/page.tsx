@@ -6,6 +6,7 @@ import { NIGERIA_STATES } from "@/lib/nigeria";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { Panel } from "@/components/admin/panel";
 import { VendorPlansConsole } from "@/components/admin/vendor-plans-console";
+import { adminJson } from "@/components/admin/json";
 
 type Payload = {
   config?: Record<string, number | string>;
@@ -17,6 +18,7 @@ type Payload = {
 
 export default function CommercialPage() {
   const [data, setData] = useState<Payload>({});
+  const [busy, setBusy] = useState(false);
   useEffect(() => {
     fetch("/api/admin/commercial")
       .then((r) => r.json())
@@ -36,25 +38,31 @@ export default function CommercialPage() {
         className="mt-6 grid max-w-xl gap-3"
         onSubmit={async (e) => {
           e.preventDefault();
+          if (busy) return;
+          setBusy(true);
           const fd = new FormData(e.currentTarget);
-          await fetch("/api/admin/commercial", {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              spaSurchargeKobo: Number(fd.get("spa")) * 100,
-              hotelSurchargeKobo: Number(fd.get("hotel")) * 100,
-              homeSurchargeKobo: Number(fd.get("home")) * 100,
-              galleryMaxImagesPerGallery: Number(fd.get("galleryImages")),
-              galleryMaxImageBytes: Math.round(Number(fd.get("galleryMb")) * 1024 * 1024),
-              homeFeedFeaturedLimit: Number(fd.get("homeFeatured")),
-              homeFeedPremiumLimit: Number(fd.get("homePremium")),
-              homeFeedPromoLimit: Number(fd.get("homePromo")),
-              homeFeedNearbyLimit: Number(fd.get("homeNearby")),
-              extraStates: fd.getAll("extraState").map(String),
-              graceDays: Number(fd.get("graceDays") || 3)
-            })
-          });
-          alert("Saved and audited.");
+          try {
+            await adminJson("/api/admin/commercial", {
+              method: "PUT",
+              body: JSON.stringify({
+                spaSurchargeKobo: Number(fd.get("spa")) * 100,
+                hotelSurchargeKobo: Number(fd.get("hotel")) * 100,
+                homeSurchargeKobo: Number(fd.get("home")) * 100,
+                galleryMaxImagesPerGallery: Number(fd.get("galleryImages")),
+                galleryMaxImageBytes: Math.round(Number(fd.get("galleryMb")) * 1024 * 1024),
+                homeFeedFeaturedLimit: Number(fd.get("homeFeatured")),
+                homeFeedPremiumLimit: Number(fd.get("homePremium")),
+                homeFeedPromoLimit: Number(fd.get("homePromo")),
+                homeFeedNearbyLimit: Number(fd.get("homeNearby")),
+                extraStates: fd.getAll("extraState").map(String),
+                graceDays: Number(fd.get("graceDays") || 3)
+              })
+            });
+          } catch {
+            /* adminJson already surfaces the error toast */
+          } finally {
+            setBusy(false);
+          }
         }}
       >
         <label className="text-sm">
@@ -171,7 +179,9 @@ export default function CommercialPage() {
             );
           })}
         </div>
-        <button className="min-h-11 rounded-full bg-gold font-bold text-ongold">Save</button>
+        <button disabled={busy} className="min-h-11 rounded-full bg-gold font-bold text-ongold disabled:opacity-60">
+          {busy ? "Saving…" : "Save"}
+        </button>
       </form>
       </Panel>
     </div>

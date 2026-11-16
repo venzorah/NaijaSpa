@@ -233,7 +233,7 @@ export function VendorPlansConsole() {
                     body: JSON.stringify({
                       name: fd.get("name"),
                       code: fd.get("code") || undefined,
-                      billing: fd.get("billing"),
+                      billing: String(fd.get("billing") || "weekly"),
                       priceKobo: Math.round(Number(fd.get("price") || 0) * 100),
                       commissionPercent,
                       commissionBps: Math.round(commissionPercent * 100),

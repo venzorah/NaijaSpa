@@ -24,7 +24,7 @@ function resolveCommissionBps(body: { commissionBps?: number; commissionPercent?
   return undefined;
 }
 
-function durationFromBody(body: { billing?: VendorPlanBilling; durationDays?: number; priceKobo?: number; code?: string }) {
+function durationFromBody(body: { billing?: VendorPlanBilling | null; durationDays?: number; priceKobo?: number; code?: string }) {
   if (body.code === "FREE" || body.billing === "none" || body.priceKobo === 0) return 36500;
   if (body.durationDays && body.durationDays > 0) return body.durationDays;
   if (body.billing) return durationDaysFromBilling(body.billing);
@@ -89,7 +89,7 @@ export async function POST(req: Request) {
       data: {
         code,
         name: body.name.trim(),
-        durationDays: durationFromBody({ ...body, code }),
+        durationDays: durationFromBody({ billing: body.billing, durationDays: body.durationDays, priceKobo: body.priceKobo, code }),
         priceKobo: code === "FREE" ? 0 : body.priceKobo,
         commissionBps,
         publicDirectContact: paid ? (body.publicDirectContact ?? true) : false,
@@ -133,7 +133,7 @@ export async function PATCH(req: Request) {
     const durationDays =
       body.billing || body.durationDays
         ? durationFromBody({
-            billing: body.billing,
+            billing: body.billing ?? undefined,
             durationDays: body.durationDays,
             priceKobo: nextPrice ?? before.priceKobo,
             code: before.code

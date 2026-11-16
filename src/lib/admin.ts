@@ -227,7 +227,7 @@ export const ADMIN_SCREENS: {
     label: "Announcements",
     group: "Content & care",
     icon: Mail,
-    description: "Email updates to all customers, all therapists, or both.",
+    description: "Email or in-app updates to customers, all therapists, or incomplete listings.",
     view: ["cms.manage", "campaigns.manage"],
     edit: ["cms.manage"]
   },
