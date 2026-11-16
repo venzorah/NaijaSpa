@@ -5,12 +5,8 @@
       "schedule": "0 8 * * *"
     },
     {
-      "path": "/api/jobs/chat-images",
-      "schedule": "* * * * *"
-    },
-    {
-      "path": "/api/jobs/announcements",
-      "schedule": "* * * * *"
+      "path": "/api/jobs/maintenance",
+      "schedule": "10 8 * * *"
     }
   ]
 }
