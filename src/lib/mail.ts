@@ -208,7 +208,15 @@ export async function sendMail({ to, subject, html, text }: { to: string; subjec
       greetingTimeout: 15_000,
       socketTimeout: 20_000
     });
-    await transporter.sendMail({ from, to, subject, html, text, replyTo: mailReplyTo() });
+    await transporter.sendMail({
+      from,
+      to,
+      subject,
+      html,
+      text,
+      replyTo: mailReplyTo(),
+      envelope: { from: user, to }
+    });
     return;
   }
   const resend = process.env.RESEND_API_KEY?.trim();

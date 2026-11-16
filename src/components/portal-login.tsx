@@ -56,7 +56,7 @@ export function PortalLogin({
   };
 
   return (
-    <AuthScreen>
+    <AuthScreen backTo={portal === "admin" ? "/" : undefined}>
       <AuthHeading title={heading} subtitle={sub} />
       {split ? (
         <>

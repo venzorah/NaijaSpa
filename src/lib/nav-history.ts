@@ -11,17 +11,27 @@ export function currentHref(pathname: string, search = "") {
 }
 
 export function nextNavStack(stack: string[], href: string) {
-  const path = href.split("?")[0];
-  if (isAuthNavPath(path)) return stack;
   if (stack[stack.length - 1] === href) return stack;
   return [...stack, href].slice(-40);
 }
 
-export function popNavStack(stack: string[], current: string) {
+export function popNavStack(stack: string[], current: string, options?: { skipAuth?: boolean }) {
   const next = [...stack];
   while (next.length && next[next.length - 1] === current) next.pop();
+  if (options?.skipAuth) {
+    while (next.length && isAuthNavPath(next[next.length - 1].split("?")[0])) next.pop();
+  }
   const previous = next.pop() ?? null;
   return { previous, stack: next };
+}
+
+export function sameOriginReferrer(referrer: string, origin: string) {
+  if (!referrer) return false;
+  try {
+    return new URL(referrer).origin === origin;
+  } catch {
+    return false;
+  }
 }
 
 export type PendingBooking = {

@@ -3,7 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { ArrowLeft } from "lucide-react";
-import { currentHref, NAV_STACK_KEY, nextNavStack, popNavStack } from "@/lib/nav-history";
+import { currentHref, isAuthNavPath, NAV_STACK_KEY, nextNavStack, popNavStack, sameOriginReferrer } from "@/lib/nav-history";
 
 function readStack(): string[] {
   try {
@@ -27,15 +27,26 @@ export function recordNavHref(href: string) {
   writeStack(nextNavStack(readStack(), href));
 }
 
-export function goNavBack(router: { push: (href: string) => void; back: () => void }, fallback = "/") {
+export function goNavBack(
+  router: { push: (href: string) => void; back: () => void },
+  fallback = "/",
+  options?: { forceFallback?: boolean }
+) {
   const current = currentHref(window.location.pathname, window.location.search);
-  const { previous, stack } = popNavStack(readStack(), current);
+  if (options?.forceFallback) {
+    writeStack(popNavStack(readStack(), current).stack);
+    router.push(fallback);
+    return;
+  }
+  const { previous, stack } = popNavStack(readStack(), current, {
+    skipAuth: !isAuthNavPath(window.location.pathname)
+  });
   writeStack(stack);
   if (previous) {
     router.push(previous);
     return;
   }
-  if (window.history.length > 1) {
+  if (sameOriginReferrer(document.referrer, window.location.origin) && window.history.length > 1) {
     router.back();
     return;
   }

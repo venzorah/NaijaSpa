@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { bookingResumePath, isAuthNavPath, nextNavStack, popNavStack } from "../src/lib/nav-history";
+import { bookingResumePath, isAuthNavPath, nextNavStack, popNavStack, sameOriginReferrer } from "../src/lib/nav-history";
 
 describe("nav history", () => {
-  it("skips auth screens and duplicate hrefs", () => {
+  it("records each page including auth screens and drops duplicates", () => {
     expect(isAuthNavPath("/login/vendor")).toBe(true);
+    expect(isAuthNavPath("/login/admin")).toBe(true);
     const stacked = nextNavStack(["/explore"], "/explore");
     expect(stacked).toEqual(["/explore"]);
-    expect(nextNavStack(["/explore"], "/login?next=/book/1")).toEqual(["/explore"]);
+    expect(nextNavStack(["/explore"], "/login?next=/book/1")).toEqual(["/explore", "/login?next=/book/1"]);
     expect(nextNavStack(["/explore"], "/services/swedish")).toEqual(["/explore", "/services/swedish"]);
   });
 
@@ -14,6 +15,16 @@ describe("nav history", () => {
     const { previous, stack } = popNavStack(["/explore", "/services/a", "/book/a?continue=pay"], "/book/a?continue=pay");
     expect(previous).toBe("/services/a");
     expect(stack).toEqual(["/explore"]);
+  });
+
+  it("backs from forgot to login, and skips login after a successful booking resume", () => {
+    expect(popNavStack(["/explore", "/login/admin", "/forgot?portal=admin"], "/forgot?portal=admin").previous).toBe("/login/admin");
+    expect(popNavStack(["/explore", "/login", "/book/a"], "/book/a", { skipAuth: true }).previous).toBe("/explore");
+  });
+
+  it("only treats same-origin referrers as in-app history", () => {
+    expect(sameOriginReferrer("https://naijaspa.com/login/admin", "https://naijaspa.com")).toBe(true);
+    expect(sameOriginReferrer("https://google.com/", "https://naijaspa.com")).toBe(false);
   });
 
   it("builds a booking resume path that continues to payment", () => {

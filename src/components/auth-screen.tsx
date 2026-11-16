@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState, type InputHTMLAttributes, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { Eye, EyeOff, Lock, Moon, Sparkles, Store, Sun, User } from "lucide-react";
@@ -17,15 +17,18 @@ export const authCtaClass =
 export const authGoldCtaClass =
   "inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-gold text-base font-bold text-ongold shadow-[0_8px_24px_rgba(212,175,55,0.35)] disabled:opacity-60";
 
-export function AuthScreen({ children }: { children: ReactNode }) {
+export function AuthScreen({ children, backTo }: { children: ReactNode; backTo?: string }) {
   const { theme, toggle } = useTheme();
+  const pathname = usePathname();
   const router = useRouter();
+  const adminLogin = pathname === "/login/admin" || pathname.startsWith("/login/admin/");
+  const fallback = backTo || "/";
   return (
     <div className="relative mx-auto flex min-h-dvh w-full max-w-md flex-col overflow-hidden px-5 pb-4 pt-[max(0.75rem,env(safe-area-inset-top))]">
       <div className="flex items-center justify-between">
         <button
           type="button"
-          onClick={() => goNavBack(router, "/")}
+          onClick={() => goNavBack(router, fallback, { forceFallback: Boolean(backTo) || adminLogin })}
           className="inline-flex min-h-11 w-fit items-center gap-1 text-sm font-semibold text-ink"
         >
           <span aria-hidden className="text-lg text-ink2">

@@ -87,6 +87,7 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
     <div className="space-y-5">
       <AdminPageHeader
         screen="dashboard"
+        hideBack
         actions={
           <>
             <DashboardRange value={range} />
