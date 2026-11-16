@@ -13,6 +13,9 @@ function publicErrorMessage(error: unknown, status: number) {
     if (issue.path.includes("commissionBps") || issue.path.includes("commissionPercent")) {
       return "Commission must be a number from 0 to 100%.";
     }
+    if (issue.path.includes("billing")) {
+      return "Choose weekly, monthly, yearly, or none for Free.";
+    }
     if (issue.path.includes("features")) return "Each plan feature must be 1–160 characters (up to 16 lines).";
     const field = issue.path.filter((part) => typeof part === "string").join(" ");
     return field ? `${field}: ${issue.message}` : issue.message;

@@ -112,6 +112,7 @@ export function VendorPlansConsole() {
                     setError("Commission must be a number from 0 to 100%.");
                     return;
                   }
+                  const billing = p.code === "FREE" ? "none" : String(fd.get("billing") || "");
                   try {
                     await adminJson("/api/admin/vendor-plans", {
                       method: "PATCH",
@@ -119,7 +120,7 @@ export function VendorPlansConsole() {
                         id: p.id,
                         name: fd.get("name"),
                         priceKobo: Math.round(Number(fd.get("price") || 0) * 100),
-                        billing: fd.get("billing"),
+                        billing: billing === "none" || billing === "weekly" || billing === "monthly" || billing === "yearly" ? billing : undefined,
                         commissionPercent,
                         commissionBps: Math.round(commissionPercent * 100),
                         publicDirectContact: fd.get("contact") === "on",
@@ -149,7 +150,8 @@ export function VendorPlansConsole() {
                   />
                 </FormRow>
                 <FormRow label="Billing" htmlFor={`vp-bill-${p.id}`}>
-                  <select id={`vp-bill-${p.id}`} name="billing" defaultValue={billing} disabled={!canEdit || p.code === "FREE"} className={adminField}>
+                  {p.code === "FREE" ? <input type="hidden" name="billing" value="none" /> : null}
+                  <select id={`vp-bill-${p.id}`} name={p.code === "FREE" ? undefined : "billing"} defaultValue={billing} disabled={!canEdit || p.code === "FREE"} className={adminField}>
                     <option value="none">None (Free)</option>
                     <option value="weekly">Weekly</option>
                     <option value="monthly">Monthly</option>

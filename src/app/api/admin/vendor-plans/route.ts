@@ -9,7 +9,7 @@ import { hasPermission } from "@/lib/rbac";
 import { durationDaysFromBilling, type VendorPlanBilling } from "@/lib/vendor-plans";
 import { ensureLiveVendorPlans, loadVendorPlanFeaturesMap, saveVendorPlanFeatures } from "@/lib/vendor-plans-live";
 
-const billingSchema = z.enum(["none", "weekly", "monthly", "yearly"]);
+const billingSchema = z.enum(["none", "weekly", "monthly", "yearly"]).nullish();
 const featuresSchema = z.array(z.string().trim().min(1).max(160)).max(16).optional();
 const commissionBpsSchema = z.coerce.number().min(0).max(10000).optional();
 const commissionPercentSchema = z.coerce.number().min(0).max(100).optional();

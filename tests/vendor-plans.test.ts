@@ -26,6 +26,14 @@ const gold = {
 const platinum = { ...gold, code: "PLATINUM", name: "Platinum", priceKobo: 51_000_000, durationDays: 365 };
 
 describe("vendor listing plans", () => {
+  it("accepts a missing Free billing period so commission can still save", async () => {
+    const { z } = await import("zod");
+    const billing = z.enum(["none", "weekly", "monthly", "yearly"]).nullish();
+    expect(billing.parse(null)).toBeNull();
+    expect(billing.parse(undefined)).toBeUndefined();
+    expect(billing.parse("none")).toBe("none");
+  });
+
   it("lists the plan’s live commission including tenths of a percent", () => {
     expect(vendorPlanPerks({ ...gold, commissionBps: 1250 })).toContain("12.5% commission on each successful booking");
     expect(vendorPlanPerks({ ...free, commissionBps: 2500 })).toContain("25% commission on each successful booking");
