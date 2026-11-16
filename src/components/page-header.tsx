@@ -1,11 +1,8 @@
 "use client";
 
+import { goNavBack } from "@/components/nav-history";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-
-function isAuthPath(pathname: string) {
-  return /^\/(login|register|forgot|reset|find-bookings)(\/|$)/.test(pathname);
-}
 
 export function PageHeader({
   title,
@@ -22,33 +19,12 @@ export function PageHeader({
 }) {
   const router = useRouter();
 
-  function goBack() {
-    if (backHref) {
-      router.push(backHref);
-      return;
-    }
-    try {
-      const ref = document.referrer ? new URL(document.referrer) : null;
-      if (ref && ref.origin === window.location.origin && isAuthPath(ref.pathname)) {
-        router.push("/");
-        return;
-      }
-    } catch {
-      /* ignore */
-    }
-    if (window.history.length <= 1) {
-      router.push("/");
-      return;
-    }
-    router.back();
-  }
-
   return (
     <div className="mb-5 flex items-start gap-3">
       {hideBack ? null : (
         <button
           type="button"
-          onClick={goBack}
+          onClick={() => goNavBack(router, backHref || "/")}
           aria-label="Go back"
           className="-ml-1 mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line bg-card text-ink hover:bg-elev"
         >

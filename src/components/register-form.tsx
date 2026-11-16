@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, Mail, Store, User } from "lucide-react";
 import { GoogleAuthButton } from "@/components/google-auth-button";
+import { portalNext } from "@/lib/portal-auth";
 import {
   AccountTypeCards,
   AuthHeading,
@@ -24,11 +25,16 @@ export function RegisterForm({ guestUpgrade = false }: { guestUpgrade?: boolean 
   const [error, setError] = useState(search.get("error") || "");
   const [busy, setBusy] = useState(false);
   const portal = asVendor ? "vendor" : "customer";
-  const next = asVendor ? "/vendor/onboarding" : "/account/dashboard";
+  const requested = search.get("next");
+  const dest = asVendor ? "/vendor/onboarding" : portalNext(requested, "customer");
 
   const pick = (vendor: boolean) => {
     setAsVendor(vendor);
-    router.replace(vendor ? "/register?asVendor=1" : "/register", { scroll: false });
+    const params = new URLSearchParams();
+    if (vendor) params.set("asVendor", "1");
+    if (requested) params.set("next", requested);
+    const q = params.toString();
+    router.replace(`/register${q ? `?${q}` : ""}`, { scroll: false });
   };
 
   return (
@@ -66,7 +72,7 @@ export function RegisterForm({ guestUpgrade = false }: { guestUpgrade?: boolean 
             });
             const json = await res.json();
             if (!res.ok) setError(json.error);
-            else router.push(asVendor ? "/vendor/onboarding" : "/account/dashboard");
+            else router.push(dest);
           } catch {
             setError("Could not create account. Check your connection.");
           } finally {
@@ -132,12 +138,15 @@ export function RegisterForm({ guestUpgrade = false }: { guestUpgrade?: boolean 
       <AuthOrDivider />
 
       <div className="mt-4">
-        <GoogleAuthButton portal={portal} next={next} from="register" label="Continue with Google" />
+        <GoogleAuthButton portal={portal} next={dest} from="register" label="Continue with Google" />
       </div>
 
       <p className="mt-6 pb-2 text-center text-sm text-ink2">
         Already have an account?{" "}
-        <Link href={asVendor ? "/login/vendor" : "/login"} className="font-semibold text-ink">
+        <Link
+          href={`${asVendor ? "/login/vendor" : "/login"}${requested ? `?next=${encodeURIComponent(requested)}` : ""}`}
+          className="font-semibold text-ink"
+        >
           Sign in
         </Link>
       </p>

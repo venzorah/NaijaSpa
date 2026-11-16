@@ -136,7 +136,14 @@ export function PortalLogin({
       {split ? (
         <p className="mt-6 text-center text-sm text-ink2">
           Don&apos;t have an account?{" "}
-          <Link href={asVendor ? "/register?asVendor=1" : "/register"} className="font-semibold text-ink">
+          <Link
+            href={
+              asVendor
+                ? `/register?asVendor=1${next ? `&next=${encodeURIComponent(next)}` : ""}`
+                : `/register${next ? `?next=${encodeURIComponent(next)}` : ""}`
+            }
+            className="font-semibold text-ink"
+          >
             Create account
           </Link>
         </p>
@@ -148,7 +155,10 @@ export function PortalLogin({
         {expect === "customer" ? (
           <>
             {" · "}
-            <Link href="/find-bookings" className="text-ink2 underline decoration-line underline-offset-2">
+            <Link
+              href={`/find-bookings${next ? `?next=${encodeURIComponent(next)}` : ""}`}
+              className="text-ink2 underline decoration-line underline-offset-2"
+            >
               Find a guest booking
             </Link>
           </>

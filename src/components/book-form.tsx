@@ -1,13 +1,31 @@
 "use client";
 import { useToast, useToastMessage } from "@/components/vendor/toasts";
+import { NavBackButton } from "@/components/nav-history";
+import { bookingResumePath, PENDING_BOOKING_KEY, type PendingBooking } from "@/lib/nav-history";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { formatNairaPlain, locationAddonLabel, locationLabel } from "@/lib/booking-ui";
 import { BookingStepper } from "@/components/booking-stepper";
 
 type LocationType = "spa" | "hotel" | "home";
 type Quote = { customerTotalKobo: number; surchargeKobo: number; basePriceKobo: number };
+
+function savePending(row: PendingBooking) {
+  try {
+    sessionStorage.setItem(PENDING_BOOKING_KEY, JSON.stringify(row));
+  } catch {
+    /* private mode */
+  }
+}
+
+function clearPending() {
+  try {
+    sessionStorage.removeItem(PENDING_BOOKING_KEY);
+  } catch {
+    /* private mode */
+  }
+}
 
 export function BookForm({ loggedIn }: { loggedIn: boolean }) {
   const { serviceId } = useParams<{ serviceId: string }>();
@@ -31,17 +49,13 @@ export function BookForm({ loggedIn }: { loggedIn: boolean }) {
   const [guestEmail, setGuestEmail] = useState("");
   const [guestNotes, setGuestNotes] = useState("");
   const quoteReady = Boolean(quote && quotedFor === `${serviceId}:${locationType}`);
+  const autoPay = useRef(false);
 
   useEffect(() => {
-    const pending = sessionStorage.getItem("naijaspa-pending-booking");
+    const pending = sessionStorage.getItem(PENDING_BOOKING_KEY);
     if (!pending) return;
     try {
-      const parsed = JSON.parse(pending) as {
-        serviceId?: string;
-        locationType?: LocationType;
-        details?: string;
-        startsAt?: string;
-      };
+      const parsed = JSON.parse(pending) as PendingBooking;
       if (parsed.serviceId && parsed.serviceId !== serviceId) return;
       if (parsed.locationType) setLocationType(parsed.locationType);
       if (parsed.details) setDetails(parsed.details);
@@ -50,6 +64,11 @@ export function BookForm({ loggedIn }: { loggedIn: boolean }) {
       /* ignore */
     }
   }, [serviceId]);
+
+  useEffect(() => {
+    if (loggedIn) return;
+    savePending({ serviceId, locationType, details, startsAt });
+  }, [loggedIn, serviceId, locationType, details, startsAt]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -78,8 +97,90 @@ export function BookForm({ loggedIn }: { loggedIn: boolean }) {
     return startsAt.length === 16 ? startsAt : startsAt.slice(0, 16);
   }, [startsAt]);
 
+  const resumeHref = bookingResumePath({ serviceId, locationType, details, startsAt });
+  const loginHref = `/login?next=${encodeURIComponent(resumeHref)}`;
+  const registerHref = `/register?next=${encodeURIComponent(resumeHref)}`;
+  const guestFindHref = `/find-bookings?next=${encodeURIComponent(resumeHref)}`;
+
+  const submitBooking = useCallback(async () => {
+    if (!quoteReady || submitting) return;
+    setError("");
+    setSubmitting(true);
+    try {
+      const appointment = new Date(`${localValue}:00+01:00`);
+      if (!Number.isFinite(appointment.getTime()) || appointment <= new Date()) throw new Error("Choose a valid future appointment.");
+      const appointmentPayload = {
+        serviceId,
+        locationType,
+        locationDetails: details,
+        customerNotes: guestNotes,
+        startsAt: appointment.toISOString(),
+        idempotencyKey: crypto.randomUUID()
+      };
+      const res = await fetch(guestMode && !loggedIn ? "/api/bookings/guest" : "/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          guestMode && !loggedIn
+            ? { ...appointmentPayload, name: guestName, phone: guestPhone, email: guestEmail }
+            : appointmentPayload
+        )
+      });
+      const json = await res.json();
+      if (res.status === 401) {
+        savePending({ serviceId, locationType, details, startsAt });
+        setGuestMode(true);
+        setError("Continue as a guest below, or sign in to use your account.");
+        return;
+      }
+      if (!res.ok) {
+        setError(json.error || "Could not create booking");
+        if (res.status === 404) {
+          setQuote(null);
+          setQuoteError(json.error || "This service is no longer available.");
+          clearPending();
+        }
+        return;
+      }
+      clearPending();
+      toast.success("Booking details saved. Continue to payment.");
+      router.push(`/checkout/${json.id}`);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Could not create booking. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  }, [
+    quoteReady,
+    submitting,
+    localValue,
+    serviceId,
+    locationType,
+    details,
+    guestNotes,
+    guestMode,
+    loggedIn,
+    guestName,
+    guestPhone,
+    guestEmail,
+    startsAt,
+    setError,
+    toast,
+    router
+  ]);
+
+  useEffect(() => {
+    if (!loggedIn || autoPay.current || submitting || !quoteReady || !localValue) return;
+    if (search.get("continue") !== "pay") return;
+    autoPay.current = true;
+    void submitBooking();
+  }, [loggedIn, submitting, quoteReady, localValue, search, submitBooking]);
+
   return (
     <div className="mx-auto w-full min-w-0 max-w-lg px-4 py-6 sm:py-8">
+      <div className="mb-4">
+        <NavBackButton fallback={`/services/${encodeURIComponent(serviceId)}`} />
+      </div>
       <BookingStepper current={3} />
       <h1 className="mt-6 font-display text-3xl leading-tight sm:text-4xl">Review total</h1>
       <p className="mt-2 text-sm text-ink2">
@@ -88,55 +189,9 @@ export function BookForm({ loggedIn }: { loggedIn: boolean }) {
       </p>
       <form
         className="mt-6 space-y-4"
-        onSubmit={async (e) => {
+        onSubmit={(e) => {
           e.preventDefault();
-          if (!quoteReady || submitting) return;
-          setError("");
-          setSubmitting(true);
-          try {
-            const appointment = new Date(`${localValue}:00+01:00`);
-            if (!Number.isFinite(appointment.getTime()) || appointment <= new Date()) throw new Error("Choose a valid future appointment.");
-            const appointmentPayload = {
-              serviceId,
-              locationType,
-              locationDetails: details,
-              customerNotes: guestNotes,
-              startsAt: appointment.toISOString(),
-              idempotencyKey: crypto.randomUUID()
-            };
-            const res = await fetch(guestMode && !loggedIn ? "/api/bookings/guest" : "/api/bookings", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(
-                guestMode && !loggedIn
-                  ? { ...appointmentPayload, name: guestName, phone: guestPhone, email: guestEmail }
-                  : appointmentPayload
-              )
-            });
-            const json = await res.json();
-            if (res.status === 401) {
-              sessionStorage.setItem("naijaspa-pending-booking", JSON.stringify({ serviceId, locationType, details, startsAt }));
-              setGuestMode(true);
-              setError("Continue as a guest below, or sign in to use your account.");
-              return;
-            }
-            if (!res.ok) {
-              setError(json.error || "Could not create booking");
-              if (res.status === 404) {
-                setQuote(null);
-                setQuoteError(json.error || "This service is no longer available.");
-                sessionStorage.removeItem("naijaspa-pending-booking");
-              }
-              return;
-            }
-            sessionStorage.removeItem("naijaspa-pending-booking");
-            toast.success("Booking details saved. Continue to payment.");
-            router.push(`/checkout/${json.id}`);
-          } catch (error) {
-            setError(error instanceof Error ? error.message : "Could not create booking. Please try again.");
-          } finally {
-            setSubmitting(false);
-          }
+          void submitBooking();
         }}
       >
         <fieldset className="space-y-2">
@@ -203,19 +258,27 @@ export function BookForm({ loggedIn }: { loggedIn: boolean }) {
         {!loggedIn ? (
           <div className="space-y-3 rounded-3xl border border-line bg-card p-4">
             <p className="text-sm font-semibold text-ink">How do you want to continue?</p>
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div className="grid gap-2 sm:grid-cols-3">
               <button
                 type="button"
                 onClick={() => setGuestMode(true)}
                 className={`min-h-12 rounded-2xl border px-3 text-sm font-semibold ${guestMode ? "border-forest bg-forest/10 text-ink" : "border-line"}`}
               >
-                Continue as Guest
+                Guest booking
               </button>
               <Link
-                href={`/login?next=${encodeURIComponent(`/book/${serviceId}?${new URLSearchParams({ location: locationType, startsAt, details }).toString()}`)}`}
-                className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-gold/50 px-3 text-sm font-semibold text-goldink"
+                href={loginHref}
+                onClick={() => savePending({ serviceId, locationType, details, startsAt })}
+                className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-gold/50 px-3 text-center text-sm font-semibold text-goldink"
               >
-                Sign in / Create account
+                Sign in
+              </Link>
+              <Link
+                href={registerHref}
+                onClick={() => savePending({ serviceId, locationType, details, startsAt })}
+                className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-line px-3 text-center text-sm font-semibold"
+              >
+                Create account
               </Link>
             </div>
             {guestMode ? (
@@ -237,6 +300,12 @@ export function BookForm({ loggedIn }: { loggedIn: boolean }) {
                   Additional instructions (optional)
                   <textarea value={guestNotes} onChange={(e) => setGuestNotes(e.target.value)} maxLength={1000} className="mt-1 min-h-20 w-full rounded-2xl border border-line bg-bg p-3 font-normal" />
                 </label>
+                <p className="text-xs text-ink2">
+                  Already started as a guest?{" "}
+                  <Link href={guestFindHref} className="font-semibold underline">
+                    Find a guest booking
+                  </Link>
+                </p>
               </div>
             ) : null}
           </div>

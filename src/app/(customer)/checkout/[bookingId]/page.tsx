@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { BookingStepper } from "@/components/booking-stepper";
+import { NavBackButton } from "@/components/nav-history";
 import { PaystackCheckout } from "@/components/paystack-checkout";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -21,6 +22,9 @@ export default async function CheckoutPage({ params }: { params: Promise<{ booki
 
   return (
     <div className="mx-auto w-full min-w-0 max-w-lg px-4 py-6 sm:py-8">
+      <div className="mb-4">
+        <NavBackButton fallback={`/book/${encodeURIComponent(booking.serviceId)}`} />
+      </div>
       <BookingStepper current={4} />
       <h1 className="mt-6 font-display text-3xl leading-tight sm:text-4xl">{confirmed ? "Paid" : "Pay with Paystack"}</h1>
       <p className="mt-2 text-sm leading-relaxed text-ink2">

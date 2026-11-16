@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { portalNext } from "@/lib/portal-auth";
 import Link from "next/link";
 import { Mail, ShieldCheck, Smartphone } from "lucide-react";
 import {
@@ -41,7 +42,7 @@ function recalled(key: string) {
   }
 }
 
-export function GuestOtpRequestScreen() {
+export function GuestOtpRequestScreen({ resume }: { resume?: string }) {
   const router = useRouter();
   const [channel, setChannel] = useState<"phone" | "email">("phone");
   const [phone, setPhone] = useState("");
@@ -75,11 +76,15 @@ export function GuestOtpRequestScreen() {
       if (!res.ok) throw new Error(apiError(json, "Could not send a code."));
       if (channel === "phone") {
         remember(PHONE_KEY, phone.trim());
-        router.push(`/find-bookings/verify?phone=${encodeURIComponent(phone.trim())}`);
+        const q = new URLSearchParams({ phone: phone.trim() });
+        if (resume) q.set("next", resume);
+        router.push(`/find-bookings/verify?${q}`);
       } else {
-        const next = email.trim().toLowerCase();
-        remember(EMAIL_KEY, next);
-        router.push(`/find-bookings/verify?email=${encodeURIComponent(next)}`);
+        const nextEmail = email.trim().toLowerCase();
+        remember(EMAIL_KEY, nextEmail);
+        const q = new URLSearchParams({ email: nextEmail });
+        if (resume) q.set("next", resume);
+        router.push(`/find-bookings/verify?${q}`);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not send a code.");
@@ -153,7 +158,7 @@ export function GuestOtpRequestScreen() {
       </form>
       <p className="mt-6 text-center text-sm text-ink2">
         Have an account?{" "}
-        <Link href="/login?next=/account/bookings" className="font-semibold text-ink underline decoration-line underline-offset-2">
+        <Link href={`/login?next=${encodeURIComponent(resume ? portalNext(resume, "customer") : "/account/bookings")}`} className="font-semibold text-ink underline decoration-line underline-offset-2">
           Sign in
         </Link>
       </p>
@@ -219,8 +224,17 @@ function OtpBoxes({
   );
 }
 
-export function GuestOtpVerifyScreen({ phone = "", email = "" }: { phone?: string; email?: string }) {
+export function GuestOtpVerifyScreen({
+  phone = "",
+  email = "",
+  next
+}: {
+  phone?: string;
+  email?: string;
+  next?: string;
+}) {
   const router = useRouter();
+  const afterVerify = next ? portalNext(next, "customer") : "/account/bookings";
   const viaEmail = Boolean(email.trim());
   const resolvedPhone = phone.trim();
   const resolvedEmail = email.trim().toLowerCase();
@@ -266,7 +280,7 @@ export function GuestOtpVerifyScreen({ phone = "", email = "" }: { phone?: strin
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(apiError(json, "Invalid or expired code."));
-      router.push("/account/bookings");
+      router.push(afterVerify);
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not verify the code.");
@@ -331,13 +345,13 @@ export function GuestOtpVerifyScreen({ phone = "", email = "" }: { phone?: strin
         )}
       </p>
       <p className="mt-4 text-center text-sm">
-        <Link href="/find-bookings" className="font-semibold text-ink">
+        <Link href={`/find-bookings${next ? `?next=${encodeURIComponent(next)}` : ""}`} className="font-semibold text-ink">
           {viaEmail ? "Use a different email or phone" : "Use a different number"}
         </Link>
       </p>
       <p className="mt-6 text-center text-sm text-ink2">
         Have an account?{" "}
-        <Link href="/login?next=/account/bookings" className="font-semibold text-ink underline decoration-line underline-offset-2">
+        <Link href={`/login?next=${encodeURIComponent(afterVerify)}`} className="font-semibold text-ink underline decoration-line underline-offset-2">
           Sign in
         </Link>
       </p>

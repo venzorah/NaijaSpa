@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, type InputHTMLAttributes, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { Eye, EyeOff, Lock, Moon, Sparkles, Store, Sun, User } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
+import { goNavBack } from "@/components/nav-history";
 
 export const authFieldClass =
   "min-h-12 w-full rounded-2xl border border-line bg-card px-4 text-base text-ink outline-none placeholder:text-ink2 focus:border-forest";
@@ -17,15 +19,20 @@ export const authGoldCtaClass =
 
 export function AuthScreen({ children }: { children: ReactNode }) {
   const { theme, toggle } = useTheme();
+  const router = useRouter();
   return (
     <div className="relative mx-auto flex min-h-dvh w-full max-w-md flex-col overflow-hidden px-5 pb-4 pt-[max(0.75rem,env(safe-area-inset-top))]">
       <div className="flex items-center justify-between">
-        <Link href="/" className="inline-flex min-h-11 w-fit items-center gap-1 text-sm font-semibold text-ink">
+        <button
+          type="button"
+          onClick={() => goNavBack(router, "/")}
+          className="inline-flex min-h-11 w-fit items-center gap-1 text-sm font-semibold text-ink"
+        >
           <span aria-hidden className="text-lg text-ink2">
             ←
           </span>
-          NaijaSpa Home
-        </Link>
+          Back
+        </button>
         <button
           type="button"
           onClick={toggle}

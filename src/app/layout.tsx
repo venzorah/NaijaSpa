@@ -5,6 +5,8 @@ import "./fonts.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SplashScreen } from "@/components/splash-screen";
 import { MediaShield } from "@/components/media-shield";
+import { NavHistoryTracker } from "@/components/nav-history";
+import { Suspense } from "react";
 import { appleStartupImages, PWA_SPLASH_BG, SPLASH_MAX_MS } from "@/lib/pwa-splash";
 
 export const metadata: Metadata = {
@@ -52,6 +54,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AppToastProvider><ThemeProvider>
           <SplashScreen />
           <MediaShield />
+          <Suspense fallback={null}>
+            <NavHistoryTracker />
+          </Suspense>
           {children}
         </ThemeProvider></AppToastProvider>
         <script src="/sw-register.js" defer />

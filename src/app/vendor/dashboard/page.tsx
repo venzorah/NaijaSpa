@@ -72,7 +72,7 @@ export default async function VendorHome() {
         return { label: d.toLocaleDateString("en-NG", { weekday: "short", timeZone: "Africa/Lagos" }), value: val };
     });
     return (<div>
-      <VendorPageHeader eyebrow={start.toLocaleDateString("en-NG", { weekday: "long", day: "numeric", month: "long", timeZone: "Africa/Lagos" })} title={`${greeting()}, ${firstName}`} description={`Here’s what’s happening at ${vendor.businessName} today.`} actions={<>
+      <VendorPageHeader hideBack eyebrow={start.toLocaleDateString("en-NG", { weekday: "long", day: "numeric", month: "long", timeZone: "Africa/Lagos" })} title={`${greeting()}, ${firstName}`} description={`Here’s what’s happening at ${vendor.businessName} today.`} actions={<>
             <Link href="/vendor/availability" className="inline-flex min-h-11 items-center rounded-full border border-line px-4 text-sm font-semibold">
               Block time
             </Link>
