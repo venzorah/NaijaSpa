@@ -11,7 +11,7 @@ export async function issuePasswordReset(userId: string) {
     const user = await tx.user.findUnique({ where: { id: userId }, select: { status: true } });
     if (!user || user.status !== "active") return null;
     const now = new Date();
-    const previous = await tx.passwordReset.findFirst({ where: { userId }, orderBy: { createdAt: "desc" } });
+    const previous = await tx.passwordReset.findFirst({ where: { userId, usedAt: null }, orderBy: { createdAt: "desc" } });
     if (previous && now.getTime() - previous.createdAt.getTime() < RESET_RESEND_SECONDS * 1000) return null;
     await tx.passwordReset.updateMany({ where: { userId, usedAt: null }, data: { usedAt: now } });
     await tx.passwordReset.create({ data: { id, userId, token, expiresAt: new Date(now.getTime() + RESET_OTP_MINUTES * 60_000), createdAt: now } });
@@ -19,10 +19,14 @@ export async function issuePasswordReset(userId: string) {
   }, { isolationLevel: "ReadCommitted" });
 }
 
+export async function invalidatePasswordReset(id: string) {
+  await prisma.passwordReset.updateMany({ where: { id, usedAt: null }, data: { usedAt: new Date() } });
+}
+
 export async function completePasswordReset(email: string, code: string, password: string) {
   assertOtpSecurityConfigured();
-  const user = await prisma.user.findUnique({ where: { email }, select: { id: true } });
-  if (!user) return false;
+  const user = await prisma.user.findUnique({ where: { email }, select: { id: true, accountKind: true } });
+  if (!user || user.accountKind === "guest") return false;
   return prisma.$transaction(async (tx) => {
     // Issuance and verification share this lock. Concurrent requests cannot
     // consume a challenge twice, or issue two current challenges.

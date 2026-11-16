@@ -32,6 +32,11 @@ describe("persistent OTP security", () => {
     db.passwordReset.findFirst.mockResolvedValue({ ...challenge(), createdAt: new Date() });
     expect(await issuePasswordReset("user")).toBeNull(); expect(db.passwordReset.create).not.toHaveBeenCalled();
   });
+  it("allows a new code when the previous challenge was already used", async () => {
+    db.passwordReset.findFirst.mockResolvedValue(null);
+    expect(await issuePasswordReset("user")).not.toBeNull();
+    expect(db.passwordReset.create).toHaveBeenCalled();
+  });
   it("supersedes old unused challenges before creating a fresh challenge", async () => {
     await issuePasswordReset("user");
     expect(db.passwordReset.updateMany).toHaveBeenCalledWith(expect.objectContaining({ where: { userId: "user", usedAt: null } }));
@@ -73,5 +78,10 @@ describe("persistent OTP security", () => {
     expect(await issuePasswordReset("user")).toBeNull();
     expect(await completePasswordReset("person@example.com", "123456", "New-password-123")).toBe(false);
     expect(db.user.update).not.toHaveBeenCalled();
+  });
+  it("does not reset guest checkout accounts", async () => {
+    db.user.findUnique.mockResolvedValue({ id: "user", accountKind: "guest" });
+    expect(await completePasswordReset("guest@guest.naijaspa.local", "123456", "New-password-123")).toBe(false);
+    expect(db.$transaction).not.toHaveBeenCalled();
   });
 });

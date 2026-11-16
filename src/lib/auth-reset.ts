@@ -10,7 +10,7 @@ export function generateResetOtp() {
 }
 
 export function normalizeResetOtp(value: string) {
-  return value.replace(/\s/g, "");
+  return value.replace(/\D/g, "");
 }
 
 function otpSecret() {

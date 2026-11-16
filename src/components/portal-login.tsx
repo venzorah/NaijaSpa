@@ -149,7 +149,10 @@ export function PortalLogin({
         </p>
       ) : null}
       <p className="mt-3 text-center text-sm">
-        <Link href="/forgot" className="text-ink2 underline decoration-line underline-offset-2">
+        <Link
+          href={expect === "customer" ? "/forgot" : `/forgot?portal=${expect}`}
+          className="text-ink2 underline decoration-line underline-offset-2"
+        >
           Forgot password
         </Link>
         {expect === "customer" ? (

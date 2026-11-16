@@ -4,7 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { jsonError, rateLimit, clientAddress } from "@/lib/http";
 import { sendPasswordResetEmail } from "@/lib/mail";
-import { issuePasswordReset } from "@/lib/password-reset";
+import { invalidatePasswordReset, issuePasswordReset } from "@/lib/password-reset";
 
 export async function POST(req: Request) {
   try {
@@ -13,12 +13,20 @@ export async function POST(req: Request) {
     const normalized = email.toLowerCase();
     await rateLimit(`forgot:account:${normalized}`, 3, 15 * 60_000);
     assertOtpSecurityConfigured();
-    const user = await prisma.user.findUnique({ where: { email: normalized } });
-    if (user) {
+    const user = await prisma.user.findUnique({
+      where: { email: normalized },
+      select: { id: true, email: true, status: true, accountKind: true }
+    });
+    if (user && user.status === "active" && user.accountKind !== "guest") {
       const challenge = await issuePasswordReset(user.id);
       if (challenge) {
-        try { await sendPasswordResetEmail({ to: user.email, code: challenge.code }); }
-        catch { console.error("[mail] password reset delivery failed"); }
+        try {
+          await sendPasswordResetEmail({ to: user.email, code: challenge.code });
+        } catch (err) {
+          console.error("[mail] password reset delivery failed", err);
+          await invalidatePasswordReset(challenge.id);
+          return NextResponse.json({ error: "Could not send a code. Try again." }, { status: 503 });
+        }
       }
     }
     return NextResponse.json({

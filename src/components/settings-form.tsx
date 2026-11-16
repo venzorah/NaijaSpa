@@ -1,6 +1,7 @@
 "use client";
 import { useToastMessage } from "@/components/vendor/toasts";
 import { useState } from "react";
+import Link from "next/link";
 import { Moon, Sun, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { GoldButton } from "@/components/gold-button";
@@ -107,6 +108,16 @@ export function SettingsForm({
             <GoldButton type="submit" disabled={savingProfile}>{savingProfile ? "Saving…" : "Save changes"}</GoldButton>
           </div>
         </form>
+      </section>
+
+      <section className="mt-4 rounded-3xl border border-line bg-card p-5">
+        <h2 className="font-semibold text-ink">Password & sign-in</h2>
+        <p className="mt-2 text-sm text-ink2">
+          We email a 6-digit code to {email}. After you set a new password you will need to sign in again.
+        </p>
+        <Link href={`/forgot?email=${encodeURIComponent(email)}`} className="mt-4 inline-flex min-h-11 items-center rounded-full border border-line px-4 text-sm font-semibold">
+          Reset password
+        </Link>
       </section>
 
       <ClaimGuestBookings defaultPhone={phone} />

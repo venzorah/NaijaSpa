@@ -15,9 +15,10 @@ describe("password reset OTP", () => {
     expect(hashResetOtp("user-a", "challenge-b", "482913")).not.toBe(a);
     expect(a).toHaveLength(64);
   });
-  it("does not truncate extra digits or remove non-space characters", () => {
+  it("strips separators and keeps extra digits for the length check", () => {
     expect(normalizeResetOtp("482913999")).toBe("482913999");
-    expect(normalizeResetOtp("48x2913")).toBe("48x2913");
+    expect(normalizeResetOtp("48-29-13")).toBe("482913");
+    expect(normalizeResetOtp("48x2913")).toBe("482913");
   });
   it("requires a persistent secret instead of an unkeyed fallback", () => {
     vi.stubEnv("OTP_HASH_SECRET", "");
