@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { Sparkles } from "lucide-react";
 import { DarkRoomTeaser } from "@/components/dark-room-teaser";
 import { CategoryCarousel } from "@/components/category-carousel";
@@ -125,7 +126,11 @@ export function CustomerHome({
           ) : null;
         }
         if (section.id === "collections") {
-          return <HomeDiscovery key={section.id} place={place} layout={layout} />;
+          return (
+            <Suspense key={section.id} fallback={null}>
+              <HomeDiscovery place={place} layout={layout} />
+            </Suspense>
+          );
         }
         if (section.id === "bandSpa") {
           return section.visible ? (

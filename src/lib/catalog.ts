@@ -165,7 +165,7 @@ export async function getPublicCategories(): Promise<PublicCategory[]> {
 
 export async function getHomeCatalog(place?: LivePlace | null) {
   return unstable_cache(() => loadHomeCatalog(place ?? null), ["home-catalog", placeCacheKey(place)], {
-    revalidate: 30,
+    revalidate: 120,
     tags: ["home-catalog"]
   })();
 }
