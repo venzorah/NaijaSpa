@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { clientAddress } from "@/lib/http";
-import { appUrl } from "@/lib/payments";
+import { publicOriginFromRequest } from "@/lib/public-origin";
 import { usingDemoListings } from "@/lib/live-db";
 import { keepTrafficParams, listingTrafficFromSearch } from "@/lib/listing-traffic";
 import { recordListingHit } from "@/lib/listing-view-store";
@@ -9,7 +9,7 @@ import { recordListingHit } from "@/lib/listing-view-store";
 export async function GET(req: Request, { params }: { params: Promise<{ kind: string; slug: string }> }) {
   const { kind, slug } = await params;
   const url = new URL(req.url);
-  const origin = appUrl() || url.origin;
+  const origin = publicOriginFromRequest(req);
   const decoded = decodeURIComponent(slug);
   const traffic = listingTrafficFromSearch(url.searchParams, req.headers.get("referer") || "", url.searchParams.get("from") === "admin");
   if (traffic.channel === "organic") {

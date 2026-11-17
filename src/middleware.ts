@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { PLACE_COOKIE, placeFromCookieOrDefault } from "@/lib/nigeria";
 import { inHref } from "@/lib/place-urls";
+import { publicOriginFromRequest } from "@/lib/public-origin";
 
 // Forward the requested destination to the server layout. This header is always
 // overwritten here; authentication and current role checks stay on the server.
@@ -9,9 +10,7 @@ export function middleware(request: NextRequest) {
     const place = placeFromCookieOrDefault(request.cookies.get(PLACE_COOKIE)?.value);
     const dest = inHref(place);
     if (dest !== "/") {
-      const url = request.nextUrl.clone();
-      url.pathname = dest;
-      return NextResponse.redirect(url);
+      return NextResponse.redirect(new URL(dest, publicOriginFromRequest(request)));
     }
   }
   const headers = new Headers(request.headers);

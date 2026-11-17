@@ -1,6 +1,6 @@
 import { assertPortalAccount } from "./portal-auth";
 import { SignJWT, jwtVerify } from "jose";
-import { appUrl } from "./payments";
+import { appUrl, publicOriginFromRequest } from "./public-origin";
 import { isAdminRole, isVendorRole, portalHome, ROLES, type Role } from "./rbac";
 import { prisma } from "./db";
 import { freeAbandonedIdentity } from "./account-purge";
@@ -44,14 +44,7 @@ export function allowedGoogleOrigins() {
 }
 
 export function requestOrigin(req: Request) {
-  const url = new URL(req.url);
-  const xfHost = req.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
-  const host = xfHost || req.headers.get("host") || url.host;
-  const proto = (req.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() || url.protocol.replace(":", "")).replace(
-    /:$/,
-    ""
-  );
-  return `${proto}://${host}`.replace(/\/$/, "");
+  return publicOriginFromRequest(req);
 }
 
 export function googleCallbackUrlFor(origin: string) {
