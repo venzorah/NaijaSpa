@@ -42,4 +42,5 @@ export type AnnouncementRecord = {
   queued?: boolean;
   imageCount: number;
   linkCount: number;
+  error?: string;
 };

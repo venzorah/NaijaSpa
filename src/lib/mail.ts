@@ -190,25 +190,37 @@ export function vendorInviteEmail({ businessName, setupUrl }: { businessName: st
   };
 }
 
+type SmtpTransport = { sendMail: (mail: Record<string, unknown>) => Promise<unknown> };
+let smtpTransport: SmtpTransport | null = null;
+
+async function smtpClient(host: string): Promise<SmtpTransport> {
+  if (smtpTransport) return smtpTransport;
+  const nodemailer = await import("nodemailer");
+  const port = Number(process.env.SMTP_PORT || 465);
+  const secure = process.env.SMTP_SECURE === "true" || port === 465;
+  const user = process.env.SMTP_USER?.trim() || MAIL_FROM_ADDRESS;
+  smtpTransport = nodemailer.createTransport({
+    host,
+    port,
+    secure,
+    requireTLS: !secure && port === 587,
+    pool: true,
+    maxConnections: 1,
+    maxMessages: 80,
+    auth: { user, pass: process.env.SMTP_PASS || "" },
+    connectionTimeout: 12_000,
+    greetingTimeout: 12_000,
+    socketTimeout: 20_000
+  }) as SmtpTransport;
+  return smtpTransport;
+}
+
 export async function sendMail({ to, subject, html, text }: { to: string; subject: string; html: string; text?: string }) {
   const from = mailFrom();
   const host = process.env.SMTP_HOST?.trim();
   if (host) {
-    const nodemailer = await import("nodemailer");
-    const port = Number(process.env.SMTP_PORT || 465);
-    const secure = process.env.SMTP_SECURE === "true" || port === 465;
     const user = process.env.SMTP_USER?.trim() || MAIL_FROM_ADDRESS;
-    const transporter = nodemailer.createTransport({
-      host,
-      port,
-      secure,
-      requireTLS: !secure && port === 587,
-      auth: { user, pass: process.env.SMTP_PASS || "" },
-      connectionTimeout: 15_000,
-      greetingTimeout: 15_000,
-      socketTimeout: 20_000
-    });
-    await transporter.sendMail({
+    const payload = {
       from,
       to,
       subject,
@@ -216,8 +228,20 @@ export async function sendMail({ to, subject, html, text }: { to: string; subjec
       text,
       replyTo: mailReplyTo(),
       envelope: { from: user, to }
-    });
-    return;
+    };
+    let last: unknown;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        const transporter = await smtpClient(host);
+        await transporter.sendMail(payload);
+        return;
+      } catch (error) {
+        last = error;
+        smtpTransport = null;
+        if (attempt === 0) continue;
+      }
+    }
+    throw last instanceof Error ? last : new Error("SMTP send failed");
   }
   const resend = process.env.RESEND_API_KEY?.trim();
   if (resend) {

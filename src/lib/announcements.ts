@@ -29,7 +29,7 @@ export const MAX_ANNOUNCEMENT_RECIPIENTS = 40;
 
 export const ANNOUNCEMENT_JOBS_KEY = "admin.announcement.jobs";
 export const INLINE_ANNOUNCEMENT_EMAILS = 12;
-const EMAIL_CONCURRENCY = 3;
+const EMAIL_CONCURRENCY = 1;
 const NOTIFY_CHUNK = 200;
 
 type AnnouncementJob = {
@@ -99,7 +99,8 @@ export function parseAnnouncementHistory(raw: string | null | undefined): Announ
             : row.inApp === false
               ? "email"
               : "both",
-        queued: row.queued === true
+        queued: row.queued === true,
+        error: typeof row.error === "string" && row.error ? row.error : undefined
       }))
       .slice(0, 30);
   } catch {
@@ -206,6 +207,23 @@ export async function processAnnouncementJob(job: AnnouncementJob) {
     current.status = "failed";
     current.error = error instanceof Error ? error.message : "Send failed";
     await saveJobs([current, ...jobs.filter((row) => row.id !== current.id)]);
+    await upsertHistory({
+      id: current.id,
+      at: new Date().toISOString(),
+      audience: current.input.audience,
+      subject: current.input.subject,
+      title: current.input.title,
+      attempted: 0,
+      sent: 0,
+      failed: 0,
+      skipped: 0,
+      inApp: current.input.channel !== "email",
+      channel: current.input.channel,
+      queued: false,
+      imageCount: current.input.images?.length ?? 0,
+      linkCount: (current.input.ctaLabel && current.input.ctaHref ? 1 : 0) + (current.input.links?.length ?? 0),
+      error: current.error
+    });
     throw error;
   }
 }
