@@ -52,6 +52,10 @@ export function BookForm({ loggedIn }: { loggedIn: boolean }) {
   const autoPay = useRef(false);
 
   useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [serviceId]);
+
+  useEffect(() => {
     const pending = sessionStorage.getItem(PENDING_BOOKING_KEY);
     if (!pending) return;
     try {

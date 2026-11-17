@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link, { useLinkStatus } from "next/link";
 import NavigationLink from "@/components/navigation-link";
 import { usePathname } from "next/navigation";
@@ -165,6 +166,10 @@ export function CustomerShell({
   tickerItems?: TickerItem[];
 }) {
   const path = usePathname();
+  useEffect(() => {
+    if (window.location.hash) return;
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [path]);
   if (isAuthPath(path)) {
     return (
       <div className="relative min-h-dvh min-w-0 bg-bg text-ink">

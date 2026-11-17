@@ -110,6 +110,7 @@ export function ServiceBookingCard({
         startsAt,
         details
       });
+      showNextFromTop();
       router.push(`/book/${serviceId}?${params.toString()}`);
     } catch (error) {
       setContinueError(error instanceof Error ? error.message : "Could not continue. Please try again.");
@@ -117,15 +118,21 @@ export function ServiceBookingCard({
     }
   };
 
+  const showNextFromTop = () => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  };
+
   const cta = () => {
     if (step === 1) {
       if (!canLeaveLocation) return;
       setStep(2);
+      showNextFromTop();
       return;
     }
     if (step === 2) {
       if (!canLeaveTime) return;
       setStep(3);
+      showNextFromTop();
       return;
     }
     void continueToBook();

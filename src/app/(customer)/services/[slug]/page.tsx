@@ -120,7 +120,8 @@ export default async function ServicePage({ params, searchParams }: {
             </div>
           </header>
 
-          <div id="booking" className="min-w-0 scroll-mt-24 lg:sticky lg:top-24 lg:col-start-2 lg:row-span-4">
+          <div className="min-w-0 lg:sticky lg:top-24 lg:col-start-2 lg:row-span-4">
+            <div id="booking" className="scroll-mt-[calc(6.5rem+env(safe-area-inset-top))]" />
             <ServiceBookingCard
               key={service.id}
               serviceId={service.id}

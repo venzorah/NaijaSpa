@@ -165,7 +165,7 @@ export function ExploreResultCard({ result: r }: { result: ExploreResult }) {
           <span className="text-sm text-ink2"> / session</span>
         </p>
         <Link
-          href={`/services/${encodeURIComponent(r.service.slug)}#booking`}
+          href={`/services/${encodeURIComponent(r.service.slug)}`}
           className="inline-flex min-h-10 items-center rounded-full bg-ink px-4 text-sm font-bold text-bg"
         >
           Book now
