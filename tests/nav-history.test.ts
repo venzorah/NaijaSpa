@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { bookingResumePath, isAuthNavPath, nextNavStack, popNavStack, sameOriginReferrer } from "../src/lib/nav-history";
+import {
+  bookingResumePath,
+  isAuthNavPath,
+  nextNavStack,
+  popNavStack,
+  resumeHrefFromPendingJson,
+  sameOriginReferrer
+} from "../src/lib/nav-history";
 
 describe("nav history", () => {
   it("records each page including auth screens and drops duplicates", () => {
@@ -31,5 +38,11 @@ describe("nav history", () => {
     expect(
       bookingResumePath({ serviceId: "svc1", locationType: "home", startsAt: "2026-11-20T10:00", details: "Ikeja" })
     ).toBe("/book/svc1?location=home&startsAt=2026-11-20T10%3A00&details=Ikeja&continue=pay");
+    expect(
+      resumeHrefFromPendingJson(
+        JSON.stringify({ serviceId: "svc1", locationType: "spa", startsAt: "2026-11-20T10:00" })
+      )
+    ).toBe("/book/svc1?location=spa&startsAt=2026-11-20T10%3A00&continue=pay");
+    expect(resumeHrefFromPendingJson("{")).toBeNull();
   });
 });

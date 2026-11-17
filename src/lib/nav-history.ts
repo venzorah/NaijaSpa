@@ -41,6 +41,22 @@ export type PendingBooking = {
   startsAt?: string;
 };
 
+export function pendingBookingFromJson(raw: string | null | undefined): PendingBooking | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as PendingBooking;
+    if (!parsed?.serviceId || typeof parsed.serviceId !== "string") return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export function resumeHrefFromPendingJson(raw: string | null | undefined) {
+  const pending = pendingBookingFromJson(raw);
+  return pending ? bookingResumePath(pending) : null;
+}
+
 export function bookingResumePath(input: PendingBooking, continuePay = true) {
   const q = new URLSearchParams();
   if (input.locationType) q.set("location", input.locationType);

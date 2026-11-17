@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, Mail, Store, User } from "lucide-react";
 import { GoogleAuthButton } from "@/components/google-auth-button";
 import { portalNext } from "@/lib/portal-auth";
+import { PENDING_BOOKING_KEY, resumeHrefFromPendingJson } from "@/lib/nav-history";
 import {
   AccountTypeCards,
   AuthHeading,
@@ -27,6 +28,12 @@ export function RegisterForm({ guestUpgrade = false }: { guestUpgrade?: boolean 
   const portal = asVendor ? "vendor" : "customer";
   const requested = search.get("next");
   const dest = asVendor ? "/vendor/onboarding" : portalNext(requested, "customer");
+  const [pendingResume, setPendingResume] = useState<string | null>(null);
+  useEffect(() => {
+    setPendingResume(resumeHrefFromPendingJson(sessionStorage.getItem(PENDING_BOOKING_KEY)));
+  }, []);
+  const afterAuth = asVendor ? dest : pendingResume || dest;
+  const returnNext = asVendor ? requested : requested || pendingResume;
 
   const pick = (vendor: boolean) => {
     setAsVendor(vendor);
@@ -72,7 +79,7 @@ export function RegisterForm({ guestUpgrade = false }: { guestUpgrade?: boolean 
             });
             const json = await res.json();
             if (!res.ok) setError(json.error);
-            else router.push(dest);
+            else window.location.assign(afterAuth);
           } catch {
             setError("Could not create account. Check your connection.");
           } finally {
@@ -138,13 +145,13 @@ export function RegisterForm({ guestUpgrade = false }: { guestUpgrade?: boolean 
       <AuthOrDivider />
 
       <div className="mt-4">
-        <GoogleAuthButton portal={portal} next={dest} from="register" label="Continue with Google" />
+        <GoogleAuthButton portal={portal} next={afterAuth} from="register" label="Continue with Google" />
       </div>
 
       <p className="mt-6 pb-2 text-center text-sm text-ink2">
         Already have an account?{" "}
         <Link
-          href={`${asVendor ? "/login/vendor" : "/login"}${requested ? `?next=${encodeURIComponent(requested)}` : ""}`}
+          href={`${asVendor ? "/login/vendor" : "/login"}${returnNext ? `?next=${encodeURIComponent(returnNext)}` : ""}`}
           className="font-semibold text-ink"
         >
           Sign in

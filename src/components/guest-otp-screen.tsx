@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { portalNext } from "@/lib/portal-auth";
+import { PENDING_BOOKING_KEY, resumeHrefFromPendingJson } from "@/lib/nav-history";
 import Link from "next/link";
 import { Mail, ShieldCheck, Smartphone } from "lucide-react";
 import {
@@ -280,8 +281,8 @@ export function GuestOtpVerifyScreen({
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(apiError(json, "Invalid or expired code."));
-      router.push(afterVerify);
-      router.refresh();
+      const pending = resumeHrefFromPendingJson(sessionStorage.getItem(PENDING_BOOKING_KEY));
+      window.location.assign(pending || afterVerify);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not verify the code.");
     } finally {

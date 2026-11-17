@@ -1,5 +1,6 @@
 "use client";
 import { portalNext } from "@/lib/portal-auth";
+import { PENDING_BOOKING_KEY, resumeHrefFromPendingJson } from "@/lib/nav-history";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -45,8 +46,10 @@ export function PortalLogin({
     const params = new URLSearchParams(window.location.search);
     const err = params.get("error");
     if (err) setError(err);
-    setNext(params.get("next") || defaultNext);
-  }, [defaultNext]);
+    const fromQuery = params.get("next");
+    const pending = resumeHrefFromPendingJson(sessionStorage.getItem(PENDING_BOOKING_KEY));
+    setNext(fromQuery || (!asVendor && pending) || defaultNext);
+  }, [asVendor, defaultNext]);
 
   const pick = (vendor: boolean) => {
     setAsVendor(vendor);
@@ -94,7 +97,8 @@ export function PortalLogin({
               return;
             }
             const dest = new URLSearchParams(window.location.search).get("next") || json.home || (asVendor ? "/vendor/dashboard" : defaultNext);
-            window.location.assign(portalNext(dest, expect));
+            const pending = expect === "customer" ? resumeHrefFromPendingJson(sessionStorage.getItem(PENDING_BOOKING_KEY)) : null;
+            window.location.assign(portalNext(pending || dest, expect));
             router.refresh();
           } catch {
             setError("Could not log in. Check your connection.");
