@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { categoryHref, categoryImage, matchCategory, normalizeCategorySlug } from "../src/lib/category-images";
 import { PHOTOS, publicWellnessPhoto } from "../src/lib/photos";
 import { demoHomeRails, demoNearbyVendors } from "../src/lib/demo-catalog";
+import { filterByServiceArea } from "../src/lib/nigeria";
 import {
   DEFAULT_HOME_FEED_CONFIG,
   HOME_FEED_CONFIG_KEYS,
@@ -34,6 +35,15 @@ describe("home feed item counts", () => {
       promo: DEFAULT_HOME_FEED_CONFIG.promo,
       nearby: 1
     });
+  });
+
+  it("drops admin-picked listings that are outside the customer’s state", () => {
+    const abuja = { state: "FCT", city: "Abuja", neighbourhood: "" };
+    const picked = [
+      { id: "lagos-pin", vendor: { state: "Lagos", city: "Lagos", neighbourhood: "Lekki" } },
+      { id: "abuja-pin", vendor: { state: "FCT", city: "Abuja", neighbourhood: "Maitama" } }
+    ];
+    expect(filterByServiceArea(picked, abuja, (row) => row.vendor).map((row) => row.id)).toEqual(["abuja-pin"]);
   });
 
   it("slices demo rails and nearby vendors to the configured limits", () => {

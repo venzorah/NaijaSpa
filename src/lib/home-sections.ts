@@ -33,17 +33,17 @@ export const HOME_SECTION_META: Record<
 > = {
   featured: {
     label: "Featured services",
-    hint: "Main service grid. Automatic fills from live ads then nearby listings. Manual uses the services, providers or categories you pick.",
+    hint: "Main service grid. Automatic fills from live ads then nearby listings. Manual uses your picks, then still only shows therapists in the visitor’s state.",
     picks: ["services", "vendors", "categories"]
   },
   nearby: {
     label: "Recommended providers",
-    hint: "Provider carousel. Automatic ranks approved vendors in the visitor’s state. Manual shows the providers you pick.",
+    hint: "Provider carousel. Automatic ranks approved vendors in the visitor’s state. Manual picks are also limited to that state unless they change location.",
     picks: ["vendors", "categories"]
   },
   spotlight: {
     label: "Spotlight partners",
-    hint: "Sponsored strip. Automatic uses live paid placements. Manual pins chosen services or providers.",
+    hint: "Sponsored strip. Automatic uses live paid placements. Manual pins still hide therapists outside the visitor’s state.",
     picks: ["services", "vendors", "categories"]
   },
   collections: {
@@ -53,12 +53,12 @@ export const HOME_SECTION_META: Record<
   },
   premium: {
     label: "Premium",
-    hint: "Paid-plan vendors. Automatic uses the premium rail; manual pins chosen listings.",
+    hint: "Paid-plan vendors. Automatic uses the premium rail; manual pins still filter to the visitor’s state.",
     picks: ["services", "vendors", "categories"]
   },
   promo: {
     label: "Promo",
-    hint: "Campaign offers. Automatic uses live promo placements; manual pins chosen listings.",
+    hint: "Campaign offers. Automatic uses live promo placements; manual pins still filter to the visitor’s state.",
     picks: ["services", "vendors", "categories"]
   },
   bandSpa: {

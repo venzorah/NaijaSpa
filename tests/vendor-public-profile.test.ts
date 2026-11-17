@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PUBLIC_LIVE_VENDOR_WHERE, vendorPublicProfileState } from "../src/lib/vendor-public-profile";
+import { liveVendorWhereForPlace, PUBLIC_LIVE_VENDOR_WHERE, vendorPublicProfileState } from "../src/lib/vendor-public-profile";
 
 describe("vendor public profile availability", () => {
   it("offers the public link only for approved public listings with a live treatment", () => {
@@ -9,6 +9,11 @@ describe("vendor public profile availability", () => {
     expect(vendorPublicProfileState("public", "approved", 0).message).toMatch(/treatment/i);
     expect(vendorPublicProfileState("hidden", "approved").available).toBe(false);
     expect(PUBLIC_LIVE_VENDOR_WHERE.services.some.active).toBe(true);
+  });
+  it("keeps nationwide public listings when no state is known, then AND-filters by state", () => {
+    expect(liveVendorWhereForPlace(null)).toEqual(PUBLIC_LIVE_VENDOR_WHERE);
+    const lagos = liveVendorWhereForPlace({ state: "Lagos", city: "Lekki", neighbourhood: "" });
+    expect(lagos).toMatchObject({ AND: [PUBLIC_LIVE_VENDOR_WHERE, { OR: [{ state: { equals: "Lagos", mode: "insensitive" } }] }] });
   });
   it("explains a suspension even when visibility is public", () => {
     for (const visibility of ["hidden", "public"]) {

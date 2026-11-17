@@ -32,7 +32,15 @@ export default async function CategoryLandingPage({ params }: { params: Promise<
   const place = placeFromCookieOrDefault((await cookies()).get(PLACE_COOKIE)?.value);
   if (!cat) redirect(exploreHref(place, { category: rawSlug }));
   const exploreWithCategory = exploreHref(place, { category: cat.slug });
-  const data = await searchServices({ category: cat.slug, take: 24, sort: "rating", rankPlace: place });
+  const data = await searchServices({
+    category: cat.slug,
+    take: 24,
+    sort: "rating",
+    state: place.state,
+    city: place.city,
+    neighbourhood: place.neighbourhood,
+    rankPlace: place
+  });
   const from = data.results.length ? Math.min(...data.results.map((r) => r.quote.customerTotalKobo)) : 0;
   const providers = [...new Map(data.results.map((r) => [r.vendor.slug, r.vendor])).values()];
 

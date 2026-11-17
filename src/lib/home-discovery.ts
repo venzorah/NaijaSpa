@@ -1,12 +1,12 @@
 import { unstable_cache } from "next/cache";
 import { prisma } from "./db";
-import { prismaServiceAreaFilter, serviceAreaState, type LivePlace } from "./nigeria";
-import { LIVE_SERVICE_WHERE, PUBLIC_LIVE_VENDOR_WHERE } from "./vendor-public-profile";
+import { serviceAreaState, type LivePlace } from "./nigeria";
+import { LIVE_SERVICE_WHERE, liveVendorWhereForPlace } from "./vendor-public-profile";
 
 export function getHomeDiscovery(place: LivePlace | null) {
   const state = serviceAreaState(place);
   return unstable_cache(async () => {
-    const vendor = { ...PUBLIC_LIVE_VENDOR_WHERE, ...(state ? prismaServiceAreaFilter(state) : {}) };
+    const vendor = liveVendorWhereForPlace(place);
     const service = { ...LIVE_SERVICE_WHERE, vendor };
     const now = new Date();
     const [ranked, verified, collections, reviews, promotions] = await Promise.all([

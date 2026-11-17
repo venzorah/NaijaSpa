@@ -32,7 +32,7 @@ import {
   type NearbyVendor
 } from "./home-types";
 import { publicVideoLinks } from "./galleries";
-import { filterByServiceArea, prismaServiceAreaFilter, serviceAreaState, sortByPlace, type LivePlace } from "./nigeria";
+import { filterByServiceArea, sortByPlace, type LivePlace } from "./nigeria";
 import { type HomeHeroPayload } from "./home-hero";
 import {
   collectedManualServiceIds,
@@ -46,7 +46,7 @@ import {
 } from "./home-sections";
 import { PHOTOS, publicWellnessPhoto } from "./photos";
 import { serviceAvailabilityLabels } from "./service-availability";
-import { LIVE_SERVICE_WHERE, PUBLIC_LIVE_VENDOR_WHERE } from "./vendor-public-profile";
+import { LIVE_SERVICE_WHERE, liveVendorWhereForPlace } from "./vendor-public-profile";
 
 export { usingDemoListings } from "./live-db";
 export type { HomeCard, HomeFeedConfig, HomeRails, NearbyVendor } from "./home-types";
@@ -188,7 +188,7 @@ async function loadHomeCatalog(place: LivePlace | null) {
   const now = new Date();
   const pinnedServiceIds = collectedManualServiceIds(layout);
   const pinnedVendorIds = collectedManualVendorIds(layout);
-  const areaVendor = { ...PUBLIC_LIVE_VENDOR_WHERE, ...(serviceAreaState(place) ? prismaServiceAreaFilter(serviceAreaState(place)) : {}) };
+  const areaVendor = liveVendorWhereForPlace(place);
   const [categories, services, faqs, campaigns] = await withTimeout(
     Promise.all([
     prisma.category.findMany({
@@ -199,15 +199,7 @@ async function loadHomeCatalog(place: LivePlace | null) {
     prisma.service.findMany({
       where: {
         ...LIVE_SERVICE_WHERE,
-        OR: [
-          { vendor: areaVendor },
-          ...(pinnedServiceIds.length
-            ? [{ id: { in: pinnedServiceIds }, vendor: PUBLIC_LIVE_VENDOR_WHERE }]
-            : []),
-          ...(pinnedVendorIds.length
-            ? [{ vendorId: { in: pinnedVendorIds }, vendor: PUBLIC_LIVE_VENDOR_WHERE }]
-            : [])
-        ]
+        vendor: areaVendor
       },
       select: {
         id: true,
@@ -264,7 +256,7 @@ async function loadHomeCatalog(place: LivePlace | null) {
       where: {
         id: { in: missingPinned },
         ...LIVE_SERVICE_WHERE,
-        vendor: PUBLIC_LIVE_VENDOR_WHERE
+        vendor: areaVendor
       },
       select: {
         id: true,
@@ -425,7 +417,9 @@ async function loadHomeCatalog(place: LivePlace | null) {
   ) => {
     const section = homeSection(layout, id);
     if (!section.visible) return [];
-    if (section.source === "manual") return manualCards(id, badge, limit);
+    if (section.source === "manual") {
+      return sortByPlace(filterByServiceArea(manualCards(id, badge, limit), place, (c) => c.vendor), place, (c) => c.vendor);
+    }
     return autoRail(campaignCards, pool, badge, limit, section.categorySlugs);
   };
   const rails: HomeRails = {
@@ -438,7 +432,11 @@ async function loadHomeCatalog(place: LivePlace | null) {
   const spotlight = !spotlightSection.visible
     ? []
     : spotlightSection.source === "manual"
-      ? manualCards("spotlight", "Featured", limits.featured)
+      ? sortByPlace(
+          filterByServiceArea(manualCards("spotlight", "Featured", limits.featured), place, (c) => c.vendor),
+          place,
+          (c) => c.vendor
+        )
       : sponsoredUnion.filter((card) => matchesSectionCategories(card, spotlightSection.categorySlugs));
 
   const nearbySection = homeSection(layout, "nearby");
@@ -462,7 +460,7 @@ async function loadHomeCatalog(place: LivePlace | null) {
       const missingVendorIds = nearbySection.vendorIds.filter((id) => !nearbyByVendorId.has(id));
       if (missingVendorIds.length) {
         const extraVendors = await prisma.vendor.findMany({
-          where: { id: { in: missingVendorIds }, ...PUBLIC_LIVE_VENDOR_WHERE },
+          where: { id: { in: missingVendorIds }, ...areaVendor },
           select: {
             id: true,
             slug: true,
@@ -508,6 +506,7 @@ async function loadHomeCatalog(place: LivePlace | null) {
       }
       nearby = sortByPlace(filterByServiceArea([...autoMap.values()], place, (v) => v), place, (v) => v).slice(0, limits.nearby);
     }
+    nearby = sortByPlace(filterByServiceArea(nearby, place, (v) => v), place, (v) => v).slice(0, limits.nearby);
   }
 
   return {
