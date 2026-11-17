@@ -187,7 +187,7 @@ export const ADMIN_SCREENS: {
     label: "Site content",
     group: "Content & care",
     icon: Newspaper,
-    description: "Pages, hero, FAQs, legal copy and SEO for the public site.",
+    description: "Pages, the public contact page, hero, FAQs, legal copy and SEO.",
     view: ["cms.manage"],
     edit: ["cms.manage"]
   },

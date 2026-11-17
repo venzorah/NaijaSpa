@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/admin-auth";
 import { audit } from "@/lib/audit";
@@ -52,7 +53,7 @@ export async function PATCH(req: Request) {
       .object({
         id: z.string(),
         title: z.string().optional(),
-        body: z.string().optional(),
+        body: z.string().max(40000).optional(),
         metaTitle: z.string().max(80).optional(),
         metaDescription: z.string().max(320).optional(),
         published: z.boolean().optional()
@@ -70,6 +71,7 @@ export async function PATCH(req: Request) {
       }
     });
     await audit({ actorId: actor.id, action: "cms.update", entityType: "CmsBlock", entityId: body.id, before, after: block });
+    revalidatePath(`/${block.key}`);
     return NextResponse.json({ block });
   } catch (e) {
     return jsonError(e);

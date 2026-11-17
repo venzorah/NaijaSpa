@@ -8,7 +8,9 @@ import { adminBtn, adminBtnOutline, adminField, FormRow } from "@/components/adm
 import { Panel } from "@/components/admin/panel";
 import { AdminStatusPill } from "@/components/admin/status-pill";
 import { adminJson } from "@/components/admin/json";
+import { ContactPageEditor } from "@/components/admin/contact-page-editor";
 import { cn } from "@/lib/cn";
+import { CONTACT_CMS_KEY } from "@/lib/contact-page";
 
 type Tab = "pages" | "faqs" | "hero";
 
@@ -23,7 +25,7 @@ export function CmsConsole({
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("pages");
-  const [selectedId, setSelectedId] = useState(blocks[0]?.id ?? "");
+  const [selectedId, setSelectedId] = useState(blocks.find((b) => b.key === CONTACT_CMS_KEY)?.id ?? blocks[0]?.id ?? "");
   const selected = blocks.find((b) => b.id === selectedId);
   return (
     <div>
@@ -95,7 +97,10 @@ export function CmsConsole({
                   >
                     <span>
                       <span className="block font-medium">{b.title}</span>
-                      <span className="font-mono text-[11px] text-ink2">{b.key}</span>
+                      <span className="font-mono text-[11px] text-ink2">
+                        {b.key}
+                        {b.key === CONTACT_CMS_KEY ? " · full page" : ""}
+                      </span>
                     </span>
                     <AdminStatusPill status={b.published ? "published" : "draft"} />
                   </button>
@@ -104,7 +109,9 @@ export function CmsConsole({
             </ul>
           </Panel>
           <Panel title={selected ? selected.title : "Edit"} className="xl:col-span-3">
-            {selected ? (
+            {selected?.key === CONTACT_CMS_KEY ? (
+              <ContactPageEditor key={selected.id} block={selected} editable={editable} />
+            ) : selected ? (
               <form
                 key={selected.id}
                 className="space-y-3"

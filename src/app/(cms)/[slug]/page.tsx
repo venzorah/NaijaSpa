@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { ContactForm } from "@/components/contact-form";
 import { PageHeader } from "@/components/page-header";
-import { SUPPORT_WHATSAPP_DISPLAY, supportWhatsAppHref } from "@/lib/support";
+import { contactChannelHref, contactFormEmail, parseContactPage } from "@/lib/contact-page";
 import { getDemoCms, usingDemoListings } from "@/lib/catalog";
 import { PHOTOS } from "@/lib/photos";
 
@@ -203,46 +203,55 @@ export default async function CmsPage({ params }: { params: Promise<{ slug: stri
 
   if (slug === "contact") {
     const { supportEmail } = await getPlatformSettings();
+    const page = parseContactPage(extra?.body, supportEmail);
+    const icons = {
+      email: Mail,
+      whatsapp: MessageCircle,
+      phone: Phone,
+      address: MapPin,
+      hours: Clock,
+      link: BadgeCheck,
+      text: Clock
+    } as const;
     return (
       <div className="mx-auto max-w-5xl px-4 pt-6 lg:px-8">
-        <PageHeader title={extra?.title || "Contact us"} subtitle="We’re here 8 AM – 10 PM, every day." />
-        <div className="grid gap-6 md:grid-cols-[1fr_1.3fr]">
+        <PageHeader title={extra?.title || "Contact us"} subtitle={page.subtitle} />
+        {page.intro ? <p className="mb-6 max-w-3xl whitespace-pre-wrap text-sm leading-relaxed text-ink2">{page.intro}</p> : null}
+        <div className={`grid gap-6 ${page.showForm ? "md:grid-cols-[1fr_1.3fr]" : ""}`}>
           <ul className="space-y-3">
-            {[
-              [Mail, "Email", supportEmail, `mailto:${supportEmail}`],
-              [MessageCircle, "WhatsApp", SUPPORT_WHATSAPP_DISPLAY, supportWhatsAppHref("Hello NaijaSpa, I need help.")],
-              [Phone, "Phone", "+234 1 555 0100", "tel:+23415550100"],
-              [MapPin, "Office", "Lagos, Nigeria", ""],
-              [Clock, "Hours", "Daily, 8:00 AM – 10:00 PM WAT", ""]
-            ].map(([Icon, l, v, href]) => {
-              const I = Icon as typeof Mail;
-              const value =
-                href ? (
-                  <a
-                    href={href as string}
-                    target={(href as string).startsWith("http") ? "_blank" : undefined}
-                    rel={(href as string).startsWith("http") ? "noopener noreferrer" : undefined}
-                    className="font-semibold text-ink underline decoration-line underline-offset-2"
-                  >
-                    {v as string}
-                  </a>
-                ) : (
-                  <p className="font-semibold text-ink">{v as string}</p>
+            {page.channels
+              .filter((row) => row.value.trim() || row.label.trim())
+              .map((row, index) => {
+                const I = icons[row.kind] || Mail;
+                const href = contactChannelHref(row);
+                const value = row.value.trim() || row.label;
+                return (
+                  <li key={`${row.label}-${index}`} className="flex gap-3 rounded-3xl border border-line bg-card p-4">
+                    <I className="mt-0.5 h-5 w-5 text-leaf" aria-hidden />
+                    <div>
+                      <p className="text-xs text-ink2">{row.label}</p>
+                      {href ? (
+                        <a
+                          href={href}
+                          target={href.startsWith("http") ? "_blank" : undefined}
+                          rel={href.startsWith("http") ? "noopener noreferrer" : undefined}
+                          className="font-semibold text-ink underline decoration-line underline-offset-2"
+                        >
+                          {value}
+                        </a>
+                      ) : (
+                        <p className="font-semibold text-ink">{value}</p>
+                      )}
+                    </div>
+                  </li>
                 );
-              return (
-                <li key={l as string} className="flex gap-3 rounded-3xl border border-line bg-card p-4">
-                  <I className="mt-0.5 h-5 w-5 text-leaf" aria-hidden />
-                  <div>
-                    <p className="text-xs text-ink2">{l as string}</p>
-                    {value}
-                  </div>
-                </li>
-              );
-            })}
+              })}
           </ul>
-          <div className="rounded-3xl border border-line bg-card p-5">
-            <ContactForm />
-          </div>
+          {page.showForm ? (
+            <div className="rounded-3xl border border-line bg-card p-5">
+              <ContactForm toEmail={contactFormEmail(page, supportEmail)} heading={page.formHeading} />
+            </div>
+          ) : null}
         </div>
       </div>
     );

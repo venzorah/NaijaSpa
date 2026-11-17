@@ -6,8 +6,9 @@ import { GoldButton } from "@/components/gold-button";
 
 const field = "mt-1 h-12 w-full rounded-xl border border-line bg-bg2 px-3 text-ink";
 
-export function ContactForm() {
-  const supportEmail = useSupportEmail();
+export function ContactForm({ toEmail, heading }: { toEmail?: string; heading?: string } = {}) {
+  const fallbackEmail = useSupportEmail();
+  const supportEmail = toEmail || fallbackEmail;
   const [sent, setSent] = useState(false);
   if (sent) {
     return (
@@ -33,6 +34,7 @@ export function ContactForm() {
         setSent(true);
       }}
     >
+      {heading ? <h2 className="font-semibold text-ink">{heading}</h2> : null}
       <label className="block text-sm text-ink2">
         Name
         <input name="name" required className={field} />
