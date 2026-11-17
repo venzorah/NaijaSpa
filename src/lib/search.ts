@@ -8,6 +8,7 @@ import { serviceAvailabilityLabels } from "./service-availability";
 import { LIVE_SERVICE_WHERE, PUBLIC_LIVE_VENDOR_WHERE } from "./vendor-public-profile";
 export type { SearchFilters } from "./search-types";
 export type { ExploreCityCard, ExploreCityFilters } from "./explore-cities";
+import { diversifyByVendor, lagosDaySeed, shouldDiversifyExploreSort } from "./search-diversify";
 import type { SearchFilters, SearchTherapist } from "./search-types";
 
 export async function searchServices(filters: SearchFilters) {
@@ -206,8 +207,12 @@ async function searchLive(filters: SearchFilters) {
     );
   }
 
-  const total = results.length;
-  const paged = results.slice((page - 1) * take, page * take);
+  const mixed = shouldDiversifyExploreSort(filters.sort)
+    ? diversifyByVendor(results, (row) => row.vendor.id, lagosDaySeed())
+    : results;
+
+  const total = mixed.length;
+  const paged = mixed.slice((page - 1) * take, page * take);
   const selected = new Set(paged.map((result) => result.service.id));
   const availability = await serviceAvailabilityLabels(rows.filter((row) => selected.has(row.id)), filters.gender);
   return { total, page, results: paged.map((result) => ({ ...result, nextLabel: availability.get(result.service.id) })) };

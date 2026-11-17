@@ -23,6 +23,7 @@ import type { SearchFilters } from "./search-types";
 import { CATEGORY_SYNONYMS, listingHaystack, queryMatchesListing, tokenHitCount } from "./query-match";
 import { collectExploreCities, type ExploreCityFilters } from "./explore-cities";
 import { filterByServiceArea, sortByPlace, vendorMatchesPlace, type LivePlace } from "./nigeria";
+import { diversifyByVendor, lagosDaySeed, shouldDiversifyExploreSort } from "./search-diversify";
 
 const paidEnt: Entitlement = {
   planCode: "MONTHLY",
@@ -545,6 +546,9 @@ export function demoSearch(filters: SearchFilters) {
     if (filters.q) {
       rows = [...rows].sort((a, b) => tokenHitCount(filters.q, serviceHaystack(b)) - tokenHitCount(filters.q, serviceHaystack(a)));
     }
+  }
+  if (shouldDiversifyExploreSort(filters.sort)) {
+    rows = diversifyByVendor(rows, (row) => row.vendorId, lagosDaySeed());
   }
   const loc = (filters.locationType ?? "spa") as LocationType;
   const results = rows.slice((page - 1) * take, page * take).map((s) => ({

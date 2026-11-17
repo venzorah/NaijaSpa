@@ -51,4 +51,17 @@ describe("live Explore filtering and paging", () => {
   it("uses stable database ordering for price ties", async () => {
     await searchServices({ sort: "price" }); expect(mocks.findMany.mock.calls[0][0].orderBy).toEqual([{ basePriceKobo: "asc" }, { id: "asc" }]);
   });
+  it("mixes vendors on Explore instead of listing one catalog in a row", async () => {
+    const clustered = [
+      { ...row(0), id: "a1", vendorId: "vendor-a", vendor: { ...row(0).vendor, id: "vendor-a", slug: "vendor-a" } },
+      { ...row(0), id: "a2", vendorId: "vendor-a", vendor: { ...row(0).vendor, id: "vendor-a", slug: "vendor-a" } },
+      { ...row(0), id: "a3", vendorId: "vendor-a", vendor: { ...row(0).vendor, id: "vendor-a", slug: "vendor-a" } },
+      { ...row(1), id: "b1", vendorId: "vendor-b", vendor: { ...row(1).vendor, id: "vendor-b", slug: "vendor-b" } },
+      { ...row(2), id: "c1", vendorId: "vendor-c", vendor: { ...row(2).vendor, id: "vendor-c", slug: "vendor-c" } }
+    ];
+    mocks.findMany.mockResolvedValue(clustered);
+    const result = await searchServices({ take: 5 });
+    const vendors = result.results.map((item) => item.vendor.id);
+    expect(new Set(vendors.slice(0, 3)).size).toBe(3);
+  });
 });
