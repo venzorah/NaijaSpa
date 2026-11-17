@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { persistLivePlace } from "@/components/place-sync";
 import { DEFAULT_LIVE_PLACE, isDefaultLivePlace, normalizePlace, PLACE_COOKIE, parsePlaceCookie, type LivePlace } from "@/lib/nigeria";
-import { inHref, placeHasLocation } from "@/lib/place-urls";
+import { inHref, needsLocationResolve, placeHasLocation } from "@/lib/place-urls";
 
 function readStoredPlace(): LivePlace | null {
   try {
@@ -37,7 +37,7 @@ export function LocationGate() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     // Explicit place URLs already have a location; account/auth routes do not need one.
-    if (pathname !== "/" && pathname !== "/explore") return;
+    if (!needsLocationResolve(pathname)) return;
     let cancelled = false;
     const controller = new AbortController();
 

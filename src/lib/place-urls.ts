@@ -87,6 +87,12 @@ export function inHref(place?: Partial<LivePlace> | null) {
   return suffix ? `/in${suffix}` : "/";
 }
 
+/** Home now lives on /in/... so first-visit locate must run on the default hub, not only on /. */
+export function needsLocationResolve(path: string) {
+  if (path === "/" || path === "/explore" || path.startsWith("/explore/")) return true;
+  return path === "/in/fct/abuja" || path === "/in/fct" || path === "/in/abuja";
+}
+
 export const inPlaceHref = inHref;
 
 /** Location-home paths require a known Nigerian state as the first segment. */

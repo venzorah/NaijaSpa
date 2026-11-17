@@ -11,7 +11,7 @@ import {
   vendorMatchesPlace
 } from "../src/lib/nigeria";
 import { hubLabelForPlace } from "../src/lib/hubs";
-import { exploreHref, exploreQueryRedirect, inPlaceHref, parsePlacePath } from "../src/lib/place-urls";
+import { exploreHref, exploreQueryRedirect, inPlaceHref, needsLocationResolve, parsePlacePath } from "../src/lib/place-urls";
 
 describe("exact place matching", () => {
   it("matches the whole state, treating Abuja and FCT as one area", () => {
@@ -107,6 +107,15 @@ describe("default marketplace place", () => {
 });
 
 describe("place URLs", () => {
+  it("still resolves device location after home is redirected to /in/...", () => {
+    expect(needsLocationResolve("/")).toBe(true);
+    expect(needsLocationResolve("/in/fct/abuja")).toBe(true);
+    expect(needsLocationResolve("/explore/lagos")).toBe(true);
+    expect(needsLocationResolve("/in/lagos/lagos")).toBe(false);
+    expect(needsLocationResolve("/account")).toBe(false);
+    expect(needsLocationResolve("/login")).toBe(false);
+  });
+
   it("builds distinct shareable paths for Lagos vs Abuja", () => {
     expect(inPlaceHref({ state: "Lagos", city: "Lagos", neighbourhood: "Lekki" })).toBe("/in/lagos/lagos/lekki");
     expect(inPlaceHref({ state: "FCT", city: "Abuja", neighbourhood: "Maitama" })).toBe("/in/fct/abuja/maitama");
