@@ -316,6 +316,53 @@ export function parsePlaceCookie(raw?: string | null): LivePlace | null {
   }
 }
 
+const NG_REGION_CODES: Record<string, string> = {
+  AB: "Abia",
+  AD: "Adamawa",
+  AK: "Akwa Ibom",
+  AN: "Anambra",
+  BA: "Bauchi",
+  BY: "Bayelsa",
+  BE: "Benue",
+  BO: "Borno",
+  CR: "Cross River",
+  DE: "Delta",
+  EB: "Ebonyi",
+  ED: "Edo",
+  EK: "Ekiti",
+  EN: "Enugu",
+  FC: "FCT",
+  GO: "Gombe",
+  IM: "Imo",
+  JI: "Jigawa",
+  KD: "Kaduna",
+  KN: "Kano",
+  KT: "Katsina",
+  KE: "Kebbi",
+  KO: "Kogi",
+  KW: "Kwara",
+  LA: "Lagos",
+  NA: "Nasarawa",
+  NI: "Niger",
+  OG: "Ogun",
+  ON: "Ondo",
+  OS: "Osun",
+  OY: "Oyo",
+  PL: "Plateau",
+  RI: "Rivers",
+  SO: "Sokoto",
+  TA: "Taraba",
+  YO: "Yobe",
+  ZA: "Zamfara"
+};
+
+export function mapNigeriaRegionCode(raw?: string | null) {
+  const value = (raw || "").trim().toUpperCase().replace(/^NG-/, "");
+  if (!value) return "";
+  if (value === "FCT" || value === "ABUJA") return "FCT";
+  return NG_REGION_CODES[value] || "";
+}
+
 export function mapNigeriaState(raw?: string | null) {
   const n = normalizePlace(raw);
   if (!n) return "";
@@ -340,10 +387,13 @@ export function placeFromNominatim(address: {
   neighbourhood?: string;
   city_district?: string;
   quarter?: string;
+  "ISO3166-2-lvl4"?: string;
 }) {
   const country = (address.country_code || "").trim().toUpperCase();
-  const ng = mapNigeriaState(address.state || address.county || address.city);
-  const city = (address.city || address.town || address.village || address.municipality || "").trim();
+  const ng =
+    mapNigeriaState(address.state || address.county || address.city) || mapNigeriaRegionCode(address["ISO3166-2-lvl4"]);
+  let city = (address.city || address.town || address.village || address.municipality || "").trim();
+  if (ng === "FCT" && (!city || /municipal|area council|federal capital/i.test(city))) city = "Abuja";
   const neighbourhood = (address.suburb || address.neighbourhood || address.city_district || address.quarter || "").trim();
   return {
     country: country === "UK" ? "GB" : country || (ng ? "NG" : ""),

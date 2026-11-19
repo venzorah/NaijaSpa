@@ -2,6 +2,12 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import {
+  canApplyDetectedPlace,
+  detectBrowserIpPlace,
+  detectGpsPlace,
+  detectServerIpPlace
+} from "@/components/detect-live-place";
 import { persistLivePlace } from "@/components/place-sync";
 import { normalizePlace, PLACE_COOKIE, parsePlaceCookie, type LivePlace } from "@/lib/nigeria";
 import { inHref, needsLocationResolve, placeHasLocation } from "@/lib/place-urls";
@@ -51,7 +57,7 @@ export function LocationGate() {
     const applyPlace = (place: LivePlace) => {
       if (cancelled) return;
       const latest = readStoredPlace();
-      if (latest?.source === "manual" || latest?.source === "gps") return;
+      if (!canApplyDetectedPlace(latest, place)) return;
       persistLivePlace(place);
       const path = window.location.pathname;
       if (path.startsWith("/explore")) {
@@ -68,28 +74,25 @@ export function LocationGate() {
       if (placeKey(place) !== originalPlace) router.refresh();
     };
 
-    const detectIp = async () => {
+    const detect = async () => {
       if (attempted.current) return;
       const current = readStoredPlace();
-      if (current?.source === "manual" || current?.source === "gps") return;
+      if (current?.source === "manual") return;
       attempted.current = true;
-      try {
-        const res = await fetch("/api/geo/ip", { signal: controller.signal, cache: "no-store" });
-        const json = (await res.json()) as LivePlace & { error?: string };
-        if (!res.ok || json.error) return;
-        applyPlace({
-          country: json.country || "",
-          state: json.state || "",
-          city: json.city || "",
-          neighbourhood: json.neighbourhood || "",
-          source: "ip"
-        });
-      } catch {
-        /* leave unset until IP/edge geo succeeds — do not invent Lagos/Abuja/PH */
-      }
+
+      const gpsTask = detectGpsPlace(controller.signal);
+      const ipTask = (async () => {
+        return (await detectBrowserIpPlace(controller.signal)) || (await detectServerIpPlace(controller.signal));
+      })();
+
+      void ipTask.then((ip) => {
+        if (ip) applyPlace(ip);
+      });
+      const gps = await gpsTask;
+      if (gps) applyPlace(gps);
     };
 
-    void detectIp();
+    void detect();
     return () => {
       cancel();
       document.removeEventListener("click", onClick, true);

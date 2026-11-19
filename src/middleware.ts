@@ -12,33 +12,20 @@ function writePlaceCookie(response: NextResponse, place: LivePlace) {
   });
 }
 
-function isPublicPlacePath(pathname: string) {
-  return pathname === "/" || pathname.startsWith("/in/");
-}
-
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
-  if (isPublicPlacePath(pathname) && !request.cookies.get("naijaspa_session")?.value) {
+  if (pathname === "/" && !request.cookies.get("naijaspa_session")?.value) {
     let place = parsePlaceCookie(request.cookies.get(PLACE_COOKIE)?.value);
     const locked = placeLockedByUser(place);
     if (!locked) {
       const detected = await lookupPlaceFromRequest(request.headers);
       if (detected) place = detected;
     }
-    if (pathname === "/") {
-      if (place && placeHasLocation(place)) {
-        const dest = inHref(place);
-        if (dest !== "/") {
-          const response = NextResponse.redirect(new URL(dest, publicOriginFromRequest(request)));
-          if (!locked) writePlaceCookie(response, place);
-          return response;
-        }
-      }
-    } else if (!locked && place && placeHasLocation(place)) {
+    if (place && placeHasLocation(place)) {
       const dest = inHref(place);
-      if (dest !== pathname) {
+      if (dest !== "/") {
         const response = NextResponse.redirect(new URL(dest, publicOriginFromRequest(request)));
-        writePlaceCookie(response, place);
+        if (!locked) writePlaceCookie(response, place);
         return response;
       }
     }

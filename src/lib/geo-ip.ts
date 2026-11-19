@@ -1,46 +1,5 @@
 import type { LivePlace } from "./nigeria";
-import { mapNigeriaState } from "./nigeria";
-
-/** ISO 3166-2:NG subdivision codes as sent by Vercel / MaxMind. */
-const NG_REGION_CODES: Record<string, string> = {
-  AB: "Abia",
-  AD: "Adamawa",
-  AK: "Akwa Ibom",
-  AN: "Anambra",
-  BA: "Bauchi",
-  BY: "Bayelsa",
-  BE: "Benue",
-  BO: "Borno",
-  CR: "Cross River",
-  DE: "Delta",
-  EB: "Ebonyi",
-  ED: "Edo",
-  EK: "Ekiti",
-  EN: "Enugu",
-  FC: "FCT",
-  GO: "Gombe",
-  IM: "Imo",
-  JI: "Jigawa",
-  KD: "Kaduna",
-  KN: "Kano",
-  KT: "Katsina",
-  KE: "Kebbi",
-  KO: "Kogi",
-  KW: "Kwara",
-  LA: "Lagos",
-  NA: "Nasarawa",
-  NI: "Niger",
-  OG: "Ogun",
-  ON: "Ondo",
-  OS: "Osun",
-  OY: "Oyo",
-  PL: "Plateau",
-  RI: "Rivers",
-  SO: "Sokoto",
-  TA: "Taraba",
-  YO: "Yobe",
-  ZA: "Zamfara"
-};
+import { mapNigeriaRegionCode, mapNigeriaState } from "./nigeria";
 
 function decodeHeader(raw?: string | null) {
   if (!raw) return "";
@@ -51,15 +10,8 @@ function decodeHeader(raw?: string | null) {
   }
 }
 
-function nigeriaRegionFromCode(raw?: string | null) {
-  const value = (raw || "").trim().toUpperCase().replace(/^NG-/, "");
-  if (!value) return "";
-  if (value === "FCT" || value === "ABUJA") return "FCT";
-  return NG_REGION_CODES[value] || "";
-}
-
 const cache = new Map<string, { place: LivePlace; expiresAt: number }>();
-const CACHE_MS = 6 * 60 * 60 * 1000;
+const CACHE_MS = 15 * 60 * 1000;
 const MAX_CACHE = 2000;
 
 function isPublicIp(ip: string) {
@@ -96,7 +48,7 @@ export function livePlaceFromIpFields(input: {
   const country = (input.countryCode || input.country || "").trim().toUpperCase();
   const region = (input.region || "").trim();
   const city = (input.city || "").trim();
-  const ng = mapNigeriaState(city) || nigeriaRegionFromCode(region) || mapNigeriaState(region);
+  const ng = mapNigeriaState(city) || mapNigeriaRegionCode(region) || mapNigeriaState(region);
   if (ng) {
     return {
       country: "NG",
@@ -113,6 +65,23 @@ export function livePlaceFromIpFields(input: {
     neighbourhood: "",
     source: "ip" as const
   } satisfies LivePlace;
+}
+
+async function lookupIpwho(ip: string, signal: AbortSignal) {
+  const res = await fetch(`https://ipwho.is/${encodeURIComponent(ip)}`, {
+    headers: { Accept: "application/json" },
+    signal,
+    cache: "no-store"
+  });
+  if (!res.ok) return null;
+  const data = (await res.json()) as {
+    success?: boolean;
+    country_code?: string;
+    region?: string;
+    city?: string;
+  };
+  if (data.success === false || (!data.country_code && !data.region && !data.city)) return null;
+  return livePlaceFromIpFields({ countryCode: data.country_code, region: data.region, city: data.city });
 }
 
 async function lookupIpinfo(ip: string, token: string, signal: AbortSignal) {
@@ -148,9 +117,10 @@ export async function lookupPlaceFromIp(ip: string, timeoutMs = 1800): Promise<L
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const token = process.env.IPINFO_TOKEN?.trim() || process.env.IPINFO_API_TOKEN?.trim() || "";
-    const place = token
-      ? (await lookupIpinfo(ip, token, controller.signal)) || (await lookupIpapi(ip, controller.signal))
-      : await lookupIpapi(ip, controller.signal);
+    const place =
+      (await lookupIpwho(ip, controller.signal)) ||
+      (token ? await lookupIpinfo(ip, token, controller.signal) : null) ||
+      (await lookupIpapi(ip, controller.signal));
     if (place && (place.country || place.state || place.city)) {
       remember(ip, place);
       return place;
@@ -185,6 +155,12 @@ export function placeFromEdgeHeaders(headers: Headers): LivePlace | null {
 
 export function placeLockedByUser(place?: LivePlace | null) {
   return place?.source === "manual" || place?.source === "gps";
+}
+
+export function canApplyDetectedPlace(stored: LivePlace | null | undefined, next: LivePlace) {
+  if (stored?.source === "manual") return false;
+  if (stored?.source === "gps" && next.source !== "gps") return false;
+  return Boolean(next.country || next.state || next.city || next.neighbourhood);
 }
 
 export async function lookupPlaceFromRequest(headers: Headers, timeoutMs = 1800) {

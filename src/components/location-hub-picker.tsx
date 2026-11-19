@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, ChevronDown, MapPin } from "lucide-react";
 import { BottomSheet } from "@/components/bottom-sheet";
+import { detectBrowserIpPlace, detectGpsPlace, detectServerIpPlace } from "@/components/detect-live-place";
 import { persistLivePlace, PLACE_EVENT } from "@/components/place-sync";
 import { hubLabelForPlace, hubToPlace, nigeriaStateHubs, type MarketplaceHub } from "@/lib/hubs";
 import { formatPlaceLabel, PLACE_COOKIE, parsePlaceCookie, type LivePlace } from "@/lib/nigeria";
@@ -60,18 +61,10 @@ export function LocationHubPicker() {
   async function useDetected() {
     setDetecting(true);
     try {
-      const res = await fetch("/api/geo/ip", { cache: "no-store" });
-      const json = (await res.json()) as LivePlace & { error?: string };
-      if (!res.ok || json.error) return;
-      choose(
-        {
-          country: json.country || "",
-          state: json.state || "",
-          city: json.city || "",
-          neighbourhood: json.neighbourhood || ""
-        },
-        "ip"
-      );
+      const gps = await detectGpsPlace();
+      const next = gps || (await detectBrowserIpPlace()) || (await detectServerIpPlace());
+      if (!next) return;
+      choose(next, next.source || "ip");
     } finally {
       setDetecting(false);
     }
@@ -97,7 +90,7 @@ export function LocationHubPicker() {
           onClick={() => void useDetected()}
           className="mb-3 flex min-h-[48px] w-full items-center justify-center rounded-2xl border border-leaf/40 bg-leaf/10 px-4 text-sm font-semibold text-ink"
         >
-          Use detected location
+          Use my location
         </button>
         <ul className="max-h-[50vh] space-y-2 overflow-y-auto">
           {hubs.map((hub) => {
@@ -121,7 +114,7 @@ export function LocationHubPicker() {
             );
           })}
         </ul>
-        <p className="mt-4 text-xs text-ink2">We set this from your network location. Pick a state only if you want to browse somewhere else.</p>
+        <p className="mt-4 text-xs text-ink2">Allow location for the city you are in. Network lookup is only a fallback. Pick a state to browse somewhere else.</p>
       </BottomSheet>
     </>
   );

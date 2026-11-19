@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { livePlaceFromIpFields, placeFromEdgeHeaders } from "../src/lib/geo-ip";
+import { canApplyDetectedPlace, livePlaceFromIpFields, placeFromEdgeHeaders } from "../src/lib/geo-ip";
 import { hubLabelForPlace } from "../src/lib/hubs";
-import { formatPlaceLabel, vendorMatchesPlace } from "../src/lib/nigeria";
+import { formatPlaceLabel, placeFromNominatim, vendorMatchesPlace } from "../src/lib/nigeria";
 import { inHref, parsePlacePath } from "../src/lib/place-urls";
 import { demoSearch } from "../src/lib/demo-catalog";
 
@@ -60,6 +60,26 @@ describe("strict vendor discovery", () => {
     expect(hubLabelForPlace({ state: "Rivers", city: "Obio-Akpor", neighbourhood: "", country: "NG" })).toBe(
       "Obio-Akpor, Nigeria"
     );
+  });
+
+  it("lets GPS replace a wrong IP city and keeps a manual pick", () => {
+    const lagosIp = { state: "Lagos", city: "Lagos", neighbourhood: "", country: "NG", source: "ip" as const };
+    const abujaGps = { state: "FCT", city: "Abuja", neighbourhood: "Maitama", country: "NG", source: "gps" as const };
+    expect(canApplyDetectedPlace(lagosIp, abujaGps)).toBe(true);
+    expect(canApplyDetectedPlace(abujaGps, lagosIp)).toBe(false);
+    expect(canApplyDetectedPlace({ ...lagosIp, source: "manual" }, abujaGps)).toBe(false);
+  });
+
+  it("maps Nominatim FCT addresses to Abuja", () => {
+    expect(
+      placeFromNominatim({
+        country_code: "ng",
+        state: "Federal Capital Territory",
+        city: "Abuja Municipal Area Council",
+        suburb: "Maitama",
+        "ISO3166-2-lvl4": "NG-FC"
+      })
+    ).toMatchObject({ country: "NG", state: "FCT", city: "Abuja", neighbourhood: "Maitama", source: "gps" });
   });
 
   it("builds international hub paths from IP places", () => {

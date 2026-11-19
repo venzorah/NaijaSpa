@@ -56,7 +56,7 @@ describe("homepage middleware", () => {
     expect(res.headers.get("location")).toBeNull();
   });
 
-  it("replaces a stale Lagos cookie when Vercel says Abuja", async () => {
+  it("does not pin /in hubs to server IP so the device can correct Abuja vs Lagos", async () => {
     const cookie = encodeURIComponent(JSON.stringify({ state: "Lagos", city: "Lagos", neighbourhood: "", country: "NG", source: "ip" }));
     const req = new NextRequest("http://127.0.0.1:3100/in/lagos/lagos", {
       headers: {
@@ -70,6 +70,6 @@ describe("homepage middleware", () => {
       }
     });
     const res = await middleware(req);
-    expect(res.headers.get("location")).toBe("https://naijaspa.com/in/fct/abuja");
+    expect(res.headers.get("location")).toBeNull();
   });
 });
