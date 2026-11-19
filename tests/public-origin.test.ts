@@ -35,13 +35,28 @@ describe("homepage middleware", () => {
         host: "naijaspa.com",
         "x-forwarded-host": "naijaspa.com",
         "x-forwarded-proto": "https",
-        "x-vercel-ip-country": "NG",
-        "x-vercel-ip-country-region": "FC",
-        "x-vercel-ip-city": "Abuja"
+        "x-vercel-ip-country": "GB",
+        "x-vercel-ip-country-region": "ENG",
+        "x-vercel-ip-city": "London"
       }
     });
     const res = await middleware(req);
-    expect(res.headers.get("location")).toBe("https://naijaspa.com/in/fct/abuja");
+    expect(res.headers.get("location")).toBe("https://naijaspa.com/in/gb/eng/london");
+  });
+
+  it("does not send Nigerians to Lagos or Abuja from Vercel geo headers", async () => {
+    const req = new NextRequest("http://127.0.0.1:3100/", {
+      headers: {
+        host: "naijaspa.com",
+        "x-forwarded-host": "naijaspa.com",
+        "x-forwarded-proto": "https",
+        "x-vercel-ip-country": "NG",
+        "x-vercel-ip-country-region": "LA",
+        "x-vercel-ip-city": "Lagos"
+      }
+    });
+    const res = await middleware(req);
+    expect(res.headers.get("location")).toBeNull();
   });
 
   it("does not invent Lagos when geo headers are missing", async () => {

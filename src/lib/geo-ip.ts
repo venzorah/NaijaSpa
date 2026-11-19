@@ -49,11 +49,11 @@ export function livePlaceFromIpFields(input: {
   const region = (input.region || "").trim();
   const city = (input.city || "").trim();
   const ng = mapNigeriaState(city) || mapNigeriaRegionCode(region) || mapNigeriaState(region);
-  if (ng) {
+  if (ng || country === "NG") {
     return {
       country: "NG",
-      state: ng,
-      city: ng === "FCT" ? "Abuja" : ng === "Lagos" ? "Lagos" : city || ng,
+      state: "",
+      city: "",
       neighbourhood: "",
       source: "ip" as const
     } satisfies LivePlace;
@@ -161,6 +161,13 @@ export function canApplyDetectedPlace(stored: LivePlace | null | undefined, next
   if (stored?.source === "manual") return false;
   if (stored?.source === "gps" && next.source !== "gps") return false;
   return Boolean(next.country || next.state || next.city || next.neighbourhood);
+}
+
+/** ISP / Vercel MaxMind city for Nigeria is often Lagos or Port Harcourt, not where the visitor is. */
+export function isUntrustedNetworkPlace(place?: LivePlace | null) {
+  if (!place || place.source === "manual" || place.source === "gps") return false;
+  if ((place.country || "").toUpperCase() === "NG") return true;
+  return Boolean(mapNigeriaState(place.state) || mapNigeriaState(place.city));
 }
 
 export async function lookupPlaceFromRequest(headers: Headers, timeoutMs = 1800) {

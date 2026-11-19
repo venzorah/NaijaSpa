@@ -9,6 +9,7 @@ import {
   detectServerIpPlace
 } from "@/components/detect-live-place";
 import { persistLivePlace } from "@/components/place-sync";
+import { isUntrustedNetworkPlace } from "@/lib/geo-ip";
 import { normalizePlace, PLACE_COOKIE, parsePlaceCookie, type LivePlace } from "@/lib/nigeria";
 import { inHref, needsLocationResolve, placeHasLocation } from "@/lib/place-urls";
 
@@ -80,16 +81,18 @@ export function LocationGate() {
       if (current?.source === "manual") return;
       attempted.current = true;
 
-      const gpsTask = detectGpsPlace(controller.signal);
-      const ipTask = (async () => {
-        return (await detectBrowserIpPlace(controller.signal)) || (await detectServerIpPlace(controller.signal));
-      })();
+      if (isUntrustedNetworkPlace(current) && (current.state || current.city)) {
+        persistLivePlace({ country: "NG", state: "", city: "", neighbourhood: "", source: "ip" });
+      }
 
-      void ipTask.then((ip) => {
-        if (ip) applyPlace(ip);
-      });
-      const gps = await gpsTask;
-      if (gps) applyPlace(gps);
+      const gps = await detectGpsPlace(controller.signal);
+      if (gps) {
+        applyPlace(gps);
+        return;
+      }
+      if (cancelled || current?.source === "gps") return;
+      const ip = (await detectBrowserIpPlace(controller.signal)) || (await detectServerIpPlace(controller.signal));
+      if (ip) applyPlace(ip);
     };
 
     void detect();

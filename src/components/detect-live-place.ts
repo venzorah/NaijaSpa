@@ -7,6 +7,11 @@ export { canApplyDetectedPlace };
 
 function asPlace(json: LivePlace & { error?: string }, source: LivePlace["source"]): LivePlace | null {
   if (json.error) return null;
+  if (source === "ip") {
+    const place = livePlaceFromIpFields({ countryCode: json.country, region: json.state, city: json.city });
+    if (!place.country && !place.state && !place.city) return null;
+    return place;
+  }
   const ng = mapNigeriaState(json.state) || mapNigeriaState(json.city);
   const place: LivePlace = {
     country: json.country || (ng ? "NG" : ""),
@@ -40,9 +45,9 @@ export async function detectGpsPlace(signal?: AbortSignal): Promise<LivePlace | 
   try {
     const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(resolve, reject, {
-        enableHighAccuracy: false,
-        timeout: 8000,
-        maximumAge: 5 * 60_000
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 60_000
       });
     });
     if (signal?.aborted) return null;

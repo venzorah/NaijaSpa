@@ -7,8 +7,8 @@ import { demoSearch } from "../src/lib/demo-catalog";
 
 describe("automatic location labels", () => {
   it("formats Lagos, Abuja, London and New York for the nav chip", () => {
-    expect(formatPlaceLabel(livePlaceFromIpFields({ countryCode: "NG", region: "Lagos", city: "Ikeja" }))).toBe("Lagos, Nigeria");
-    expect(formatPlaceLabel(livePlaceFromIpFields({ countryCode: "NG", region: "FCT", city: "Abuja" }))).toBe("Abuja, Nigeria");
+    expect(formatPlaceLabel({ state: "Lagos", city: "Lagos", neighbourhood: "", country: "NG" })).toBe("Lagos, Nigeria");
+    expect(formatPlaceLabel({ state: "FCT", city: "Abuja", neighbourhood: "", country: "NG" })).toBe("Abuja, Nigeria");
     expect(formatPlaceLabel(livePlaceFromIpFields({ countryCode: "GB", region: "England", city: "London" }))).toBe("London, United Kingdom");
     expect(formatPlaceLabel(livePlaceFromIpFields({ countryCode: "US", region: "New York", city: "New York" }))).toBe("New York, United States");
   });
@@ -30,30 +30,32 @@ describe("strict vendor discovery", () => {
     expect(vendorMatchesPlace({ ...lekki, coverage: [] }, { state: "Lagos", neighbourhood: "Ikoyi" })).toBe(false);
   });
 
-  it("prefers Vercel ISO region codes and the city name over a mismatched state", () => {
+  it("does not treat Vercel or ISP city as a Nigerian hub", () => {
     expect(livePlaceFromIpFields({ countryCode: "NG", region: "FC", city: "Abuja" })).toMatchObject({
       country: "NG",
-      state: "FCT",
-      city: "Abuja",
+      state: "",
+      city: "",
       source: "ip"
     });
-    expect(livePlaceFromIpFields({ countryCode: "NG", region: "LA", city: "Abuja" })).toMatchObject({
-      state: "FCT",
-      city: "Abuja"
+    expect(livePlaceFromIpFields({ countryCode: "NG", region: "LA", city: "Lagos" })).toMatchObject({
+      country: "NG",
+      state: "",
+      city: ""
     });
     expect(livePlaceFromIpFields({ countryCode: "NG", region: "RI", city: "Port Harcourt" })).toMatchObject({
-      state: "Rivers",
-      city: "Port Harcourt"
+      country: "NG",
+      state: "",
+      city: ""
     });
   });
 
-  it("reads Vercel edge geo headers instead of looking up the function IP", () => {
+  it("reads Vercel edge geo for country but not a Nigerian city", () => {
     const headers = new Headers({
       "x-vercel-ip-country": "NG",
-      "x-vercel-ip-country-region": "FC",
-      "x-vercel-ip-city": "Abuja"
+      "x-vercel-ip-country-region": "LA",
+      "x-vercel-ip-city": "Lagos"
     });
-    expect(placeFromEdgeHeaders(headers)).toMatchObject({ state: "FCT", city: "Abuja", source: "ip" });
+    expect(placeFromEdgeHeaders(headers)).toMatchObject({ country: "NG", state: "", city: "", source: "ip" });
   });
 
   it("does not remap Rivers to the old Port Harcourt hub label", () => {
