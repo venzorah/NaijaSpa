@@ -62,7 +62,7 @@ export function ExploreFilters({
     <aside className="rounded-[1.5rem] border border-line bg-card p-5 shadow-sm">
       <div className="flex items-center justify-between">
         <p className="text-xs font-bold uppercase tracking-[0.14em] text-ink2">Filters</p>
-        <button type="button" className="text-sm font-semibold text-goldink" onClick={() => router.push(exploreHref(null))}>
+        <button type="button" className="text-sm font-semibold text-goldink" onClick={() => router.push("/explore?state=all")}>
           Reset
         </button>
       </div>
@@ -83,7 +83,13 @@ export function ExploreFilters({
         <select
           aria-label="State"
           value={place?.state || ""}
-          onChange={(e) => go({ state: e.target.value })}
+          onChange={(e) => {
+            if (!e.target.value) {
+              router.push("/explore?state=all");
+              return;
+            }
+            go({ state: e.target.value });
+          }}
           className="mt-2 min-h-11 w-full rounded-full border border-line bg-bg2 px-4 text-base text-ink outline-none focus:border-forest"
         >
           <option value="">All states</option>

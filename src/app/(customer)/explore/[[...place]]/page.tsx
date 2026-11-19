@@ -47,14 +47,17 @@ export default async function ExplorePage({
     if (canonicalPath !== currentPath) redirect(exploreHref(pathPlace, filters));
   }
   const gender = filters.gender === "male" || filters.gender === "female" ? (filters.gender as TherapistGender) : undefined;
-  const explicitPlace = placeHasLocation(pathPlace);
-  const searchedCity = pathPlace?.city || undefined;
-  const searchedState = serviceAreaState(pathPlace) || undefined;
-  const rankPlace = pathPlace && explicitPlace ? pathPlace : stored;
-  const filterPlace = explicitPlace ? pathPlace : null;
+  const nationwide = (Array.isArray(sp.state) ? sp.state[0] : sp.state) === "all";
+  const explicitPlace = !nationwide && placeHasLocation(pathPlace);
+  const activePlace = nationwide ? null : explicitPlace ? pathPlace : stored;
+  const searchedCity = activePlace?.city || undefined;
+  const searchedState = serviceAreaState(activePlace) || undefined;
+  const rankPlace = activePlace;
+  const filterPlace = activePlace;
   const data = await searchServices({
     q: filters.q,
-    state: searchedState,
+    country: activePlace?.country,
+    state: searchedState || activePlace?.state,
     gender,
     category: filters.category,
     minPrice: filters.minPrice ? koboFromNaira(Number(filters.minPrice)) : undefined,
@@ -85,8 +88,8 @@ export default async function ExplorePage({
   const label = [pathPlace?.neighbourhood, pathPlace?.city, pathPlace?.state].filter(Boolean).join(", ");
   const stateLabel = searchedState ? nigeriaStateLabel(searchedState) : "";
   const around = label || stateLabel;
-  const emptyCopy = explicitPlace
-    ? `No therapist available yet in ${stateLabel || label}.`
+  const emptyCopy = filterPlace
+    ? "No service providers available in your location yet. Try another location."
     : "No services match those filters.";
   const cityRailTitle = searchedState
     ? searchedCity
@@ -94,7 +97,7 @@ export default async function ExplorePage({
       : `Cities in ${stateLabel}`
     : "Cities with therapists";
   const cityRailSubtitle = searchedState
-    ? "Therapists cover the whole state. These cities help you browse by area."
+    ? "Choose another city only when you want to look there. Results never mix in another state on their own."
     : "Popular cities with listings across Nigeria.";
   let categories = demoCategories.map((c) => ({ slug: c.slug, name: c.name }));
   try {
@@ -143,7 +146,7 @@ export default async function ExplorePage({
             <EmptyState
               icon={SearchX}
               title={emptyCopy}
-              text={siblingCities.length > 0 ? "See therapists in other cities below, or try Ask NaijaSpa AI." : "Try widening your price range or removing a filter."}
+              text="Change the location in the menu or search fields to see providers elsewhere."
               actionHref="/ai"
               actionLabel="Ask NaijaSpa AI"
             />

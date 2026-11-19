@@ -1,4 +1,5 @@
-import { prismaServiceAreaFilter, serviceAreaState } from "./nigeria";
+import { prismaVendorPlaceFilter } from "./nigeria";
+import type { LivePlace } from "./nigeria";
 
 /** Live treatments that can appear on Explore and provider pages. */
 export const LIVE_SERVICE_WHERE = { active: true, deletedAt: null } as const;
@@ -11,10 +12,10 @@ export const PUBLIC_LIVE_VENDOR_WHERE = {
 };
 
 /** Public listings, limited to the visitor’s state when one is known. */
-export function liveVendorWhereForPlace(place?: { state?: string; city?: string; neighbourhood?: string } | null) {
-  const area = serviceAreaState(place);
-  if (!area) return { ...PUBLIC_LIVE_VENDOR_WHERE };
-  return { AND: [PUBLIC_LIVE_VENDOR_WHERE, prismaServiceAreaFilter(area)] };
+export function liveVendorWhereForPlace(place?: Partial<LivePlace> | null) {
+  const area = prismaVendorPlaceFilter(place);
+  if (!area || !Object.keys(area).length) return { ...PUBLIC_LIVE_VENDOR_WHERE };
+  return { AND: [PUBLIC_LIVE_VENDOR_WHERE, area] };
 }
 
 export function vendorPublicProfileState(visibility: string, applicationStatus: string, activeServiceCount = 1) {

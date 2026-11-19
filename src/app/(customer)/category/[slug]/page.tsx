@@ -36,6 +36,7 @@ export default async function CategoryLandingPage({ params }: { params: Promise<
     category: cat.slug,
     take: 24,
     sort: "rating",
+    country: place.country,
     state: place.state,
     city: place.city,
     neighbourhood: place.neighbourhood,
@@ -90,8 +91,8 @@ export default async function CategoryLandingPage({ params }: { params: Promise<
           ) : (
             <EmptyState
               icon={SearchX}
-              title="Coming soon"
-              text={`We’re onboarding ${cat.name.toLowerCase()} providers in your city. Check back shortly.`}
+              title="No service providers available in your location yet. Try another location."
+              text={`We’re onboarding ${cat.name.toLowerCase()} providers here. Change location in the menu to browse elsewhere.`}
               actionHref={exploreHref(place)}
               actionLabel="Explore all"
             />

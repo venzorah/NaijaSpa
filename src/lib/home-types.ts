@@ -13,6 +13,7 @@ export type HomeCard = {
     state?: string;
     city: string;
     neighbourhood: string;
+    coverageJson?: string | null;
     ratingAvg: number;
     reviewCount?: number;
     verificationStatus?: string;

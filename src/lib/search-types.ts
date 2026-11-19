@@ -9,6 +9,7 @@ export type SearchTherapist = {
 
 export type SearchFilters = {
   q?: string;
+  country?: string;
   state?: string;
   city?: string;
   neighbourhood?: string;

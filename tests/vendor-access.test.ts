@@ -30,12 +30,12 @@ it("returns Cancel to the previous customer page with a safe fallback", () => {
   expect(vendorReferrerPath("https://evil.example/explore", "naijaspa.com")).toBe("/account/dashboard");
   for (const path of ["/vendor/services", "/vendor-access", "/login/vendor", "/register?asVendor=1", "/api/auth/logout", "//evil.example"]) expect(vendorCancelPath(path)).toBe("/account/dashboard");
 });
-it("overwrites forged destination headers with the actual requested vendor route", () => {
-  const result = middleware(new NextRequest("https://naijaspa.com/vendor/bookings?page=2", { headers: { "x-naijaspa-vendor-path": "//evil.example" } }));
+it("overwrites forged destination headers with the actual requested vendor route", async () => {
+  const result = await middleware(new NextRequest("https://naijaspa.com/vendor/bookings?page=2", { headers: { "x-naijaspa-vendor-path": "//evil.example" } }));
   expect(result.headers.get("x-middleware-request-x-naijaspa-vendor-path")).toBe("/vendor/bookings?page=2");
 });
-it("forwards admin dashboard range onto the login return path", () => {
-  const result = middleware(new NextRequest("https://naijaspa.com/admin/dashboard?range=90d", { headers: { "x-naijaspa-admin-path": "//evil.example" } }));
+it("forwards admin dashboard range onto the login return path", async () => {
+  const result = await middleware(new NextRequest("https://naijaspa.com/admin/dashboard?range=90d", { headers: { "x-naijaspa-admin-path": "//evil.example" } }));
   expect(result.headers.get("x-middleware-request-x-naijaspa-admin-path")).toBe("/admin/dashboard?range=90d");
 });
 it("sends a signed-in customer to the gate without destroying their session", async () => {

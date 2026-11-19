@@ -3,6 +3,7 @@
 import { MapPin } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useRef, useState } from "react";
+import { PLACE_EVENT } from "@/components/place-sync";
 import { DEFAULT_LIVE_PLACE, NIGERIA_STATES, PLACE_COOKIE, mapNigeriaState, nigeriaStateLabel, parsePlaceCookie, type LivePlace } from "@/lib/nigeria";
 import { exploreHref } from "@/lib/place-urls";
 import { persistLivePlace } from "@/components/place-sync";
@@ -40,17 +41,19 @@ export function SearchFiltersForm({
   const manualPlace = useRef(false);
   const locationAttempt = useRef(0);
   useEffect(() => () => { locationAttempt.current++; }, []);
-  const [place, setPlace] = useState({
+  const [place, setPlace] = useState<LivePlace>({
     state: values?.state || "",
     city: values?.city || "",
-    neighbourhood: values?.neighbourhood || ""
+    neighbourhood: values?.neighbourhood || "",
+    country: ""
   });
 
   useEffect(() => {
     setPlace({
       state: values?.state || "",
       city: values?.city || "",
-      neighbourhood: values?.neighbourhood || ""
+      neighbourhood: values?.neighbourhood || "",
+      country: ""
     });
   }, [values?.state, values?.city, values?.neighbourhood]);
 
@@ -60,15 +63,31 @@ export function SearchFiltersForm({
     setPlace({
       state: stored.state,
       city: stored.city,
-      neighbourhood: stored.neighbourhood
+      neighbourhood: stored.neighbourhood,
+      country: stored.country
     });
     if (stored.city || stored.neighbourhood || stored.state) {
       setHint([stored.neighbourhood, stored.city, stored.state].filter(Boolean).join(", "));
     }
   }, [values?.state, values?.city, values?.neighbourhood]);
 
-  function go(next: { state: string; city: string; neighbourhood: string }, extra?: { q?: string }) {
-    persistLivePlace(next);
+  useEffect(() => {
+    const onPlace = (event: Event) => {
+      const next = (event as CustomEvent<LivePlace>).detail;
+      if (!next) return;
+      setPlace({
+        state: next.state,
+        city: next.city,
+        neighbourhood: next.neighbourhood,
+        country: next.country
+      });
+    };
+    window.addEventListener(PLACE_EVENT, onPlace);
+    return () => window.removeEventListener(PLACE_EVENT, onPlace);
+  }, []);
+
+  function go(next: LivePlace, extra?: { q?: string }) {
+    persistLivePlace({ ...next, source: next.source || "manual" });
     router.push(
       exploreHref(next, {
         q: extra ? extra.q : values?.q
@@ -106,12 +125,18 @@ export function SearchFiltersForm({
             setHint(json.error || "Could not read your location.");
             return;
           }
-          const state = mapNigeriaState(json.state);
-          if (!state) {
-            setHint("Could not detect your state. Please choose a state below.");
+          const ng = mapNigeriaState(json.state) || mapNigeriaState(json.city);
+          const next: LivePlace = {
+            country: json.country || (ng ? "NG" : ""),
+            state: ng || json.state || "",
+            city: json.city || "",
+            neighbourhood: json.neighbourhood || "",
+            source: "gps"
+          };
+          if (!next.state && !next.city && !next.country) {
+            setHint("Could not detect your location. Please choose a state below.");
             return;
           }
-          const next = { state, city: json.city || "", neighbourhood: json.neighbourhood || "" };
           setPlace(next);
           setHint([next.neighbourhood, next.city, next.state].filter(Boolean).join(", ") || "Location saved.");
           go(next, { q: typedQuery(form) });
@@ -124,7 +149,7 @@ export function SearchFiltersForm({
       () => {
         if (attempt !== locationAttempt.current) return;
         setLocating(false);
-        setHint("Allow location to see therapists in your state, closest first.");
+        setHint("Location permission denied. Showing therapists for your detected area.");
       },
       { enableHighAccuracy: false, timeout: 12000, maximumAge: 60_000 }
     );
@@ -133,17 +158,19 @@ export function SearchFiltersForm({
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (locating) return;
-    if (!manualPlace.current) {
-      useMyLocation(e.currentTarget);
+    const fd = new FormData(e.currentTarget);
+    const next: LivePlace = {
+      ...place,
+      state: String(fd.get("state") || place.state || ""),
+      city: String(fd.get("city") || place.city || ""),
+      neighbourhood: place.neighbourhood || "",
+      source: "manual"
+    };
+    if (next.state || next.city || next.country) persistLivePlace(next);
+    if (!next.state && !next.city) {
+      router.push(`/explore?state=all${fd.get("q") ? `&q=${encodeURIComponent(String(fd.get("q")))}` : ""}`);
       return;
     }
-    const fd = new FormData(e.currentTarget);
-    const next = {
-      state: String(fd.get("state") || ""),
-      city: String(fd.get("city") || ""),
-      neighbourhood: ""
-    };
-    if (next.state || next.city) persistLivePlace({ ...place, ...next });
     router.push(
       exploreHref(next, {
         q: String(fd.get("q") || "") || undefined
@@ -160,7 +187,7 @@ export function SearchFiltersForm({
       <div className="mb-4 flex min-w-0 flex-col gap-3">
         <div className="min-w-0">
           <p className="font-display text-2xl leading-tight text-forest dark:text-gold">Find a therapist</p>
-          <p className="mt-1 text-sm leading-snug text-ink2">{hint || "Search a state to see every therapist there. Your area is used to sort."}</p>
+          <p className="mt-1 text-sm leading-snug text-ink2">{hint || "Results stay in your selected city or state. Change location to browse elsewhere."}</p>
         </div>
         <button
           type="button"
@@ -187,9 +214,12 @@ export function SearchFiltersForm({
             manualPlace.current = true;
             locationAttempt.current++;
             setLocating(false);
-            setPlace({ state: e.target.value, city: "", neighbourhood: "" });
+            setPlace({ state: e.target.value, city: "", neighbourhood: "", country: e.target.value && NIGERIA_STATES.includes(e.target.value as (typeof NIGERIA_STATES)[number]) ? "NG" : place.country });
           }} className={fieldClass()}>
             <option value="">All states</option>
+            {place.state && !NIGERIA_STATES.includes(place.state as (typeof NIGERIA_STATES)[number]) ? (
+              <option value={place.state}>{place.state}</option>
+            ) : null}
             {NIGERIA_STATES.map((state) => (
               <option key={state} value={state}>
                 {nigeriaStateLabel(state)}

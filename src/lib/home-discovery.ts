@@ -26,5 +26,5 @@ export function getHomeDiscovery(place: LivePlace | null) {
       verified, collections, reviews,
       promotions: promotions.filter(p => p.maxRedemptions == null || p.usedCount < p.maxRedemptions).slice(0, 2).map(p => ({ ...p, endsAt: p.endsAt.toISOString() }))
     };
-  }, ["home-discovery", state], { revalidate: 120, tags: ["home-catalog"] })();
+  }, ["home-discovery", state, place?.city || "", place?.country || ""], { revalidate: 120, tags: ["home-catalog"] })();
 }

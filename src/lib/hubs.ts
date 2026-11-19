@@ -1,4 +1,4 @@
-import { mapNigeriaState, NIGERIA_STATES, normalizePlace, type LivePlace } from "./nigeria";
+import { formatPlaceLabel, mapNigeriaState, NIGERIA_STATES, normalizePlace, type LivePlace } from "./nigeria";
 
 export const MARKETPLACE_HUBS_KEY = "marketplaceHubs";
 
@@ -69,15 +69,14 @@ export function hubToPlace(hub: MarketplaceHub): LivePlace {
 }
 
 export function hubLabelForPlace(place?: LivePlace | null, hubs: MarketplaceHub[] = DEFAULT_MARKETPLACE_HUBS) {
-  if (!place) return "Abuja";
+  if (!place) return "Abuja, Nigeria";
+  const formatted = formatPlaceLabel(place);
   const hit =
     hubs.find((h) => h.state === place.state && normalizePlace(h.city) === normalizePlace(place.city) && h.city) ||
     hubs.find((h) => h.state === place.state) ||
     hubs.find((h) => normalizePlace(h.label) === normalizePlace(place.city));
-  if (hit) return hit.label;
-  if (place.city) return place.city;
-  if (place.state === "FCT") return "Abuja";
-  return place.state || "Abuja";
+  if (hit) return formatPlaceLabel({ ...place, state: hit.state, city: hit.city || place.city || hit.label });
+  return formatted;
 }
 
 export function addableHubStates(hubs: MarketplaceHub[] = DEFAULT_MARKETPLACE_HUBS) {

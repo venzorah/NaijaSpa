@@ -22,4 +22,11 @@ it("renders the offers section after a JSON cache round-trip", async () => {
 });
 it("uses Nigeria time even when an offer expires near midnight UTC", () => { expect(homeOfferExpiry(promotion.endsAt.toISOString())).toMatch(/^0?3\/11\/2026$/); });
 it("does not advertise exhausted promotions", async () => { mock.promotions.mockResolvedValue([{ ...promotion, maxRedemptions: 1, usedCount: 1 }]); expect((await getHomeDiscovery(null)).promotions).toEqual([]); });
-it("ranks completed bookings within the selected state", async () => { await getHomeDiscovery({ state: "Lagos", city: "", neighbourhood: "" }); expect(mock.ranked.mock.calls[0][0].where.status).toBe("completed"); expect(mock.ranked.mock.calls[0][0].where.service.vendor.applicationStatus).toBe("approved"); expect(mock.ranked.mock.calls[0][0].where.service.vendor.visibility).toBe("public"); expect(mock.ranked.mock.calls[0][0].where.service.vendor.OR).toBeDefined(); });
+it("ranks completed bookings within the selected state", async () => {
+  await getHomeDiscovery({ state: "Lagos", city: "", neighbourhood: "" });
+  const vendor = mock.ranked.mock.calls[0][0].where.service.vendor;
+  expect(mock.ranked.mock.calls[0][0].where.status).toBe("completed");
+  expect(vendor.AND[0].applicationStatus).toBe("approved");
+  expect(vendor.AND[0].visibility).toBe("public");
+  expect(vendor.AND[1].OR).toBeDefined();
+});

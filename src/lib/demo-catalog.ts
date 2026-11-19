@@ -65,6 +65,7 @@ const osun = {
   state: "Lagos",
   city: "Lagos",
   neighbourhood: "Lekki",
+  coverage: ["Ikoyi", "Victoria Island", "Lekki"],
   therapists: [{ id: "t-kemi", name: "Kemi Osun", gender: "female", available: true }],
   verificationStatus: "verified",
   ratingAvg: 4.9,
@@ -492,7 +493,7 @@ export const demoCms: Record<string, { title: string; body: string }> = {
   }
 };
 
-function publicVendor(v: typeof osun) {
+function publicVendor(v: (typeof demoVendors)[number]) {
   const vendor = sanitizePublicVendor(v, v.entitlement);
   return {
     ...vendor,

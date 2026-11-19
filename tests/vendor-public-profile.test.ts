@@ -12,8 +12,10 @@ describe("vendor public profile availability", () => {
   });
   it("keeps nationwide public listings when no state is known, then AND-filters by state", () => {
     expect(liveVendorWhereForPlace(null)).toEqual(PUBLIC_LIVE_VENDOR_WHERE);
-    const lagos = liveVendorWhereForPlace({ state: "Lagos", city: "Lekki", neighbourhood: "" });
-    expect(lagos).toMatchObject({ AND: [PUBLIC_LIVE_VENDOR_WHERE, { OR: [{ state: { equals: "Lagos", mode: "insensitive" } }] }] });
+    const lagos = liveVendorWhereForPlace({ state: "Lagos", city: "Lagos", neighbourhood: "" }) as { AND: unknown[] };
+    expect(lagos.AND[0]).toEqual(PUBLIC_LIVE_VENDOR_WHERE);
+    expect(JSON.stringify(lagos.AND[1])).toContain("\"equals\":\"Lagos\"");
+    expect(JSON.stringify(lagos.AND[1])).toContain("coverageJson");
   });
   it("explains a suspension even when visibility is public", () => {
     for (const visibility of ["hidden", "public"]) {

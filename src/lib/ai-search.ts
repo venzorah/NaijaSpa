@@ -11,6 +11,7 @@ import { generateFilterJson } from "./ai-providers";
 
 const FilterSchema = z.object({
   q: z.string().optional(),
+  country: z.string().optional(),
   state: z.string().optional(),
   city: z.string().optional(),
   neighbourhood: z.string().optional(),
@@ -220,6 +221,7 @@ function toSearchFilters(filters: ParsedFilters, extra: Partial<SearchFilters> =
   const place = rankPlaceFrom(filters);
   return {
     q: filters.q,
+    country: filters.country,
     state: serviceAreaState(filters) || filters.state,
     gender: filters.gender,
     category: filters.category,

@@ -19,18 +19,22 @@ describe("exact place matching", () => {
     const ikeja = { state: "Lagos", city: "Lagos", neighbourhood: "Ikeja" };
     const maitama = { state: "FCT", city: "Abuja", neighbourhood: "Maitama" };
     expect(vendorMatchesPlace(lekki, { city: "Lagos" })).toBe(true);
-    expect(vendorMatchesPlace(ikeja, { state: "Lagos", neighbourhood: "Lekki" })).toBe(true);
+    expect(vendorMatchesPlace(ikeja, { state: "Lagos", neighbourhood: "Lekki" })).toBe(false);
     expect(vendorMatchesPlace(lekki, { city: "Abuja" })).toBe(false);
     expect(vendorMatchesPlace(lekki, { state: "FCT", city: "Lagos" })).toBe(false);
     expect(vendorMatchesPlace(maitama, { state: "FCT" })).toBe(true);
     expect(vendorMatchesPlace(maitama, { city: "Abuja" })).toBe(true);
-    expect(vendorMatchesPlace(maitama, { neighbourhood: "Wuse" })).toBe(true);
+    expect(vendorMatchesPlace(maitama, { neighbourhood: "Wuse" })).toBe(false);
+    expect(vendorMatchesPlace({ ...lekki, coverage: ["Ikoyi"] }, { state: "Lagos", neighbourhood: "Ikoyi" })).toBe(true);
+    expect(vendorMatchesPlace(lekki, { state: "Lagos", neighbourhood: "Ikoyi" })).toBe(false);
+    expect(vendorMatchesPlace({ state: "England", city: "London", neighbourhood: "" }, { country: "GB", city: "London" })).toBe(true);
+    expect(vendorMatchesPlace({ state: "England", city: "Birmingham", neighbourhood: "" }, { country: "GB", city: "London" })).toBe(false);
   });
 });
 
 describe("demo therapist search", () => {
   it("returns every therapist in the state, not only the live area", () => {
-    const lagos = demoSearch({ city: "Lagos", neighbourhood: "Lekki", rankPlace: { state: "Lagos", city: "Lagos", neighbourhood: "Lekki" } });
+    const lagos = demoSearch({ state: "Lagos", city: "Lagos", rankPlace: { state: "Lagos", city: "Lagos", neighbourhood: "Lekki" } });
     expect(lagos.results.length).toBeGreaterThan(0);
     expect(lagos.results.every((r) => r.vendor.state === "Lagos")).toBe(true);
     expect(lagos.results.some((r) => r.vendor.neighbourhood === "Ikeja")).toBe(true);
@@ -70,9 +74,10 @@ describe("demo therapist search", () => {
   });
 
   it("shows sibling cities in the same state when a city has no therapists", () => {
-    const statewide = demoSearch({ state: "Lagos", city: "Yaba" });
+    const statewide = demoSearch({ state: "Lagos", city: "Lagos" });
     expect(statewide.results.length).toBeGreaterThan(0);
     expect(statewide.results.every((r) => r.vendor.state === "Lagos")).toBe(true);
+    expect(demoSearch({ state: "Lagos", city: "Yaba" }).results).toEqual([]);
     const siblings = demoExploreCities({ state: "Lagos", excludeCity: "Yaba" });
     expect(siblings.length).toBeGreaterThan(0);
     expect(siblings.every((c) => c.state === "Lagos")).toBe(true);
@@ -101,7 +106,7 @@ describe("default marketplace place", () => {
   it("defaults to Abuja when nothing is stored", () => {
     expect(placeFromCookieOrDefault(null)).toEqual(DEFAULT_LIVE_PLACE);
     expect(isDefaultLivePlace(null)).toBe(true);
-    expect(hubLabelForPlace(null)).toBe("Abuja");
+    expect(hubLabelForPlace(null)).toBe("Abuja, Nigeria");
     expect(inPlaceHref(DEFAULT_LIVE_PLACE)).toBe("/in/fct/abuja");
   });
 });
@@ -126,14 +131,16 @@ describe("place URLs", () => {
   });
 
   it("parses state, city and area slugs back to place fields", () => {
-    expect(parsePlacePath(["akwa-ibom"])).toEqual({ state: "Akwa Ibom", city: "", neighbourhood: "" });
+    expect(parsePlacePath(["akwa-ibom"])).toEqual({ country: "NG", state: "Akwa Ibom", city: "", neighbourhood: "" });
     expect(parsePlacePath(["lagos", "lagos", "lekki-phase-1"])).toEqual({
+      country: "NG",
       state: "Lagos",
       city: "Lagos",
       neighbourhood: "Lekki Phase 1"
     });
     expect(parsePlacePath(["not-a-state"])).toBeNull();
-    expect(parsePlacePath(["fct", "abuja"])).toEqual({ state: "FCT", city: "Abuja", neighbourhood: "" });
+    expect(parsePlacePath(["fct", "abuja"])).toEqual({ country: "NG", state: "FCT", city: "Abuja", neighbourhood: "" });
+    expect(parsePlacePath(["gb", "london"])).toEqual({ country: "GB", state: "", city: "London", neighbourhood: "" });
   });
 
   it("redirects query-string explore places onto path URLs", () => {
@@ -158,14 +165,14 @@ describe("live place ranking", () => {
         city: "Lagos",
         suburb: "Lekki"
       })
-    ).toEqual({ state: "Lagos", city: "Lagos", neighbourhood: "Lekki" });
+    ).toMatchObject({ state: "Lagos", city: "Lagos", neighbourhood: "Lekki", country: "NG" });
     expect(placeFromNominatim({ state: "Federal Capital Territory", city: "Abuja", suburb: "Maitama" }).state).toBe("FCT");
   });
 
   it("ranks area above city above state", () => {
     const place = { state: "Lagos", city: "Lagos", neighbourhood: "Lekki" };
     expect(placeRank({ state: "Lagos", city: "Lagos", neighbourhood: "Lekki" }, place)).toBe(3);
-    expect(placeRank({ state: "Lagos", city: "Lagos", neighbourhood: "Ikeja" }, place)).toBe(2);
+    expect(placeRank({ state: "Lagos", city: "Lagos", neighbourhood: "Ikeja" }, place)).toBe(1);
     expect(placeRank({ state: "FCT", city: "Abuja", neighbourhood: "Maitama" }, place)).toBe(0);
   });
 

@@ -1,5 +1,14 @@
 import { mapNigeriaState, NIGERIA_STATES, normalizePlace, type LivePlace } from "./nigeria";
 
+const COUNTRY_SLUG: Record<string, string> = { uk: "GB", gb: "GB", us: "US", ng: "NG", ca: "CA", ie: "IE", za: "ZA", gh: "GH", ke: "KE", ae: "AE" };
+
+export function countryFromSlug(value?: string | null) {
+  const slug = slugifyPlace(value);
+  if (COUNTRY_SLUG[slug]) return COUNTRY_SLUG[slug];
+  if (slug.length === 2 && !mapNigeriaState(slug)) return slug.toUpperCase();
+  return "";
+}
+
 export const FILTER_QUERY_KEYS = [
   "q",
   "gender",
@@ -36,6 +45,8 @@ function titlePlace(deslugged: string) {
 }
 
 export function placePath(place?: Partial<LivePlace> | null) {
+  const country = (place?.country || "").trim().toUpperCase();
+  const ng = mapNigeriaState(place?.state) || mapNigeriaState(place?.city);
   let state = slugifyPlace(place?.state);
   const city = slugifyPlace(place?.city);
   const area = slugifyPlace(place?.neighbourhood);
@@ -43,19 +54,32 @@ export function placePath(place?: Partial<LivePlace> | null) {
     const inferred = mapNigeriaState(deslugPlace(city));
     if (inferred) state = slugifyPlace(inferred);
   }
+  if (country && country !== "NG" && !ng) {
+    const parts = [slugifyPlace(country === "GB" ? "gb" : country), state && state !== city ? state : "", city, area].filter(Boolean);
+    return parts.length ? `/${parts.join("/")}` : "";
+  }
   const parts = [state, city, area].filter(Boolean);
   return parts.length ? `/${parts.join("/")}` : "";
 }
 
 export function placeFromPath(segments?: string[] | null): LivePlace | null {
-  const parts = (segments ?? []).map(deslugPlace).filter(Boolean).slice(0, 3);
+  const parts = (segments ?? []).map(deslugPlace).filter(Boolean).slice(0, 4);
   if (parts.length === 0) return null;
+  const country = countryFromSlug(parts[0]);
+  if (country && country !== "NG") {
+    const rest = parts.slice(1);
+    if (rest.length >= 2) {
+      return { country, state: titlePlace(rest[0]), city: titlePlace(rest[1]), neighbourhood: rest[2] ? titlePlace(rest[2]) : "" };
+    }
+    return { country, state: "", city: rest[0] ? titlePlace(rest[0]) : "", neighbourhood: "" };
+  }
   if (parts.length === 1) {
     const asState = mapNigeriaState(parts[0]);
-    if (asState) return { state: asState, city: "", neighbourhood: "" };
+    if (asState) return { state: asState, city: "", neighbourhood: "", country: "NG" };
     return { state: "", city: titlePlace(parts[0]), neighbourhood: "" };
   }
   return {
+    country: "NG",
     state: mapNigeriaState(parts[0]) || titlePlace(parts[0]),
     city: titlePlace(parts[1]),
     neighbourhood: parts[2] ? titlePlace(parts[2]) : ""
@@ -63,7 +87,7 @@ export function placeFromPath(segments?: string[] | null): LivePlace | null {
 }
 
 export function placeHasLocation(place?: Partial<LivePlace> | null) {
-  return Boolean(place?.state || place?.city || place?.neighbourhood);
+  return Boolean(place?.state || place?.city || place?.neighbourhood || place?.country);
 }
 
 function queryString(query?: FilterQuery | Record<string, string | undefined> | null) {
@@ -97,11 +121,19 @@ export const inPlaceHref = inHref;
 
 /** Location-home paths require a known Nigerian state as the first segment. */
 export function parsePlacePath(segments?: string[] | null): LivePlace | null {
-  const parts = (segments ?? []).map(deslugPlace).filter(Boolean).slice(0, 3);
+  const parts = (segments ?? []).map(deslugPlace).filter(Boolean).slice(0, 4);
   if (parts.length === 0) return null;
+  const country = countryFromSlug(parts[0]);
+  if (country && country !== "NG") {
+    const rest = parts.slice(1);
+    if (!rest.length) return { country, state: "", city: "", neighbourhood: "" };
+    if (rest.length === 1) return { country, state: "", city: titlePlace(rest[0]), neighbourhood: "" };
+    return { country, state: titlePlace(rest[0]), city: titlePlace(rest[1]), neighbourhood: rest[2] ? titlePlace(rest[2]) : "" };
+  }
   const state = mapNigeriaState(parts[0]);
   if (!state) return null;
   return {
+    country: "NG",
     state,
     city: parts[1] ? titlePlace(parts[1]) : "",
     neighbourhood: parts[2] ? titlePlace(parts[2]) : ""
@@ -144,11 +176,13 @@ export function exploreQueryRedirect(
     const raw = sp[key];
     return (Array.isArray(raw) ? raw[0] : raw) || undefined;
   };
+  if (pick("state") === "all") return null;
   const place = {
+    country: pick("country"),
     state: pick("state"),
     city: pick("city"),
     neighbourhood: pick("neighbourhood")
   };
-  if (!placeHasLocation(place)) return null;
+  if (!placeHasLocation(place) && !place.country) return null;
   return exploreHref(place, filtersFromSearchParams(sp));
 }

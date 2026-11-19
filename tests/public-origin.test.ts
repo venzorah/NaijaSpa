@@ -29,7 +29,7 @@ describe("public site origin", () => {
 });
 
 describe("homepage middleware", () => {
-  it("does not send visitors from naijaspa.com to the Node listen address", () => {
+  it("does not send visitors from naijaspa.com to the Node listen address", async () => {
     const req = new NextRequest("http://127.0.0.1:3100/", {
       headers: {
         host: "naijaspa.com",
@@ -37,7 +37,7 @@ describe("homepage middleware", () => {
         "x-forwarded-proto": "https"
       }
     });
-    const res = middleware(req);
+    const res = await middleware(req);
     expect(res.headers.get("location")).toBe("https://naijaspa.com/in/fct/abuja");
   });
 });

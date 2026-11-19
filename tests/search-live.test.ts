@@ -19,7 +19,7 @@ describe("live Explore filtering and paging", () => {
     const otherCity = { ...row(1), vendor: { ...row(1).vendor, city: "Ikeja", neighbourhood: "GRA" } };
     const anotherState = { ...row(2), vendor: { ...row(2).vendor, state: "Ogun", city: "Abeokuta", neighbourhood: "GRA" } };
     mocks.findMany.mockResolvedValue([otherCity, anotherState, local]);
-    const result = await searchServices({ state: "Lagos", city: "Lekki", neighbourhood: "Phase 1", sort: "relevance", rankPlace: { state: "Lagos", city: "Lekki", neighbourhood: "Phase 1" } });
+    const result = await searchServices({ state: "Lagos", city: "Lagos", sort: "relevance", rankPlace: { state: "Lagos", city: "Lagos", neighbourhood: "" } });
     expect(result.total).toBe(2);
     expect(result.results.map(r => r.vendor.city)).toEqual(["Lekki", "Ikeja"]);
     const where = mocks.findMany.mock.calls[0][0].where;

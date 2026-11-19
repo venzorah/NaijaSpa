@@ -2,7 +2,7 @@ import { FREE_ENTITLEMENT, locationAddonKobo, sanitizePublicVendor, quoteBooking
 import { collectExploreCities, type ExploreCityFilters } from "./explore-cities";
 import { PHOTOS, firstWellnessPhoto, publicWellnessPhoto } from "./photos";
 import { usingDemoListings } from "./live-db";
-import { placeRank, prismaServiceAreaFilter, serviceAreaState, vendorMatchesPlace } from "./nigeria";
+import { placeRank, prismaVendorPlaceFilter, serviceAreaState, vendorMatchesPlace } from "./nigeria";
 import { tokenizeSearch } from "./query-match";
 import { serviceAvailabilityLabels } from "./service-availability";
 import { LIVE_SERVICE_WHERE, PUBLIC_LIVE_VENDOR_WHERE } from "./vendor-public-profile";
@@ -32,7 +32,7 @@ async function liveExploreCities(filters: ExploreCityFilters) {
   const vendors = await prisma.vendor.findMany({
     where: {
       ...PUBLIC_LIVE_VENDOR_WHERE,
-      ...(serviceAreaState(filters) ? prismaServiceAreaFilter(serviceAreaState(filters)) : {})
+      ...(serviceAreaState(filters) ? prismaVendorPlaceFilter({ state: serviceAreaState(filters) }) : {})
     },
     select: { state: true, city: true, neighbourhood: true, coverUrl: true }
   });
@@ -69,7 +69,7 @@ async function searchLive(filters: SearchFilters) {
           ...(filters.verified ? { verificationStatus: "verified" } : {}),
           ...(filters.minRating ? { ratingAvg: { gte: filters.minRating } } : {})
         },
-        ...(areaState ? [prismaServiceAreaFilter(areaState)] : [])
+        ...(areaState || filters.city || filters.neighbourhood || filters.country ? [prismaVendorPlaceFilter(filters)] : [])
       ]
     },
     ...(filters.category
@@ -113,7 +113,7 @@ async function searchLive(filters: SearchFilters) {
       basePriceKobo: true, durationMin: true, spaEnabled: true, hotelEnabled: true, homeEnabled: true,
       hotelAddonKobo: true, homeAddonKobo: true,
       vendor: { select: {
-        id: true, slug: true, businessName: true, state: true, city: true, neighbourhood: true,
+        id: true, slug: true, businessName: true, state: true, city: true, neighbourhood: true, coverageJson: true,
         verificationStatus: true, ratingAvg: true, reviewCount: true, logoUrl: true, coverUrl: true,
         privatePhone: true, privateWhatsapp: true, instagramUrl: true, publicContactEnabled: true, owner: { select: { email: true } }
       } },
@@ -131,7 +131,8 @@ async function searchLive(filters: SearchFilters) {
     const vendorPlace = {
       state: "state" in row.vendor ? String(row.vendor.state ?? "") : "",
       city: row.vendor.city,
-      neighbourhood: row.vendor.neighbourhood
+      neighbourhood: row.vendor.neighbourhood,
+      coverageJson: "coverageJson" in row.vendor ? String(row.vendor.coverageJson ?? "[]") : "[]"
     };
     if (!vendorMatchesPlace(vendorPlace, filters)) continue;
     const publicVendor = sanitizePublicVendor(

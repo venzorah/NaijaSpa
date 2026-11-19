@@ -39,6 +39,7 @@ export const NIGERIA_STATES = [
 ] as const;
 
 export type TherapistGender = "male" | "female";
+export type PlaceSource = "ip" | "gps" | "manual";
 
 export function normalizePlace(value?: string | null) {
   return (value ?? "").trim().toLowerCase().replace(/\s+/g, " ");
@@ -54,10 +55,38 @@ export function prismaEquals(value: string) {
   return { equals: value.trim() };
 }
 
-/** Canonical Nigerian state / FCT for coverage. Abuja maps to FCT. */
+export function placeCountry(place?: { country?: string; state?: string; city?: string } | null) {
+  const raw = (place?.country || "").trim().toUpperCase();
+  if (raw === "UK") return "GB";
+  if (raw) return raw;
+  if (mapNigeriaState(place?.state) || mapNigeriaState(place?.city)) return "NG";
+  return "";
+}
+
+export function countryDisplayName(code?: string | null) {
+  const country = placeCountry({ country: code || "" });
+  if (!country) return "";
+  try {
+    return new Intl.DisplayNames(["en"], { type: "region" }).of(country) || country;
+  } catch {
+    return country;
+  }
+}
+
+export function formatPlaceLabel(place?: LivePlace | null) {
+  if (!place || (!place.city && !place.state && !place.country)) return "Choose location";
+  const country = countryDisplayName(placeCountry(place)) || (placeCountry(place) === "NG" ? "Nigeria" : "");
+  const city = place.city?.trim() || (place.state === "FCT" ? "Abuja" : "");
+  const region = place.state === "FCT" ? "Abuja" : place.state?.trim();
+  const local = city || region;
+  if (local && country) return `${local}, ${country}`;
+  return local || country || "Choose location";
+}
+
+/** Canonical region for coverage. Nigerian states collapse Abuja → FCT; other countries keep region name. */
 export function serviceAreaState(place?: { state?: string; city?: string; neighbourhood?: string } | null) {
   if (!place) return "";
-  return mapNigeriaState(place.state) || mapNigeriaState(place.city) || "";
+  return mapNigeriaState(place.state) || mapNigeriaState(place.city) || (place.state || "").trim();
 }
 
 export function nigeriaStateLabel(state: string) {
@@ -82,9 +111,44 @@ export function sameServiceArea(
 
 export function prismaServiceAreaFilter(state: string) {
   const aliases = serviceAreaAliases(state);
-  if (!aliases.length) return {};
+  if (!aliases.length) {
+    const region = state.trim();
+    if (!region) return {};
+    return { state: { ...prismaEquals(region), mode: "insensitive" as const } };
+  }
   return {
     OR: aliases.map((alias) => ({ state: { ...prismaEquals(alias), mode: "insensitive" as const } }))
+  };
+}
+
+function prismaContains(value: string) {
+  return { contains: value.trim(), mode: "insensitive" as const };
+}
+
+/** Database pre-filter: never pull another country/state, still allow coverage JSON hits. */
+export function prismaVendorPlaceFilter(place?: Partial<LivePlace> | null) {
+  if (!place || (!place.state && !place.city && !place.neighbourhood && !place.country)) return {};
+  const ng = mapNigeriaState(place.state) || mapNigeriaState(place.city);
+  const area = (place.neighbourhood || "").trim();
+  const city = (place.city || "").trim();
+  const cityIsState = Boolean(mapNigeriaState(city));
+  if (ng && !area && (!city || cityIsState)) {
+    const aliases = serviceAreaAliases(ng);
+    return {
+      OR: [
+        ...aliases.map((alias) => ({ state: { ...prismaEquals(alias), mode: "insensitive" as const } })),
+        ...aliases.map((alias) => ({ coverageJson: prismaContains(alias) }))
+      ]
+    };
+  }
+  const needles = [...new Set([area, !cityIsState ? city : "", !ng ? (place.state || "").trim() : ""].filter(Boolean))];
+  if (!needles.length && ng) return prismaServiceAreaFilter(ng);
+  return {
+    OR: needles.flatMap((needle) => [
+      { neighbourhood: { ...prismaEquals(needle), mode: "insensitive" as const } },
+      { city: { ...prismaEquals(needle), mode: "insensitive" as const } },
+      { coverageJson: prismaContains(needle) }
+    ])
   };
 }
 
@@ -100,33 +164,122 @@ export function vendorStateForLocation(state: string, city: string) {
   return canonical;
 }
 
+export function parseVendorCoverage(
+  raw?: string | string[] | null,
+  fallback?: { country?: string; state?: string; city?: string; neighbourhood?: string }
+) {
+  const areas: LivePlace[] = [];
+  if (!raw) return areas;
+  let parsed: unknown = raw;
+  if (typeof raw === "string") {
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      parsed = raw.split(",").map((part) => part.trim()).filter(Boolean);
+    }
+  }
+  const rows = Array.isArray(parsed) ? parsed : [];
+  for (const row of rows) {
+    if (typeof row === "string") {
+      const text = row.trim();
+      if (!text) continue;
+      const asState = mapNigeriaState(text);
+      areas.push({
+        country: fallback?.country || (asState ? "NG" : ""),
+        state: asState || fallback?.state || "",
+        city: asState ? fallback?.city || "" : text,
+        neighbourhood: asState ? "" : text
+      });
+      continue;
+    }
+    if (!row || typeof row !== "object") continue;
+    const rec = row as Record<string, unknown>;
+    areas.push({
+      country: String(rec.country || fallback?.country || ""),
+      state: String(rec.state || fallback?.state || ""),
+      city: String(rec.city || ""),
+      neighbourhood: String(rec.neighbourhood || rec.area || "")
+    });
+  }
+  return areas;
+}
+
+export type VendorLocation = {
+  country?: string;
+  state?: string;
+  city?: string;
+  neighbourhood?: string;
+  coverageJson?: string | string[] | null;
+  coverage?: string | string[] | null;
+};
+
+export function vendorServedPlaces(vendor: VendorLocation): LivePlace[] {
+  const home: LivePlace = {
+    country: placeCountry(vendor),
+    state: vendor.state || "",
+    city: vendor.city || "",
+    neighbourhood: vendor.neighbourhood || ""
+  };
+  return [home, ...parseVendorCoverage(vendor.coverageJson ?? vendor.coverage, home)];
+}
+
+function placeNeedle(filters: Partial<LivePlace>) {
+  const neighbourhood = (filters.neighbourhood || "").trim();
+  const city = (filters.city || "").trim();
+  if (neighbourhood) return neighbourhood;
+  if (city && !mapNigeriaState(city)) return city;
+  return "";
+}
+
+function areaMatchesNeedle(area: LivePlace, needle: string) {
+  return placesEqual(area.neighbourhood, needle) || placesEqual(area.city, needle);
+}
+
+/** Strict discovery: never auto-expand to another state or country. Coverage beats business address. */
+export function vendorMatchesPlace(
+  vendor: VendorLocation & { city?: string; neighbourhood?: string },
+  filters: Partial<LivePlace> & { city?: string; neighbourhood?: string; state?: string }
+) {
+  if (!filters.state && !filters.city && !filters.neighbourhood && !filters.country) return true;
+  const wantCountry = placeCountry(filters);
+  const wantState = mapNigeriaState(filters.state) || mapNigeriaState(filters.city) || (wantCountry === "NG" ? "" : (filters.state || "").trim());
+  const needle = placeNeedle(filters);
+  const served = vendorServedPlaces(vendor);
+  return served.some((area) => {
+    const areaCountry = placeCountry(area) || placeCountry(vendor);
+    if (wantCountry && areaCountry && wantCountry !== areaCountry) return false;
+    if (wantCountry === "NG" || mapNigeriaState(area.state) || mapNigeriaState(area.city)) {
+      const areaState = mapNigeriaState(area.state) || mapNigeriaState(area.city) || mapNigeriaState(vendor.state);
+      if (wantState && areaState && wantState !== areaState) return false;
+      if (!needle) return Boolean(wantState && (areaState === wantState || !areaState));
+      return areaMatchesNeedle(area, needle);
+    }
+    if (needle) return areaMatchesNeedle(area, needle);
+    if (wantState) return placesEqual(area.state, wantState) || placesEqual(area.city, wantState);
+    if (wantCountry) return !areaCountry || areaCountry === wantCountry;
+    return false;
+  });
+}
+
 export function filterByServiceArea<T>(
   rows: T[],
   place: LivePlace | null | undefined,
-  vendorOf: (row: T) => { state?: string; city?: string; neighbourhood?: string }
+  vendorOf: (row: T) => VendorLocation
 ) {
-  if (!serviceAreaState(place)) return rows;
-  return rows.filter((row) => sameServiceArea(vendorOf(row), place));
-}
-
-/** Therapists cover their whole state. City/area is ranking only. */
-export function vendorMatchesPlace(
-  vendor: { state?: string; city: string; neighbourhood: string },
-  filters: { state?: string; city?: string; neighbourhood?: string }
-) {
-  const area = serviceAreaState(filters);
-  if (!area) return true;
-  return sameServiceArea(vendor, filters);
+  if (!place || (!place.state && !place.city && !place.country && !place.neighbourhood)) return rows;
+  return rows.filter((row) => vendorMatchesPlace(vendorOf(row), place));
 }
 
 export type LivePlace = {
   state: string;
   city: string;
   neighbourhood: string;
+  country?: string;
+  source?: PlaceSource;
 };
 
 /** Used when the visitor has not picked a city and device location is off. */
-export const DEFAULT_LIVE_PLACE: LivePlace = { state: "FCT", city: "Abuja", neighbourhood: "" };
+export const DEFAULT_LIVE_PLACE: LivePlace = { state: "FCT", city: "Abuja", neighbourhood: "", country: "NG" };
 
 export function isDefaultLivePlace(place?: LivePlace | null) {
   if (!place) return true;
@@ -154,8 +307,10 @@ export function parsePlaceCookie(raw?: string | null): LivePlace | null {
     const state = (parsed.state || "").trim();
     const city = (parsed.city || "").trim();
     const neighbourhood = (parsed.neighbourhood || "").trim();
-    if (!state && !city && !neighbourhood) return null;
-    return { state, city, neighbourhood };
+    const country = (parsed.country || "").trim().toUpperCase();
+    const source = parsed.source === "ip" || parsed.source === "gps" || parsed.source === "manual" ? parsed.source : undefined;
+    if (!state && !city && !neighbourhood && !country) return null;
+    return { state, city, neighbourhood, ...(country ? { country } : {}), ...(source ? { source } : {}) };
   } catch {
     return null;
   }
@@ -164,12 +319,17 @@ export function parsePlaceCookie(raw?: string | null): LivePlace | null {
 export function mapNigeriaState(raw?: string | null) {
   const n = normalizePlace(raw);
   if (!n) return "";
-  if (n.includes("federal capital") || n === "fct" || n.includes("abuja")) return "FCT";
-  const hit = NIGERIA_STATES.find((s) => n === normalizePlace(s) || n.includes(normalizePlace(s)));
+  if (n.includes("federal capital") || n === "fct" || /(^|\b)abuja(\b|$)/.test(n)) return "FCT";
+  const hit = NIGERIA_STATES.find((s) => {
+    const name = normalizePlace(s);
+    return n === name || n.startsWith(`${name} `) || n.endsWith(` ${name}`) || n.includes(` ${name} `);
+  });
   return hit || "";
 }
 
 export function placeFromNominatim(address: {
+  country?: string;
+  country_code?: string;
   state?: string;
   city?: string;
   town?: string;
@@ -181,27 +341,36 @@ export function placeFromNominatim(address: {
   city_district?: string;
   quarter?: string;
 }) {
-  const state = mapNigeriaState(address.state || address.county);
+  const country = (address.country_code || "").trim().toUpperCase();
+  const ng = mapNigeriaState(address.state || address.county || address.city);
   const city = (address.city || address.town || address.village || address.municipality || "").trim();
   const neighbourhood = (address.suburb || address.neighbourhood || address.city_district || address.quarter || "").trim();
-  return { state, city, neighbourhood } satisfies LivePlace;
+  return {
+    country: country === "UK" ? "GB" : country || (ng ? "NG" : ""),
+    state: ng || (address.state || address.county || "").trim(),
+    city,
+    neighbourhood,
+    source: "gps" as const
+  } satisfies LivePlace;
 }
 
 /** Higher rank = closer. 3 area, 2 city, 1 state, 0 elsewhere. */
 export function placeRank(
-  vendor: { state?: string; city?: string; neighbourhood?: string },
+  vendor: VendorLocation,
   place?: LivePlace | null
 ) {
-  if (!place || (!place.state && !place.city && !place.neighbourhood)) return 0;
-  const filterArea = serviceAreaState(place);
-  const vendorArea = serviceAreaState(vendor);
-  if (filterArea && vendorArea && filterArea !== vendorArea) return 0;
-  if (place.neighbourhood && placesEqual(vendor.neighbourhood, place.neighbourhood) && (!place.city || placesEqual(vendor.city, place.city) || sameServiceArea(vendor, place))) {
-    return 3;
+  if (!place || (!place.state && !place.city && !place.neighbourhood && !place.country)) return 0;
+  if (!vendorMatchesPlace(vendor, place)) {
+    if (placeCountry(place) && placeCountry(place) !== "NG") return 0;
+    const regionOnly = { country: place.country, state: place.state, city: "", neighbourhood: "" };
+    if (!vendorMatchesPlace(vendor, regionOnly)) return 0;
+    return 1;
   }
-  if (place.city && (placesEqual(vendor.city, place.city) || placesEqual(vendor.neighbourhood, place.city))) return 2;
-  if (filterArea && vendorArea === filterArea) return 1;
-  return 0;
+  const home = vendorServedPlaces(vendor)[0];
+  if (place.neighbourhood && placesEqual(home?.neighbourhood, place.neighbourhood)) return 3;
+  if (place.city && (placesEqual(home?.city, place.city) || placesEqual(home?.neighbourhood, place.city))) return 2;
+  if (serviceAreaState(place) && serviceAreaState(home) === serviceAreaState(place)) return 1;
+  return 1;
 }
 
 export function sortByPlace<T>(rows: T[], place: LivePlace | null | undefined, vendorOf: (row: T) => { state?: string; city?: string; neighbourhood?: string }) {

@@ -18,34 +18,25 @@ function readStoredPlace(): LivePlace | null {
   }
 }
 
-async function geolocationGranted() {
-  if (typeof navigator === "undefined" || !("geolocation" in navigator)) return false;
-  try {
-    if (!navigator.permissions?.query) return false;
-    const status = await navigator.permissions.query({ name: "geolocation" });
-    return status.state === "granted";
-  } catch {
-    return false;
-  }
-}
-
 export function LocationGate() {
   const router = useRouter();
   const pathname = usePathname();
-  const attemptedLocation = useRef(false);
+  const attempted = useRef(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    // Explicit place URLs already have a location; account/auth routes do not need one.
     if (!needsLocationResolve(pathname)) return;
     let cancelled = false;
     const controller = new AbortController();
 
     const stored = readStoredPlace();
-    if (!stored) persistLivePlace(DEFAULT_LIVE_PLACE);
-    const placeKey = (place: LivePlace | null) => [place?.state, place?.city, place?.neighbourhood].map(normalizePlace).join("|");
-    const originalPlace = placeKey(stored ?? DEFAULT_LIVE_PLACE);
-    const cancel = () => { cancelled = true; controller.abort(); };
+    const placeKey = (place: LivePlace | null) =>
+      [place?.country, place?.state, place?.city, place?.neighbourhood, place?.source].map(normalizePlace).join("|");
+    const originalPlace = placeKey(stored);
+    const cancel = () => {
+      cancelled = true;
+      controller.abort();
+    };
     const onClick = (event: MouseEvent) => {
       if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
       const anchor = event.target instanceof Element ? event.target.closest("a[href]") : null;
@@ -59,8 +50,9 @@ export function LocationGate() {
 
     const applyPlace = (place: LivePlace) => {
       if (cancelled) return;
-      // A manual location choice takes priority over an older device lookup.
-      if (placeKey(readStoredPlace()) !== originalPlace) return;
+      const latest = readStoredPlace();
+      if (latest?.source === "manual" || latest?.source === "gps") return;
+      if (placeKey(latest) !== originalPlace && latest && !isDefaultLivePlace(latest)) return;
       const changed = placeKey(place) !== originalPlace;
       persistLivePlace(place);
       const path = window.location.pathname;
@@ -68,17 +60,9 @@ export function LocationGate() {
         if (changed) router.refresh();
         return;
       }
-      try {
-        if (sessionStorage.getItem("naijaspa-locate-explore")) {
-          if (changed) router.refresh();
-          return;
-        }
-      } catch {
-        /* continue */
-      }
       if (placeHasLocation(place)) {
         const next = inHref(place);
-        if (path === "/" || (path.startsWith("/in/") && path !== next)) {
+        if (path === "/" || (path.startsWith("/in/") && path !== next && isDefaultLivePlace(stored))) {
           router.replace(next);
           return;
         }
@@ -86,37 +70,29 @@ export function LocationGate() {
       if (changed) router.refresh();
     };
 
-    const locate = () => {
-      navigator.geolocation.getCurrentPosition(
-        async (pos) => {
-          if (cancelled) return;
-          try {
-            const res = await fetch(`/api/geo/reverse?lat=${pos.coords.latitude}&lng=${pos.coords.longitude}`, { signal: controller.signal });
-            const json = (await res.json()) as LivePlace & { error?: string };
-            if (!res.ok || json.error) return;
-            applyPlace({
-              state: json.state || "",
-              city: json.city || "",
-              neighbourhood: json.neighbourhood || ""
-            });
-          } catch {
-            /* keep Abuja default */
-          }
-        },
-        () => undefined,
-        { enableHighAccuracy: false, timeout: 12000, maximumAge: 15 * 60 * 1000 }
-      );
+    const detectIp = async () => {
+      if (attempted.current) return;
+      const current = readStoredPlace();
+      if (current?.source === "manual" || current?.source === "gps") return;
+      if (current && !isDefaultLivePlace(current) && current.source === "ip") return;
+      attempted.current = true;
+      try {
+        const res = await fetch("/api/geo/ip", { signal: controller.signal, cache: "no-store" });
+        const json = (await res.json()) as LivePlace & { error?: string };
+        if (!res.ok || json.error) return;
+        applyPlace({
+          country: json.country || "",
+          state: json.state || "",
+          city: json.city || "",
+          neighbourhood: json.neighbourhood || "",
+          source: "ip"
+        });
+      } catch {
+        if (!current) persistLivePlace(DEFAULT_LIVE_PLACE);
+      }
     };
 
-    void geolocationGranted().then((granted) => {
-      if (cancelled) return;
-      if (granted && isDefaultLivePlace(stored) && !attemptedLocation.current) {
-        attemptedLocation.current = true;
-        locate();
-        return;
-      }
-      if (!stored) applyPlace(DEFAULT_LIVE_PLACE);
-    });
+    void detectIp();
     return () => {
       cancel();
       document.removeEventListener("click", onClick, true);
