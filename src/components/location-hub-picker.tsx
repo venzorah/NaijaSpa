@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MapPin } from "lucide-react";
 import { detectBrowserIpPlace, detectGpsPlace, detectServerIpPlace } from "@/components/detect-live-place";
 import { persistLivePlace, PLACE_EVENT } from "@/components/place-sync";
-import { formatPlaceLabel, PLACE_COOKIE, parsePlaceCookie, type LivePlace } from "@/lib/nigeria";
-import { inHref, placeHasLocation } from "@/lib/place-urls";
+import { navPlaceLabel, PLACE_COOKIE, parsePlaceCookie, type LivePlace } from "@/lib/nigeria";
+import { inHref } from "@/lib/place-urls";
 
 function readStoredPlace(): LivePlace | null {
   try {
@@ -24,36 +24,58 @@ export function LocationHubPicker() {
   const router = useRouter();
   const [place, setPlace] = useState<LivePlace | null>(null);
   const [detecting, setDetecting] = useState(true);
+  const inFlight = useRef(false);
 
   useEffect(() => {
     const stored = readStoredPlace();
-    if (stored) {
+    if (stored && (stored.state || stored.city) && stored.source === "gps") {
       setPlace(stored);
       setDetecting(false);
     }
     const onPlace = (event: Event) => {
       const next = (event as CustomEvent<LivePlace>).detail;
-      if (next) {
+      if (next?.state || next?.city) {
         setPlace(next);
         setDetecting(false);
       }
     };
     window.addEventListener(PLACE_EVENT, onPlace);
+    if (stored?.source === "gps" && (stored.state || stored.city)) {
+      return () => window.removeEventListener(PLACE_EVENT, onPlace);
+    }
+    void (async () => {
+      if (inFlight.current) return;
+      if (stored?.source === "manual") return;
+      inFlight.current = true;
+      setDetecting(true);
+      try {
+        const next = await detectGpsPlace();
+        if (!next || (!next.state && !next.city)) return;
+        persistLivePlace(next);
+        setPlace(next);
+        router.replace(inHref(next));
+      } finally {
+        inFlight.current = false;
+        setDetecting(false);
+      }
+    })();
     return () => window.removeEventListener(PLACE_EVENT, onPlace);
-  }, []);
+  }, [router]);
 
-  const label = detecting && !placeHasLocation(place) ? "Locating…" : formatPlaceLabel(place);
+  const label = detecting ? "Locating…" : navPlaceLabel(place);
 
   async function refreshDetected() {
-    if (detecting) return;
+    if (inFlight.current) return;
+    inFlight.current = true;
     setDetecting(true);
     try {
       const next = (await detectGpsPlace()) || (await detectBrowserIpPlace()) || (await detectServerIpPlace());
-      if (!next) return;
+      if (!next || (!next.state && !next.city)) return;
       persistLivePlace(next);
       setPlace(next);
       router.push(inHref(next));
     } finally {
+      inFlight.current = false;
       setDetecting(false);
     }
   }

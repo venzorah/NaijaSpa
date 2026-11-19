@@ -160,7 +160,7 @@ export function placeLockedByUser(place?: LivePlace | null) {
 export function canApplyDetectedPlace(stored: LivePlace | null | undefined, next: LivePlace) {
   if (stored?.source === "manual") return false;
   if (stored?.source === "gps" && next.source !== "gps") return false;
-  return Boolean(next.country || next.state || next.city || next.neighbourhood);
+  return Boolean(next.state || next.city);
 }
 
 /** ISP / Vercel MaxMind city for Nigeria is often Lagos or Port Harcourt, not where the visitor is. */

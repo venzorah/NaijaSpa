@@ -83,6 +83,15 @@ export function formatPlaceLabel(place?: LivePlace | null) {
   return local || country || "Choose location";
 }
 
+/** Top bar: Abuja, Nigeria / Lagos, Nigeria from the detected state or city. */
+export function navPlaceLabel(place?: LivePlace | null) {
+  if (place?.source === "ip") return "Locating…";
+  const ng = mapNigeriaState(place?.state) || mapNigeriaState(place?.city);
+  if (ng) return `${ng === "FCT" ? "Abuja" : ng}, Nigeria`;
+  if (!place?.state && !place?.city) return "Locating…";
+  return formatPlaceLabel(place);
+}
+
 /** Canonical region for coverage. Nigerian states collapse Abuja → FCT; other countries keep region name. */
 export function serviceAreaState(place?: { state?: string; city?: string; neighbourhood?: string } | null) {
   if (!place) return "";

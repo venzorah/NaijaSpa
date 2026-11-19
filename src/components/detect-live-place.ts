@@ -1,6 +1,7 @@
 "use client";
 
 import { canApplyDetectedPlace, livePlaceFromIpFields } from "@/lib/geo-ip";
+import { placeFromCoordinates } from "@/lib/ng-coordinates";
 import { mapNigeriaState, type LivePlace } from "@/lib/nigeria";
 
 export { canApplyDetectedPlace };
@@ -25,13 +26,20 @@ function asPlace(json: LivePlace & { error?: string }, source: LivePlace["source
 }
 
 export async function reverseGpsPlace(lat: number, lng: number, signal?: AbortSignal): Promise<LivePlace | null> {
-  const res = await fetch(`/api/geo/reverse?lat=${encodeURIComponent(String(lat))}&lng=${encodeURIComponent(String(lng))}`, {
-    signal,
-    cache: "no-store"
-  });
-  const json = (await res.json()) as LivePlace & { error?: string };
-  if (!res.ok) return null;
-  return asPlace(json, "gps");
+  try {
+    const res = await fetch(`/api/geo/reverse?lat=${encodeURIComponent(String(lat))}&lng=${encodeURIComponent(String(lng))}`, {
+      signal,
+      cache: "no-store"
+    });
+    const json = (await res.json()) as LivePlace & { error?: string };
+    if (res.ok) {
+      const place = asPlace(json, "gps");
+      if (place?.state || place?.city) return place;
+    }
+  } catch {
+    /* fall through to coordinate boxes */
+  }
+  return placeFromCoordinates(lat, lng);
 }
 
 export async function detectGpsPlace(signal?: AbortSignal): Promise<LivePlace | null> {

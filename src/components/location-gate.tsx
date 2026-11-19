@@ -40,23 +40,7 @@ export function LocationGate() {
     const placeKey = (place: LivePlace | null) =>
       [place?.country, place?.state, place?.city, place?.neighbourhood, place?.source].map(normalizePlace).join("|");
     const originalPlace = placeKey(stored);
-    const cancel = () => {
-      cancelled = true;
-      controller.abort();
-    };
-    const onClick = (event: MouseEvent) => {
-      if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
-      const anchor = event.target instanceof Element ? event.target.closest("a[href]") : null;
-      if (!(anchor instanceof HTMLAnchorElement) || anchor.target === "_blank" || anchor.hasAttribute("download")) return;
-      const destination = new URL(anchor.href);
-      if (destination.origin === window.location.origin && (destination.pathname !== window.location.pathname || destination.search !== window.location.search)) cancel();
-    };
-    document.addEventListener("click", onClick, true);
-    document.addEventListener("submit", cancel, true);
-    window.addEventListener("popstate", cancel);
-
     const applyPlace = (place: LivePlace) => {
-      if (cancelled) return;
       const latest = readStoredPlace();
       if (!canApplyDetectedPlace(latest, place)) return;
       persistLivePlace(place);
@@ -79,28 +63,23 @@ export function LocationGate() {
       if (attempted.current) return;
       const current = readStoredPlace();
       if (current?.source === "manual") return;
+      if (current?.source === "gps" && (current.state || current.city)) return;
       attempted.current = true;
 
-      if (isUntrustedNetworkPlace(current) && (current?.state || current?.city)) {
-        persistLivePlace({ country: "NG", state: "", city: "", neighbourhood: "", source: "ip" });
-      }
-
       const gps = await detectGpsPlace(controller.signal);
-      if (gps) {
+      if (gps && (gps.state || gps.city)) {
         applyPlace(gps);
         return;
       }
       if (cancelled || current?.source === "gps") return;
       const ip = (await detectBrowserIpPlace(controller.signal)) || (await detectServerIpPlace(controller.signal));
-      if (ip) applyPlace(ip);
+      if (ip && (ip.state || ip.city) && !isUntrustedNetworkPlace(ip)) applyPlace(ip);
     };
 
     void detect();
     return () => {
-      cancel();
-      document.removeEventListener("click", onClick, true);
-      document.removeEventListener("submit", cancel, true);
-      window.removeEventListener("popstate", cancel);
+      cancelled = true;
+      controller.abort();
     };
   }, [router, pathname]);
 

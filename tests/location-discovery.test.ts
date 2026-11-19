@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { canApplyDetectedPlace, livePlaceFromIpFields, placeFromEdgeHeaders } from "../src/lib/geo-ip";
 import { hubLabelForPlace } from "../src/lib/hubs";
-import { formatPlaceLabel, placeFromNominatim, vendorMatchesPlace } from "../src/lib/nigeria";
+import { placeFromCoordinates } from "../src/lib/ng-coordinates";
+import { formatPlaceLabel, navPlaceLabel, placeFromNominatim, vendorMatchesPlace } from "../src/lib/nigeria";
 import { inHref, parsePlacePath } from "../src/lib/place-urls";
 import { demoSearch } from "../src/lib/demo-catalog";
 
@@ -11,6 +12,22 @@ describe("automatic location labels", () => {
     expect(formatPlaceLabel({ state: "FCT", city: "Abuja", neighbourhood: "", country: "NG" })).toBe("Abuja, Nigeria");
     expect(formatPlaceLabel(livePlaceFromIpFields({ countryCode: "GB", region: "England", city: "London" }))).toBe("London, United Kingdom");
     expect(formatPlaceLabel(livePlaceFromIpFields({ countryCode: "US", region: "New York", city: "New York" }))).toBe("New York, United States");
+  });
+
+  it("shows city or state with country on the nav chip, never country alone", () => {
+    expect(navPlaceLabel({ country: "NG", state: "", city: "", neighbourhood: "", source: "ip" })).toBe("Locating…");
+    expect(navPlaceLabel({ country: "NG", state: "Lagos", city: "Lagos", neighbourhood: "", source: "ip" })).toBe("Locating…");
+    expect(navPlaceLabel({ country: "NG", state: "FCT", city: "Abuja", neighbourhood: "", source: "gps" })).toBe("Abuja, Nigeria");
+    expect(navPlaceLabel({ country: "GB", state: "England", city: "London", neighbourhood: "", source: "gps" })).toBe(
+      "London, United Kingdom"
+    );
+  });
+
+  it("maps device coordinates in Abuja and Lagos to those cities", () => {
+    expect(placeFromCoordinates(9.0765, 7.3986)).toMatchObject({ state: "FCT", city: "Abuja", source: "gps" });
+    expect(navPlaceLabel(placeFromCoordinates(9.0765, 7.3986))).toBe("Abuja, Nigeria");
+    expect(placeFromCoordinates(6.5244, 3.3792)).toMatchObject({ state: "Lagos", city: "Lagos", source: "gps" });
+    expect(navPlaceLabel(placeFromCoordinates(6.5244, 3.3792))).toBe("Lagos, Nigeria");
   });
 });
 
