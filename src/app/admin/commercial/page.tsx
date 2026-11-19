@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DEFAULT_MARKETPLACE_HUBS } from "@/lib/hubs";
-import { NIGERIA_STATES } from "@/lib/nigeria";
 import { AdminPageHeader } from "@/components/admin/page-header";
 import { Panel } from "@/components/admin/panel";
 import { VendorPlansConsole } from "@/components/admin/vendor-plans-console";
@@ -54,7 +52,6 @@ export default function CommercialPage() {
                 homeFeedPremiumLimit: Number(fd.get("homePremium")),
                 homeFeedPromoLimit: Number(fd.get("homePromo")),
                 homeFeedNearbyLimit: Number(fd.get("homeNearby")),
-                extraStates: fd.getAll("extraState").map(String),
                 graceDays: Number(fd.get("graceDays") || 3)
               })
             });
@@ -159,26 +156,9 @@ export default function CommercialPage() {
         </label>
         <h2 className="mt-4 font-display text-xl">Marketplace locations</h2>
         <p className="text-xs text-ink2">
-          Lagos, Abuja, Port Harcourt, Delta and Anambra stay in the top-bar city picker. Tick extra states to add them.
+          The marketplace uses each visitor&apos;s network location. There is no default Lagos / Abuja / Port Harcourt list.
+          Visitors can still pick any Nigerian state from the location chip.
         </p>
-        <div className="flex flex-wrap gap-2">
-          {(data.hubs ?? DEFAULT_MARKETPLACE_HUBS).filter((h) => h.locked).map((h) => (
-            <span key={h.id} className="rounded-full border border-gold/40 bg-gold/10 px-3 py-1 text-xs font-semibold text-goldink">
-              {h.label}
-            </span>
-          ))}
-        </div>
-        <div className="grid max-h-48 grid-cols-2 gap-1 overflow-y-auto rounded-2xl border border-line p-3 text-sm sm:grid-cols-3">
-          {NIGERIA_STATES.filter((s) => !["Lagos", "FCT", "Rivers", "Delta", "Anambra"].includes(s)).map((state) => {
-            const on = Boolean(data.hubs?.some((h) => h.state === state && !h.locked));
-            return (
-              <label key={state} className="flex min-h-10 items-center gap-2">
-                <input type="checkbox" name="extraState" value={state} defaultChecked={on} />
-                {state}
-              </label>
-            );
-          })}
-        </div>
         <button disabled={busy} className="min-h-11 rounded-full bg-gold font-bold text-ongold disabled:opacity-60">
           {busy ? "Saving…" : "Save"}
         </button>

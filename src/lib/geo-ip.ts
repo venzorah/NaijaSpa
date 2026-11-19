@@ -1,6 +1,63 @@
 import type { LivePlace } from "./nigeria";
 import { mapNigeriaState } from "./nigeria";
 
+/** ISO 3166-2:NG subdivision codes as sent by Vercel / MaxMind. */
+const NG_REGION_CODES: Record<string, string> = {
+  AB: "Abia",
+  AD: "Adamawa",
+  AK: "Akwa Ibom",
+  AN: "Anambra",
+  BA: "Bauchi",
+  BY: "Bayelsa",
+  BE: "Benue",
+  BO: "Borno",
+  CR: "Cross River",
+  DE: "Delta",
+  EB: "Ebonyi",
+  ED: "Edo",
+  EK: "Ekiti",
+  EN: "Enugu",
+  FC: "FCT",
+  GO: "Gombe",
+  IM: "Imo",
+  JI: "Jigawa",
+  KD: "Kaduna",
+  KN: "Kano",
+  KT: "Katsina",
+  KE: "Kebbi",
+  KO: "Kogi",
+  KW: "Kwara",
+  LA: "Lagos",
+  NA: "Nasarawa",
+  NI: "Niger",
+  OG: "Ogun",
+  ON: "Ondo",
+  OS: "Osun",
+  OY: "Oyo",
+  PL: "Plateau",
+  RI: "Rivers",
+  SO: "Sokoto",
+  TA: "Taraba",
+  YO: "Yobe",
+  ZA: "Zamfara"
+};
+
+function decodeHeader(raw?: string | null) {
+  if (!raw) return "";
+  try {
+    return decodeURIComponent(raw.replace(/\+/g, " ")).trim();
+  } catch {
+    return raw.trim();
+  }
+}
+
+function nigeriaRegionFromCode(raw?: string | null) {
+  const value = (raw || "").trim().toUpperCase().replace(/^NG-/, "");
+  if (!value) return "";
+  if (value === "FCT" || value === "ABUJA") return "FCT";
+  return NG_REGION_CODES[value] || "";
+}
+
 const cache = new Map<string, { place: LivePlace; expiresAt: number }>();
 const CACHE_MS = 6 * 60 * 60 * 1000;
 const MAX_CACHE = 2000;
@@ -39,7 +96,7 @@ export function livePlaceFromIpFields(input: {
   const country = (input.countryCode || input.country || "").trim().toUpperCase();
   const region = (input.region || "").trim();
   const city = (input.city || "").trim();
-  const ng = mapNigeriaState(region) || mapNigeriaState(city);
+  const ng = mapNigeriaState(city) || nigeriaRegionFromCode(region) || mapNigeriaState(region);
   if (ng) {
     return {
       country: "NG",
@@ -107,7 +164,31 @@ export async function lookupPlaceFromIp(ip: string, timeoutMs = 1800): Promise<L
 }
 
 export function requestClientIp(headers: Headers) {
+  const vercel = headers.get("x-vercel-forwarded-for")?.split(",")[0]?.trim() || "";
   const forwarded = headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "";
   const real = headers.get("x-real-ip")?.trim() || "";
-  return isPublicIp(forwarded) ? forwarded : isPublicIp(real) ? real : forwarded || real || "";
+  const cf = headers.get("cf-connecting-ip")?.trim() || "";
+  const candidates = [vercel, forwarded, real, cf];
+  return candidates.find((ip) => isPublicIp(ip)) || candidates.find(Boolean) || "";
+}
+
+/** Prefer the CDN/edge geo for this request (Vercel, Cloudflare). Do not look up the function's own IP. */
+export function placeFromEdgeHeaders(headers: Headers): LivePlace | null {
+  const country = decodeHeader(headers.get("x-vercel-ip-country") || headers.get("cf-ipcountry"));
+  const region = decodeHeader(headers.get("x-vercel-ip-country-region") || headers.get("x-vercel-ip-region"));
+  const city = decodeHeader(headers.get("x-vercel-ip-city"));
+  if (!country && !region && !city) return null;
+  const place = livePlaceFromIpFields({ countryCode: country, region, city });
+  if (!place.country && !place.state && !place.city) return null;
+  return place;
+}
+
+export function placeLockedByUser(place?: LivePlace | null) {
+  return place?.source === "manual" || place?.source === "gps";
+}
+
+export async function lookupPlaceFromRequest(headers: Headers, timeoutMs = 1800) {
+  const edge = placeFromEdgeHeaders(headers);
+  if (edge) return edge;
+  return lookupPlaceFromIp(requestClientIp(headers), timeoutMs);
 }

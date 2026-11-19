@@ -111,10 +111,10 @@ export function inHref(place?: Partial<LivePlace> | null) {
   return suffix ? `/in${suffix}` : "/";
 }
 
-/** Home now lives on /in/... so first-visit locate must run on the default hub, not only on /. */
+/** Re-detect IP/edge geo on home, Explore, and any /in/... hub — not only the old default Abuja path. */
 export function needsLocationResolve(path: string) {
   if (path === "/" || path === "/explore" || path.startsWith("/explore/")) return true;
-  return path === "/in/fct/abuja" || path === "/in/fct" || path === "/in/abuja";
+  return path.startsWith("/in/");
 }
 
 export const inPlaceHref = inHref;

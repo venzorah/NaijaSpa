@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { livePlaceFromIpFields } from "../src/lib/geo-ip";
+import { livePlaceFromIpFields, placeFromEdgeHeaders } from "../src/lib/geo-ip";
+import { hubLabelForPlace } from "../src/lib/hubs";
 import { formatPlaceLabel, vendorMatchesPlace } from "../src/lib/nigeria";
 import { inHref, parsePlacePath } from "../src/lib/place-urls";
 import { demoSearch } from "../src/lib/demo-catalog";
@@ -27,6 +28,38 @@ describe("strict vendor discovery", () => {
     const lekki = { state: "Lagos", city: "Lagos", neighbourhood: "Lekki", coverage: ["Ikoyi"] };
     expect(vendorMatchesPlace(lekki, { state: "Lagos", neighbourhood: "Ikoyi" })).toBe(true);
     expect(vendorMatchesPlace({ ...lekki, coverage: [] }, { state: "Lagos", neighbourhood: "Ikoyi" })).toBe(false);
+  });
+
+  it("prefers Vercel ISO region codes and the city name over a mismatched state", () => {
+    expect(livePlaceFromIpFields({ countryCode: "NG", region: "FC", city: "Abuja" })).toMatchObject({
+      country: "NG",
+      state: "FCT",
+      city: "Abuja",
+      source: "ip"
+    });
+    expect(livePlaceFromIpFields({ countryCode: "NG", region: "LA", city: "Abuja" })).toMatchObject({
+      state: "FCT",
+      city: "Abuja"
+    });
+    expect(livePlaceFromIpFields({ countryCode: "NG", region: "RI", city: "Port Harcourt" })).toMatchObject({
+      state: "Rivers",
+      city: "Port Harcourt"
+    });
+  });
+
+  it("reads Vercel edge geo headers instead of looking up the function IP", () => {
+    const headers = new Headers({
+      "x-vercel-ip-country": "NG",
+      "x-vercel-ip-country-region": "FC",
+      "x-vercel-ip-city": "Abuja"
+    });
+    expect(placeFromEdgeHeaders(headers)).toMatchObject({ state: "FCT", city: "Abuja", source: "ip" });
+  });
+
+  it("does not remap Rivers to the old Port Harcourt hub label", () => {
+    expect(hubLabelForPlace({ state: "Rivers", city: "Obio-Akpor", neighbourhood: "", country: "NG" })).toBe(
+      "Obio-Akpor, Nigeria"
+    );
   });
 
   it("builds international hub paths from IP places", () => {

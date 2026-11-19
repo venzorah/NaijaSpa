@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { persistLivePlace } from "@/components/place-sync";
-import { DEFAULT_LIVE_PLACE, isDefaultLivePlace, normalizePlace, PLACE_COOKIE, parsePlaceCookie, type LivePlace } from "@/lib/nigeria";
+import { normalizePlace, PLACE_COOKIE, parsePlaceCookie, type LivePlace } from "@/lib/nigeria";
 import { inHref, needsLocationResolve, placeHasLocation } from "@/lib/place-urls";
 
 function readStoredPlace(): LivePlace | null {
@@ -52,29 +52,26 @@ export function LocationGate() {
       if (cancelled) return;
       const latest = readStoredPlace();
       if (latest?.source === "manual" || latest?.source === "gps") return;
-      if (placeKey(latest) !== originalPlace && latest && !isDefaultLivePlace(latest)) return;
-      const changed = placeKey(place) !== originalPlace;
       persistLivePlace(place);
       const path = window.location.pathname;
       if (path.startsWith("/explore")) {
-        if (changed) router.refresh();
+        if (placeKey(place) !== originalPlace) router.refresh();
         return;
       }
       if (placeHasLocation(place)) {
         const next = inHref(place);
-        if (path === "/" || (path.startsWith("/in/") && path !== next && isDefaultLivePlace(stored))) {
+        if (path === "/" || (path.startsWith("/in/") && path !== next)) {
           router.replace(next);
           return;
         }
       }
-      if (changed) router.refresh();
+      if (placeKey(place) !== originalPlace) router.refresh();
     };
 
     const detectIp = async () => {
       if (attempted.current) return;
       const current = readStoredPlace();
       if (current?.source === "manual" || current?.source === "gps") return;
-      if (current && !isDefaultLivePlace(current) && current.source === "ip") return;
       attempted.current = true;
       try {
         const res = await fetch("/api/geo/ip", { signal: controller.signal, cache: "no-store" });
@@ -88,7 +85,7 @@ export function LocationGate() {
           source: "ip"
         });
       } catch {
-        if (!current) persistLivePlace(DEFAULT_LIVE_PLACE);
+        /* leave unset until IP/edge geo succeeds — do not invent Lagos/Abuja/PH */
       }
     };
 

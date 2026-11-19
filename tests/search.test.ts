@@ -103,10 +103,10 @@ describe("demo therapist search", () => {
 });
 
 describe("default marketplace place", () => {
-  it("defaults to Abuja when nothing is stored", () => {
+  it("does not invent a city when nothing is stored", () => {
     expect(placeFromCookieOrDefault(null)).toEqual(DEFAULT_LIVE_PLACE);
     expect(isDefaultLivePlace(null)).toBe(true);
-    expect(hubLabelForPlace(null)).toBe("Abuja, Nigeria");
+    expect(hubLabelForPlace(null)).toBe("Choose location");
     expect(inPlaceHref(DEFAULT_LIVE_PLACE)).toBe("/in/fct/abuja");
   });
 });
@@ -116,7 +116,7 @@ describe("place URLs", () => {
     expect(needsLocationResolve("/")).toBe(true);
     expect(needsLocationResolve("/in/fct/abuja")).toBe(true);
     expect(needsLocationResolve("/explore/lagos")).toBe(true);
-    expect(needsLocationResolve("/in/lagos/lagos")).toBe(false);
+    expect(needsLocationResolve("/in/lagos/lagos")).toBe(true);
     expect(needsLocationResolve("/account")).toBe(false);
     expect(needsLocationResolve("/login")).toBe(false);
   });

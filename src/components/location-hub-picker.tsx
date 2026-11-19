@@ -5,14 +5,11 @@ import { useRouter } from "next/navigation";
 import { Check, ChevronDown, MapPin } from "lucide-react";
 import { BottomSheet } from "@/components/bottom-sheet";
 import { persistLivePlace, PLACE_EVENT } from "@/components/place-sync";
-import {
-  DEFAULT_MARKETPLACE_HUBS,
-  hubLabelForPlace,
-  hubToPlace,
-  type MarketplaceHub
-} from "@/lib/hubs";
-import { DEFAULT_LIVE_PLACE, formatPlaceLabel, PLACE_COOKIE, parsePlaceCookie, type LivePlace } from "@/lib/nigeria";
+import { hubLabelForPlace, hubToPlace, nigeriaStateHubs, type MarketplaceHub } from "@/lib/hubs";
+import { formatPlaceLabel, PLACE_COOKIE, parsePlaceCookie, type LivePlace } from "@/lib/nigeria";
 import { inHref } from "@/lib/place-urls";
+
+const STATE_HUBS = nigeriaStateHubs();
 
 function readStoredPlace(): LivePlace | null {
   try {
@@ -29,7 +26,7 @@ function readStoredPlace(): LivePlace | null {
 export function LocationHubPicker() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [hubs, setHubs] = useState<MarketplaceHub[]>(DEFAULT_MARKETPLACE_HUBS);
+  const [hubs] = useState<MarketplaceHub[]>(STATE_HUBS);
   const [place, setPlace] = useState<LivePlace | null>(null);
   const [detecting, setDetecting] = useState(true);
 
@@ -50,23 +47,34 @@ export function LocationHubPicker() {
     return () => window.removeEventListener(PLACE_EVENT, onPlace);
   }, []);
 
-  useEffect(() => {
-    if (!open) return;
-    fetch("/api/hubs")
-      .then((r) => r.json())
-      .then((data: { hubs?: MarketplaceHub[] }) => {
-        if (Array.isArray(data.hubs) && data.hubs.length) setHubs(data.hubs);
-      })
-      .catch(() => undefined);
-  }, [open]);
+  const label = detecting && !place ? "Locating…" : hubLabelForPlace(place);
 
-  const label = detecting && !place ? "Locating…" : hubLabelForPlace(place || DEFAULT_LIVE_PLACE, hubs);
-
-  function choose(next: LivePlace) {
-    persistLivePlace({ ...next, source: "manual" });
-    setPlace({ ...next, source: "manual" });
+  function choose(next: LivePlace, source: LivePlace["source"] = "manual") {
+    const stored = { ...next, source };
+    persistLivePlace(stored);
+    setPlace(stored);
     setOpen(false);
     router.push(inHref(next));
+  }
+
+  async function useDetected() {
+    setDetecting(true);
+    try {
+      const res = await fetch("/api/geo/ip", { cache: "no-store" });
+      const json = (await res.json()) as LivePlace & { error?: string };
+      if (!res.ok || json.error) return;
+      choose(
+        {
+          country: json.country || "",
+          state: json.state || "",
+          city: json.city || "",
+          neighbourhood: json.neighbourhood || ""
+        },
+        "ip"
+      );
+    } finally {
+      setDetecting(false);
+    }
   }
 
   return (
@@ -82,13 +90,18 @@ export function LocationHubPicker() {
         <span className="truncate">{label}</span>
         <ChevronDown className="h-3.5 w-3.5 shrink-0 text-ink2" aria-hidden />
       </button>
-      <BottomSheet open={open} onClose={() => setOpen(false)} title="Choose your city">
-        {place?.source === "ip" || formatPlaceLabel(place) ? (
-          <p className="mb-3 text-xs text-ink2">Detected: {formatPlaceLabel(place)}</p>
-        ) : null}
-        <ul className="space-y-2">
+      <BottomSheet open={open} onClose={() => setOpen(false)} title="Your location">
+        {place ? <p className="mb-3 text-xs text-ink2">Current: {formatPlaceLabel(place)}</p> : null}
+        <button
+          type="button"
+          onClick={() => void useDetected()}
+          className="mb-3 flex min-h-[48px] w-full items-center justify-center rounded-2xl border border-leaf/40 bg-leaf/10 px-4 text-sm font-semibold text-ink"
+        >
+          Use detected location
+        </button>
+        <ul className="max-h-[50vh] space-y-2 overflow-y-auto">
           {hubs.map((hub) => {
-            const selected = hubLabelForPlace(place, hubs) === hubLabelForPlace(hubToPlace(hub), hubs);
+            const selected = Boolean(place?.state === hub.state);
             return (
               <li key={hub.id}>
                 <button
@@ -108,7 +121,7 @@ export function LocationHubPicker() {
             );
           })}
         </ul>
-        <p className="mt-4 text-xs text-ink2">Lagos, Abuja, Port Harcourt, Delta and Anambra are live. Admin can add more states from Commercial.</p>
+        <p className="mt-4 text-xs text-ink2">We set this from your network location. Pick a state only if you want to browse somewhere else.</p>
       </BottomSheet>
     </>
   );

@@ -1,4 +1,4 @@
-import { formatPlaceLabel, mapNigeriaState, NIGERIA_STATES, normalizePlace, type LivePlace } from "./nigeria";
+import { formatPlaceLabel, mapNigeriaState, NIGERIA_STATES, type LivePlace } from "./nigeria";
 
 export const MARKETPLACE_HUBS_KEY = "marketplaceHubs";
 
@@ -10,23 +10,26 @@ export type MarketplaceHub = {
   locked?: boolean;
 };
 
-/** Always shown. Admin may append other Nigerian states. */
-export const DEFAULT_MARKETPLACE_HUBS: MarketplaceHub[] = [
-  { id: "abuja", label: "Abuja", state: "FCT", city: "Abuja", locked: true },
-  { id: "lagos", label: "Lagos", state: "Lagos", city: "", locked: true },
-  { id: "port-harcourt", label: "Port Harcourt", state: "Rivers", city: "Port Harcourt", locked: true },
-  { id: "delta", label: "Delta", state: "Delta", city: "", locked: true },
-  { id: "anambra", label: "Anambra", state: "Anambra", city: "", locked: true }
-];
+/** No preset marketplace cities. Location comes from IP/edge geo; visitors may pick any Nigerian state. */
+export const DEFAULT_MARKETPLACE_HUBS: MarketplaceHub[] = [];
 
 function hubId(state: string, city: string) {
   return [state, city].filter(Boolean).join("-").toLowerCase().replace(/\s+/g, "-");
 }
 
+export function nigeriaStateHubs(): MarketplaceHub[] {
+  return NIGERIA_STATES.map((state) => ({
+    id: hubId(state, ""),
+    label: state === "FCT" ? "Abuja" : state,
+    state,
+    city: state === "FCT" ? "Abuja" : state === "Lagos" ? "Lagos" : "",
+    locked: false
+  }));
+}
+
 export function extraHubFromState(raw: string): MarketplaceHub | null {
   const state = mapNigeriaState(raw);
   if (!state) return null;
-  if (DEFAULT_MARKETPLACE_HUBS.some((h) => h.state === state)) return null;
   const label = state === "FCT" ? "Abuja" : state;
   return { id: hubId(state, ""), label, state, city: "", locked: false };
 }
@@ -47,7 +50,6 @@ export function parseMarketplaceHubs(raw?: string | null): MarketplaceHub[] {
         const rec = item as Record<string, unknown>;
         const state = mapNigeriaState(String(rec.state || rec.label || ""));
         if (!state) continue;
-        if (DEFAULT_MARKETPLACE_HUBS.some((h) => h.state === state)) continue;
         if (extras.some((e) => e.state === state)) continue;
         extras.push({
           id: String(rec.id || hubId(state, String(rec.city || ""))),
@@ -58,28 +60,21 @@ export function parseMarketplaceHubs(raw?: string | null): MarketplaceHub[] {
         });
       }
     } catch {
-      /* keep defaults */
+      /* ignore broken admin JSON */
     }
   }
-  return [...DEFAULT_MARKETPLACE_HUBS, ...extras];
+  return extras;
 }
 
 export function hubToPlace(hub: MarketplaceHub): LivePlace {
-  return { state: hub.state, city: hub.city, neighbourhood: "" };
+  return { state: hub.state, city: hub.city, neighbourhood: "", country: "NG" };
 }
 
-export function hubLabelForPlace(place?: LivePlace | null, hubs: MarketplaceHub[] = DEFAULT_MARKETPLACE_HUBS) {
-  if (!place) return "Abuja, Nigeria";
-  const formatted = formatPlaceLabel(place);
-  const hit =
-    hubs.find((h) => h.state === place.state && normalizePlace(h.city) === normalizePlace(place.city) && h.city) ||
-    hubs.find((h) => h.state === place.state) ||
-    hubs.find((h) => normalizePlace(h.label) === normalizePlace(place.city));
-  if (hit) return formatPlaceLabel({ ...place, state: hit.state, city: hit.city || place.city || hit.label });
-  return formatted;
+export function hubLabelForPlace(place?: LivePlace | null) {
+  return formatPlaceLabel(place);
 }
 
-export function addableHubStates(hubs: MarketplaceHub[] = DEFAULT_MARKETPLACE_HUBS) {
+export function addableHubStates(hubs: MarketplaceHub[] = []) {
   const taken = new Set(hubs.map((h) => h.state));
   return NIGERIA_STATES.filter((s) => !taken.has(s));
 }
