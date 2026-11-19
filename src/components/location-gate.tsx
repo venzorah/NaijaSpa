@@ -81,7 +81,7 @@ export function LocationGate() {
       if (current?.source === "manual") return;
       attempted.current = true;
 
-      if (isUntrustedNetworkPlace(current) && (current.state || current.city)) {
+      if (isUntrustedNetworkPlace(current) && (current?.state || current?.city)) {
         persistLivePlace({ country: "NG", state: "", city: "", neighbourhood: "", source: "ip" });
       }
 
