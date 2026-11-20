@@ -73,13 +73,15 @@ export function SearchFiltersForm({
 
   useEffect(() => {
     const onPlace = (event: Event) => {
+      if (manualPlace.current) return;
       const next = (event as CustomEvent<LivePlace>).detail;
       if (!next) return;
       setPlace({
         state: next.state,
         city: next.city,
         neighbourhood: next.neighbourhood,
-        country: next.country
+        country: next.country,
+        source: next.source
       });
     };
     window.addEventListener(PLACE_EVENT, onPlace);

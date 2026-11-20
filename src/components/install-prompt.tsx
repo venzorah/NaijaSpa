@@ -3,48 +3,100 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Share, SquarePlus } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { GoldButton } from "./gold-button";
-import { isAppleMobile, isInAppBrowser, isStandaloneDisplay } from "@/lib/pwa-install";
-
-type BeforeInstall = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
+import {
+  INSTALL_SHOW_DELAY_MS,
+  NAIJASPA_CAN_INSTALL,
+  bindInstallPromptCapture,
+  isAppleMobile,
+  isInAppBrowser,
+  isInstallDismissed,
+  isStandaloneDisplay,
+  markInstallDismissed,
+  peekInstallPrompt,
+  takeInstallPrompt
+} from "@/lib/pwa-install";
 
 export function InstallPrompt() {
   const path = usePathname();
-  const [deferred, setDeferred] = useState<BeforeInstall | null>(null);
   const [open, setOpen] = useState(false);
   const [ios, setIos] = useState(false);
   const [inApp, setInApp] = useState(false);
   const [installed, setInstalled] = useState(false);
+  const [hint, setHint] = useState("");
+  const [busy, setBusy] = useState(false);
+  const shown = useRef(false);
 
   useEffect(() => {
-    const dismissed = localStorage.getItem("naijaspa-install-dismissed");
+    bindInstallPromptCapture();
     if (isStandaloneDisplay()) {
       setInstalled(true);
       return;
     }
+    if (isInstallDismissed()) return;
+
     const apple = isAppleMobile();
     setIos(apple);
     setInApp(isInAppBrowser());
-    const onBip = (e: Event) => {
-      e.preventDefault();
-      setDeferred(e as BeforeInstall);
-      if (!dismissed) setOpen(true);
+
+    let delayDone = false;
+    const maybeShow = () => {
+      if (!delayDone || shown.current || isInstallDismissed() || isStandaloneDisplay()) return;
+      if (!apple && !peekInstallPrompt() && !isInAppBrowser()) return;
+      shown.current = true;
+      setOpen(true);
     };
-    window.addEventListener("beforeinstallprompt", onBip);
-    window.addEventListener("appinstalled", () => {
+
+    const start = window.setTimeout(() => {
+      delayDone = true;
+      maybeShow();
+    }, INSTALL_SHOW_DELAY_MS);
+    const onReady = () => maybeShow();
+    const onInstalled = () => {
       setInstalled(true);
       setOpen(false);
-    });
-    if (apple && !dismissed) setTimeout(() => setOpen(true), 2500);
-    return () => window.removeEventListener("beforeinstallprompt", onBip);
+    };
+
+    window.addEventListener(NAIJASPA_CAN_INSTALL, onReady);
+    window.addEventListener("appinstalled", onInstalled);
+    return () => {
+      window.clearTimeout(start);
+      window.removeEventListener(NAIJASPA_CAN_INSTALL, onReady);
+      window.removeEventListener("appinstalled", onInstalled);
+    };
   }, []);
 
   if (!open || installed || path === "/install") return null;
 
   function dismiss() {
-    localStorage.setItem("naijaspa-install-dismissed", "1");
+    markInstallDismissed();
     setOpen(false);
+  }
+
+  async function install() {
+    if (busy) return;
+    const promptEvent = peekInstallPrompt();
+    if (!promptEvent) {
+      setHint("Open the Chrome menu and tap Install app / Add to Home screen.");
+      return;
+    }
+    setBusy(true);
+    try {
+      await promptEvent.prompt();
+      const choice = await promptEvent.userChoice;
+      takeInstallPrompt();
+      if (choice.outcome === "accepted") {
+        setOpen(false);
+        setInstalled(true);
+      } else {
+        dismiss();
+      }
+    } catch {
+      setHint("Open the Chrome menu and tap Install app / Add to Home screen.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -82,8 +134,7 @@ export function InstallPrompt() {
         </div>
       ) : (
         <p className="mt-2 text-sm text-ink2">
-          Your favourite spa and wellness experiences, one tap away. Discover treatments, manage appointments and enjoy a
-          smoother NaijaSpa experience.
+          {hint || "Your favourite spa and wellness experiences, one tap away. Discover treatments, manage appointments and enjoy a smoother NaijaSpa experience."}
         </p>
       )}
       <div className="mt-4 flex gap-2">
@@ -95,18 +146,8 @@ export function InstallPrompt() {
             How to install
           </Link>
         ) : (
-          <GoldButton
-            onClick={async () => {
-              if (deferred) {
-                await deferred.prompt();
-                const choice = await deferred.userChoice;
-                if (choice.outcome === "accepted") setOpen(false);
-              } else {
-                alert("Use your browser menu (Install app / Add to Home screen) to install NaijaSpa.");
-              }
-            }}
-          >
-            Install App
+          <GoldButton type="button" disabled={busy} onClick={() => void install()}>
+            {busy ? "Opening…" : "Install App"}
           </GoldButton>
         )}
         <button type="button" className="min-h-11 rounded-full border border-line px-4 text-sm font-semibold" onClick={dismiss}>

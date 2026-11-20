@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
+import { persistLivePlace } from "@/components/place-sync";
 import { NIGERIA_STATES, nigeriaStateLabel, type LivePlace } from "@/lib/nigeria";
 import { exploreHref, type FilterQuery } from "@/lib/place-urls";
 import { formatNgn, koboFromNaira } from "@/lib/money";
@@ -35,13 +36,16 @@ export function ExploreFilters({
     const nextState = patch.state !== undefined ? patch.state : place?.state;
     const stateChanged = patch.state !== undefined && patch.state !== (place?.state || "");
     const { state: _state, ...filterPatch } = patch;
+    const nextPlace = {
+      country: NIGERIA_STATES.includes((nextState || "") as (typeof NIGERIA_STATES)[number]) ? "NG" : place?.country || "",
+      state: nextState || "",
+      city: stateChanged ? "" : place?.city || "",
+      neighbourhood: stateChanged ? "" : place?.neighbourhood || ""
+    };
+    if (nextPlace.state || nextPlace.city) persistLivePlace({ ...nextPlace, source: "manual" });
     router.push(
       exploreHref(
-        {
-          state: nextState,
-          city: stateChanged ? "" : place?.city,
-          neighbourhood: stateChanged ? "" : place?.neighbourhood
-        },
+        nextPlace,
         {
           ...values,
           ...filterPatch,

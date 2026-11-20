@@ -58,6 +58,8 @@ export default async function ExplorePage({
     q: filters.q,
     country: activePlace?.country,
     state: searchedState || activePlace?.state,
+    city: activePlace?.city,
+    neighbourhood: activePlace?.neighbourhood,
     gender,
     category: filters.category,
     minPrice: filters.minPrice ? koboFromNaira(Number(filters.minPrice)) : undefined,

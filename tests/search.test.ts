@@ -30,6 +30,15 @@ describe("exact place matching", () => {
     expect(vendorMatchesPlace({ state: "England", city: "London", neighbourhood: "" }, { country: "GB", city: "London" })).toBe(true);
     expect(vendorMatchesPlace({ state: "England", city: "Birmingham", neighbourhood: "" }, { country: "GB", city: "London" })).toBe(false);
   });
+
+  it("narrows to an area when Use my location supplies a neighbourhood", () => {
+    const lagos = demoSearch({ state: "Lagos" });
+    const ikoyi = demoSearch({ state: "Lagos", neighbourhood: "Ikoyi" });
+    expect(ikoyi.results.length).toBeGreaterThan(0);
+    expect(ikoyi.results.length).toBeLessThan(lagos.results.length);
+    expect(ikoyi.results.some((r) => r.vendor.businessName === "Osun Wellness Spa")).toBe(true);
+    expect(ikoyi.results.every((r) => r.vendor.state === "Lagos")).toBe(true);
+  });
 });
 
 describe("demo therapist search", () => {
