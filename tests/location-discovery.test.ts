@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { canApplyDetectedPlace, livePlaceFromIpFields, placeFromEdgeHeaders } from "../src/lib/geo-ip";
 import { hubLabelForPlace } from "../src/lib/hubs";
 import { placeFromCoordinates } from "../src/lib/ng-coordinates";
-import { formatPlaceLabel, navPlaceLabel, placeFromNominatim, vendorMatchesPlace } from "../src/lib/nigeria";
+import { formatPlaceLabel, navPlaceLabel, placeFromNominatim, stateBrowsePlace, vendorMatchesPlace } from "../src/lib/nigeria";
 import { inHref, parsePlacePath } from "../src/lib/place-urls";
 import { demoSearch } from "../src/lib/demo-catalog";
 
@@ -21,6 +21,14 @@ describe("automatic location labels", () => {
     expect(navPlaceLabel({ country: "GB", state: "England", city: "London", neighbourhood: "", source: "gps" })).toBe(
       "London, United Kingdom"
     );
+  });
+
+  it("treats OSM villages like Dutsen Alhaji as the FCT hub for homepage browse", () => {
+    const village = { country: "NG", state: "FCT", city: "Dutsen Alhaji", neighbourhood: "", source: "gps" as const };
+    expect(stateBrowsePlace(village)).toMatchObject({ state: "FCT", city: "Abuja", neighbourhood: "" });
+    const vendor = { state: "FCT", city: "Abuja", neighbourhood: "Garki" };
+    expect(vendorMatchesPlace(vendor, village)).toBe(false);
+    expect(vendorMatchesPlace(vendor, stateBrowsePlace(village)!)).toBe(true);
   });
 
   it("maps device coordinates in Abuja and Lagos to those cities", () => {

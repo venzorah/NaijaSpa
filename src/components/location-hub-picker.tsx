@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { MapPin } from "lucide-react";
 import { detectBrowserIpPlace, detectGpsPlace, detectServerIpPlace } from "@/components/detect-live-place";
 import { persistLivePlace, PLACE_EVENT } from "@/components/place-sync";
-import { navPlaceLabel, PLACE_COOKIE, parsePlaceCookie, type LivePlace } from "@/lib/nigeria";
+import { navPlaceLabel, PLACE_COOKIE, parsePlaceCookie, stateBrowsePlace, type LivePlace } from "@/lib/nigeria";
 import { inHref } from "@/lib/place-urls";
 
 function readStoredPlace(): LivePlace | null {
@@ -29,7 +29,7 @@ export function LocationHubPicker() {
   useEffect(() => {
     const stored = readStoredPlace();
     if (stored && (stored.state || stored.city) && stored.source === "gps") {
-      setPlace(stored);
+      setPlace(stored.neighbourhood ? stored : stateBrowsePlace(stored) ?? stored);
       setDetecting(false);
     }
     const onPlace = (event: Event) => {
@@ -41,6 +41,14 @@ export function LocationHubPicker() {
     };
     window.addEventListener(PLACE_EVENT, onPlace);
     if (stored?.source === "gps" && (stored.state || stored.city)) {
+      if (!stored.neighbourhood) {
+        const hub = stateBrowsePlace(stored);
+        if (hub && (hub.city !== stored.city || hub.state !== stored.state)) {
+          persistLivePlace(hub);
+          setPlace(hub);
+          router.replace(inHref(hub));
+        }
+      }
       return () => window.removeEventListener(PLACE_EVENT, onPlace);
     }
     void (async () => {
@@ -49,7 +57,7 @@ export function LocationHubPicker() {
       inFlight.current = true;
       setDetecting(true);
       try {
-        const next = await detectGpsPlace();
+        const next = stateBrowsePlace(await detectGpsPlace());
         if (!next || (!next.state && !next.city)) return;
         persistLivePlace(next);
         setPlace(next);
@@ -69,7 +77,7 @@ export function LocationHubPicker() {
     inFlight.current = true;
     setDetecting(true);
     try {
-      const next = (await detectGpsPlace()) || (await detectBrowserIpPlace()) || (await detectServerIpPlace());
+      const next = stateBrowsePlace((await detectGpsPlace()) || (await detectBrowserIpPlace()) || (await detectServerIpPlace()));
       if (!next || (!next.state && !next.city)) return;
       persistLivePlace(next);
       setPlace(next);

@@ -32,7 +32,7 @@ import {
   type NearbyVendor
 } from "./home-types";
 import { publicVideoLinks } from "./galleries";
-import { filterByServiceArea, sortByPlace, type LivePlace } from "./nigeria";
+import { filterByServiceArea, sortByPlace, stateBrowsePlace, type LivePlace } from "./nigeria";
 import { type HomeHeroPayload } from "./home-hero";
 import {
   collectedManualServiceIds,
@@ -120,7 +120,8 @@ function demoHomePayload(limits: HomeFeedConfig, place?: LivePlace | null, hero?
 }
 
 function placeCacheKey(place?: LivePlace | null) {
-  return `${place?.state ?? ""}|${place?.city ?? ""}|${place?.neighbourhood ?? ""}`;
+  const hub = stateBrowsePlace(place);
+  return `${hub?.state ?? ""}|${hub?.city ?? ""}|`;
 }
 
 export type PublicCategory = {
@@ -170,7 +171,8 @@ export async function getHomeCatalog(place?: LivePlace | null) {
   })();
 }
 
-async function loadHomeCatalog(place: LivePlace | null) {
+async function loadHomeCatalog(rawPlace: LivePlace | null) {
+  const place = stateBrowsePlace(rawPlace);
   const [limits, hero, layout] = await withTimeout(
     Promise.all([resolveHomeFeedLimits(), resolveHomeHero(), resolveHomeSections()]),
     4000

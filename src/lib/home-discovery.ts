@@ -1,12 +1,13 @@
 import { unstable_cache } from "next/cache";
 import { prisma } from "./db";
-import { serviceAreaState, type LivePlace } from "./nigeria";
+import { serviceAreaState, stateBrowsePlace, type LivePlace } from "./nigeria";
 import { LIVE_SERVICE_WHERE, liveVendorWhereForPlace } from "./vendor-public-profile";
 
 export function getHomeDiscovery(place: LivePlace | null) {
-  const state = serviceAreaState(place);
+  const browse = stateBrowsePlace(place);
+  const state = serviceAreaState(browse);
   return unstable_cache(async () => {
-    const vendor = liveVendorWhereForPlace(place);
+    const vendor = liveVendorWhereForPlace(browse);
     const service = { ...LIVE_SERVICE_WHERE, vendor };
     const now = new Date();
     const [ranked, verified, collections, reviews, promotions] = await Promise.all([
@@ -26,5 +27,5 @@ export function getHomeDiscovery(place: LivePlace | null) {
       verified, collections, reviews,
       promotions: promotions.filter(p => p.maxRedemptions == null || p.usedCount < p.maxRedemptions).slice(0, 2).map(p => ({ ...p, endsAt: p.endsAt.toISOString() }))
     };
-  }, ["home-discovery", state, place?.city || "", place?.country || ""], { revalidate: 120, tags: ["home-catalog"] })();
+  }, ["home-discovery", state, browse?.city || "", browse?.country || ""], { revalidate: 120, tags: ["home-catalog"] })();
 }

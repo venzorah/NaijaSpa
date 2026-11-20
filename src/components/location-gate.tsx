@@ -10,7 +10,7 @@ import {
 } from "@/components/detect-live-place";
 import { persistLivePlace } from "@/components/place-sync";
 import { isUntrustedNetworkPlace } from "@/lib/geo-ip";
-import { normalizePlace, PLACE_COOKIE, parsePlaceCookie, type LivePlace } from "@/lib/nigeria";
+import { normalizePlace, PLACE_COOKIE, parsePlaceCookie, stateBrowsePlace, type LivePlace } from "@/lib/nigeria";
 import { inHref, needsLocationResolve, placeHasLocation } from "@/lib/place-urls";
 
 function readStoredPlace(): LivePlace | null {
@@ -63,12 +63,19 @@ export function LocationGate() {
       if (attempted.current) return;
       const current = readStoredPlace();
       if (current?.source === "manual") return;
-      if (current?.source === "gps" && (current.state || current.city)) return;
+      if (current?.source === "gps" && current.neighbourhood) return;
+      if (current?.source === "gps" && (current.state || current.city)) {
+        const hub = stateBrowsePlace(current);
+        attempted.current = true;
+        if (hub && (hub.city !== current.city || hub.state !== current.state)) applyPlace(hub);
+        return;
+      }
       attempted.current = true;
 
       const gps = await detectGpsPlace(controller.signal);
-      if (gps && (gps.state || gps.city)) {
-        applyPlace(gps);
+      const hub = gps ? stateBrowsePlace(gps) : null;
+      if (hub && (hub.state || hub.city)) {
+        applyPlace(hub);
         return;
       }
       if (cancelled || current?.source === "gps") return;

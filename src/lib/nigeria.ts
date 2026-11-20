@@ -83,6 +83,20 @@ export function formatPlaceLabel(place?: LivePlace | null) {
   return local || country || "Choose location";
 }
 
+/** Auto home/browse: whole Nigerian state, not a village OSM used as the city. */
+export function stateBrowsePlace(place?: LivePlace | null): LivePlace | null {
+  if (!place) return null;
+  const ng = mapNigeriaState(place.state) || mapNigeriaState(place.city);
+  if (!ng) return { ...place, neighbourhood: place.neighbourhood || "" };
+  return {
+    country: "NG",
+    state: ng,
+    city: ng === "FCT" ? "Abuja" : ng === "Lagos" ? "Lagos" : "",
+    neighbourhood: "",
+    source: place.source
+  };
+}
+
 /** Top bar: Abuja, Nigeria / Lagos, Nigeria from the detected state or city. */
 export function navPlaceLabel(place?: LivePlace | null) {
   if (place?.source === "ip") return "Locating…";

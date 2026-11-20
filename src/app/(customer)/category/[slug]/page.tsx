@@ -10,7 +10,7 @@ import { EmptyState } from "@/components/empty-state";
 import { formatNgn } from "@/lib/money";
 import { CategoryCarousel } from "@/components/category-carousel";
 import { cookies } from "next/headers";
-import { PLACE_COOKIE, placeFromCookieOrDefault } from "@/lib/nigeria";
+import { PLACE_COOKIE, placeFromCookieOrDefault, stateBrowsePlace } from "@/lib/nigeria";
 import { exploreHref } from "@/lib/place-urls";
 
 export const dynamic = "force-dynamic";
@@ -30,16 +30,17 @@ export default async function CategoryLandingPage({ params }: { params: Promise<
   const categories = await getPublicCategories();
   const cat = matchCategory(categories, rawSlug);
   const place = placeFromCookieOrDefault((await cookies()).get(PLACE_COOKIE)?.value);
-  if (!cat) redirect(exploreHref(place, { category: rawSlug }));
-  const exploreWithCategory = exploreHref(place, { category: cat.slug });
+  const browse = stateBrowsePlace(place) ?? place;
+  if (!cat) redirect(exploreHref(browse, { category: rawSlug }));
+  const exploreWithCategory = exploreHref(browse, { category: cat.slug });
   const data = await searchServices({
     category: cat.slug,
     take: 24,
     sort: "rating",
-    country: place.country,
-    state: place.state,
-    city: place.city,
-    neighbourhood: place.neighbourhood,
+    country: browse.country,
+    state: browse.state,
+    city: browse.city,
+    neighbourhood: "",
     rankPlace: place
   });
   const from = data.results.length ? Math.min(...data.results.map((r) => r.quote.customerTotalKobo)) : 0;

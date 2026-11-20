@@ -10,7 +10,7 @@ import { ExploreSearchBar } from "@/components/explore-search-bar";
 import { EmptyState } from "@/components/empty-state";
 import { SearchX } from "lucide-react";
 import { listExploreCities, searchServices } from "@/lib/search";
-import { PLACE_COOKIE, nigeriaStateLabel, placeFromCookieOrDefault, serviceAreaState } from "@/lib/nigeria";
+import { PLACE_COOKIE, nigeriaStateLabel, placeFromCookieOrDefault, serviceAreaState, stateBrowsePlace } from "@/lib/nigeria";
 import { demoCategories } from "@/lib/demo-catalog";
 import type { LocationType } from "@/lib/commercial";
 import type { TherapistGender } from "@/lib/nigeria";
@@ -49,11 +49,15 @@ export default async function ExplorePage({
   const gender = filters.gender === "male" || filters.gender === "female" ? (filters.gender as TherapistGender) : undefined;
   const nationwide = (Array.isArray(sp.state) ? sp.state[0] : sp.state) === "all";
   const explicitPlace = !nationwide && placeHasLocation(pathPlace);
-  const activePlace = nationwide ? null : explicitPlace ? pathPlace : stored;
+  const rawPlace = nationwide ? null : explicitPlace ? pathPlace : stored;
+  const activePlace = rawPlace && !rawPlace.neighbourhood ? stateBrowsePlace(rawPlace) : rawPlace;
   const searchedCity = activePlace?.city || undefined;
   const searchedState = serviceAreaState(activePlace) || undefined;
   const rankPlace = activePlace;
   const filterPlace = activePlace;
+  if (explicitPlace && pathPlace && !pathPlace.neighbourhood && activePlace && placePath(activePlace) !== placePath(pathPlace)) {
+    redirect(exploreHref(activePlace, filters));
+  }
   const data = await searchServices({
     q: filters.q,
     country: activePlace?.country,
