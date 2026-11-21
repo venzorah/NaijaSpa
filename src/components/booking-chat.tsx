@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ImagePlus, MessageCircle, Send, X } from "lucide-react";
-import { CHAT_IMAGE_MAX_BYTES } from "@/lib/chat-images";
+import { CHAT_IMAGE_MAX_BYTES, CHAT_IMAGE_SIZE_LABEL } from "@/lib/chat-images";
 import { ProtectedChatPhoto } from "@/components/protected-chat-photo";
 
 type ChatRow = {
@@ -51,7 +51,7 @@ export function BookingChat({
   const load = useCallback(async () => {
     const gen = ++fetchGen.current;
     try {
-      const res = await fetch(path, { cache: "no-store" });
+      const res = await fetch(path, { cache: "no-store", credentials: "include" });
       const json = await res.json();
       if (gen !== fetchGen.current) return;
       if (res.status === 403) {
@@ -80,7 +80,7 @@ export function BookingChat({
 
   function pickPhoto(file: File | null) {
     if (file && file.size > CHAT_IMAGE_MAX_BYTES) {
-      setError("Photos must be 2 MB or smaller.");
+      setError(`Photos must be ${CHAT_IMAGE_SIZE_LABEL} or smaller.`);
       if (fileRef.current) fileRef.current.value = "";
       setPhoto(null);
       return;
@@ -94,7 +94,7 @@ export function BookingChat({
     const body = draft.trim();
     if (readOnly || (!body && !photo) || busy) return;
     if (photo && photo.size > CHAT_IMAGE_MAX_BYTES) {
-      setError("Photos must be 2 MB or smaller.");
+      setError(`Photos must be ${CHAT_IMAGE_SIZE_LABEL} or smaller.`);
       return;
     }
     setBusy(true);
@@ -106,22 +106,31 @@ export function BookingChat({
         const form = new FormData();
         if (body) form.set("body", body);
         form.set("file", photo);
-        res = await fetch(path, { method: "POST", body: form });
+        res = await fetch(path, { method: "POST", body: form, credentials: "include" });
       } else {
         res = await fetch(path, {
           method: "POST",
+          credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ body })
         });
       }
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Could not send.");
+      const text = await res.text();
+      let json: { error?: string; message?: ChatRow } = {};
+      try {
+        json = text ? (JSON.parse(text) as typeof json) : {};
+      } catch {
+        json = {};
+      }
+      if (!res.ok) throw new Error(json.error || (res.status === 413 ? `Photos must be ${CHAT_IMAGE_SIZE_LABEL} or smaller.` : "Could not send the photo."));
+      if (!json.message?.id) throw new Error("Could not send the photo.");
       setDraft("");
       setPhoto(null);
       if (fileRef.current) fileRef.current.value = "";
-      setMessages((rows) => (rows.some((row) => row.id === json.message.id) ? rows : [...rows, json.message]));
+      setMessages((rows) => (rows.some((row) => row.id === json.message!.id) ? rows : [...rows, json.message!]));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not send.");
+      const message = err instanceof Error ? err.message : "Could not send.";
+      setError(/failed to fetch|networkerror|load failed/i.test(message) ? `Could not send the photo. Try a JPEG or PNG under ${CHAT_IMAGE_SIZE_LABEL}.` : message);
     } finally {
       setBusy(false);
     }
@@ -148,8 +157,8 @@ export function BookingChat({
           </h2>
           <p className="mt-1 text-xs text-ink2">
             {readOnly
-              ? "Read only. Photos delete 10 minutes after they are sent."
-              : "Photos delete 10 minutes after they are sent. Saving and screenshots are blocked in NaijaSpa."}
+              ? "Read only. Photos delete after 5 minutes and are not kept in storage. Saving and screenshots are not allowed."
+              : "Photos delete after 5 minutes and are not kept in storage. Saving and screenshots are not allowed."}
           </p>
         </>
       )}
@@ -167,7 +176,7 @@ export function BookingChat({
               {label ? <p className={`mb-1 text-[10px] font-semibold ${outgoing ? "text-white/70" : "text-ink2"}`}>{label}</p> : null}
               {m.hasImage ? <ProtectedChatPhoto src={`${path}/${m.id}/image`} expiresAt={m.imageExpiresAt || null} mine={outgoing} /> : null}
               {m.imageExpired && !m.hasImage ? (
-                <p className={`text-xs ${outgoing ? "text-white/80" : "text-ink2"}`}>Photo expired after 10 minutes.</p>
+                <p className={`text-xs ${outgoing ? "text-white/80" : "text-ink2"}`}>This photo was deleted.</p>
               ) : null}
               {m.body ? <p className={m.hasImage || m.imageExpired ? "mt-1" : ""}>{m.body}</p> : null}
             </div>

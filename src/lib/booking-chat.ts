@@ -3,7 +3,8 @@ import { z } from "zod";
 import { prisma } from "./db";
 import { bookingUnlocksVendorContact } from "./commercial";
 import { detectImageMime } from "./galleries";
-import { CHAT_IMAGE_MAX_BYTES, chatImageExpiresAt, isChatImageLive, mapChatMessage } from "./chat-images";
+import { formImage } from "./form-file";
+import { CHAT_IMAGE_MAX_BYTES, CHAT_IMAGE_SIZE_LABEL, chatImageExpiresAt, isChatImageLive, mapChatMessage } from "./chat-images";
 
 export { mapChatMessage } from "./chat-images";
 
@@ -192,8 +193,8 @@ export async function readAdminChatImage(bookingId: string, messageId: string) {
   if (!row) {
     throw Object.assign(new Error("Photo not found."), { status: 404 });
   }
-  if (!row.imagePayload || !isChatImageLive(row.imageExpiresAt)) {
-    throw Object.assign(new Error("This photo has expired."), { status: 410 });
+  if (!row.imagePayload) {
+    throw Object.assign(new Error("Photo not found."), { status: 404 });
   }
   const bytes = Buffer.isBuffer(row.imagePayload) ? row.imagePayload : Buffer.from(row.imagePayload);
   return { bytes, mime: row.imageMime || "image/jpeg" };
@@ -241,32 +242,37 @@ export async function postBookingChatImage(
   vendorId?: string
 ) {
   if (bytes.byteLength > CHAT_IMAGE_MAX_BYTES) {
-    throw Object.assign(new Error("Photos must be 2 MB or smaller."), { status: 400 });
+    throw Object.assign(new Error(`Photos must be ${CHAT_IMAGE_SIZE_LABEL} or smaller.`), { status: 400 });
   }
   const mime = detectImageMime(bytes);
   if (!mime) {
     throw Object.assign(new Error("Use a JPEG, PNG, WebP or GIF photo."), { status: 400 });
   }
   const booking = await loadPaidBookingChat(bookingId, party, userId, vendorId);
-  const id = messageId();
   const createdAt = new Date();
   const expiresAt = chatImageExpiresAt(createdAt);
-  const payload = Buffer.from(bytes);
-  await prisma.$executeRaw`
-    INSERT INTO "BookingMessage" (
-      id, "bookingId", "senderId", body, "createdAt", "imageMime", "imagePayload", "imageExpiresAt"
-    ) VALUES (
-      ${id}, ${booking.id}, ${userId}, ${caption}, ${createdAt}, ${mime}, ${payload}, ${expiresAt}
-    )
-  `;
-  await notifyChat(booking, party, caption || "Sent a photo (expires in 10 minutes)");
-  return {
-    booking,
-    message: mapChatMessage(
-      { id, senderId: userId, body: caption, createdAt, hasImage: true, imageExpiresAt: expiresAt },
-      userId
-    )
-  };
+  try {
+    const message = await prisma.bookingMessage.create({
+      data: {
+        id: messageId(),
+        bookingId: booking.id,
+        senderId: userId,
+        body: caption,
+        createdAt,
+        imageMime: mime,
+        imagePayload: Buffer.from(bytes),
+        imageExpiresAt: expiresAt
+      },
+      select: { id: true, senderId: true, body: true, createdAt: true, imageExpiresAt: true }
+    });
+    await notifyChat(booking, party, caption || "Sent a photo");
+    return { booking, message: mapChatMessage({ ...message, hasImage: true }, userId) };
+  } catch (error) {
+    if (missingChatImageColumn(error)) {
+      throw Object.assign(new Error("Photo chat is not available yet. Restart the app after the latest update."), { status: 503 });
+    }
+    throw error;
+  }
 }
 
 export async function readLiveChatImage(
@@ -289,7 +295,7 @@ export async function readLiveChatImage(
     throw Object.assign(new Error("Photo not found."), { status: 404 });
   }
   if (!row.imagePayload || !isChatImageLive(row.imageExpiresAt)) {
-    throw Object.assign(new Error("This photo has expired."), { status: 410 });
+    throw Object.assign(new Error("This photo was deleted."), { status: 410 });
   }
   const bytes = Buffer.isBuffer(row.imagePayload) ? row.imagePayload : Buffer.from(row.imagePayload);
   return { bytes, mime: row.imageMime || "image/jpeg", expiresAt: row.imageExpiresAt };
@@ -297,20 +303,20 @@ export async function readLiveChatImage(
 
 export async function parseBookingChatPost(req: Request) {
   const type = req.headers.get("content-type") || "";
-  if (type.includes("multipart/form-data")) {
-    const form = await req.formData();
-    const caption = bookingMessageCaption.parse(String(form.get("body") || ""));
-    const file = form.get("file");
-    if (!(file instanceof File) || file.size < 1) {
-      if (!caption) throw Object.assign(new Error("Write a message or attach a photo."), { status: 400 });
-      return { kind: "text" as const, body: bookingMessageBody.parse(caption) };
-    }
-    if (file.size > CHAT_IMAGE_MAX_BYTES) {
-      throw Object.assign(new Error("Photos must be 2 MB or smaller."), { status: 400 });
-    }
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    return { kind: "image" as const, caption, bytes };
+  if (type.includes("application/json")) {
+    const json = z.object({ body: bookingMessageBody }).parse(await req.json());
+    return { kind: "text" as const, body: json.body };
   }
-  const json = z.object({ body: bookingMessageBody }).parse(await req.json());
-  return { kind: "text" as const, body: json.body };
+  const form = await req.formData();
+  const caption = bookingMessageCaption.parse(String(form.get("body") || ""));
+  const file = formImage(form);
+  if (!file) {
+    if (!caption) throw Object.assign(new Error("Write a message or attach a photo."), { status: 400 });
+    return { kind: "text" as const, body: bookingMessageBody.parse(caption) };
+  }
+  if (file.size > CHAT_IMAGE_MAX_BYTES) {
+    throw Object.assign(new Error(`Photos must be ${CHAT_IMAGE_SIZE_LABEL} or smaller.`), { status: 400 });
+  }
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  return { kind: "image" as const, caption, bytes };
 }

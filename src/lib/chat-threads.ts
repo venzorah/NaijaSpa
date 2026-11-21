@@ -32,12 +32,12 @@ function mapThread(
     customer: { name: string };
     vendor: { businessName: string };
     service: { name: string };
-    messages: Array<{ body: string; createdAt: Date; imageExpiresAt: Date | null }>;
+    messages: Array<{ body: string; createdAt: Date; imageMime?: string | null; imageExpiresAt?: Date | null }>;
   },
   peer: "customer" | "vendor"
 ): ChatThread {
   const last = row.messages[0];
-  const hasLiveImage = Boolean(last && isChatImageLive(last.imageExpiresAt));
+  const hasLiveImage = Boolean(last?.imageMime) && isChatImageLive(last?.imageExpiresAt);
   return {
     bookingId: row.id,
     peerName: peer === "customer" ? row.vendor.businessName : row.customer.name,
@@ -60,7 +60,7 @@ const threadSelect = {
   messages: {
     orderBy: { createdAt: "desc" as const },
     take: 1,
-    select: { body: true, createdAt: true, imageExpiresAt: true }
+    select: { body: true, createdAt: true, imageMime: true, imageExpiresAt: true }
   }
 };
 

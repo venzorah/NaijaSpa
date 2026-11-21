@@ -9,7 +9,7 @@ export function ProtectedChatPhoto({
   mine
 }: {
   src: string;
-  expiresAt: string | null;
+  expiresAt?: string | null;
   mine: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -17,7 +17,7 @@ export function ProtectedChatPhoto({
 
   useEffect(() => {
     const markExpired = () => {
-      if (!isChatImageLive(expiresAt)) setStatus("expired");
+      if (expiresAt && !isChatImageLive(expiresAt)) setStatus("expired");
     };
     markExpired();
     const tick = window.setInterval(markExpired, 5000);
@@ -25,7 +25,7 @@ export function ProtectedChatPhoto({
   }, [expiresAt]);
 
   useEffect(() => {
-    if (!isChatImageLive(expiresAt)) {
+    if (expiresAt && !isChatImageLive(expiresAt)) {
       setStatus("expired");
       return;
     }
@@ -33,13 +33,14 @@ export function ProtectedChatPhoto({
     const ac = new AbortController();
     (async () => {
       try {
-        const res = await fetch(src, { cache: "no-store", credentials: "same-origin", signal: ac.signal });
+        const res = await fetch(src, { cache: "no-store", credentials: "include", signal: ac.signal });
         if (res.status === 410) {
           setStatus("expired");
           return;
         }
         if (!res.ok) throw new Error("unavailable");
         const blob = await res.blob();
+        if (!blob.type.startsWith("image/")) throw new Error("unavailable");
         const url = URL.createObjectURL(blob);
         revoked = url;
         const image = new Image();
@@ -66,7 +67,7 @@ export function ProtectedChatPhoto({
         ctx.fillStyle = "rgba(255,255,255,0.28)";
         for (let y = -40; y < canvas.height + 80; y += 42) {
           for (let x = -80; x < canvas.width + 120; x += 148) {
-            ctx.fillText("NaijaSpa · expires", x, y);
+            ctx.fillText("NaijaSpa", x, y);
           }
         }
         ctx.restore();
@@ -82,7 +83,7 @@ export function ProtectedChatPhoto({
   }, [src, expiresAt]);
 
   if (status === "expired") {
-    return <p className={`text-xs ${mine ? "text-white/80" : "text-ink2"}`}>Photo expired after 10 minutes.</p>;
+    return <p className={`text-xs ${mine ? "text-white/80" : "text-ink2"}`}>This photo was deleted.</p>;
   }
 
   return (

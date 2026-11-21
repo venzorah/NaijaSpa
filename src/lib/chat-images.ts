@@ -1,12 +1,13 @@
-export const CHAT_IMAGE_TTL_MS = 10 * 60 * 1000;
-export const CHAT_IMAGE_MAX_BYTES = 2 * 1024 * 1024;
+export const CHAT_IMAGE_TTL_MS = 5 * 60 * 1000;
+export const CHAT_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
+export const CHAT_IMAGE_SIZE_LABEL = "5 MB";
 
-export function chatImageExpiresAt(sharedAt: Date, now = new Date()) {
+export function chatImageExpiresAt(sharedAt: Date) {
   return new Date(sharedAt.getTime() + CHAT_IMAGE_TTL_MS);
 }
 
 export function isChatImageLive(expiresAt: Date | string | null | undefined, now = new Date()) {
-  if (!expiresAt) return false;
+  if (!expiresAt) return true;
   const expires = typeof expiresAt === "string" ? new Date(expiresAt) : expiresAt;
   const at = expires.getTime();
   return Number.isFinite(at) && at > now.getTime();
