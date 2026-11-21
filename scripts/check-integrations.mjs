@@ -25,7 +25,7 @@ if (selected("config")) {
     paystackSecretMode: mode(secret, "sk"), paystackPublicMode: mode(publicKey, "pk"),
     googleOAuth: configured("GOOGLE_CLIENT_ID") && configured("GOOGLE_CLIENT_SECRET"),
     smtp: configured("SMTP_HOST") && configured("SMTP_USER") && configured("SMTP_PASS"),
-    resend: configured("RESEND_API_KEY"), openai: configured("OPENAI_API_KEY"), gemini: configured("GEMINI_API_KEY"),
+    resend: configured("RESEND_API_KEY"), resendFrom: configured("RESEND_FROM_EMAIL") || configured("MAIL_FROM"), openai: configured("OPENAI_API_KEY"), gemini: configured("GEMINI_API_KEY"),
     push: configured("VAPID_PUBLIC_KEY") && configured("VAPID_PRIVATE_KEY"),
     jobSecret: ["CRON_SECRET", "INTERNAL_JOB_SECRET"].some((k) => configured(k) && !/replace/i.test(process.env[k]))
   });

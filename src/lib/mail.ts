@@ -1,14 +1,23 @@
 import { appUrl } from "./payments";
 
-export const MAIL_FROM_ADDRESS = "notification@naijaspa.com";
+export const MAIL_FROM_ADDRESS = "notification@notifications.naijaspa.com";
 export const MAIL_FROM_NAME = "NaijaSpa";
+export const MAIL_REPLY_TO_DEFAULT = "support@naijaspa.com";
+
+function envValue(...keys: string[]) {
+  for (const key of keys) {
+    const value = process.env[key]?.trim();
+    if (value) return value;
+  }
+  return "";
+}
 
 export function mailFrom() {
-  return process.env.MAIL_FROM?.trim() || `${MAIL_FROM_NAME} <${MAIL_FROM_ADDRESS}>`;
+  return envValue("RESEND_FROM_EMAIL", "MAIL_FROM") || `${MAIL_FROM_NAME} <${MAIL_FROM_ADDRESS}>`;
 }
 
 export function mailReplyTo() {
-  return process.env.MAIL_REPLY_TO?.trim() || MAIL_FROM_ADDRESS;
+  return envValue("RESEND_REPLY_TO", "MAIL_REPLY_TO") || MAIL_REPLY_TO_DEFAULT;
 }
 
 export function brandLogoUrl() {

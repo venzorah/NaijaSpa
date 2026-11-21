@@ -95,7 +95,7 @@ if (present("VAPID_PUBLIC_KEY") && present("VAPID_PRIVATE_KEY")) {
     validPushPair = privateBytes.length === 32 && publicBytes.length === 65 && verifier.getPublicKey().equals(publicBytes);
   } catch { /* Report invalid without printing key material. */ }
 }
-const names = ["SMTP_HOST", "SMTP_PORT", "SMTP_SECURE", "SMTP_USER", "SMTP_PASS", "MAIL_FROM", "MAIL_REPLY_TO", "RESEND_API_KEY",
+const names = ["SMTP_HOST", "SMTP_PORT", "SMTP_SECURE", "SMTP_USER", "SMTP_PASS", "MAIL_FROM", "MAIL_REPLY_TO", "RESEND_API_KEY", "RESEND_FROM_EMAIL", "RESEND_REPLY_TO", "RESEND_WEBHOOK_SECRET",
   "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "OPENAI_API_KEY", "GEMINI_API_KEY", "VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY", "VAPID_SUBJECT",
   "R2_ACCOUNT_ID", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_BUCKET_NAME", "OTP_HASH_SECRET", "REDIS_URL", "UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"];
 console.log(JSON.stringify({ check: "credential-readiness", variables: Object.fromEntries(names.map((key) => [key, present(key)])),

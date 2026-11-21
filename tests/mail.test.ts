@@ -1,18 +1,40 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   MAIL_FROM_ADDRESS,
+  MAIL_REPLY_TO_DEFAULT,
   brandLogoUrl,
   brandedEmailHtml,
   mailFrom,
+  mailReplyTo,
   passwordResetEmail,
   vendorInviteEmail,
   welcomeEmail
 } from "../src/lib/mail";
 
+const original = {
+  RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL,
+  MAIL_FROM: process.env.MAIL_FROM,
+  RESEND_REPLY_TO: process.env.RESEND_REPLY_TO,
+  MAIL_REPLY_TO: process.env.MAIL_REPLY_TO
+};
+
+afterEach(() => {
+  for (const [key, value] of Object.entries(original)) {
+    if (value === undefined) delete process.env[key];
+    else process.env[key] = value;
+  }
+});
+
 describe("branded transactional mail", () => {
-  it("sends from notification@naijaspa.com and includes the logo", () => {
-    expect(MAIL_FROM_ADDRESS).toBe("notification@naijaspa.com");
-    expect(mailFrom()).toContain("notification@naijaspa.com");
+  it("sends from the notifications subdomain and replies to support", () => {
+    delete process.env.RESEND_FROM_EMAIL;
+    delete process.env.MAIL_FROM;
+    delete process.env.RESEND_REPLY_TO;
+    delete process.env.MAIL_REPLY_TO;
+    expect(MAIL_FROM_ADDRESS).toBe("notification@notifications.naijaspa.com");
+    expect(mailFrom()).toContain("notification@notifications.naijaspa.com");
+    expect(mailReplyTo()).toBe("support@naijaspa.com");
+    expect(MAIL_REPLY_TO_DEFAULT).toBe("support@naijaspa.com");
     const html = brandedEmailHtml({
       title: "Hello",
       intro: "Intro",
@@ -24,6 +46,15 @@ describe("branded transactional mail", () => {
     expect(html).toContain(MAIL_FROM_ADDRESS);
     expect(html).toContain('bgcolor="#064E3B"');
     expect(html).toContain("color-scheme\" content=\"light only");
+  });
+
+  it("prefers RESEND_FROM_EMAIL and RESEND_REPLY_TO over MAIL_*", () => {
+    process.env.MAIL_FROM = "NaijaSpa <old@naijaspa.ng>";
+    process.env.MAIL_REPLY_TO = "old@naijaspa.ng";
+    process.env.RESEND_FROM_EMAIL = "NaijaSpa <notification@notifications.naijaspa.com>";
+    process.env.RESEND_REPLY_TO = "support@naijaspa.com";
+    expect(mailFrom()).toBe("NaijaSpa <notification@notifications.naijaspa.com>");
+    expect(mailReplyTo()).toBe("support@naijaspa.com");
   });
 
   it("builds customer and vendor welcome copy", () => {
