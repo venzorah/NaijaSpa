@@ -13,6 +13,7 @@ import { hasPublicVendorContact, pickPublicVendorContact } from "@/lib/public-co
 import { PublicVendorContact } from "@/components/public-vendor-contact";
 import { ListingViewBeacon } from "@/components/listing-view-beacon";
 import { formatViews } from "@/lib/listing-views";
+import { ProtectedPhoto } from "@/components/protected-photo";
 
 export const dynamic = "force-dynamic";
 
@@ -57,19 +58,17 @@ export default async function ServicePage({ params, searchParams }: {
         </div>
       ) : (
         <div className="relative h-40 overflow-hidden sm:h-56 lg:hidden">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={photo} alt="" className="h-full w-full object-cover" />
+          <ProtectedPhoto src={photo} alt="" className="h-full w-full" />
           <div className="absolute inset-0 bg-gradient-to-t from-bg2 via-transparent to-black/20" />
         </div>
       )}
       <div className="mx-auto w-full min-w-0 max-w-6xl px-4 py-4 sm:py-8 lg:px-8 lg:py-12">
         <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,22.5rem)] lg:items-start lg:gap-12">
           <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-6">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <ProtectedPhoto
               src={photo}
               alt=""
-              className="hidden h-28 w-28 shrink-0 rounded-full object-cover ring-4 ring-card sm:block sm:h-32 sm:w-32"
+              className="hidden h-28 w-28 shrink-0 rounded-full ring-4 ring-card sm:block sm:h-32 sm:w-32"
             />
             <div className="min-w-0 flex-1">
               <div className="flex items-start justify-between gap-3">

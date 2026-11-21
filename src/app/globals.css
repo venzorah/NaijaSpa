@@ -219,6 +219,27 @@ picture {
   -webkit-user-drag: none;
 }
 
+.protected-photo-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: repeating-linear-gradient(-24deg, transparent 0 88px, rgba(255, 255, 255, 0.08) 88px 89px);
+}
+
+.protected-photo-veil::after {
+  content: "NaijaSpa";
+  position: absolute;
+  right: 0.5rem;
+  bottom: 0.4rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.42);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+
 @keyframes naijaspa-ticker {
   from {
     transform: translateX(0);

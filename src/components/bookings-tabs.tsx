@@ -6,6 +6,7 @@ import { CalendarDays, CalendarX, ChevronRight, Clock } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { StatusPill } from "@/components/status-pill";
 import { formatNgn } from "@/lib/money";
+import { ProtectedPhoto } from "@/components/protected-photo";
 
 export type BookingRowData = {
   id: string;
@@ -71,8 +72,7 @@ export function BookingsTabs({ bookings }: { bookings: BookingRowData[] }) {
               href={`/account/bookings/${b.id}`}
               className="flex w-full gap-3 rounded-3xl border border-line bg-card p-3 text-left transition hover:border-gold/40"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={b.serviceImage || "/photos/massage.jpg"} alt="" className="h-20 w-20 shrink-0 rounded-2xl object-cover" />
+              <ProtectedPhoto src={b.serviceImage || "/photos/massage.jpg"} alt="" className="h-20 w-20 shrink-0 rounded-2xl" />
               <span className="min-w-0 flex-1">
                 <span className="flex items-center justify-between gap-2">
                   <span className="truncate font-semibold text-ink">{b.serviceName}</span>

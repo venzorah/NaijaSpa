@@ -11,17 +11,20 @@ import { formatNgn } from "@/lib/money";
 import { CategoryCarousel } from "@/components/category-carousel";
 import { cookies } from "next/headers";
 import { PLACE_COOKIE, placeFromCookieOrDefault, stateBrowsePlace } from "@/lib/nigeria";
+import { vendorListingRobots } from "@/lib/seo-robots";
 import { exploreHref } from "@/lib/place-urls";
+import { ProtectedPhoto } from "@/components/protected-photo";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug: rawSlug } = await params;
   const cat = matchCategory(await getPublicCategories(), rawSlug);
-  if (!cat) return { title: "Category" };
+  if (!cat) return { title: "Category", robots: vendorListingRobots };
   return {
     title: cat.metaTitle || cat.name,
-    description: cat.metaDescription || cat.description || `Book ${cat.name} with verified therapists on NaijaSpa.`
+    description: cat.metaDescription || cat.description || `Book ${cat.name} with verified therapists on NaijaSpa.`,
+    robots: vendorListingRobots
   };
 }
 
@@ -107,8 +110,7 @@ export default async function CategoryLandingPage({ params }: { params: Promise<
               {providers.map((p) => (
                 <li key={p.slug}>
                   <Link href={`/providers/${encodeURIComponent(p.slug)}`} className="block overflow-hidden rounded-3xl border border-line bg-card">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={p.coverUrl || "/photos/spa.jpg"} alt="" className="h-36 w-full object-cover" />
+                    <ProtectedPhoto src={p.coverUrl || "/photos/spa.jpg"} alt="" className="h-36 w-full" />
                     <div className="p-4">
                       <p className="font-semibold text-ink">{p.businessName}</p>
                       <p className="text-xs text-ink2">

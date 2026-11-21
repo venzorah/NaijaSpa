@@ -8,6 +8,7 @@ import { formatNgn } from "@/lib/money";
 import { formatRating } from "@/lib/booking-ui";
 import { listingPhotos } from "@/lib/photos";
 import { PublicVendorContact } from "@/components/public-vendor-contact";
+import { ProtectedPhoto } from "@/components/protected-photo";
 
 export type ExploreResult = {
   service: {
@@ -93,10 +94,11 @@ export function ExploreResultCard({ result: r }: { result: ExploreResult }) {
 
   return (
     <article className="flex h-full flex-col rounded-[1.5rem] border border-line bg-card p-5 shadow-sm">
-      <Link href={`/services/${encodeURIComponent(r.service.slug)}`} className="mb-4 block overflow-hidden rounded-xl"><img src={cover} alt={r.service.name} className="h-44 w-full object-cover" /></Link>
+      <Link href={`/services/${encodeURIComponent(r.service.slug)}`} className="mb-4 block overflow-hidden rounded-xl">
+        <ProtectedPhoto src={cover} alt={r.service.name} className="h-44 w-full" />
+      </Link>
       <div className="flex items-start gap-3">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={avatar} alt="" className="h-14 w-14 shrink-0 rounded-full object-cover" />
+        <ProtectedPhoto src={avatar} alt="" className="h-14 w-14 shrink-0 rounded-full" />
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <Link href={`/services/${encodeURIComponent(r.service.slug)}`} className="min-w-0 break-words font-display text-xl leading-tight hover:text-goldink">

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PHOTOS, publicWellnessPhoto } from "@/lib/photos";
+import { ProtectedPhoto } from "@/components/protected-photo";
 
 export type ProfileGalleryImage = {
   id: string;
@@ -79,12 +80,10 @@ export function VendorProfileGallery({
               className="relative h-56 w-full min-w-full shrink-0 snap-center sm:h-80"
               aria-label={`View photo ${i + 1} of ${slides.length}`}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <ProtectedPhoto
                 src={publicWellnessPhoto(img.url, PHOTOS.spa)}
                 alt={img.therapistName || img.caption || `Gallery photo ${i + 1}`}
-                className="h-full w-full object-cover"
-                draggable={false}
+                className="h-full w-full"
               />
             </button>
           ))}
@@ -165,12 +164,11 @@ export function VendorProfileGallery({
                 </button>
               </>
             ) : null}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <ProtectedPhoto
               src={publicWellnessPhoto(fullImage.url, PHOTOS.spa)}
               alt={fullImage.therapistName || fullImage.caption || "Gallery photo"}
-              className="mx-auto max-h-full max-w-full object-contain"
-              draggable={false}
+              className="mx-auto max-h-full max-w-full"
+              imgClassName="mx-auto max-h-full max-w-full object-contain"
             />
           </div>
           {(fullImage.therapistName || fullImage.caption) && (

@@ -12,6 +12,7 @@ import { BookingChat } from "@/components/booking-chat";
 import { PHOTOS, publicWellnessPhoto } from "@/lib/photos";
 import { locationLabel } from "@/lib/booking-ui";
 import { bookingUnlocksVendorContact, toWhatsAppLink } from "@/lib/commercial";
+import { ProtectedPhoto } from "@/components/protected-photo";
 
 export default async function BookingDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await getSession();
@@ -32,8 +33,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
     <div className="mx-auto max-w-3xl px-4 pt-6 lg:px-8">
       <PageHeader title="Booking details" subtitle={`Ref ${booking.id.slice(0, 8).toUpperCase()}`} right={<StatusPill status={booking.status} />} />
       <div className="overflow-hidden rounded-3xl border border-line bg-card">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={photo} alt="" className="h-40 w-full object-cover" />
+        <ProtectedPhoto src={photo} alt="" className="h-40 w-full" />
         <div className="space-y-4 p-5">
           <div>
             <h2 className="font-display text-3xl font-semibold text-ink">{booking.service.name}</h2>

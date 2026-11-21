@@ -9,6 +9,7 @@ import { listingPhotos, publicWellnessPhoto } from "@/lib/photos";
 import type { ExploreCityCard } from "@/lib/explore-cities";
 import type { HomeCard } from "@/lib/home-types";
 import { useAutoScroll } from "@/hooks/use-auto-scroll";
+import { ProtectedPhoto } from "@/components/protected-photo";
 
 export function ServiceCarousel({
   id,
@@ -106,13 +107,11 @@ function ServiceFeedCard({ card }: { card: HomeCard }) {
   return (
     <article className="flex w-[18.5rem] shrink-0 snap-start flex-col overflow-hidden rounded-[1.35rem] border border-line bg-card shadow-sm sm:w-[19.5rem]">
       <Link href={href} className="block">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={cover} alt="" className="h-40 w-full object-cover" />
+        <ProtectedPhoto src={cover} alt="" className="h-40 w-full" />
       </Link>
       <div className="flex flex-1 flex-col p-4">
       <div className="flex items-start gap-3">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={photo} alt="" className="h-14 w-14 shrink-0 rounded-full object-cover" />
+        <ProtectedPhoto src={photo} alt="" className="h-14 w-14 shrink-0 rounded-full" />
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <Link href={href} className="font-semibold leading-snug hover:text-goldink">
@@ -310,8 +309,7 @@ export function VendorCarousel({
             href={`/providers/${encodeURIComponent(v.slug)}`}
             className="w-[16.75rem] shrink-0 snap-start overflow-hidden rounded-3xl border border-line bg-card"
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={publicWellnessPhoto(v.coverUrl, "/brand/icon-green.png")} alt="" className="h-32 w-full object-cover" />
+            <ProtectedPhoto src={publicWellnessPhoto(v.coverUrl, "/brand/icon-green.png")} alt="" className="h-32 w-full" />
             <div className="p-4">
               <h3 className="font-semibold">{v.businessName}</h3>
               <p className="mt-1 text-sm text-ink2">

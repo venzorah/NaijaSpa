@@ -20,6 +20,10 @@ const nextConfig: NextConfig = {
     {
       source: "/:path*",
       headers: [{ key: "Permissions-Policy", value: "geolocation=(self)" }]
+    },
+    {
+      source: "/api/media/galleries/:path*",
+      headers: [{ key: "X-Robots-Tag", value: "noindex, noimageindex, noarchive" }]
     }
   ]
 };

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Heart } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { formatNgn } from "@/lib/money";
+import { ProtectedPhoto } from "@/components/protected-photo";
 
 export type FavService = {
   id: string;
@@ -60,8 +61,7 @@ export function FavouritesTabs({ services, providers }: { services: FavService[]
               return (
               <li key={item.id}>
                 <Link href={item.href} className="block overflow-hidden rounded-3xl border border-line bg-card">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={item.image} alt="" className="h-40 w-full object-cover" />
+                  <ProtectedPhoto src={item.image} alt="" className="h-40 w-full" />
                   <div className="p-4">
                     <p className="font-semibold text-ink">{item.name}</p>
                     <p className="text-xs text-ink2">{item.subtitle}</p>
