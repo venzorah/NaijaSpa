@@ -79,6 +79,41 @@ describe("admin homepage section curator", () => {
     expect(mock.setConfig).not.toHaveBeenCalled();
   });
 
+  it("saves an extra rail the admin added", async () => {
+    const extra = {
+      id: "extra_abcdefghijklmnop",
+      kind: "featured" as const,
+      title: "Weekend picks",
+      subtitle: "",
+      visible: true,
+      source: "auto" as const,
+      serviceIds: [] as string[],
+      vendorIds: [] as string[],
+      categorySlugs: [] as string[],
+      sortOrder: 9
+    };
+    expect((await PUT(req({ sections: [...DEFAULT_HOME_SECTIONS, extra] }))).status).toBe(200);
+    expect(mock.setConfig).toHaveBeenCalled();
+    const saved = JSON.parse(mock.setConfig.mock.calls[0][1]) as { id: string }[];
+    expect(saved.some((row) => row.id === extra.id)).toBe(true);
+  });
+
+  it("rejects an extra rail without a type", async () => {
+    const extra = {
+      id: "extra_abcdefghijklmnop",
+      title: "Weekend picks",
+      subtitle: "",
+      visible: true,
+      source: "auto",
+      serviceIds: [],
+      vendorIds: [],
+      categorySlugs: [],
+      sortOrder: 9
+    };
+    expect((await PUT(req({ sections: [...DEFAULT_HOME_SECTIONS, extra] }))).status).toBe(400);
+    expect(mock.setConfig).not.toHaveBeenCalled();
+  });
+
   it("saves a complete layout and refreshes the public homepage", async () => {
     expect((await PUT(req({ sections: DEFAULT_HOME_SECTIONS }))).status).toBe(200);
     expect(mock.setConfig).toHaveBeenCalled();

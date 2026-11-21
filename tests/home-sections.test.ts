@@ -4,8 +4,10 @@ import {
   curateCategories,
   DEFAULT_HOME_SECTIONS,
   HOME_SECTION_IDS,
+  makeExtraHomeSection,
   parseHomeSections,
-  pickManualIds
+  pickManualIds,
+  sectionKind
 } from "../src/lib/home-sections";
 
 describe("homepage section layout", () => {
@@ -112,6 +114,23 @@ describe("homepage section layout", () => {
         4
       ).map((row) => row.slug)
     ).toEqual(["spa", "massage", "nuru", "body"]);
+  });
+
+  it("keeps extra homepage rails the admin added", () => {
+    const extra = makeExtraHomeSection("premium", 9);
+    const layout = parseHomeSections(
+      JSON.stringify([
+        ...DEFAULT_HOME_SECTIONS,
+        { ...extra, title: "More premium", visible: true }
+      ])
+    );
+    expect(layout).toHaveLength(HOME_SECTION_IDS.length + 1);
+    const added = layout.find((row) => row.id === extra.id);
+    expect(added).toMatchObject({ title: "More premium", kind: "premium" });
+    expect(sectionKind(added!)).toBe("premium");
+    expect(parseHomeSections(JSON.stringify([...DEFAULT_HOME_SECTIONS, { id: "invented", kind: "promo" }])).map((row) => row.id)).toEqual([
+      ...HOME_SECTION_IDS
+    ]);
   });
 
   it("exposes the homepage curator to content and marketing staff", () => {

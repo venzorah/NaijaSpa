@@ -7,13 +7,17 @@ import { prisma, setConfig } from "@/lib/db";
 import { audit } from "@/lib/audit";
 import { jsonError } from "@/lib/http";
 import {
+  EXTRA_SECTION_ID,
   HOME_SECTION_IDS,
   HOME_SECTIONS_CONFIG_KEY,
+  isHomeSectionId,
+  MAX_HOME_SECTIONS,
   parseHomeSections
 } from "@/lib/home-sections";
 
 const sectionSchema = z.object({
-  id: z.enum(HOME_SECTION_IDS),
+  id: z.string().min(1).max(48),
+  kind: z.enum(HOME_SECTION_IDS).optional(),
   title: z.string().max(80),
   subtitle: z.string().max(240),
   visible: z.boolean(),
@@ -21,20 +25,34 @@ const sectionSchema = z.object({
   serviceIds: z.array(z.string().min(1).max(64)).max(48),
   vendorIds: z.array(z.string().min(1).max(64)).max(48),
   categorySlugs: z.array(z.string().min(1).max(80)).max(24),
-  sortOrder: z.number().int().min(1).max(HOME_SECTION_IDS.length)
+  sortOrder: z.number().int().min(1).max(MAX_HOME_SECTIONS)
 });
 
 const putSchema = z.object({
   sections: z
     .array(sectionSchema)
-    .length(HOME_SECTION_IDS.length)
+    .min(HOME_SECTION_IDS.length)
+    .max(MAX_HOME_SECTIONS)
     .superRefine((rows, ctx) => {
       const ids = rows.map((row) => row.id);
-      if (new Set(ids).size !== HOME_SECTION_IDS.length) {
-        ctx.addIssue({ code: "custom", message: "Every homepage section must be included once." });
+      if (new Set(ids).size !== ids.length) {
+        ctx.addIssue({ code: "custom", message: "Each homepage section needs its own id." });
+      }
+      for (const id of HOME_SECTION_IDS) {
+        if (!ids.includes(id)) {
+          ctx.addIssue({ code: "custom", message: "Keep the original homepage sections. Hide one instead of deleting it." });
+          break;
+        }
+      }
+      for (const row of rows) {
+        if (isHomeSectionId(row.id)) continue;
+        if (!EXTRA_SECTION_ID.test(row.id) || !row.kind) {
+          ctx.addIssue({ code: "custom", message: "Added sections need a type (featured, providers, collections, and so on)." });
+          break;
+        }
       }
       const orders = rows.map((row) => row.sortOrder);
-      if (new Set(orders).size !== HOME_SECTION_IDS.length) {
+      if (new Set(orders).size !== orders.length) {
         ctx.addIssue({ code: "custom", message: "Give each section a unique order number. 1 is first." });
       }
     })

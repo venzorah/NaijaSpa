@@ -1,13 +1,20 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Save } from "lucide-react";
-import { adminBtn, adminField, FormRow } from "@/components/admin/form-row";
+import { Save, Trash2 } from "lucide-react";
+import { adminBtn, adminBtnOutline, adminField, FormRow } from "@/components/admin/form-row";
 import { Panel } from "@/components/admin/panel";
 import { adminJson } from "@/components/admin/json";
 import {
+  HOME_SECTION_IDS,
   HOME_SECTION_META,
+  MAX_HOME_SECTIONS,
+  isExtraHomeSection,
+  isHomeSectionId,
+  makeExtraHomeSection,
+  sectionKind,
   type HomeSection,
+  type HomeSectionId,
   type HomeSectionPickKind
 } from "@/lib/home-sections";
 
@@ -100,6 +107,22 @@ export function HomepageConsole({ initial }: { initial: Payload }) {
     setLayout((rows) => rows.map((row) => (row.id === id ? { ...row, ...next } : row)));
   }
 
+  function addSection(kind: HomeSectionId) {
+    setLayout((rows) => {
+      if (rows.length >= MAX_HOME_SECTIONS) return rows;
+      return [...rows, makeExtraHomeSection(kind, rows.length + 1)];
+    });
+    setMessage("");
+  }
+
+  function removeSection(id: string) {
+    setLayout((rows) =>
+      rows
+        .filter((row) => row.id !== id)
+        .map((row, index) => ({ ...row, sortOrder: index + 1 }))
+    );
+  }
+
   async function save() {
     if (busy || !initial.canEdit) return;
     setBusy(true);
@@ -129,19 +152,56 @@ export function HomepageConsole({ initial }: { initial: Payload }) {
       {message ? <p role="status" className="text-sm text-goldink">{message}</p> : null}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="max-w-2xl text-sm text-ink2">
-          The hero banner and category tiles stay first. Number the rails below so 1 is the first section after those. Automatic keeps ranking and paid ads. Manual shows only what you pick.
+          The hero banner and category tiles stay first. Number the rails below so 1 is the first section after those. Add extra rails of any type if you need more. Hide a built-in section instead of deleting it. Automatic keeps ranking and paid ads. Manual shows only what you pick.
         </p>
-        <button className={adminBtn} disabled={!initial.canEdit || busy} onClick={() => void save()}>
-          <Save className="h-3.5 w-3.5" />
-          {busy ? "Saving…" : "Save homepage"}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <label className="flex items-center gap-2 text-sm">
+            <span className="text-ink2">Add section</span>
+            <select
+              className={adminField}
+              disabled={!initial.canEdit || layout.length >= MAX_HOME_SECTIONS}
+              defaultValue=""
+              onChange={(e) => {
+                const kind = e.target.value as HomeSectionId;
+                e.currentTarget.value = "";
+                if (isHomeSectionId(kind)) addSection(kind);
+              }}
+            >
+              <option value="">Choose a type…</option>
+              {HOME_SECTION_IDS.map((kind) => (
+                <option key={kind} value={kind}>
+                  {HOME_SECTION_META[kind].label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button className={adminBtn} disabled={!initial.canEdit || busy} onClick={() => void save()}>
+            <Save className="h-3.5 w-3.5" />
+            {busy ? "Saving…" : "Save homepage"}
+          </button>
+        </div>
       </div>
       {[...layout].sort((a, b) => a.sortOrder - b.sortOrder).map((section) => {
         const id = section.id;
-        const meta = HOME_SECTION_META[id];
+        const kind = sectionKind(section);
+        const meta = HOME_SECTION_META[kind];
+        const extra = isExtraHomeSection(section);
         return (
-          <Panel key={id} title={`${section.sortOrder}. ${meta.label}`} description={meta.hint}>
+          <Panel key={id} title={`${section.sortOrder}. ${meta.label}${extra ? " (added)" : ""}`} description={meta.hint}>
             <div className="grid gap-3">
+              {extra ? (
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    className={adminBtnOutline}
+                    disabled={!initial.canEdit}
+                    onClick={() => removeSection(id)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Remove section
+                  </button>
+                </div>
+              ) : null}
               <FormRow label="Show order" htmlFor={`${id}-order`} hint="1 appears first after the hero and category carousel. Numbers swap if you reuse one.">
                 <input
                   id={`${id}-order`}

@@ -40,8 +40,10 @@ import {
   DEFAULT_HOME_SECTIONS,
   homeSection,
   HOME_SECTIONS_CONFIG_KEY,
+  isExtraHomeSection,
   parseHomeSections,
   pickManualIds,
+  sectionKind,
   type HomeSection
 } from "./home-sections";
 import { PHOTOS, publicWellnessPhoto } from "./photos";
@@ -113,6 +115,8 @@ function demoHomePayload(limits: HomeFeedConfig, place?: LivePlace | null, hero?
     nearby: homeSection(layout, "nearby").visible
       ? sortByPlace(filterByServiceArea(demoNearbyVendors(), place, (v) => v), place, (v) => v).slice(0, limits.nearby)
       : [],
+    extraRails: {},
+    extraNearby: {},
     faqs: demoFaqs,
     hero: hero ?? demoHomeHero(),
     layout
@@ -367,8 +371,7 @@ async function loadHomeCatalog(rawPlace: LivePlace | null) {
     const service = byId.get(card.service.id);
     return Boolean(service?.category?.slug && slugs.includes(service.category.slug));
   };
-  const manualCards = (sectionId: "featured" | "premium" | "promo" | "spotlight", badge: string, limit: number) => {
-    const section = homeSection(layout, sectionId);
+  const manualCards = (section: HomeSection, badge: string, limit: number) => {
     return pickManualIds(
       section,
       limit,
@@ -413,20 +416,26 @@ async function loadHomeCatalog(rawPlace: LivePlace | null) {
     place,
     (c) => c.vendor
   );
+  const cardsForSection = (
+    section: HomeSection,
+    campaignCards: HomeCard[],
+    pool: HomeCard[],
+    badge: string,
+    limit: number
+  ) => {
+    if (!section.visible) return [];
+    if (section.source === "manual") {
+      return sortByPlace(filterByServiceArea(manualCards(section, badge, limit), place, (c) => c.vendor), place, (c) => c.vendor);
+    }
+    return autoRail(campaignCards, pool, badge, limit, section.categorySlugs);
+  };
   const railFor = (
     id: "featured" | "premium" | "promo",
     campaignCards: HomeCard[],
     pool: HomeCard[],
     badge: string,
     limit: number
-  ) => {
-    const section = homeSection(layout, id);
-    if (!section.visible) return [];
-    if (section.source === "manual") {
-      return sortByPlace(filterByServiceArea(manualCards(id, badge, limit), place, (c) => c.vendor), place, (c) => c.vendor);
-    }
-    return autoRail(campaignCards, pool, badge, limit, section.categorySlugs);
-  };
+  ) => cardsForSection(homeSection(layout, id), campaignCards, pool, badge, limit);
   const rails: HomeRails = {
     featured: railFor("featured", featured, allCards, "Featured", limits.featured),
     premium: railFor("premium", premiumFromAds, premiumPool, "Premium", limits.premium),
@@ -438,7 +447,7 @@ async function loadHomeCatalog(rawPlace: LivePlace | null) {
     ? []
     : spotlightSection.source === "manual"
       ? sortByPlace(
-          filterByServiceArea(manualCards("spotlight", "Featured", limits.featured), place, (c) => c.vendor),
+          filterByServiceArea(manualCards(spotlightSection, "Featured", limits.featured), place, (c) => c.vendor),
           place,
           (c) => c.vendor
         )
@@ -459,36 +468,39 @@ async function loadHomeCatalog(rawPlace: LivePlace | null) {
     if (nearbyByVendorId.has(s.vendorId)) continue;
     nearbyByVendorId.set(s.vendorId, nearbyFromService(s));
   }
+  const missingVendorIds = [
+    ...nearbySection.vendorIds,
+    ...layout.flatMap((section) => (isExtraHomeSection(section) && sectionKind(section) === "nearby" ? section.vendorIds : []))
+  ].filter((id, index, all) => all.indexOf(id) === index && !nearbyByVendorId.has(id));
+  if (missingVendorIds.length) {
+    const extraVendors = await prisma.vendor.findMany({
+      where: { id: { in: missingVendorIds }, ...areaVendor },
+      select: {
+        id: true,
+        slug: true,
+        businessName: true,
+        state: true,
+        city: true,
+        neighbourhood: true,
+        coverUrl: true,
+        ratingAvg: true
+      }
+    });
+    for (const vendor of extraVendors) {
+      nearbyByVendorId.set(vendor.id, {
+        slug: vendor.slug,
+        businessName: vendor.businessName,
+        state: vendor.state,
+        city: vendor.city,
+        neighbourhood: vendor.neighbourhood,
+        coverUrl: publicWellnessPhoto(vendor.coverUrl, PHOTOS.bandSpa),
+        ratingAvg: Number(vendor.ratingAvg) || 0
+      });
+    }
+  }
   let nearby: NearbyVendor[] = [];
   if (nearbySection.visible) {
     if (nearbySection.source === "manual") {
-      const missingVendorIds = nearbySection.vendorIds.filter((id) => !nearbyByVendorId.has(id));
-      if (missingVendorIds.length) {
-        const extraVendors = await prisma.vendor.findMany({
-          where: { id: { in: missingVendorIds }, ...areaVendor },
-          select: {
-            id: true,
-            slug: true,
-            businessName: true,
-            state: true,
-            city: true,
-            neighbourhood: true,
-            coverUrl: true,
-            ratingAvg: true
-          }
-        });
-        for (const vendor of extraVendors) {
-          nearbyByVendorId.set(vendor.id, {
-            slug: vendor.slug,
-            businessName: vendor.businessName,
-            state: vendor.state,
-            city: vendor.city,
-            neighbourhood: vendor.neighbourhood,
-            coverUrl: publicWellnessPhoto(vendor.coverUrl, PHOTOS.bandSpa),
-            ratingAvg: Number(vendor.ratingAvg) || 0
-          });
-        }
-      }
       nearby = nearbySection.vendorIds.map((id) => nearbyByVendorId.get(id)).filter((row): row is NearbyVendor => Boolean(row)).slice(0, limits.nearby);
       if (!nearby.length && nearbySection.categorySlugs.length) {
         const seen = new Set<string>();
@@ -514,19 +526,64 @@ async function loadHomeCatalog(rawPlace: LivePlace | null) {
     nearby = sortByPlace(filterByServiceArea(nearby, place, (v) => v), place, (v) => v).slice(0, limits.nearby);
   }
 
+  const extraRails: Record<string, HomeCard[]> = {};
+  const extraNearby: Record<string, NearbyVendor[]> = {};
+  const nearbyListFor = (section: HomeSection): NearbyVendor[] => {
+    if (!section.visible) return [];
+    if (section.source === "manual") {
+      let rows = section.vendorIds.map((id) => nearbyByVendorId.get(id)).filter((row): row is NearbyVendor => Boolean(row));
+      if (!rows.length && section.categorySlugs.length) {
+        const seen = new Set<string>();
+        for (const slug of section.categorySlugs) {
+          for (const s of servicesForCategory(slug)) {
+            if (seen.has(s.vendorId) || rows.length >= limits.nearby) continue;
+            seen.add(s.vendorId);
+            rows.push(nearbyFromService(s));
+          }
+        }
+      }
+      return sortByPlace(filterByServiceArea(rows, place, (v) => v), place, (v) => v).slice(0, limits.nearby);
+    }
+    const pool = section.categorySlugs.length
+      ? services.filter((s) => s.category?.slug && section.categorySlugs.includes(s.category.slug))
+      : services;
+    const autoMap = new Map<string, NearbyVendor>();
+    for (const s of pool) {
+      if (autoMap.has(s.vendor.slug)) continue;
+      autoMap.set(s.vendor.slug, nearbyFromService(s));
+    }
+    return sortByPlace(filterByServiceArea([...autoMap.values()], place, (v) => v), place, (v) => v).slice(0, limits.nearby);
+  };
+  for (const section of layout) {
+    if (!isExtraHomeSection(section) || !section.visible) continue;
+    const kind = sectionKind(section);
+    if (kind === "nearby") extraNearby[section.id] = nearbyListFor(section);
+    if (kind === "featured") extraRails[section.id] = cardsForSection(section, featured, allCards, "Featured", limits.featured);
+    if (kind === "premium") extraRails[section.id] = cardsForSection(section, premiumFromAds, premiumPool, "Premium", limits.premium);
+    if (kind === "promo") extraRails[section.id] = cardsForSection(section, promo, promo, "Promo", limits.promo);
+    if (kind === "spotlight") {
+      extraRails[section.id] =
+        section.source === "manual"
+          ? cardsForSection(section, featured, allCards, "Featured", limits.featured)
+          : sponsoredUnion.filter((card) => matchesSectionCategories(card, section.categorySlugs));
+    }
+  }
+
   return {
     demo: false,
     categories,
     rails,
     spotlight,
     nearby,
+    extraRails,
+    extraNearby,
     faqs,
     hero,
     layout
   };
   } catch {
     if (!usingDemoListings()) {
-      return { demo: false, categories: demoCategories, rails: { featured: [], premium: [], promo: [] }, spotlight: [], nearby: [], faqs: [], hero, layout };
+      return { demo: false, categories: demoCategories, rails: { featured: [], premium: [], promo: [] }, spotlight: [], nearby: [], extraRails: {}, extraNearby: {}, faqs: [], hero, layout };
     }
     return demoHomePayload(limits, place, hero, layout);
   }

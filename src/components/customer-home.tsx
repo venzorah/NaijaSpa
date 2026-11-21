@@ -13,7 +13,7 @@ import { HomeServiceGrid } from "@/components/home-service-grid";
 import { categoryHref } from "@/lib/category-images";
 import { exploreHref } from "@/lib/place-urls";
 import type { HomeHeroAd, HomeHeroBanner } from "@/lib/home-hero";
-import { DEFAULT_HOME_SECTIONS, homeSection, orderedHomeSections, type HomeSection } from "@/lib/home-sections";
+import { DEFAULT_HOME_SECTIONS, homeSection, orderedHomeSections, sectionKind, type HomeSection } from "@/lib/home-sections";
 import type { HomeCard, NearbyVendor } from "@/lib/home-types";
 import type { LivePlace } from "@/lib/nigeria";
 
@@ -34,6 +34,8 @@ export function CustomerHome({
   faqs,
   hero,
   spotlight,
+  extraRails = {},
+  extraNearby = {},
   layout = DEFAULT_HOME_SECTIONS
 }: {
   place: LivePlace | null;
@@ -43,12 +45,12 @@ export function CustomerHome({
   faqs: { question: string; answer: string }[];
   hero: { banner: HomeHeroBanner; ads: HomeHeroAd[] };
   spotlight?: HomeCard[];
+  extraRails?: Record<string, HomeCard[]>;
+  extraNearby?: Record<string, NearbyVendor[]>;
   layout?: HomeSection[];
 }) {
   const browse = (query?: Record<string, string | undefined>) => exploreHref(place, query);
   const featured = homeSection(layout, "featured");
-  const bandSpa = homeSection(layout, "bandSpa");
-  const bandCouples = homeSection(layout, "bandCouples");
   const featuredSubtitle =
     featured.subtitle ||
     (place?.city || place?.state
@@ -56,8 +58,6 @@ export function CustomerHome({
       : "Allow location on first visit to see every therapist in your state, closest first.");
   const spotlightCards =
     spotlight ?? [...new Map([...rails.featured, ...rails.premium, ...rails.promo].filter((c) => c.sponsored).map((c) => [c.service.id, c])).values()];
-  const spaHref = categoryHref(bandSpa.categorySlugs[0] || "spa");
-  const couplesHref = categoryHref(bandCouples.categorySlugs[0] || "couples");
 
   return (
     <div>
@@ -79,19 +79,23 @@ export function CustomerHome({
       </section>
 
       {orderedHomeSections(layout).map((section) => {
-        if (section.id === "featured") {
+        const kind = sectionKind(section);
+        const extra = section.id !== kind;
+        const cards = extra ? extraRails[section.id] ?? [] : rails[kind as "featured" | "premium" | "promo"] ?? [];
+        const vendors = extra ? extraNearby[section.id] ?? [] : nearby;
+        if (kind === "featured") {
           return (
             <div key={section.id}>
               {section.visible ? (
                 <HomeServiceGrid
-                  id="featured-services"
+                  id={extra ? `featured-services-${section.id}` : "featured-services"}
                   title={section.title}
-                  subtitle={featuredSubtitle}
+                  subtitle={extra ? section.subtitle : featuredSubtitle}
                   seeAllHref={browse()}
-                  cards={rails.featured}
+                  cards={extra ? cards : rails.featured}
                 />
               ) : null}
-              {section.visible && !rails.featured.length ? (
+              {!extra && section.visible && !rails.featured.length ? (
                 <section className="mx-auto mt-10 max-w-7xl px-4 lg:px-8">
                   <div className="rounded-3xl border border-line bg-card p-6">
                     <h2 className="font-display text-2xl">Discover treatments</h2>
@@ -109,30 +113,31 @@ export function CustomerHome({
             </div>
           );
         }
-        if (section.id === "nearby") {
-          return section.visible ? <VendorCarousel key={section.id} title={section.title} vendors={nearby} /> : null;
+        if (kind === "nearby") {
+          return section.visible ? <VendorCarousel key={section.id} title={section.title} vendors={vendors} /> : null;
         }
-        if (section.id === "spotlight") {
+        if (kind === "spotlight") {
           return section.visible ? (
             <HomeServiceGrid
               key={section.id}
-              id="spotlight-partners"
+              id={extra ? `spotlight-partners-${section.id}` : "spotlight-partners"}
               title={section.title}
               layout="spotlight"
               subtitle={section.subtitle}
               seeAllHref={browse()}
-              cards={spotlightCards}
+              cards={extra ? cards : spotlightCards}
             />
           ) : null;
         }
-        if (section.id === "collections") {
+        if (kind === "collections") {
+          if (extra && !section.visible) return null;
           return (
             <Suspense key={section.id} fallback={null}>
-              <HomeDiscovery place={place} layout={layout} />
+              <HomeDiscovery place={place} layout={layout} section={section} tilesOnly={extra} />
             </Suspense>
           );
         }
-        if (section.id === "bandSpa") {
+        if (kind === "bandSpa") {
           return section.visible ? (
             <ParallaxBand
               key={section.id}
@@ -140,37 +145,37 @@ export function CustomerHome({
               kicker="At your pace"
               title={section.title}
               body={section.subtitle}
-              href={spaHref}
+              href={categoryHref(section.categorySlugs[0] || "spa")}
               cta="Browse spa treatments"
             />
           ) : null;
         }
-        if (section.id === "premium") {
+        if (kind === "premium") {
           return section.visible ? (
             <ServiceCarousel
               key={section.id}
-              id="premium-services"
+              id={extra ? `premium-services-${section.id}` : "premium-services"}
               title={section.title}
               subtitle={section.subtitle}
               seeAllHref={browse({ sort: "rating" })}
-              cards={rails.premium}
+              cards={extra ? cards : rails.premium}
               accent="leaf"
             />
           ) : null;
         }
-        if (section.id === "promo") {
+        if (kind === "promo") {
           return section.visible ? (
             <ServiceCarousel
               key={section.id}
-              id="promo-services"
+              id={extra ? `promo-services-${section.id}` : "promo-services"}
               title={section.title}
               subtitle={section.subtitle}
               seeAllHref={browse({ sort: "price" })}
-              cards={rails.promo}
+              cards={extra ? cards : rails.promo}
             />
           ) : null;
         }
-        if (section.id === "bandCouples") {
+        if (kind === "bandCouples") {
           return section.visible ? (
             <ParallaxBand
               key={section.id}
@@ -178,7 +183,7 @@ export function CustomerHome({
               kicker="Together"
               title={section.title}
               body={section.subtitle}
-              href={couplesHref}
+              href={categoryHref(section.categorySlugs[0] || "couples")}
               cta="See couples bookings"
             />
           ) : null;

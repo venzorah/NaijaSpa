@@ -14,9 +14,12 @@ export const HOME_SECTION_IDS = [
 export type HomeSectionId = (typeof HOME_SECTION_IDS)[number];
 export type HomeSectionSource = "auto" | "manual";
 export type HomeSectionPickKind = "services" | "vendors" | "categories";
+export const MAX_HOME_SECTIONS = 24;
+export const EXTRA_SECTION_ID = /^extra_[a-z0-9]{8,32}$/;
 
 export type HomeSection = {
-  id: HomeSectionId;
+  id: string;
+  kind?: HomeSectionId;
   title: string;
   subtitle: string;
   visible: boolean;
@@ -26,6 +29,33 @@ export type HomeSection = {
   vendorIds: string[];
   categorySlugs: string[];
 };
+
+export function isHomeSectionId(id: string): id is HomeSectionId {
+  return (HOME_SECTION_IDS as readonly string[]).includes(id);
+}
+
+export function isExtraHomeSection(section: Pick<HomeSection, "id">) {
+  return EXTRA_SECTION_ID.test(section.id);
+}
+
+export function sectionKind(section: Pick<HomeSection, "id" | "kind">): HomeSectionId {
+  if (isHomeSectionId(section.id)) return section.id;
+  if (section.kind && isHomeSectionId(section.kind)) return section.kind;
+  return "featured";
+}
+
+export function makeExtraHomeSection(kind: HomeSectionId, sortOrder: number): HomeSection {
+  const def = DEFAULT_HOME_SECTIONS.find((row) => row.id === kind) ?? DEFAULT_HOME_SECTIONS[0];
+  return {
+    ...def,
+    id: `extra_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`,
+    kind,
+    sortOrder,
+    serviceIds: [],
+    vendorIds: [],
+    categorySlugs: []
+  };
+}
 
 export const HOME_SECTION_META: Record<
   HomeSectionId,
@@ -185,6 +215,27 @@ function uniqStrings(value: unknown, max: number, normalize: (item: string) => s
   return out;
 }
 
+function hydrateSection(def: HomeSection, row: Record<string, unknown> | undefined, index: number): HomeSection {
+  if (!row) return { ...def, serviceIds: [...def.serviceIds], vendorIds: [...def.vendorIds], categorySlugs: [...def.categorySlugs] };
+  const rawOrder = Number(row.sortOrder);
+  const rawId = String(row.id || def.id);
+  const inferredKind = String(row.kind || def.kind || def.id);
+  const kind = isHomeSectionId(rawId) ? rawId : isHomeSectionId(inferredKind) ? inferredKind : sectionKind(def);
+  const id = isHomeSectionId(rawId) || EXTRA_SECTION_ID.test(rawId) ? rawId : def.id;
+  return {
+    id,
+    kind,
+    title: clampText(row.title, def.title, 80),
+    subtitle: clampText(row.subtitle, def.subtitle, 240),
+    visible: row.visible !== false,
+    source: row.source === "manual" ? "manual" : "auto",
+    sortOrder: Number.isInteger(rawOrder) && rawOrder >= 1 && rawOrder <= MAX_HOME_SECTIONS ? rawOrder : index + 1,
+    serviceIds: uniqStrings(row.serviceIds, 48, (item) => item.trim()),
+    vendorIds: uniqStrings(row.vendorIds, 48, (item) => item.trim()),
+    categorySlugs: uniqStrings(row.categorySlugs, 24, (slug) => slug.trim().toLowerCase())
+  };
+}
+
 export function parseHomeSections(raw: string | null | undefined): HomeSection[] {
   let parsed: unknown;
   try {
@@ -194,28 +245,23 @@ export function parseHomeSections(raw: string | null | undefined): HomeSection[]
   }
   const rows = Array.isArray(parsed) ? parsed : [];
   const byId = new Map<string, Record<string, unknown>>();
+  const extras: Record<string, unknown>[] = [];
   for (const row of rows) {
     if (!row || typeof row !== "object" || !("id" in row)) continue;
-    byId.set(String((row as { id: unknown }).id), row as Record<string, unknown>);
+    const rec = row as Record<string, unknown>;
+    const id = String(rec.id);
+    if (isHomeSectionId(id)) byId.set(id, rec);
+    else if (EXTRA_SECTION_ID.test(id)) extras.push(rec);
   }
-  const built: HomeSection[] = DEFAULT_HOME_SECTIONS.map((def, index) => {
-    const row = byId.get(def.id);
-    if (!row) return { ...def, serviceIds: [], vendorIds: [], categorySlugs: [] };
-    const rawOrder = Number(row.sortOrder);
-    return {
-      id: def.id,
-      title: clampText(row.title, def.title, 80),
-      subtitle: clampText(row.subtitle, def.subtitle, 240),
-      visible: row.visible !== false,
-      source: row.source === "manual" ? "manual" : "auto",
-      sortOrder: Number.isInteger(rawOrder) && rawOrder >= 1 && rawOrder <= HOME_SECTION_IDS.length ? rawOrder : index + 1,
-      serviceIds: uniqStrings(row.serviceIds, 48, (id) => id.trim()),
-      vendorIds: uniqStrings(row.vendorIds, 48, (id) => id.trim()),
-      categorySlugs: uniqStrings(row.categorySlugs, 24, (slug) => slug.trim().toLowerCase())
-    };
+  const built: HomeSection[] = DEFAULT_HOME_SECTIONS.map((def, index) => hydrateSection(def, byId.get(def.id), index));
+  const extraCap = MAX_HOME_SECTIONS - HOME_SECTION_IDS.length;
+  const extraBuilt = extras.slice(0, extraCap).map((row, index) => {
+    const kind = isHomeSectionId(String(row.kind || "")) ? (row.kind as HomeSectionId) : "featured";
+    const def = DEFAULT_HOME_SECTIONS.find((item) => item.id === kind) ?? DEFAULT_HOME_SECTIONS[0];
+    return hydrateSection({ ...def, id: String(row.id), kind }, row, HOME_SECTION_IDS.length + index);
   });
-  return [...built]
-    .sort((a, b) => a.sortOrder - b.sortOrder || HOME_SECTION_IDS.indexOf(a.id) - HOME_SECTION_IDS.indexOf(b.id))
+  return [...built, ...extraBuilt]
+    .sort((a, b) => a.sortOrder - b.sortOrder || a.id.localeCompare(b.id))
     .map((section, index) => ({ ...section, sortOrder: index + 1 }));
 }
 
@@ -223,8 +269,12 @@ export function orderedHomeSections(layout: HomeSection[] | undefined) {
   return [...(layout ?? DEFAULT_HOME_SECTIONS)].sort((a, b) => a.sortOrder - b.sortOrder);
 }
 
-export function homeSection(layout: HomeSection[] | undefined, id: HomeSectionId): HomeSection {
-  return layout?.find((section) => section.id === id) ?? DEFAULT_HOME_SECTIONS.find((section) => section.id === id)!;
+export function homeSection(layout: HomeSection[] | undefined, id: string): HomeSection {
+  return (
+    layout?.find((section) => section.id === id) ??
+    DEFAULT_HOME_SECTIONS.find((section) => section.id === id) ??
+    DEFAULT_HOME_SECTIONS[0]
+  );
 }
 
 export function collectedManualServiceIds(layout: HomeSection[]) {
