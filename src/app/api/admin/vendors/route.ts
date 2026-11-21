@@ -9,7 +9,7 @@ import { jsonError } from "@/lib/http";
 import { grantVendorPlan } from "@/lib/subscription-lifecycle";
 import { ensureLiveVendorPlans } from "@/lib/vendor-plans-live";
 import { appUrl } from "@/lib/payments";
-import { queueMail, sendVendorInviteEmail } from "@/lib/mail";
+import { MAIL_FROM_ADDRESS, queueMail, sendVendorInviteEmail } from "@/lib/mail";
 import { mapNigeriaState } from "@/lib/nigeria";
 import { updateVendorWithSlug } from "@/lib/vendor-slugs";
 import { freeAbandonedIdentity } from "@/lib/account-purge";
@@ -84,7 +84,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       vendorId: vendor.id,
       setupUrl: `/invite/${token}`,
-      note: "Temporary password is not returned. We emailed the setup link from noreply@naijaspa.ng."
+      note: `Temporary password is not returned. We emailed the setup link from ${MAIL_FROM_ADDRESS}.`
     });
   } catch (e) {
     return jsonError(e);

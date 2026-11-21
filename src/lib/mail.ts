@@ -1,6 +1,6 @@
 import { appUrl } from "./payments";
 
-export const MAIL_FROM_ADDRESS = "noreply@naijaspa.ng";
+export const MAIL_FROM_ADDRESS = "notification@notifications.naijaspa.com";
 export const MAIL_FROM_NAME = "NaijaSpa";
 
 export function mailFrom() {
@@ -16,7 +16,7 @@ export function brandLogoUrl() {
 }
 
 export function mailConfigured() {
-  return Boolean(process.env.SMTP_HOST?.trim() || process.env.RESEND_API_KEY?.trim());
+  return Boolean(process.env.RESEND_API_KEY?.trim() || process.env.SMTP_HOST?.trim());
 }
 
 export function brandedEmailHtml({
@@ -217,6 +217,16 @@ async function smtpClient(host: string): Promise<SmtpTransport> {
 
 export async function sendMail({ to, subject, html, text }: { to: string; subject: string; html: string; text?: string }) {
   const from = mailFrom();
+  const resend = process.env.RESEND_API_KEY?.trim();
+  if (resend) {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${resend}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ from, to, subject, html, text, reply_to: mailReplyTo() })
+    });
+    if (!res.ok) throw new Error(`Resend ${res.status}: ${await res.text()}`);
+    return;
+  }
   const host = process.env.SMTP_HOST?.trim();
   if (host) {
     const user = process.env.SMTP_USER?.trim() || MAIL_FROM_ADDRESS;
@@ -243,19 +253,9 @@ export async function sendMail({ to, subject, html, text }: { to: string; subjec
     }
     throw last instanceof Error ? last : new Error("SMTP send failed");
   }
-  const resend = process.env.RESEND_API_KEY?.trim();
-  if (resend) {
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${resend}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from, to, subject, html, text, reply_to: mailReplyTo() })
-    });
-    if (!res.ok) throw new Error(`Resend ${res.status}: ${await res.text()}`);
-    return;
-  }
   const preview = `[mail] ${subject} → ${to} (from ${from})`;
   if (process.env.NODE_ENV === "production") {
-    throw new Error(`${preview}; set SMTP_HOST, SMTP_USER and SMTP_PASS for cPanel`);
+    throw new Error(`${preview}; set RESEND_API_KEY`);
   }
   console.info(preview);
 }

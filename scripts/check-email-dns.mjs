@@ -2,7 +2,7 @@ import { createRequire } from "node:module";
 import { resolveTxt } from "node:dns/promises";
 const require = createRequire(import.meta.url);
 require("@next/env").loadEnvConfig(process.cwd());
-const domain = ((process.env.MAIL_FROM || "noreply@naijaspa.ng").match(/@([a-z0-9.-]+)/i) || [])[1];
+const domain = ((process.env.MAIL_FROM || "notification@notifications.naijaspa.com").match(/@([a-z0-9.-]+)/i) || [])[1];
 if (!domain) throw new Error("Sender domain missing");
 for (const [check, name] of [["spf", domain], ["dmarc", `_dmarc.${domain}`], ["cpanel-default-dkim", `default._domainkey.${domain}`]]) {
   try {
