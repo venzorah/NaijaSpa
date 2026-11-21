@@ -1,6 +1,6 @@
 import { appUrl } from "./payments";
 
-export const MAIL_FROM_ADDRESS = "notification@notifications.naijaspa.com";
+export const MAIL_FROM_ADDRESS = "notification@naijaspa.com";
 export const MAIL_FROM_NAME = "NaijaSpa";
 
 export function mailFrom() {
