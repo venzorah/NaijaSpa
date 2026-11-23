@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { formatNgn } from "@/lib/money";
 
+const field = "h-11 w-full rounded-2xl border border-line bg-card px-3 text-sm outline-none ring-gold/30 focus:ring-2";
+
 export function ShopCheckoutForm({ states }: { states: string[] }) {
   const [message, setMessage] = useState("");
   const [quote, setQuote] = useState<{ groups: { businessName: string; productKobo: number; shippingKobo: number; shipOk: boolean; shipReason?: string }[]; totalKobo: number } | null>(null);
@@ -45,40 +47,49 @@ export function ShopCheckoutForm({ states }: { states: string[] }) {
 
   return (
     <form
-      className="mt-6 grid gap-3"
+      className="mt-8 grid gap-8 lg:grid-cols-[1.1fr_0.9fr]"
       onSubmit={(e) => {
         e.preventDefault();
         void submit(false, e.currentTarget);
       }}
     >
-      <input required name="name" placeholder="Full name" className="h-11 rounded-2xl border border-line px-3" />
-      <input required type="email" name="email" placeholder="Email" className="h-11 rounded-2xl border border-line px-3" />
-      <input required name="phone" placeholder="Phone" className="h-11 rounded-2xl border border-line px-3" />
-      <input required name="address" placeholder="Street address" className="h-11 rounded-2xl border border-line px-3" />
-      <input required name="city" placeholder="City" className="h-11 rounded-2xl border border-line px-3" />
-      <select required name="state" className="h-11 rounded-2xl border border-line px-3" defaultValue="Lagos">
-        {states.map((s) => (
-          <option key={s}>{s}</option>
-        ))}
-      </select>
-      <input name="neighbourhood" placeholder="Neighbourhood (optional)" className="h-11 rounded-2xl border border-line px-3" />
-      <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="pickup" /> Pickup if the seller offers it</label>
-      <button type="button" className="h-11 rounded-full border border-line text-sm font-semibold" disabled={busy} onClick={(e) => void submit(true, (e.currentTarget as HTMLButtonElement).form!)}>
-        Preview shipping
-      </button>
-      {quote ? (
-        <div className="rounded-3xl border border-line bg-card p-4 text-sm">
-          {quote.groups.map((g) => (
-            <p key={g.businessName} className="flex justify-between gap-2 py-1">
-              <span>{g.businessName}</span>
-              <span>{g.shipOk ? `${formatNgn(g.productKobo)} + ship ${formatNgn(g.shippingKobo)}` : g.shipReason}</span>
-            </p>
-          ))}
-          <p className="mt-2 font-semibold">Total {formatNgn(quote.totalKobo)}</p>
+      <div className="space-y-3 rounded-[1.75rem] border border-line bg-card p-5">
+        <h2 className="font-semibold">Delivery</h2>
+        <input required name="name" placeholder="Full name" className={field} />
+        <input required type="email" name="email" placeholder="Email" className={field} />
+        <input required name="phone" placeholder="Phone" className={field} />
+        <input required name="address" placeholder="Street address" className={field} />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <input required name="city" placeholder="City" className={field} />
+          <select required name="state" className={field} defaultValue="Lagos">
+            {states.map((s) => (
+              <option key={s}>{s}</option>
+            ))}
+          </select>
         </div>
-      ) : null}
-      <button disabled={busy} className="h-11 rounded-full bg-gold text-sm font-bold text-ongold">{busy ? "Working…" : "Pay with Paystack"}</button>
-      {message ? <p className="text-sm text-goldink">{message}</p> : null}
+        <input name="neighbourhood" placeholder="Neighbourhood (optional)" className={field} />
+        <label className="flex items-center gap-2 text-sm text-ink2"><input type="checkbox" name="pickup" /> Pickup if this seller offers it</label>
+      </div>
+      <aside className="h-fit space-y-3 rounded-[1.75rem] border border-line bg-card p-5">
+        <h2 className="font-semibold">Order breakdown</h2>
+        <p className="text-xs text-ink2">One payment. Each seller’s shipping is separate and frozen at checkout.</p>
+        <button type="button" className="h-11 w-full rounded-full border border-line text-sm font-semibold" disabled={busy} onClick={(e) => void submit(true, (e.currentTarget as HTMLButtonElement).form!)}>
+          Preview shipping
+        </button>
+        {quote ? (
+          <div className="rounded-2xl bg-elev p-4 text-sm">
+            {quote.groups.map((g) => (
+              <p key={g.businessName} className="flex justify-between gap-2 py-1.5">
+                <span>{g.businessName}</span>
+                <span className="text-right">{g.shipOk ? `${formatNgn(g.productKobo)} + ${formatNgn(g.shippingKobo)}` : g.shipReason}</span>
+              </p>
+            ))}
+            <p className="mt-3 flex justify-between font-semibold"><span>Total</span><span>{formatNgn(quote.totalKobo)}</span></p>
+          </div>
+        ) : null}
+        <button disabled={busy} className="h-11 w-full rounded-full bg-gold text-sm font-bold text-ongold">{busy ? "Working…" : "Pay with Paystack"}</button>
+        {message ? <p className="text-sm text-goldink">{message}</p> : null}
+      </aside>
     </form>
   );
 }

@@ -36,6 +36,7 @@ export function mapProduct(p: {
 }
 
 export async function listLiveProducts(take = 12, extra?: { featured?: boolean }) {
+  try {
   await ensureShopCatalog();
   const rows = await prisma.shopProduct.findMany({
     where: {
@@ -48,9 +49,16 @@ export async function listLiveProducts(take = 12, extra?: { featured?: boolean }
     take
   });
   return rows.map(mapProduct);
+  } catch {
+    return [];
+  }
 }
 
 export async function shopCategories() {
-  await ensureShopCatalog();
-  return prisma.shopCategory.findMany({ where: { active: true, parentId: null }, orderBy: { sortOrder: "asc" } });
+  try {
+    await ensureShopCatalog();
+    return prisma.shopCategory.findMany({ where: { active: true, parentId: null }, orderBy: { sortOrder: "asc" } });
+  } catch {
+    return [];
+  }
 }

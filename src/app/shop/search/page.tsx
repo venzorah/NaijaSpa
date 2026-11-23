@@ -27,8 +27,9 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   const products = rows.map(mapProduct);
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 lg:px-8">
-      <h1 className="font-display text-3xl">Search</h1>
-      <form className="mt-4 flex flex-wrap gap-2">
+      <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-goldink">Catalog</p>
+      <h1 className="mt-1 font-display text-4xl">{q ? `Results for “${q}”` : "All products"}</h1>
+      <form className="mt-6 flex flex-wrap gap-2 rounded-[1.5rem] border border-line bg-card p-3">
         <input name="q" defaultValue={q} className="h-11 min-w-[12rem] flex-1 rounded-full border border-line px-4" placeholder="Search products" />
         <select name="category" defaultValue={category} className="h-11 rounded-full border border-line px-3">
           <option value="">All categories</option>
@@ -38,7 +39,8 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
         </select>
         <button className="h-11 rounded-full bg-gold px-5 text-sm font-bold text-ongold">Filter</button>
       </form>
-      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <p className="mt-4 text-sm text-ink2">{products.length} product{products.length === 1 ? "" : "s"}</p>
+      <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {products.map((p) => (
           <ProductCard key={p.slug} href={href(`/p/${p.slug}`)} name={p.name} image={p.image} priceKobo={p.priceKobo} compareKobo={p.compareKobo} vendor={p.vendor.businessName} sponsored={p.sponsored} />
         ))}

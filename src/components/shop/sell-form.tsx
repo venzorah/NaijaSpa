@@ -7,7 +7,7 @@ export function SellOnShop({ states, canActivate }: { states: string[]; canActiv
   const [mode, setMode] = useState<"activate" | "register">(canActivate ? "activate" : "register");
   return (
     <form
-      className="mt-6 grid gap-3"
+      className="mt-8 grid gap-3 rounded-[1.75rem] border border-line bg-card p-5"
       onSubmit={async (e) => {
         e.preventDefault();
         const fd = new FormData(e.currentTarget);

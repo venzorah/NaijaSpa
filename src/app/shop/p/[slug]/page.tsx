@@ -6,7 +6,9 @@ import { LIVE_PRODUCT_STATUS } from "@/lib/shop/constants";
 import { formatNgn } from "@/lib/money";
 import { shopHostFromHeaders, shopPublicPath, SHOP_PUBLIC_URL } from "@/lib/shop-host";
 import { AddToCart } from "@/components/shop/add-to-cart";
+import { ProductGallery } from "@/components/shop/product-gallery";
 import { unitSaleKobo } from "@/lib/shop/quote";
+import Link from "next/link";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -49,36 +51,42 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 lg:px-8">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <div className="grid gap-8 lg:grid-cols-2">
-        <div className="overflow-hidden rounded-3xl border border-line">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={product.images[0]?.url || "/photos/band-spa.jpg"} alt="" className="h-96 w-full object-cover" />
-        </div>
-        <div>
-          {product.sponsoredUntil && product.sponsoredUntil > new Date() ? <p className="text-xs font-bold uppercase text-goldink">Sponsored</p> : null}
-          <h1 className="font-display text-3xl">{product.name}</h1>
-          <p className="mt-2 text-sm text-ink2">
-            <a className="font-semibold" href={href(`/store/${product.vendor.slug}`)}>{product.vendor.businessName}</a> · {product.vendor.city}, {product.vendor.state}
+      <p className="text-xs text-ink2">
+        <Link href={href("/")} className="hover:text-ink">Shop</Link>
+        <span className="mx-2">/</span>
+        <Link href={href(`/c/${product.category.slug}`)} className="hover:text-ink">{product.category.name}</Link>
+      </p>
+      <div className="mt-5 grid gap-10 lg:grid-cols-[1.1fr_0.9fr]">
+        <ProductGallery images={product.images.map((img) => img.url)} name={product.name} />
+        <div className="lg:sticky lg:top-28 lg:self-start">
+          {product.sponsoredUntil && product.sponsoredUntil > new Date() ? <p className="text-xs font-bold uppercase tracking-wide text-goldink">Sponsored placement</p> : null}
+          <h1 className="font-display text-4xl">{product.name}</h1>
+          <p className="mt-3 text-sm text-ink2">
+            <Link className="font-semibold text-ink" href={href(`/store/${product.vendor.slug}`)}>{product.vendor.businessName}</Link>
+            <span> · {product.vendor.city}, {product.vendor.state}</span>
+            {product.reviewCount ? <span> · {product.ratingAvg.toFixed(1)} / 5 ({product.reviewCount})</span> : null}
           </p>
-          <p className="mt-4 text-2xl font-bold text-goldink">{formatNgn(price)}</p>
-          <p className="mt-4 text-sm leading-relaxed">{product.description}</p>
+          <p className="mt-5 font-display text-3xl text-goldink">{formatNgn(price)}</p>
+          <p className="mt-4 text-sm leading-relaxed text-ink2">{product.description || "Details from the seller."}</p>
           {variant ? <AddToCart variants={product.variants} /> : null}
-          {product.ingredients ? <><h2 className="mt-8 font-semibold">Ingredients</h2><p className="text-sm text-ink2">{product.ingredients}</p></> : null}
-          {product.usage ? <><h2 className="mt-4 font-semibold">How to use</h2><p className="text-sm text-ink2">{product.usage}</p></> : null}
-          {product.warnings ? <><h2 className="mt-4 font-semibold">Warnings</h2><p className="text-sm text-ink2">{product.warnings}</p></> : null}
+          <div className="mt-8 grid gap-3">
+            {product.ingredients ? <div className="rounded-3xl border border-line bg-card p-4"><p className="text-xs font-bold uppercase tracking-wide text-goldink">Ingredients</p><p className="mt-2 text-sm text-ink2">{product.ingredients}</p></div> : null}
+            {product.usage ? <div className="rounded-3xl border border-line bg-card p-4"><p className="text-xs font-bold uppercase tracking-wide text-goldink">How to use</p><p className="mt-2 text-sm text-ink2">{product.usage}</p></div> : null}
+            {product.warnings ? <div className="rounded-3xl border border-line bg-card p-4"><p className="text-xs font-bold uppercase tracking-wide text-goldink">Warnings</p><p className="mt-2 text-sm text-ink2">{product.warnings}</p></div> : null}
+          </div>
         </div>
       </div>
-      <section className="mt-12">
-        <h2 className="font-display text-2xl">Reviews</h2>
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
+      <section className="mt-14">
+        <h2 className="font-display text-3xl">Reviews</h2>
+        <div className="mt-5 grid gap-3 md:grid-cols-2">
           {product.reviews.map((r) => (
-            <figure key={r.id} className="rounded-3xl border border-line bg-card p-5">
-              <p className="text-goldink">{r.rating} / 5</p>
-              <blockquote className="mt-2 text-sm">{r.body}</blockquote>
+            <figure key={r.id} className="rounded-[1.5rem] border border-line bg-card p-5">
+              <p className="text-sm font-semibold text-goldink">{r.rating} / 5</p>
+              <blockquote className="mt-2 text-sm leading-relaxed">{r.body}</blockquote>
               <figcaption className="mt-3 text-xs text-ink2">{r.user.name.split(" ")[0]}</figcaption>
             </figure>
           ))}
-          {!product.reviews.length ? <p className="text-sm text-ink2">No reviews yet.</p> : null}
+          {!product.reviews.length ? <p className="text-sm text-ink2">No reviews yet. Buyers can rate after a delivered order.</p> : null}
         </div>
       </section>
     </div>
