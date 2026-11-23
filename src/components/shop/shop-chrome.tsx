@@ -11,7 +11,10 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
   const hdrs = await headers();
   const shopHost = shopHostFromHeaders(hdrs);
   const href = (path: string) => shopPublicPath(path.startsWith("/shop") ? path : `/shop${path === "/" ? "" : path}`, shopHost);
-  const [user, categories] = await Promise.all([getSession(), shopCategories().catch(() => [])]);
+  const [user, categories] = await Promise.all([
+    getSession().catch(() => null),
+    shopCategories().catch(() => [])
+  ]);
   return (
     <div className="min-h-screen bg-bg text-ink">
       <header className="sticky top-0 z-30 border-b border-line bg-bg/90 backdrop-blur-md">

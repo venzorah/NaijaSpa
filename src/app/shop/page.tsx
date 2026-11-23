@@ -11,19 +11,30 @@ import { PUBLIC_SITE_URL } from "@/lib/public-origin";
 export default async function ShopHomePage() {
   const shopHost = shopHostFromHeaders(await headers());
   const href = (path: string) => shopPublicPath(`/shop${path}`, shopHost);
-  const [categories, featured, newest, vendors] = await Promise.all([
-    shopCategories(),
-    listLiveProducts(8, { featured: true }),
-    listLiveProducts(8),
-    duringNextBuild() || !process.env.DATABASE_URL
-      ? Promise.resolve([])
-      : prisma.vendor.findMany({
-          where: { shopStatus: "approved" },
-          select: { slug: true, businessName: true, city: true, state: true, logoUrl: true },
-          take: 8,
-          orderBy: { businessName: "asc" }
-        }).catch(() => [])
-  ]);
+  let categories: Awaited<ReturnType<typeof shopCategories>> = [];
+  let featured: Awaited<ReturnType<typeof listLiveProducts>> = [];
+  let newest: Awaited<ReturnType<typeof listLiveProducts>> = [];
+  let vendors: { slug: string; businessName: string; city: string | null; state: string | null; logoUrl: string | null }[] = [];
+  try {
+    [categories, featured, newest, vendors] = await Promise.all([
+      shopCategories(),
+      listLiveProducts(8, { featured: true }),
+      listLiveProducts(8),
+      duringNextBuild() || !process.env.DATABASE_URL
+        ? Promise.resolve(vendors)
+        : prisma.vendor.findMany({
+            where: { shopStatus: "approved" },
+            select: { slug: true, businessName: true, city: true, state: true, logoUrl: true },
+            take: 8,
+            orderBy: { businessName: "asc" }
+          }).catch(() => [])
+    ]);
+  } catch {
+    categories = [];
+    featured = [];
+    newest = [];
+    vendors = [];
+  }
   const best = [...featured].sort((a, b) => b.ratingAvg - a.ratingAvg);
   const rails = [
     { title: "Featured", kicker: "Curated", items: featured.length ? featured : newest },

@@ -60,7 +60,7 @@ export async function shopCategories() {
   if (duringNextBuild() || !process.env.DATABASE_URL) return [];
   try {
     await ensureShopCatalog();
-    return prisma.shopCategory.findMany({ where: { active: true, parentId: null }, orderBy: { sortOrder: "asc" } });
+    return await prisma.shopCategory.findMany({ where: { active: true, parentId: null }, orderBy: { sortOrder: "asc" } });
   } catch {
     return [];
   }
