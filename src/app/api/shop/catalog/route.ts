@@ -15,12 +15,14 @@ export async function GET(req: Request) {
     const state = url.searchParams.get("state") ?? "";
     const min = Number(url.searchParams.get("min") ?? 0);
     const max = Number(url.searchParams.get("max") ?? 0);
+    const rating = Number(url.searchParams.get("rating") ?? 0);
     const sort = url.searchParams.get("sort") ?? "new";
     const where = {
       status: LIVE_PRODUCT_STATUS,
       vendor: { shopStatus: "approved", ...(state ? { state } : {}), ...(vendor ? { slug: vendor } : {}) },
       ...(category ? { category: { slug: category } } : {}),
-      ...(q ? { OR: [{ name: { contains: q, mode: "insensitive" as const } }, { description: { contains: q, mode: "insensitive" as const } }] } : {})
+      ...(q ? { OR: [{ name: { contains: q, mode: "insensitive" as const } }, { description: { contains: q, mode: "insensitive" as const } }] } : {}),
+      ...(rating > 0 ? { ratingAvg: { gte: rating } } : {})
     };
     const products = await prisma.shopProduct.findMany({
       where,

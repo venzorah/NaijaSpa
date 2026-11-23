@@ -79,7 +79,7 @@ export default async function ShopHomePage() {
           {rail.items.length ? (
             <div className="mt-5 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
               {rail.items.map((p) => (
-                <ProductCard key={p.slug} href={href(`/p/${p.slug}`)} name={p.name} image={p.image} priceKobo={p.priceKobo} compareKobo={p.compareKobo} vendor={p.vendor.businessName} sponsored={p.sponsored} />
+                <ProductCard key={p.slug} href={href(`/p/${p.slug}`)} name={p.name} image={p.image} priceKobo={p.priceKobo} compareKobo={p.compareKobo} vendor={p.vendor.businessName} category={p.category.name} ratingAvg={p.ratingAvg} reviewCount={p.reviewCount} sponsored={p.sponsored} />
               ))}
             </div>
           ) : (

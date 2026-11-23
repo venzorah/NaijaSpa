@@ -104,6 +104,25 @@ describe("shop hero", () => {
   });
 });
 
+describe("shop catalog filters", () => {
+  it("filters by naira price and minimum rating, then sorts", async () => {
+    const { applyShopCatalogFilters, parseShopCatalogQuery } = await import("../src/lib/shop/filters");
+    const filters = parseShopCatalogQuery({ min: "2000", max: "8000", rating: "4", sort: "price-asc" });
+    expect(filters.minNaira).toBe(2000);
+    expect(filters.rating).toBe(4);
+    const rows = applyShopCatalogFilters(
+      [
+        { priceKobo: 150000, ratingAvg: 5 },
+        { priceKobo: 400000, ratingAvg: 4.2 },
+        { priceKobo: 900000, ratingAvg: 5 },
+        { priceKobo: 500000, ratingAvg: 2 }
+      ],
+      filters
+    );
+    expect(rows.map((r) => r.priceKobo)).toEqual([400000]);
+  });
+});
+
 describe("shop isolation in existing portals", () => {
   it("adds Manage Ecommerce for super admins without hiding homepage", () => {
     const screens = visibleAdminScreens("super_admin");
