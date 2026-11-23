@@ -56,7 +56,7 @@ export default async function ShopHomePage() {
           </div>
           <Link href={href("/search")} className="hidden text-sm font-semibold text-goldink sm:inline-flex items-center gap-1">See all <ArrowRight className="h-4 w-4" /></Link>
         </div>
-        <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-4 lg:grid-cols-6">
+        <div className="mt-6 grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 sm:gap-x-4 sm:gap-y-6 lg:grid-cols-6">
           {categories.map((c) => (
             <Link
               key={c.slug}
