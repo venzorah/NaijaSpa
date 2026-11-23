@@ -35,7 +35,7 @@ export default async function ShopCategoryPage({ params }: { params: Promise<{ s
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 lg:px-8">
       <div className="flex items-center gap-4">
-        <span className="flex h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-elev ring-1 ring-line">
+        <span className="flex h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-elev ring-1 ring-line sm:h-24 sm:w-24">
           <ShopCategoryMark slug={category.slug} className="h-full w-full" />
         </span>
         <div>

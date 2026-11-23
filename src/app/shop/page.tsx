@@ -63,7 +63,7 @@ export default async function ShopHomePage() {
               href={href(`/c/${c.slug}`)}
               className="group flex flex-col items-center text-center"
             >
-              <span className="flex h-16 w-16 overflow-hidden rounded-2xl bg-elev ring-1 ring-line transition group-hover:ring-gold/50 sm:h-[4.5rem] sm:w-[4.5rem]">
+              <span className="flex h-20 w-20 overflow-hidden rounded-2xl bg-elev ring-1 ring-line transition group-hover:ring-gold/50 sm:h-24 sm:w-24">
                 <ShopCategoryMark slug={c.slug} className="h-full w-full" />
               </span>
               <p className="mt-2 line-clamp-2 text-xs font-semibold leading-snug text-ink">{c.name}</p>
