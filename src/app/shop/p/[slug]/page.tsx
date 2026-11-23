@@ -7,12 +7,14 @@ import { formatNgn } from "@/lib/money";
 import { shopHostFromHeaders, shopPublicPath, SHOP_PUBLIC_URL } from "@/lib/shop-host";
 import { AddToCart } from "@/components/shop/add-to-cart";
 import { ProductGallery } from "@/components/shop/product-gallery";
+import { ProductReviewForm } from "@/components/shop/review-form";
+import { shopQuery } from "@/lib/shop/safe-query";
 import { unitSaleKobo } from "@/lib/shop/quote";
 import Link from "next/link";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  const product = await prisma.shopProduct.findUnique({ where: { slug } });
+  const product = await shopQuery(() => prisma.shopProduct.findUnique({ where: { slug } }), null);
   if (!product || product.status !== LIVE_PRODUCT_STATUS) return { robots: { index: false } };
   return {
     title: product.name,
@@ -25,16 +27,20 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const product = await prisma.shopProduct.findUnique({
-    where: { slug },
-    include: {
-      images: { orderBy: { sortOrder: "asc" } },
-      variants: { where: { active: true } },
-      vendor: true,
-      category: true,
-      reviews: { where: { status: "published" }, include: { user: { select: { name: true } } }, take: 12, orderBy: { createdAt: "desc" } }
-    }
-  });
+  const product = await shopQuery(
+    () =>
+      prisma.shopProduct.findUnique({
+        where: { slug },
+        include: {
+          images: { orderBy: { sortOrder: "asc" } },
+          variants: { where: { active: true } },
+          vendor: true,
+          category: true,
+          reviews: { where: { status: "published" }, include: { user: { select: { name: true } } }, take: 12, orderBy: { createdAt: "desc" } }
+        }
+      }),
+    null
+  );
   if (!product || product.status !== LIVE_PRODUCT_STATUS || product.vendor.shopStatus !== "approved") notFound();
   const shopHost = shopHostFromHeaders(await headers());
   const href = (path: string) => shopPublicPath(`/shop${path}`, shopHost);
@@ -86,8 +92,9 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               <figcaption className="mt-3 text-xs text-ink2">{r.user.name.split(" ")[0]}</figcaption>
             </figure>
           ))}
-          {!product.reviews.length ? <p className="text-sm text-ink2">No reviews yet. Buyers can rate after a delivered order.</p> : null}
+          {!product.reviews.length ? <p className="text-sm text-ink2">No reviews yet. Buyers can rate after a paid Shop order.</p> : null}
         </div>
+        <ProductReviewForm productId={product.id} />
       </section>
     </div>
   );

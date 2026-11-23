@@ -14,6 +14,7 @@ export default function VendorShopReturnsPage() {
         {rows.map((r) => (
           <li key={r.id} className="rounded-2xl border border-line bg-card p-4">{r.vendorOrder.number} · {r.status}<p>{r.reason}</p></li>
         ))}
+        {!rows.length ? <li className="rounded-2xl border border-dashed border-line px-4 py-10 text-center text-ink2">No return requests.</li> : null}
       </ul>
     </div>
   );

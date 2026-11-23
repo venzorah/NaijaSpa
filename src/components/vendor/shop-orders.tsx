@@ -12,6 +12,7 @@ export function VendorShopOrders() {
   }, []);
   return (
     <ul className="mt-4 space-y-3">
+      {!orders.length ? <li className="rounded-3xl border border-dashed border-line px-4 py-10 text-center text-ink2">No product orders yet.</li> : null}
       {orders.map((o) => (
         <li key={o.id} className="rounded-3xl border border-line bg-card p-4 text-sm">
           <p className="font-semibold">{o.number} · {o.status} · {formatNgn(o.productKobo)} + ship {formatNgn(o.shippingKobo)}</p>

@@ -6,14 +6,21 @@ export function VendorShippingForm() {
   const [profile, setProfile] = useState<Record<string, unknown> | null>(null);
   const [states, setStates] = useState<string[]>([]);
   const [message, setMessage] = useState("");
+  const [loaded, setLoaded] = useState(false);
   useEffect(() => {
-    fetch("/api/shop/vendor/shipping").then((r) => r.json()).then((d) => {
-      setProfile(d.profile);
-      setStates(d.states ?? []);
-    }).catch(() => undefined);
+    fetch("/api/shop/vendor/shipping")
+      .then((r) => r.json())
+      .then((d) => {
+        setProfile(d.profile);
+        setStates(d.states ?? []);
+      })
+      .catch(() => undefined)
+      .finally(() => setLoaded(true));
   }, []);
+  if (!loaded) return <p className="mt-4 text-sm text-ink2">Loading shipping profile…</p>;
   return (
     <form
+      key={String((profile as { id?: string } | null)?.id || "new")}
       className="mt-4 grid max-w-lg gap-2"
       onSubmit={async (e) => {
         e.preventDefault();

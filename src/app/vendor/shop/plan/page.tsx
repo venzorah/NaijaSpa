@@ -32,6 +32,7 @@ export default function VendorShopPlanPage() {
           </form>
         ))}
       </div>
+      {!plans.length ? <p className="mt-4 text-sm text-ink2">Shop plans load when the database is reachable. Free and Monthly are separate from listing plans.</p> : null}
       {message ? <p className="mt-3 text-sm text-goldink">{message}</p> : null}
     </div>
   );

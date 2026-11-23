@@ -1,9 +1,12 @@
 import { SellOnShop } from "@/components/shop/sell-form";
-import { shopVendorStates } from "@/lib/shop/ensure";
+import { DEFAULT_SHOP_VENDOR_STATES, shopVendorStates } from "@/lib/shop/ensure";
 import { getSession } from "@/lib/auth";
 
 export default async function SellPage() {
-  const [states, user] = await Promise.all([shopVendorStates(), getSession()]);
+  const [states, user] = await Promise.all([
+    shopVendorStates().catch(() => [...DEFAULT_SHOP_VENDOR_STATES]),
+    getSession()
+  ]);
   return (
     <div className="mx-auto max-w-lg px-4 py-12">
       <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-goldink">Sellers</p>

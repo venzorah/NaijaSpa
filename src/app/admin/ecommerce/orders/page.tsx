@@ -1,15 +1,21 @@
 import { prisma } from "@/lib/db";
 import { formatNgn } from "@/lib/money";
+import { shopQuery } from "@/lib/shop/safe-query";
 
 export default async function EcommerceOrdersPage() {
-  const orders = await prisma.shopMasterOrder.findMany({
-    include: { vendorOrders: { include: { vendor: { select: { businessName: true } } } } },
-    orderBy: { createdAt: "desc" },
-    take: 100
-  });
+  const orders = await shopQuery(
+    () =>
+      prisma.shopMasterOrder.findMany({
+        include: { vendorOrders: { include: { vendor: { select: { businessName: true } } } } },
+        orderBy: { createdAt: "desc" },
+        take: 100
+      }),
+    []
+  );
   return (
     <div>
-      <h1 className="font-display text-3xl">Product orders</h1>
+      <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-goldink">Orders</p>
+      <h1 className="mt-1 font-display text-3xl">Product orders</h1>
       <ul className="mt-6 space-y-3">
         {orders.map((o) => (
           <li key={o.id} className="rounded-3xl border border-line bg-card p-4">
@@ -20,6 +26,7 @@ export default async function EcommerceOrdersPage() {
             ))}
           </li>
         ))}
+        {!orders.length ? <li className="rounded-3xl border border-dashed border-line px-4 py-10 text-center text-sm text-ink2">No Shop orders yet.</li> : null}
       </ul>
     </div>
   );

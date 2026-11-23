@@ -2,6 +2,8 @@ import { prisma, setConfig } from "@/lib/db";
 import { duringNextBuild } from "@/lib/live-db";
 import { DEFAULT_SHOP_PLANS, DEFAULT_SHOP_VENDOR_STATES, SHOP_CATEGORIES, SHOP_CONFIG } from "./constants";
 
+export { DEFAULT_SHOP_VENDOR_STATES };
+
 let shopDbSkipUntil = 0;
 
 export function shopDbUnavailable() {
@@ -51,8 +53,15 @@ export async function ensureShopCatalog() {
 }
 
 export async function shopVendorStates(): Promise<string[]> {
+  if (shopDbUnavailable()) return [...DEFAULT_SHOP_VENDOR_STATES];
   await ensureShopCatalog();
-  const row = await prisma.systemConfig.findUnique({ where: { key: SHOP_CONFIG.vendorStates } });
+  let row: { value: string } | null = null;
+  try {
+    row = await prisma.systemConfig.findUnique({ where: { key: SHOP_CONFIG.vendorStates } });
+  } catch {
+    markShopDbUnavailable();
+    return [...DEFAULT_SHOP_VENDOR_STATES];
+  }
   try {
     const parsed = row?.value ? (JSON.parse(row.value) as unknown) : DEFAULT_SHOP_VENDOR_STATES;
     if (Array.isArray(parsed) && parsed.every((item) => typeof item === "string")) {

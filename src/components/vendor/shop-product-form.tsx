@@ -22,7 +22,8 @@ export function VendorProductForm() {
         className="grid gap-2 rounded-3xl border border-line bg-card p-4"
         onSubmit={async (e) => {
           e.preventDefault();
-          const fd = new FormData(e.currentTarget);
+          const form = e.currentTarget;
+          const fd = new FormData(form);
           const res = await fetch("/api/shop/vendor/products", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -41,6 +42,12 @@ export function VendorProductForm() {
           });
           const data = await res.json();
           setMessage(res.ok ? "Saved for admin approval." : data.error || "Could not save");
+          if (res.ok) {
+            form.reset();
+            const refresh = await fetch("/api/shop/vendor/products");
+            const next = await refresh.json();
+            setProducts(next.products ?? []);
+          }
         }}
       >
         <input required name="name" placeholder="Product name" className="h-10 rounded-xl border border-line px-3" />
@@ -68,6 +75,7 @@ export function VendorProductForm() {
             {p.name} · {p.status} · {p.variants[0] ? formatNgn(p.variants[0].priceKobo) : ""}
           </li>
         ))}
+        {!products.length ? <li className="rounded-2xl border border-dashed border-line px-4 py-8 text-center text-ink2">No products yet. Save one for admin approval.</li> : null}
       </ul>
     </div>
   );
