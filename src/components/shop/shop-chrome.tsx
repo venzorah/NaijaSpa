@@ -32,6 +32,9 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
               className="h-11 w-full rounded-full border border-line bg-card pl-10 pr-4 text-sm outline-none ring-gold/40 focus:ring-2"
             />
           </form>
+          <Link href={href("/search")} className="inline-flex h-11 items-center px-3 text-sm font-semibold hover:text-goldink">
+            Explore
+          </Link>
           <Link href={href("/cart")} className="inline-flex h-11 items-center gap-1.5 rounded-full border border-line px-3.5 text-sm font-semibold hover:bg-elev">
             <ShoppingBag className="h-4 w-4" /> <span className="hidden sm:inline">Cart</span>
           </Link>
@@ -39,16 +42,16 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
             <UserRound className="h-4 w-4" /> {user ? "Orders" : "Sign in"}
           </Link>
         </div>
-        <nav className="hidden border-t border-line md:block" aria-label="Categories">
+        <nav className="hidden border-t border-line md:block" aria-label="Shop menu">
           <div className="mx-auto flex max-w-7xl gap-1 overflow-x-auto px-4 py-2 lg:px-8">
+            <Link href={href("/search")} className="shrink-0 rounded-full bg-gold/15 px-3 py-1.5 text-xs font-bold text-goldink">
+              Explore
+            </Link>
             {categories.slice(0, 8).map((c) => (
               <Link key={c.slug} href={href(`/c/${c.slug}`)} className="shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold text-ink2 hover:bg-elev hover:text-ink">
                 {c.name.replace(" Products", "")}
               </Link>
             ))}
-            <Link href={href("/search")} className="shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold text-goldink">
-              All →
-            </Link>
           </div>
         </nav>
       </header>
@@ -62,7 +65,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
           <div className="text-sm">
             <p className="font-semibold">Shop</p>
             <div className="mt-3 flex flex-col gap-2 text-ink2">
-              <Link href={href("/search")}>Browse products</Link>
+              <Link href={href("/search")}>Explore</Link>
               <Link href={href("/sell")}>Sell on Shop</Link>
               <Link href={href("/orders")}>Order tracking</Link>
             </div>
