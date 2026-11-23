@@ -74,7 +74,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           </p>
           <p className="mt-5 font-display text-3xl text-goldink">{formatNgn(price)}</p>
           <p className="mt-4 text-sm leading-relaxed text-ink2">{product.description || "Details from the seller."}</p>
-          {variant ? <AddToCart variants={product.variants} /> : null}
+          {variant ? <AddToCart variants={product.variants} productName={product.name} image={product.images[0]?.url} /> : null}
           <div className="mt-8 grid gap-3">
             {product.ingredients ? <div className="rounded-3xl border border-line bg-card p-4"><p className="text-xs font-bold uppercase tracking-wide text-goldink">Ingredients</p><p className="mt-2 text-sm text-ink2">{product.ingredients}</p></div> : null}
             {product.usage ? <div className="rounded-3xl border border-line bg-card p-4"><p className="text-xs font-bold uppercase tracking-wide text-goldink">How to use</p><p className="mt-2 text-sm text-ink2">{product.usage}</p></div> : null}
