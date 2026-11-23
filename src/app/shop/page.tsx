@@ -7,7 +7,7 @@ import { ShopHero } from "@/components/shop/shop-hero";
 import { ShopCategoryMark } from "@/components/shop/category-mark";
 import { shopHostFromHeaders, shopPublicPath } from "@/lib/shop-host";
 import { prisma } from "@/lib/db";
-import { markShopDbUnavailable, shopDbUnavailable } from "@/lib/shop/ensure";
+import { shopQuery } from "@/lib/shop/safe-query";
 import { getShopHeroSlides, presentShopHero } from "@/lib/shop/hero";
 
 export default async function ShopHomePage() {
@@ -21,17 +21,16 @@ export default async function ShopHomePage() {
     [featured, newest, vendors] = await Promise.all([
       listLiveProducts(8, { featured: true }),
       listLiveProducts(8),
-      shopDbUnavailable()
-        ? Promise.resolve(vendors)
-        : prisma.vendor.findMany({
+      shopQuery(
+        () =>
+          prisma.vendor.findMany({
             where: { shopStatus: "approved" },
             select: { slug: true, businessName: true, city: true, state: true, logoUrl: true },
             take: 8,
             orderBy: { businessName: "asc" }
-          }).catch(() => {
-            markShopDbUnavailable();
-            return vendors;
-          })
+          }),
+        []
+      )
     ]);
   } catch {
     featured = [];

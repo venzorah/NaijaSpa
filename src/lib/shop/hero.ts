@@ -2,7 +2,7 @@ import { PHOTOS, publicWellnessPhoto } from "@/lib/photos";
 import { shopPublicPath } from "@/lib/shop-host";
 import { prisma } from "@/lib/db";
 import { SHOP_CONFIG } from "./constants";
-import { markShopDbUnavailable, shopDbUnavailable } from "./ensure";
+import { shopQuery } from "./safe-query";
 
 export type ShopHeroSlide = {
   id: string;
@@ -129,12 +129,6 @@ export function presentShopHero(slides: ShopHeroSlide[], shopHost: boolean): Sho
 }
 
 export async function getShopHeroSlides(): Promise<ShopHeroSlide[]> {
-  if (shopDbUnavailable()) return parseShopHero(null);
-  try {
-    const row = await prisma.systemConfig.findUnique({ where: { key: SHOP_CONFIG.hero } });
-    return parseShopHero(row?.value);
-  } catch {
-    markShopDbUnavailable();
-    return parseShopHero(null);
-  }
+  const row = await shopQuery(() => prisma.systemConfig.findUnique({ where: { key: SHOP_CONFIG.hero } }), null);
+  return parseShopHero(row?.value);
 }

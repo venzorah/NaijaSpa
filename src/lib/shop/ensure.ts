@@ -5,17 +5,39 @@ import { DEFAULT_SHOP_PLANS, DEFAULT_SHOP_VENDOR_STATES, SHOP_CATEGORIES, SHOP_C
 export { DEFAULT_SHOP_VENDOR_STATES };
 
 let shopDbSkipUntil = 0;
+let shopDbProbe: Promise<boolean> | null = null;
+
+const SHOP_DB_AUTH_FAIL = /Authentication failed|P1000|P1001|Can't reach database|not valid/i;
 
 export function shopDbUnavailable() {
   return duringNextBuild() || !process.env.DATABASE_URL || Date.now() < shopDbSkipUntil;
 }
 
-export function markShopDbUnavailable() {
-  shopDbSkipUntil = Date.now() + 30_000;
+export function markShopDbUnavailable(error?: unknown) {
+  const message = error instanceof Error ? `${error.message} ${error.name}` : String(error ?? "");
+  const ms = SHOP_DB_AUTH_FAIL.test(message) ? 10 * 60_000 : 30_000;
+  shopDbSkipUntil = Math.max(shopDbSkipUntil, Date.now() + ms);
+}
+
+/** One connectivity check so parallel Shop queries do not all hit a dead database. */
+export async function shopDbReady() {
+  if (shopDbUnavailable()) return false;
+  if (shopDbProbe) return shopDbProbe;
+  shopDbProbe = prisma
+    .$queryRaw`SELECT 1`
+    .then(() => true)
+    .catch((error) => {
+      markShopDbUnavailable(error);
+      return false;
+    })
+    .finally(() => {
+      shopDbProbe = null;
+    });
+  return shopDbProbe;
 }
 
 export async function ensureShopCatalog() {
-  if (shopDbUnavailable()) return;
+  if (!(await shopDbReady())) return;
   try {
     for (const [index, cat] of SHOP_CATEGORIES.entries()) {
       const existing = await prisma.shopCategory.findUnique({ where: { slug: cat.slug } });
@@ -47,19 +69,19 @@ export async function ensureShopCatalog() {
     if (!min) await setConfig(SHOP_CONFIG.minPayoutKobo, "500000");
     const mode = await prisma.systemConfig.findUnique({ where: { key: SHOP_CONFIG.payoutMode } });
     if (!mode) await setConfig(SHOP_CONFIG.payoutMode, "request");
-  } catch {
-    markShopDbUnavailable();
+  } catch (error) {
+    markShopDbUnavailable(error);
   }
 }
 
 export async function shopVendorStates(): Promise<string[]> {
-  if (shopDbUnavailable()) return [...DEFAULT_SHOP_VENDOR_STATES];
+  if (!(await shopDbReady())) return [...DEFAULT_SHOP_VENDOR_STATES];
   await ensureShopCatalog();
   let row: { value: string } | null = null;
   try {
     row = await prisma.systemConfig.findUnique({ where: { key: SHOP_CONFIG.vendorStates } });
-  } catch {
-    markShopDbUnavailable();
+  } catch (error) {
+    markShopDbUnavailable(error);
     return [...DEFAULT_SHOP_VENDOR_STATES];
   }
   try {

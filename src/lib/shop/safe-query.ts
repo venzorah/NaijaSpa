@@ -1,11 +1,11 @@
-import { markShopDbUnavailable, shopDbUnavailable } from "./ensure";
+import { markShopDbUnavailable, shopDbReady } from "./ensure";
 
 export async function shopQuery<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
-  if (shopDbUnavailable()) return fallback;
+  if (!(await shopDbReady())) return fallback;
   try {
     return await fn();
-  } catch {
-    markShopDbUnavailable();
+  } catch (error) {
+    markShopDbUnavailable(error);
     return fallback;
   }
 }

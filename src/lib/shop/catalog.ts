@@ -1,6 +1,7 @@
+import { cache } from "react";
 import { prisma } from "@/lib/db";
-import { markShopDbUnavailable, shopDbUnavailable } from "./ensure";
 import { LIVE_PRODUCT_STATUS, SHOP_CATEGORIES } from "./constants";
+import { shopQuery } from "./safe-query";
 import { unitSaleKobo } from "./quote";
 
 export function fallbackShopCategories() {
@@ -48,32 +49,27 @@ export function mapProduct(p: {
 }
 
 export async function listLiveProducts(take = 12, extra?: { featured?: boolean }) {
-  if (shopDbUnavailable()) return [];
-  try {
-    const rows = await prisma.shopProduct.findMany({
-      where: {
-        status: LIVE_PRODUCT_STATUS,
-        vendor: { shopStatus: "approved" },
-        ...(extra?.featured ? { featured: true } : {})
-      },
-      include: productInclude,
-      orderBy: extra?.featured ? { ratingAvg: "desc" } : { createdAt: "desc" },
-      take
-    });
-    return rows.map(mapProduct);
-  } catch {
-    markShopDbUnavailable();
-    return [];
-  }
+  const rows = await shopQuery(
+    () =>
+      prisma.shopProduct.findMany({
+        where: {
+          status: LIVE_PRODUCT_STATUS,
+          vendor: { shopStatus: "approved" },
+          ...(extra?.featured ? { featured: true } : {})
+        },
+        include: productInclude,
+        orderBy: extra?.featured ? { ratingAvg: "desc" } : { createdAt: "desc" },
+        take
+      }),
+    []
+  );
+  return rows.map(mapProduct);
 }
 
-export async function shopCategories() {
-  if (shopDbUnavailable()) return fallbackShopCategories();
-  try {
-    const rows = await prisma.shopCategory.findMany({ where: { active: true, parentId: null }, orderBy: { sortOrder: "asc" } });
-    return rows.length ? rows : fallbackShopCategories();
-  } catch {
-    markShopDbUnavailable();
-    return fallbackShopCategories();
-  }
-}
+export const shopCategories = cache(async function shopCategories() {
+  const rows = await shopQuery(
+    () => prisma.shopCategory.findMany({ where: { active: true, parentId: null }, orderBy: { sortOrder: "asc" } }),
+    fallbackShopCategories()
+  );
+  return rows.length ? rows : fallbackShopCategories();
+});

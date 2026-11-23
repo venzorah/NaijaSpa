@@ -76,6 +76,14 @@ describe("shop quote", () => {
   });
 });
 
+describe("shop db skip", () => {
+  it("treats credential failures as a long skip, not a 30s blip", async () => {
+    const { markShopDbUnavailable, shopDbUnavailable } = await import("../src/lib/shop/ensure");
+    markShopDbUnavailable(new Error("Authentication failed against database server, the provided database credentials for `naijaspa` are not valid."));
+    expect(shopDbUnavailable()).toBe(true);
+  });
+});
+
 describe("shop hero", () => {
   it("always returns three slides and fills missing copy from defaults", () => {
     const slides = parseShopHero(JSON.stringify([{ title: "Fresh butters for home." }]));
