@@ -4,6 +4,7 @@ import { ArrowRight } from "lucide-react";
 import { shopCategories, listLiveProducts } from "@/lib/shop/catalog";
 import { ProductCard } from "@/components/shop/product-card";
 import { ShopHero } from "@/components/shop/shop-hero";
+import { ShopCategoryMark } from "@/components/shop/category-mark";
 import { shopHostFromHeaders, shopPublicPath } from "@/lib/shop-host";
 import { prisma } from "@/lib/db";
 import { markShopDbUnavailable, shopDbUnavailable } from "@/lib/shop/ensure";
@@ -55,11 +56,17 @@ export default async function ShopHomePage() {
           </div>
           <Link href={href("/search")} className="hidden text-sm font-semibold text-goldink sm:inline-flex items-center gap-1">See all <ArrowRight className="h-4 w-4" /></Link>
         </div>
-        <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
+        <div className="mt-6 grid grid-cols-3 gap-x-3 gap-y-6 sm:grid-cols-4 lg:grid-cols-6">
           {categories.map((c) => (
-            <Link key={c.slug} href={href(`/c/${c.slug}`)} className="rounded-[1.5rem] border border-line bg-card p-4 transition hover:border-gold/50 hover:bg-gold/5">
-              <p className="font-semibold leading-snug">{c.name}</p>
-              <p className="mt-1 text-xs text-ink2">Approved wellness goods</p>
+            <Link
+              key={c.slug}
+              href={href(`/c/${c.slug}`)}
+              className="group flex flex-col items-center text-center"
+            >
+              <span className="flex h-16 w-16 overflow-hidden rounded-2xl bg-elev ring-1 ring-line transition group-hover:ring-gold/50 sm:h-[4.5rem] sm:w-[4.5rem]">
+                <ShopCategoryMark slug={c.slug} className="h-full w-full" />
+              </span>
+              <p className="mt-2 line-clamp-2 text-xs font-semibold leading-snug text-ink">{c.name}</p>
             </Link>
           ))}
         </div>

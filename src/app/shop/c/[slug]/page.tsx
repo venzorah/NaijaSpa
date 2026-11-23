@@ -6,6 +6,7 @@ import { fallbackShopCategories, mapProduct } from "@/lib/shop/catalog";
 import { shopQuery } from "@/lib/shop/safe-query";
 import { ProductCard } from "@/components/shop/product-card";
 import { ShopEmptyState } from "@/components/shop/empty-state";
+import { ShopCategoryMark } from "@/components/shop/category-mark";
 import { shopHostFromHeaders, shopPublicPath } from "@/lib/shop-host";
 
 export default async function ShopCategoryPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -33,9 +34,16 @@ export default async function ShopCategoryPage({ params }: { params: Promise<{ s
   const products = rows.map(mapProduct);
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 lg:px-8">
-      <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-goldink">Category</p>
-      <h1 className="mt-1 font-display text-4xl">{category.name}</h1>
-      <p className="mt-2 max-w-2xl text-ink2">{"description" in category && category.description ? category.description : "Approved wellness products in this category."}</p>
+      <div className="flex items-center gap-4">
+        <span className="flex h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-elev ring-1 ring-line">
+          <ShopCategoryMark slug={category.slug} className="h-full w-full" />
+        </span>
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-goldink">Category</p>
+          <h1 className="mt-1 font-display text-3xl md:text-4xl">{category.name}</h1>
+        </div>
+      </div>
+      <p className="mt-4 max-w-2xl text-ink2">{"description" in category && category.description ? category.description : "Approved wellness products in this category."}</p>
       {products.length ? (
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {products.map((p) => (
