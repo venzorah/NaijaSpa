@@ -56,14 +56,14 @@ export default async function ShopHomePage() {
           </div>
           <Link href={href("/search")} className="hidden text-sm font-semibold text-goldink sm:inline-flex items-center gap-1">See all <ArrowRight className="h-4 w-4" /></Link>
         </div>
-        <div className="mt-6 grid grid-cols-3 gap-x-3 gap-y-6 sm:grid-cols-4 lg:grid-cols-6">
+        <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-4 lg:grid-cols-6">
           {categories.map((c) => (
             <Link
               key={c.slug}
               href={href(`/c/${c.slug}`)}
               className="group flex flex-col items-center text-center"
             >
-              <span className="flex h-20 w-20 overflow-hidden rounded-2xl bg-elev ring-1 ring-line transition group-hover:ring-gold/50 sm:h-24 sm:w-24">
+              <span className="flex aspect-square w-full overflow-hidden rounded-2xl bg-elev ring-1 ring-line transition group-hover:ring-gold/50 sm:aspect-auto sm:h-24 sm:w-24">
                 <ShopCategoryMark slug={c.slug} className="h-full w-full" />
               </span>
               <p className="mt-2 line-clamp-2 text-xs font-semibold leading-snug text-ink">{c.name}</p>
@@ -77,7 +77,7 @@ export default async function ShopHomePage() {
           <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-goldink">{rail.kicker}</p>
           <h2 className="mt-1 font-display text-3xl">{rail.title}</h2>
           {rail.items.length ? (
-            <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-5 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
               {rail.items.map((p) => (
                 <ProductCard key={p.slug} href={href(`/p/${p.slug}`)} name={p.name} image={p.image} priceKobo={p.priceKobo} compareKobo={p.compareKobo} vendor={p.vendor.businessName} sponsored={p.sponsored} />
               ))}
