@@ -3,6 +3,7 @@ import { lookupPlaceFromRequest, placeLockedByUser } from "@/lib/geo-ip";
 import { parsePlaceCookie, PLACE_COOKIE, type LivePlace } from "@/lib/nigeria";
 import { inHref, placeHasLocation } from "@/lib/place-urls";
 import { publicOriginFromRequest } from "@/lib/public-origin";
+import { shopHostFromHeaders, shopRewritePath } from "@/lib/shop-host";
 
 function writePlaceCookie(response: NextResponse, place: LivePlace) {
   response.cookies.set(PLACE_COOKIE, encodeURIComponent(JSON.stringify(place)), {
@@ -14,6 +15,20 @@ function writePlaceCookie(response: NextResponse, place: LivePlace) {
 
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+  const headers = new Headers(request.headers);
+  const dest = request.nextUrl.pathname + request.nextUrl.search;
+  headers.set("x-naijaspa-vendor-path", dest);
+  headers.set("x-naijaspa-customer-path", dest);
+  headers.set("x-naijaspa-admin-path", dest);
+  if (shopHostFromHeaders(request.headers)) {
+    const rewritten = shopRewritePath(pathname);
+    if (rewritten && rewritten !== pathname) {
+      const url = request.nextUrl.clone();
+      url.pathname = rewritten;
+      return NextResponse.rewrite(url, { request: { headers } });
+    }
+    return NextResponse.next({ request: { headers } });
+  }
   if (pathname === "/" && !request.cookies.get("naijaspa_session")?.value) {
     let place = parsePlaceCookie(request.cookies.get(PLACE_COOKIE)?.value);
     const locked = placeLockedByUser(place);
@@ -30,14 +45,9 @@ export async function middleware(request: NextRequest) {
       }
     }
   }
-  const headers = new Headers(request.headers);
-  const dest = request.nextUrl.pathname + request.nextUrl.search;
-  headers.set("x-naijaspa-vendor-path", dest);
-  headers.set("x-naijaspa-customer-path", dest);
-  headers.set("x-naijaspa-admin-path", dest);
   return NextResponse.next({ request: { headers } });
 }
 
 export const config = {
-  matcher: ["/", "/in/:path*", "/vendor/:path*", "/account", "/account/:path*", "/checkout/:path*", "/admin/:path*"]
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|icon.png|apple-icon.png|manifest.webmanifest|sw-register.js|brand/|photos/|fonts/).*)"]
 };

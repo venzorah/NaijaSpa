@@ -17,7 +17,8 @@ import {
   SlidersHorizontal,
   Store,
   Users,
-  Wallet
+  Wallet,
+  ShoppingBag
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { hasPermission, ROLES, type Permission, type RoleAccess } from "@/lib/rbac";
@@ -45,7 +46,8 @@ export type AdminScreenId =
   | "ai"
   | "roles"
   | "audit"
-  | "settings";
+  | "settings"
+  | "ecommerce";
 
 export type AdminAccess = "full" | "view";
 
@@ -70,6 +72,16 @@ export const ADMIN_SCREENS: {
     description: "Marketplace health, money flow and recent activity.",
     view: ["admin.access"],
     edit: ["analytics.view"]
+  },
+  {
+    id: "ecommerce",
+    href: "/admin/ecommerce",
+    label: "Manage Ecommerce",
+    group: "Overview",
+    icon: ShoppingBag,
+    description: "Open the dedicated Shop admin portal. Service admin stays as it is.",
+    view: ["shop.manage"],
+    edit: ["shop.manage"]
   },
   {
     id: "users",
@@ -314,7 +326,8 @@ export const ADMIN_PERMISSION_ROWS: { area: string; action: string; permission: 
   { area: "Support", action: "Resolve tickets and moderate reviews", permission: "support.manage" },
   { area: "Platform", action: "Configure AI search", permission: "ai.manage" },
   { area: "Platform", action: "Manage roles and system settings", permission: "roles.manage" },
-  { area: "Platform", action: "View audit log", permission: "audit.view" }
+  { area: "Platform", action: "View audit log", permission: "audit.view" },
+  { area: "Shop", action: "Manage ecommerce vendors, products and payouts", permission: "shop.manage" }
 ];
 
 export function accessForScreen(role: RoleAccess, screenId: AdminScreenId): AdminAccess | null {

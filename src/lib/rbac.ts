@@ -34,7 +34,8 @@ export type Permission =
   | "ai.manage"
   | "roles.manage"
   | "audit.view"
-  | "analytics.view";
+  | "analytics.view"
+  | "shop.manage";
 
 export const ALL_ADMIN: Permission[] = [
   "admin.access",
@@ -54,7 +55,8 @@ export const ALL_ADMIN: Permission[] = [
   "ai.manage",
   "roles.manage",
   "audit.view",
-  "analytics.view"
+  "analytics.view",
+  "shop.manage"
 ];
 
 export const DEFAULT_ROLE_PERMISSIONS: Record<string, Permission[]> = {
@@ -69,7 +71,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "catalog.manage",
     "support.manage",
     "audit.view",
-    "analytics.view"
+    "analytics.view",
+    "shop.manage"
   ],
   [ROLES.VERIFICATION]: ["admin.access", "vendors.verify", "audit.view"],
   [ROLES.SUPPORT]: ["admin.access", "support.manage", "users.manage", "bookings.manage"],
@@ -79,9 +82,10 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "finance.manage",
     "commercial.manage",
     "analytics.view",
-    "audit.view"
+    "audit.view",
+    "shop.manage"
   ],
-  [ROLES.CONTENT]: ["admin.access", "cms.manage", "catalog.manage"],
+  [ROLES.CONTENT]: ["admin.access", "cms.manage", "catalog.manage", "shop.manage"],
   [ROLES.MARKETING]: ["admin.access", "campaigns.manage", "cms.manage", "analytics.view"],
   [ROLES.MODERATOR]: ["admin.access", "support.manage", "catalog.manage", "users.manage"],
   [ROLES.ANALYST]: ["admin.access", "analytics.view", "finance.view", "audit.view"]

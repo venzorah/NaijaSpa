@@ -8,6 +8,7 @@ import { persistSessionRecord } from "./session-store";
 import { cache } from "react";
 import { getRoleAccess } from "./admin-role-store";
 import type { Permission } from "./rbac";
+import { sessionCookieDomain } from "./shop-host";
 
 const COOKIE = "naijaspa_session";
 
@@ -53,18 +54,31 @@ export async function createSession(user: SessionUser, expectedPasswordHash?: st
   const expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
   await persistSessionRecord(user.id, token, expiresAt, expectedPasswordHash);
   const jar = await cookies();
+  const domain = sessionCookieDomain();
   jar.set(COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    expires: expiresAt
+    expires: expiresAt,
+    ...(domain ? { domain } : {})
   });
 }
 
 export async function destroySession() {
   const jar = await cookies();
   const token = jar.get(COOKIE)?.value;
+  const expired = new Date(0);
+  const base = {
+    httpOnly: true,
+    sameSite: "lax" as const,
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    expires: expired
+  };
+  jar.set(COOKIE, "", base);
+  const domain = sessionCookieDomain();
+  if (domain) jar.set(COOKIE, "", { ...base, domain });
   jar.delete(COOKIE);
   if (token) {
     await withTimeout(prisma.session.deleteMany({ where: { token } }), 2500).catch(() => undefined);

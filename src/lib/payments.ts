@@ -31,10 +31,12 @@ function webhookSecret() {
 export async function initPayment(input: {
   email: string;
   amountKobo: number;
-  purpose: "booking" | "subscription" | "membership";
+  purpose: "booking" | "subscription" | "membership" | "shop_order" | "shop_subscription";
   bookingId?: string;
+  shopMasterOrderId?: string;
   customerId?: string;
   callbackPath?: string;
+  callbackOrigin?: string;
   metadata?: Record<string, string>;
 }) {
   if (input.purpose === "membership") {
@@ -86,6 +88,7 @@ export async function initPayment(input: {
   const payment = await prisma.payment.create({
     data: {
       bookingId: input.bookingId,
+      shopMasterOrderId: input.shopMasterOrderId,
       provider: paystackConfigured() ? "paystack" : "unconfigured",
       purpose: input.purpose,
       amountKobo: input.amountKobo,
@@ -111,7 +114,8 @@ export async function initPayment(input: {
   }
 
   const callbackPath = input.callbackPath || "/checkout/verify";
-  const callback = `${appUrl()}${callbackPath}${callbackPath.includes("?") ? "&" : "?"}reference=${encodeURIComponent(reference)}`;
+  const origin = (input.callbackOrigin || appUrl()).replace(/\/$/, "");
+  const callback = `${origin}${callbackPath}${callbackPath.includes("?") ? "&" : "?"}reference=${encodeURIComponent(reference)}`;
   const res = await fetch("https://api.paystack.co/transaction/initialize", {
     method: "POST",
     headers: {
@@ -129,7 +133,8 @@ export async function initPayment(input: {
         bookingId: input.bookingId ?? "",
         purpose: input.purpose,
         customerId: input.customerId ?? "",
-        cancel_action: input.bookingId ? `${appUrl()}/checkout/${input.bookingId}` : callback,
+        cancel_action: input.bookingId ? `${origin}/checkout/${input.bookingId}` : callback,
+        shopMasterOrderId: input.shopMasterOrderId ?? "",
         ...(input.metadata ?? {})
       }
     })
@@ -176,7 +181,21 @@ async function markPaymentSuccess(paymentId: string, bookingId: string | null, p
     });
     if (bookingId) await confirmBookingFromPayment(bookingId, undefined, tx);
     if (payment.purpose === "subscription") await fulfillVendorSubscriptionPayment(payment.id, tx);
+    if (payment.purpose === "shop_order") {
+      const { fulfillShopOrderPayment } = await import("@/lib/shop/checkout");
+      await fulfillShopOrderPayment(payment.id, tx);
+    }
+    if (payment.purpose === "shop_subscription") {
+      const { fulfillShopSubscriptionPayment } = await import("@/lib/shop/checkout");
+      await fulfillShopSubscriptionPayment(payment.id, tx);
+    }
     return tx.payment.findUniqueOrThrow({ where: { id: payment.id } });
+  }).then(async (row) => {
+    if (row.purpose === "shop_order" && row.shopMasterOrderId) {
+      const { notifyShopOrderPaid } = await import("@/lib/shop/checkout");
+      await notifyShopOrderPaid(row.shopMasterOrderId).catch(() => undefined);
+    }
+    return row;
   });
 }
 
@@ -241,6 +260,10 @@ export async function verifyPaystack(reference: string) {
       where: { id: payment.id, status: { not: "success" } },
       data: { status: "failed" }
     });
+    if (payment.purpose === "shop_order" && payment.shopMasterOrderId) {
+      const { failShopOrderPayment } = await import("@/lib/shop/checkout");
+      await failShopOrderPayment(payment.shopMasterOrderId);
+    }
   }
   return prisma.payment.findUniqueOrThrow({ where: { id: payment.id } });
 }

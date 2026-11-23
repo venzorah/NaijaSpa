@@ -45,3 +45,18 @@ For future updates, prepare a new release, link the protected production environ
 Verify the app on its loopback port before future cutovers and check PadiCheck before and after the rollout. Keep its application, database, systemd units and environment files unchanged. Arrange recurring/off-server backups and retention as a separate operations task.
 
 Do **not** run `scripts/vps-setup-postgres.sh` for this shared-host rollout: it targets a different Vercel/database-hosting arrangement, restarts PostgreSQL, changes firewall rules and enables network database access. Likewise, the root `docker-compose.yml` is a local development stack that binds PostgreSQL's standard port; it is not the production setup for this server.
+
+## NaijaSpa Shop (`shop.naijaspa.com`)
+
+Shop is the same `naijaspa-web` process. Nginx in `deploy/nginx.naijaspa.tls.conf` proxies `shop.naijaspa.com` to `127.0.0.1:3100`. The app rewrites that host to `/shop` internally. Services stay on `https://naijaspa.com`.
+
+Before going live:
+
+1. Add a DNS A/AAAA (or CNAME) for `shop.naijaspa.com` to the same VPS as the apex. Do not invent records.
+2. Expand the Let’s Encrypt certificate with `shop.naijaspa.com` (certbot `--expand`) so the shop vhost TLS files match.
+3. Run `npx prisma migrate deploy` on the VPS (additive shop tables only). Restart `naijaspa-web`.
+4. Keep Paystack webhook at `https://naijaspa.com/api/payments/webhook`. Shop charges use purposes `shop_order` and `shop_subscription`.
+5. Add `https://shop.naijaspa.com` to Google OAuth authorized origins/redirects.
+6. Optional: `AUTH_COOKIE_DOMAIN=.naijaspa.com` (already the production default) so a customer session works on both hosts.
+
+Rollback: revert the release symlink and restart `naijaspa-web`. Shop tables can remain; they are unused if the previous build is restored. Do not drop Services tables.

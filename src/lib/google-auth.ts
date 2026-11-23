@@ -24,6 +24,7 @@ type OauthState = {
 export const GOOGLE_STATIC_ORIGINS = [
   "https://naijaspa.com",
   "https://www.naijaspa.com",
+  "https://shop.naijaspa.com",
   "https://naijaspa.ng",
   "https://www.naijaspa.ng",
   "http://localhost:3000",

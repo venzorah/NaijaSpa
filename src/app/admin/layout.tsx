@@ -9,9 +9,13 @@ import { portalNext } from "@/lib/portal-auth";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await getSession();
-  const next = portalNext((await headers()).get("x-naijaspa-admin-path"), "admin");
+  const adminPath = (await headers()).get("x-naijaspa-admin-path") || "";
+  const next = portalNext(adminPath, "admin");
   if (!user) redirect(`/login/admin?${new URLSearchParams({ next })}`);
   if (!isAdminRole(user)) redirect("/account/dashboard");
+  if (adminPath.startsWith("/admin/ecommerce") || adminPath.split("?")[0] === "/admin/ecommerce") {
+    return children;
+  }
   const openTickets = await prisma.supportTicket.count({ where: { status: { in: ["open", "pending"] } } }).catch(() => 0);
   return (
     <PortalChrome

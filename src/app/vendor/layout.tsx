@@ -22,7 +22,7 @@ export default async function VendorLayout({ children }: {
         vendorId
             ? prisma.vendor.findUnique({
                 where: { id: vendorId },
-                select: { businessName: true, logoUrl: true, city: true, applicationStatus: true, verificationStatus: true }
+                select: { businessName: true, logoUrl: true, city: true, applicationStatus: true, verificationStatus: true, commerceKind: true, shopStatus: true }
             })
             : Promise.resolve(null),
         vendorId ? vendorEntitlement(vendorId) : Promise.resolve(null),
@@ -34,7 +34,7 @@ export default async function VendorLayout({ children }: {
         prisma.notification.count({ where: { userId: user.id, readAt: null } })
     ]);
     const verified = vendor?.verificationStatus === "verified";
-    return (<VendorPortal subtitle={verified ? `Verified · ${vendor?.city || "Nigeria"}` : vendor?.applicationStatus?.replace(/_/g, " ") || "Vendor portal"} userName={user.name} businessName={vendor?.businessName || user.name} logoUrl={vendor?.logoUrl} planPaid={Boolean(ent?.activePaid)} planLabel={ent?.activePaid ? `Paid · ${ent.planCode}` : "Free plan"} commissionBps={ent?.commissionBps ?? 1000} bookingBadge={actionCount} alerts={openTickets}>
+    return (<VendorPortal commerceKind={vendor?.commerceKind || "services"} subtitle={verified ? `Verified · ${vendor?.city || "Nigeria"}` : vendor?.applicationStatus?.replace(/_/g, " ") || "Vendor portal"} userName={user.name} businessName={vendor?.businessName || user.name} logoUrl={vendor?.logoUrl} planPaid={Boolean(ent?.activePaid)} planLabel={ent?.activePaid ? `Paid · ${ent.planCode}` : "Free plan"} commissionBps={ent?.commissionBps ?? 1000} bookingBadge={actionCount} alerts={openTickets}>
       {children}
     </VendorPortal>);
 }

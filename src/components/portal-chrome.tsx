@@ -27,7 +27,10 @@ import {
   Sun,
   Users,
   Wallet,
-  X
+  X,
+  ShoppingBag,
+  Package,
+  Truck
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
@@ -81,6 +84,39 @@ export const VENDOR_NAV: { label: string; items: PortalLink[] }[] = [
     ]
   }
 ];
+
+const PRODUCT_STORE_NAV: { label: string; items: PortalLink[] } = {
+  label: "Product Store",
+  items: [
+    { href: "/vendor/shop", label: "Overview", icon: ShoppingBag },
+    { href: "/vendor/shop/products", label: "My products", icon: Package },
+    { href: "/vendor/shop/orders", label: "Product orders", icon: CalendarCheck2 },
+    { href: "/vendor/shop/shipping", label: "Shipping", icon: Truck },
+    { href: "/vendor/shop/returns", label: "Returns", icon: Inbox },
+    { href: "/vendor/shop/earnings", label: "Shop earnings", icon: Wallet },
+    { href: "/vendor/shop/plan", label: "Shop plan", icon: Crown }
+  ]
+};
+
+export function vendorNavFor(commerceKind: string) {
+  if (commerceKind === "products") {
+    return [
+      { label: "Overview", items: [{ href: "/vendor/dashboard", label: "Dashboard", icon: LayoutDashboard }] },
+      PRODUCT_STORE_NAV,
+      {
+        label: "Account",
+        items: [
+          { href: "/vendor/profile", label: "Business profile", icon: Store },
+          { href: "/vendor/settings", label: "Settings", icon: Settings },
+          { href: "/vendor/support", label: "Support", icon: LifeBuoy }
+        ]
+      }
+    ];
+  }
+  const copy = VENDOR_NAV.map((group) => ({ ...group, items: [...group.items] }));
+  copy.splice(3, 0, PRODUCT_STORE_NAV);
+  return copy;
+}
 
 export function adminNavForRole(role: RoleAccess): { label: string; items: (PortalLink & { viewOnly?: boolean })[] }[] {
   return ADMIN_SCREEN_GROUPS.map((group) => ({
