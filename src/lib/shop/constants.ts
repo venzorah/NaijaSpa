@@ -27,7 +27,8 @@ export const SHOP_CONFIG = {
   settlementDays: "shop.settlementDays",
   minPayoutKobo: "shop.minPayoutKobo",
   payoutMode: "shop.payoutMode",
-  orderSeq: "shop.orderSeq"
+  orderSeq: "shop.orderSeq",
+  hero: "shop.hero"
 } as const;
 
 export const LIVE_PRODUCT_STATUS = "approved";

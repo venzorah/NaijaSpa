@@ -6,6 +6,7 @@ import { quoteVendorShipping, shopCommissionKobo, shopVendorPayableKobo, quoteMa
 import { availableStock } from "../src/lib/shop/inventory";
 import { visibleAdminScreens } from "../src/lib/admin";
 import { vendorNavFor } from "../src/components/portal-chrome";
+import { DEFAULT_SHOP_HERO, parseShopHero, presentShopHero, publicShopCtaHref } from "../src/lib/shop/hero";
 
 const profile = {
   localEnabled: true,
@@ -72,6 +73,26 @@ describe("shop quote", () => {
   it("does not oversell when reserved stock consumes availability", () => {
     expect(availableStock(5, 5)).toBe(0);
     expect(availableStock(5, 2)).toBe(3);
+  });
+});
+
+describe("shop hero", () => {
+  it("always returns three slides and fills missing copy from defaults", () => {
+    const slides = parseShopHero(JSON.stringify([{ title: "Fresh butters for home." }]));
+    expect(slides).toHaveLength(3);
+    expect(slides[0].title).toBe("Fresh butters for home.");
+    expect(slides[0].id).toBe("products");
+    expect(slides[1].kicker).toBe(DEFAULT_SHOP_HERO[1].kicker);
+    expect(slides[2].primaryHref).toBe("/sell");
+  });
+
+  it("rewrites shop paths for the shop host and keeps https links external", () => {
+    expect(publicShopCtaHref("/search", true)).toBe("/search");
+    expect(publicShopCtaHref("/search", false)).toBe("/shop/search");
+    const view = presentShopHero(DEFAULT_SHOP_HERO, false);
+    expect(view[0].secondary.external).toBe(true);
+    expect(view[0].secondary.href).toBe("https://naijaspa.com");
+    expect(view[1].primary.href).toBe("/shop/search");
   });
 });
 

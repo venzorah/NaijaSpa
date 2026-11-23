@@ -8,7 +8,7 @@ import { ShopCategoryMark } from "@/components/shop/category-mark";
 import { shopHostFromHeaders, shopPublicPath } from "@/lib/shop-host";
 import { prisma } from "@/lib/db";
 import { markShopDbUnavailable, shopDbUnavailable } from "@/lib/shop/ensure";
-import { PUBLIC_SITE_URL } from "@/lib/public-origin";
+import { getShopHeroSlides, presentShopHero } from "@/lib/shop/hero";
 
 export default async function ShopHomePage() {
   const shopHost = shopHostFromHeaders(await headers());
@@ -38,6 +38,7 @@ export default async function ShopHomePage() {
     newest = [];
     vendors = [];
   }
+  const heroSlides = presentShopHero(await getShopHeroSlides(), shopHost);
   const best = [...featured].sort((a, b) => b.ratingAvg - a.ratingAvg);
   const rails = [
     { title: "Featured", kicker: "Curated", items: featured.length ? featured : newest },
@@ -46,7 +47,7 @@ export default async function ShopHomePage() {
   ];
   return (
     <div>
-      <ShopHero searchHref={href("/search")} sellHref={href("/sell")} servicesHref={PUBLIC_SITE_URL} />
+      <ShopHero slides={heroSlides} />
 
       <section className="mx-auto max-w-7xl px-4 py-12 lg:px-8">
         <div className="flex items-end justify-between gap-4">
