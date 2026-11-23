@@ -92,6 +92,18 @@ describe("shop hero", () => {
     expect(slides[0].id).toBe("products");
     expect(slides[1].kicker).toBe(DEFAULT_SHOP_HERO[1].kicker);
     expect(slides[2].primaryHref).toBe("/sell");
+    expect(slides[0].imageUrl).toBe(DEFAULT_SHOP_HERO[0].imageUrl);
+  });
+
+  it("replaces leftover spa lifestyle photos with product stills", () => {
+    const slides = parseShopHero(
+      JSON.stringify([
+        { imageUrl: "/photos/band-spa.jpg" },
+        { imageUrl: "/photos/beauty.jpg" },
+        { imageUrl: "/photos/spa.jpg" }
+      ])
+    );
+    expect(slides.map((s) => s.imageUrl)).toEqual(DEFAULT_SHOP_HERO.map((s) => s.imageUrl));
   });
 
   it("rewrites shop paths for the shop host and keeps https links external", () => {

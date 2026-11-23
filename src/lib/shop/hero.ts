@@ -2,7 +2,10 @@ import { PHOTOS, publicWellnessPhoto } from "@/lib/photos";
 import { shopPublicPath } from "@/lib/shop-host";
 import { prisma } from "@/lib/db";
 import { SHOP_CONFIG } from "./constants";
+import { SHOP_HERO_IMAGES } from "./images";
 import { shopQuery } from "./safe-query";
+
+const LEGACY_HERO_IMAGES = new Set<string>([PHOTOS.bandSpa, PHOTOS.beauty, PHOTOS.spa]);
 
 export type ShopHeroSlide = {
   id: string;
@@ -32,7 +35,7 @@ export const DEFAULT_SHOP_HERO: ShopHeroSlide[] = [
     kicker: "NaijaSpa Shop",
     title: "Oils, soaps and tools from verified sellers.",
     body: "A specialised beauty and wellness store — not a general marketplace. Book treatments on NaijaSpa; buy products here.",
-    imageUrl: PHOTOS.bandSpa,
+    imageUrl: SHOP_HERO_IMAGES.products,
     primaryLabel: "Shop products",
     primaryHref: "/search",
     secondaryLabel: "Book a treatment",
@@ -43,7 +46,7 @@ export const DEFAULT_SHOP_HERO: ShopHeroSlide[] = [
     kicker: "Home ritual",
     title: "Botanical oils and body care for after the spa.",
     body: "Stock the same class of oils, butters and soaps your therapist would use — from approved Nigerian sellers.",
-    imageUrl: PHOTOS.beauty,
+    imageUrl: SHOP_HERO_IMAGES.oils,
     primaryLabel: "Browse products",
     primaryHref: "/search",
     secondaryLabel: "Sell on Shop",
@@ -54,13 +57,18 @@ export const DEFAULT_SHOP_HERO: ShopHeroSlide[] = [
     kicker: "For sellers",
     title: "List tools, kits and aftercare on NaijaSpa Shop.",
     body: "Product Store is separate from service listing plans. Customers pay once; you dispatch your own orders.",
-    imageUrl: PHOTOS.spa,
+    imageUrl: SHOP_HERO_IMAGES.tools,
     primaryLabel: "Sell on Shop",
     primaryHref: "/sell",
     secondaryLabel: "See the catalog",
     secondaryHref: "/search"
   }
 ];
+
+function shopHeroImage(url: string | null | undefined, fallback: string) {
+  const next = publicWellnessPhoto(url, fallback);
+  return LEGACY_HERO_IMAGES.has(next) ? fallback : next;
+}
 
 function clip(value: unknown, fallback: string, max: number) {
   const text = typeof value === "string" ? value.trim() : "";
@@ -74,7 +82,7 @@ export function sanitizeShopHeroSlide(input: Partial<ShopHeroSlide> | null | und
     kicker: clip(input?.kicker, fallback.kicker, 80),
     title: clip(input?.title, fallback.title, 120),
     body: clip(input?.body, fallback.body, 280),
-    imageUrl: publicWellnessPhoto(input?.imageUrl, fallback.imageUrl),
+    imageUrl: shopHeroImage(input?.imageUrl, fallback.imageUrl),
     primaryLabel: clip(input?.primaryLabel, fallback.primaryLabel, 40),
     primaryHref: clip(input?.primaryHref, fallback.primaryHref, 500),
     secondaryLabel: clip(input?.secondaryLabel, fallback.secondaryLabel, 40),

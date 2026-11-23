@@ -67,7 +67,7 @@ export function ShopHeroForm() {
               Details
               <textarea name={`body-${index}`} required maxLength={280} defaultValue={slide.body} rows={3} className={`${adminField} mt-1`} />
             </label>
-            <AdminImageField name={`imageUrl-${index}`} label="Background image" defaultValue={slide.imageUrl} onBusyChange={setBusy} />
+            <AdminImageField name={`imageUrl-${index}`} label="Product sample" defaultValue={slide.imageUrl} onBusyChange={setBusy} />
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="block text-sm">
                 Primary button

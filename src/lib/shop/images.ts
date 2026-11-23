@@ -16,3 +16,10 @@ export const SHOP_CATEGORY_IMAGES: Record<string, string> = {
 export function shopCategoryImage(slug: string) {
   return SHOP_CATEGORY_IMAGES[slug] || "/shop/categories/skincare-facial.jpg";
 }
+
+/** Light product stills for the Shop homepage carousel (not spa lifestyle photos). */
+export const SHOP_HERO_IMAGES = {
+  products: "/shop/hero/products.jpg",
+  oils: "/shop/hero/oils.jpg",
+  tools: "/shop/hero/tools.jpg"
+} as const;

@@ -9,7 +9,7 @@ export function ProductGallery({ images, name }: { images: string[]; name: strin
     <div>
       <div className="overflow-hidden rounded-[1.75rem] border border-line bg-elev">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={urls[active]} alt={name} className="h-[28rem] w-full object-cover" />
+        <img src={urls[active]} alt={name} className="h-56 w-full object-cover sm:h-[28rem]" />
       </div>
       {urls.length > 1 ? (
         <div className="mt-3 flex gap-2 overflow-x-auto">
