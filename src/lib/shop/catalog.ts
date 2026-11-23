@@ -1,8 +1,19 @@
 import { prisma } from "@/lib/db";
-import { duringNextBuild } from "@/lib/live-db";
-import { ensureShopCatalog } from "./ensure";
-import { LIVE_PRODUCT_STATUS } from "./constants";
+import { markShopDbUnavailable, shopDbUnavailable } from "./ensure";
+import { LIVE_PRODUCT_STATUS, SHOP_CATEGORIES } from "./constants";
 import { unitSaleKobo } from "./quote";
+
+export function fallbackShopCategories() {
+  return SHOP_CATEGORIES.map((c, sortOrder) => ({
+    id: c.slug,
+    slug: c.slug,
+    name: c.name,
+    description: "",
+    parentId: null as string | null,
+    sortOrder: sortOrder + 1,
+    active: true
+  }));
+}
 
 const productInclude = {
   images: { orderBy: { sortOrder: "asc" as const }, take: 6 },
@@ -37,31 +48,32 @@ export function mapProduct(p: {
 }
 
 export async function listLiveProducts(take = 12, extra?: { featured?: boolean }) {
-  if (duringNextBuild() || !process.env.DATABASE_URL) return [];
+  if (shopDbUnavailable()) return [];
   try {
-  await ensureShopCatalog();
-  const rows = await prisma.shopProduct.findMany({
-    where: {
-      status: LIVE_PRODUCT_STATUS,
-      vendor: { shopStatus: "approved" },
-      ...(extra?.featured ? { featured: true } : {})
-    },
-    include: productInclude,
-    orderBy: extra?.featured ? { ratingAvg: "desc" } : { createdAt: "desc" },
-    take
-  });
-  return rows.map(mapProduct);
+    const rows = await prisma.shopProduct.findMany({
+      where: {
+        status: LIVE_PRODUCT_STATUS,
+        vendor: { shopStatus: "approved" },
+        ...(extra?.featured ? { featured: true } : {})
+      },
+      include: productInclude,
+      orderBy: extra?.featured ? { ratingAvg: "desc" } : { createdAt: "desc" },
+      take
+    });
+    return rows.map(mapProduct);
   } catch {
+    markShopDbUnavailable();
     return [];
   }
 }
 
 export async function shopCategories() {
-  if (duringNextBuild() || !process.env.DATABASE_URL) return [];
+  if (shopDbUnavailable()) return fallbackShopCategories();
   try {
-    await ensureShopCatalog();
-    return await prisma.shopCategory.findMany({ where: { active: true, parentId: null }, orderBy: { sortOrder: "asc" } });
+    const rows = await prisma.shopCategory.findMany({ where: { active: true, parentId: null }, orderBy: { sortOrder: "asc" } });
+    return rows.length ? rows : fallbackShopCategories();
   } catch {
-    return [];
+    markShopDbUnavailable();
+    return fallbackShopCategories();
   }
 }

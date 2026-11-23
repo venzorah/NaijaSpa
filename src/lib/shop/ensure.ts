@@ -2,8 +2,18 @@ import { prisma, setConfig } from "@/lib/db";
 import { duringNextBuild } from "@/lib/live-db";
 import { DEFAULT_SHOP_PLANS, DEFAULT_SHOP_VENDOR_STATES, SHOP_CATEGORIES, SHOP_CONFIG } from "./constants";
 
+let shopDbSkipUntil = 0;
+
+export function shopDbUnavailable() {
+  return duringNextBuild() || !process.env.DATABASE_URL || Date.now() < shopDbSkipUntil;
+}
+
+export function markShopDbUnavailable() {
+  shopDbSkipUntil = Date.now() + 30_000;
+}
+
 export async function ensureShopCatalog() {
-  if (duringNextBuild() || !process.env.DATABASE_URL) return;
+  if (shopDbUnavailable()) return;
   try {
     for (const [index, cat] of SHOP_CATEGORIES.entries()) {
       const existing = await prisma.shopCategory.findUnique({ where: { slug: cat.slug } });
@@ -36,7 +46,7 @@ export async function ensureShopCatalog() {
     const mode = await prisma.systemConfig.findUnique({ where: { key: SHOP_CONFIG.payoutMode } });
     if (!mode) await setConfig(SHOP_CONFIG.payoutMode, "request");
   } catch {
-    return;
+    markShopDbUnavailable();
   }
 }
 
