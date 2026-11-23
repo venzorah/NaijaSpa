@@ -5,6 +5,7 @@ import { shopCategories, listLiveProducts } from "@/lib/shop/catalog";
 import { ProductCard } from "@/components/shop/product-card";
 import { shopHostFromHeaders, shopPublicPath } from "@/lib/shop-host";
 import { prisma } from "@/lib/db";
+import { duringNextBuild } from "@/lib/live-db";
 import { PUBLIC_SITE_URL } from "@/lib/public-origin";
 
 export default async function ShopHomePage() {
@@ -14,12 +15,14 @@ export default async function ShopHomePage() {
     shopCategories(),
     listLiveProducts(8, { featured: true }),
     listLiveProducts(8),
-    prisma.vendor.findMany({
-      where: { shopStatus: "approved" },
-      select: { slug: true, businessName: true, city: true, state: true, logoUrl: true },
-      take: 8,
-      orderBy: { businessName: "asc" }
-    }).catch(() => [])
+    duringNextBuild() || !process.env.DATABASE_URL
+      ? Promise.resolve([])
+      : prisma.vendor.findMany({
+          where: { shopStatus: "approved" },
+          select: { slug: true, businessName: true, city: true, state: true, logoUrl: true },
+          take: 8,
+          orderBy: { businessName: "asc" }
+        }).catch(() => [])
   ]);
   const best = [...featured].sort((a, b) => b.ratingAvg - a.ratingAvg);
   const rails = [

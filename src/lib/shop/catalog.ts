@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { duringNextBuild } from "@/lib/live-db";
 import { ensureShopCatalog } from "./ensure";
 import { LIVE_PRODUCT_STATUS } from "./constants";
 import { unitSaleKobo } from "./quote";
@@ -36,6 +37,7 @@ export function mapProduct(p: {
 }
 
 export async function listLiveProducts(take = 12, extra?: { featured?: boolean }) {
+  if (duringNextBuild() || !process.env.DATABASE_URL) return [];
   try {
   await ensureShopCatalog();
   const rows = await prisma.shopProduct.findMany({
@@ -55,6 +57,7 @@ export async function listLiveProducts(take = 12, extra?: { featured?: boolean }
 }
 
 export async function shopCategories() {
+  if (duringNextBuild() || !process.env.DATABASE_URL) return [];
   try {
     await ensureShopCatalog();
     return prisma.shopCategory.findMany({ where: { active: true, parentId: null }, orderBy: { sortOrder: "asc" } });
