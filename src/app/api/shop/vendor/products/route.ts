@@ -5,18 +5,21 @@ import { requireVendor } from "@/lib/vendor-auth";
 import { jsonError } from "@/lib/http";
 import { shopSlug } from "@/lib/shop/slug";
 import { ensureShopCatalog } from "@/lib/shop/ensure";
+import { shopProductImages } from "@/lib/shop/product-media";
 
 const productSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(2).max(120),
   description: z.string().max(4000).default(""),
+  seoTitle: z.string().max(70).default(""),
+  metaDescription: z.string().max(320).default(""),
   categoryId: z.string().min(1),
   ingredients: z.string().max(2000).default(""),
   usage: z.string().max(2000).default(""),
   warnings: z.string().max(2000).default(""),
   expiryNote: z.string().max(240).default(""),
   nafdacNumber: z.string().max(80).default(""),
-  images: z.array(z.string().url().or(z.string().startsWith("/"))).max(8).default([]),
+  images: z.array(z.string()).max(3).default([]),
   variants: z
     .array(
       z.object({
@@ -66,6 +69,8 @@ export async function POST(req: Request) {
     const vendor = await prisma.vendor.findUnique({ where: { id: user.vendorId } });
     if (vendor?.shopStatus !== "approved") return NextResponse.json({ error: "Product Store is not approved yet." }, { status: 403 });
     const body = productSchema.parse(await req.json());
+    const images = shopProductImages(body.images);
+    if (!images.length) return NextResponse.json({ error: "Upload a featured product image." }, { status: 400 });
     const slug = await uniqueSlug(body.name, body.id);
     if (body.id) {
       const existing = await prisma.shopProduct.findFirst({ where: { id: body.id, vendorId: user.vendorId } });
@@ -83,12 +88,14 @@ export async function POST(req: Request) {
             warnings: body.warnings,
             expiryNote: body.expiryNote,
             nafdacNumber: body.nafdacNumber,
+            seoTitle: body.seoTitle,
+            metaDescription: body.metaDescription,
             slug,
             status: material ? "pending" : existing.status === "rejected" ? "pending" : existing.status
           }
         });
         await tx.shopProductImage.deleteMany({ where: { productId: updated.id } });
-        for (const [i, url] of body.images.entries()) {
+        for (const [i, url] of images.entries()) {
           await tx.shopProductImage.create({ data: { productId: updated.id, url, sortOrder: i } });
         }
         const keep = body.variants.map((v) => v.id).filter(Boolean) as string[];
@@ -138,8 +145,10 @@ export async function POST(req: Request) {
         warnings: body.warnings,
         expiryNote: body.expiryNote,
         nafdacNumber: body.nafdacNumber,
+        seoTitle: body.seoTitle,
+        metaDescription: body.metaDescription,
         status: "pending",
-        images: { create: body.images.map((url, i) => ({ url, sortOrder: i })) },
+        images: { create: images.map((url, i) => ({ url, sortOrder: i })) },
         variants: {
           create: body.variants.map((variant) => ({
             sku: variant.sku,

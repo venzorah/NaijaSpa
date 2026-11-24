@@ -23,10 +23,10 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
             vendor: { shopStatus: "approved" },
             ...(filters.category ? { category: { slug: filters.category } } : {}),
             ...(filters.rating ? { ratingAvg: { gte: filters.rating } } : {}),
-            ...(filters.q ? { OR: [{ name: { contains: filters.q, mode: "insensitive" } }, { description: { contains: filters.q, mode: "insensitive" } }] } : {})
+            ...(filters.q ? { OR: [{ name: { contains: filters.q, mode: "insensitive" } }, { description: { contains: filters.q, mode: "insensitive" } }, { seoTitle: { contains: filters.q, mode: "insensitive" } }, { metaDescription: { contains: filters.q, mode: "insensitive" } }] } : {})
           },
           include: {
-            images: { take: 1, orderBy: { sortOrder: "asc" } },
+            images: { take: 3, orderBy: { sortOrder: "asc" } },
             variants: { where: { active: true } },
             vendor: { select: { slug: true, businessName: true, state: true, city: true } },
             category: { select: { slug: true, name: true } }
@@ -57,13 +57,14 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           {products.length ? (
             <>
               <p className="text-sm text-ink2">{products.length} product{products.length === 1 ? "" : "s"}</p>
-              <div className="mt-5 grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-3">
+              <div className="mt-5 grid grid-cols-2 gap-2 sm:gap-4 xl:grid-cols-3">
                 {products.map((p) => (
                   <ProductCard
                     key={p.slug}
                     href={href(`/p/${p.slug}`)}
                     name={p.name}
                     image={p.image}
+                    gallery={p.gallery}
                     priceKobo={p.priceKobo}
                     compareKobo={p.compareKobo}
                     vendor={p.vendor.businessName}

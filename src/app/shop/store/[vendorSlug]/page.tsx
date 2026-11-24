@@ -26,7 +26,7 @@ export default async function VendorStorePage({ params }: { params: Promise<{ ve
       prisma.shopProduct.findMany({
         where: { vendorId: vendor.id, status: LIVE_PRODUCT_STATUS },
         include: {
-          images: { take: 1, orderBy: { sortOrder: "asc" } },
+          images: { take: 3, orderBy: { sortOrder: "asc" } },
           variants: { where: { active: true } },
           vendor: { select: { slug: true, businessName: true, state: true, city: true } },
           category: { select: { slug: true, name: true } }
@@ -41,13 +41,14 @@ export default async function VendorStorePage({ params }: { params: Promise<{ ve
       <h1 className="mt-1 font-display text-4xl">{vendor.businessName}</h1>
       <p className="mt-2 text-sm text-ink2">{[vendor.city, vendor.state].filter(Boolean).join(", ")}</p>
       {products.length ? (
-        <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        <div className="mt-8 grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-4">
           {products.map((p) => (
             <ProductCard
               key={p.slug}
               href={href(`/p/${p.slug}`)}
               name={p.name}
               image={p.image}
+              gallery={p.gallery}
               priceKobo={p.priceKobo}
               compareKobo={p.compareKobo}
               vendor={p.vendor.businessName}

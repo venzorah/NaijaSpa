@@ -858,6 +858,8 @@ model ShopProduct {
   slug           String   @unique
   name           String
   description    String   @default("")
+  seoTitle       String   @default("")
+  metaDescription String  @default("")
   ingredients    String   @default("")
   usage          String   @default("")
   warnings       String   @default("")

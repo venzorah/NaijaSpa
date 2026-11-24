@@ -22,7 +22,7 @@ export default async function ShopCategoryPage({ params }: { params: Promise<{ s
           prisma.shopProduct.findMany({
             where: { status: LIVE_PRODUCT_STATUS, categoryId: fromDb.id, vendor: { shopStatus: "approved" } },
             include: {
-              images: { take: 1, orderBy: { sortOrder: "asc" } },
+              images: { take: 3, orderBy: { sortOrder: "asc" } },
               variants: { where: { active: true } },
               vendor: { select: { slug: true, businessName: true, state: true, city: true } },
               category: { select: { slug: true, name: true } }
@@ -45,13 +45,14 @@ export default async function ShopCategoryPage({ params }: { params: Promise<{ s
       </div>
       <p className="mt-4 max-w-2xl text-ink2">{"description" in category && category.description ? category.description : "Approved wellness products in this category."}</p>
       {products.length ? (
-        <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        <div className="mt-8 grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-4">
           {products.map((p) => (
             <ProductCard
               key={p.slug}
               href={href(`/p/${p.slug}`)}
               name={p.name}
               image={p.image}
+              gallery={p.gallery}
               priceKobo={p.priceKobo}
               compareKobo={p.compareKobo}
               vendor={p.vendor.businessName}

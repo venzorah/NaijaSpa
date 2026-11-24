@@ -77,9 +77,9 @@ export default async function ShopHomePage() {
           <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-goldink">{rail.kicker}</p>
           <h2 className="mt-1 font-display text-3xl">{rail.title}</h2>
           {rail.items.length ? (
-            <div className="mt-5 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+            <div className="mt-5 grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-4">
               {rail.items.map((p) => (
-                <ProductCard key={p.slug} href={href(`/p/${p.slug}`)} name={p.name} image={p.image} priceKobo={p.priceKobo} compareKobo={p.compareKobo} vendor={p.vendor.businessName} category={p.category.name} ratingAvg={p.ratingAvg} reviewCount={p.reviewCount} sponsored={p.sponsored} />
+                <ProductCard key={p.slug} href={href(`/p/${p.slug}`)} name={p.name} image={p.image} gallery={p.gallery} priceKobo={p.priceKobo} compareKobo={p.compareKobo} vendor={p.vendor.businessName} category={p.category.name} ratingAvg={p.ratingAvg} reviewCount={p.reviewCount} sponsored={p.sponsored} />
               ))}
             </div>
           ) : (

@@ -3,25 +3,26 @@
 import { useState } from "react";
 
 export function ProductGallery({ images, name }: { images: string[]; name: string }) {
-  const urls = images.length ? images : ["/photos/band-spa.jpg"];
+  const urls = images.slice(0, 3);
+  const photos = urls.length ? urls : ["/shop/hero/products.jpg"];
   const [active, setActive] = useState(0);
   return (
     <div>
-      <div className="overflow-hidden rounded-[1.75rem] border border-line bg-elev">
+      <div className="overflow-hidden rounded-2xl border border-line bg-elev sm:rounded-[1.75rem]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={urls[active]} alt={name} className="h-[28rem] w-full object-cover" />
+        <img src={photos[active]} alt={name} className="aspect-square w-full object-cover sm:aspect-[4/5] sm:max-h-[36rem]" />
       </div>
-      {urls.length > 1 ? (
-        <div className="mt-3 flex gap-2 overflow-x-auto">
-          {urls.map((url, i) => (
+      {photos.length > 1 ? (
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          {photos.map((url, i) => (
             <button
               key={url + i}
               type="button"
               onClick={() => setActive(i)}
-              className={`h-16 w-16 shrink-0 overflow-hidden rounded-2xl border ${i === active ? "border-gold" : "border-line"}`}
+              className={`overflow-hidden rounded-xl border ${i === active ? "border-gold ring-1 ring-gold" : "border-line"}`}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={url} alt="" className="h-full w-full object-cover" />
+              <img src={url} alt={i === 0 ? `${name} featured` : `${name} gallery ${i}`} className="aspect-square w-full object-cover" />
             </button>
           ))}
         </div>

@@ -21,13 +21,13 @@ export async function GET(req: Request) {
       status: LIVE_PRODUCT_STATUS,
       vendor: { shopStatus: "approved", ...(state ? { state } : {}), ...(vendor ? { slug: vendor } : {}) },
       ...(category ? { category: { slug: category } } : {}),
-      ...(q ? { OR: [{ name: { contains: q, mode: "insensitive" as const } }, { description: { contains: q, mode: "insensitive" as const } }] } : {}),
+      ...(q ? { OR: [{ name: { contains: q, mode: "insensitive" as const } }, { description: { contains: q, mode: "insensitive" as const } }, { seoTitle: { contains: q, mode: "insensitive" as const } }, { metaDescription: { contains: q, mode: "insensitive" as const } }] } : {}),
       ...(rating > 0 ? { ratingAvg: { gte: rating } } : {})
     };
     const products = await prisma.shopProduct.findMany({
       where,
       include: {
-        images: { orderBy: { sortOrder: "asc" }, take: 1 },
+        images: { orderBy: { sortOrder: "asc" }, take: 3 },
         variants: { where: { active: true }, orderBy: { priceKobo: "asc" } },
         vendor: { select: { slug: true, businessName: true, state: true, city: true } },
         category: { select: { slug: true, name: true } }

@@ -116,6 +116,40 @@ describe("shop hero", () => {
   });
 });
 
+describe("shop product listing media and SEO", () => {
+  it("keeps only uploaded gallery paths and caps at featured plus two gallery images", async () => {
+    const { shopProductImages, shopListingImages } = await import("../src/lib/shop/product-media");
+    expect(
+      shopProductImages([
+        "https://cdn.example/x.jpg",
+        "/api/media/galleries/v1/shop-a.jpg",
+        "/api/media/galleries/v1/shop-b.png",
+        "/api/media/galleries/v1/shop-c.webp",
+        "/api/media/galleries/v1/shop-d.gif"
+      ])
+    ).toEqual([
+      "/api/media/galleries/v1/shop-a.jpg",
+      "/api/media/galleries/v1/shop-b.png",
+      "/api/media/galleries/v1/shop-c.webp"
+    ]);
+    expect(shopListingImages([{ url: "/api/media/galleries/v1/shop-a.jpg" }, { url: "/api/media/galleries/v1/shop-b.png" }]).gallery).toEqual([
+      "/api/media/galleries/v1/shop-b.png"
+    ]);
+  });
+
+  it("prefers SEO title and meta description over product copy", async () => {
+    const { shopProductSeo } = await import("../src/lib/shop/seo");
+    expect(
+      shopProductSeo({
+        name: "Shea butter",
+        description: "A long product description that should not win.",
+        seoTitle: "Buy shea butter in Abuja",
+        metaDescription: "Soft shea from approved sellers."
+      })
+    ).toEqual({ title: "Buy shea butter in Abuja", description: "Soft shea from approved sellers." });
+  });
+});
+
 describe("shop catalog filters", () => {
   it("filters by naira price and minimum rating, then sorts", async () => {
     const { applyShopCatalogFilters, parseShopCatalogQuery } = await import("../src/lib/shop/filters");

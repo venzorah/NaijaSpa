@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { LIVE_PRODUCT_STATUS, SHOP_CATEGORIES } from "./constants";
 import { shopQuery } from "./safe-query";
 import { unitSaleKobo } from "./quote";
+import { shopListingImages } from "./product-media";
 
 export function fallbackShopCategories() {
   return SHOP_CATEGORIES.map((c, sortOrder) => ({
@@ -17,7 +18,7 @@ export function fallbackShopCategories() {
 }
 
 const productInclude = {
-  images: { orderBy: { sortOrder: "asc" as const }, take: 6 },
+  images: { orderBy: { sortOrder: "asc" as const }, take: 3 },
   variants: { where: { active: true }, orderBy: { priceKobo: "asc" as const } },
   vendor: { select: { slug: true, businessName: true, state: true, city: true, shopStatus: true } },
   category: { select: { slug: true, name: true } }
@@ -38,9 +39,11 @@ export function mapProduct(p: {
 }) {
   const variant = p.variants[0];
   const stock = p.variants.reduce((s, v) => s + Math.max(0, v.stockOnHand - v.reserved), 0);
+  const photos = shopListingImages(p.images);
   return {
     ...p,
-    image: p.images[0]?.url || "/photos/band-spa.jpg",
+    image: photos.image,
+    gallery: photos.gallery,
     priceKobo: variant ? unitSaleKobo(variant.priceKobo, variant.compareKobo) : 0,
     compareKobo: variant?.compareKobo ?? 0,
     inStock: stock > 0,

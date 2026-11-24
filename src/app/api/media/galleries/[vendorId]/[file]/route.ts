@@ -20,8 +20,21 @@ export async function GET(_req: Request, ctx: { params: Promise<{ vendorId: stri
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
   const resolved = resolveMediaPath([vendorId, file]);
-  const removed = await prisma.mediaAsset.findUnique({ where: { url: mediaUrl(vendorId, file) }, select: { deletedAt: true } });
-  if (removed?.deletedAt) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const asset = await prisma.mediaAsset.findUnique({
+    where: { url: mediaUrl(vendorId, file) },
+    select: { deletedAt: true, imagePayload: true, mime: true, byteSize: true }
+  });
+  if (asset?.deletedAt) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (asset?.imagePayload) {
+    const body = Buffer.from(asset.imagePayload);
+    return new NextResponse(body, {
+      headers: withVendorMediaHeaders({
+        "Content-Type": asset.mime || MIME[path.extname(file).slice(1).toLowerCase()] || "application/octet-stream",
+        "Content-Length": String(asset.byteSize || body.length),
+        "Cache-Control": "public, max-age=31536000, immutable"
+      })
+    });
+  }
   const fromDb = await prisma.therapistGalleryImage.findFirst({
     where: { url: mediaUrl(vendorId, file), gallery: { vendorId } },
     select: { payload: true, mimeType: true, byteSize: true }
@@ -37,7 +50,10 @@ export async function GET(_req: Request, ctx: { params: Promise<{ vendorId: stri
     });
   }
   const fromService = !fromDb && file.startsWith("service-") ? await prisma.service.findFirst({ where: { vendorId, imageUrl: mediaUrl(vendorId, file) }, select: { id: true } }) : null;
-  if (fromDb || fromService) {
+  const fromShop = !fromDb && !fromService && file.startsWith("shop-")
+    ? await prisma.shopProductImage.findFirst({ where: { url: mediaUrl(vendorId, file), product: { vendorId } }, select: { id: true } })
+    : null;
+  if (fromDb || fromService || fromShop || file.startsWith("shop-")) {
     try {
       const object = await getMediaObject(`galleries/${vendorId}/${file}`);
       if (object) return new NextResponse(object.bytes, { headers: withVendorMediaHeaders({ "Content-Type": object.mime, "Content-Length": String(object.bytes.length), "Cache-Control": "public, max-age=31536000, immutable", "X-Content-Type-Options": "nosniff" }) });

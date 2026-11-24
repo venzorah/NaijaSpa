@@ -10,17 +10,28 @@ import { ProductGallery } from "@/components/shop/product-gallery";
 import { ProductReviewForm } from "@/components/shop/review-form";
 import { shopQuery } from "@/lib/shop/safe-query";
 import { unitSaleKobo } from "@/lib/shop/quote";
+import { shopProductSeo } from "@/lib/shop/seo";
 import Link from "next/link";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  const product = await shopQuery(() => prisma.shopProduct.findUnique({ where: { slug } }), null);
+  const product = await shopQuery(
+    () => prisma.shopProduct.findUnique({ where: { slug }, include: { images: { orderBy: { sortOrder: "asc" }, take: 1 } } }),
+    null
+  );
   if (!product || product.status !== LIVE_PRODUCT_STATUS) return { robots: { index: false } };
+  const seo = shopProductSeo(product);
+  const image = product.images[0]?.url;
   return {
-    title: product.name,
-    description: product.description.slice(0, 160) || `Buy ${product.name} on NaijaSpa Shop.`,
+    title: seo.title,
+    description: seo.description,
     alternates: { canonical: `${SHOP_PUBLIC_URL}/p/${product.slug}` },
-    openGraph: { title: product.name, description: product.description.slice(0, 160), url: `${SHOP_PUBLIC_URL}/p/${product.slug}` },
+    openGraph: {
+      title: seo.title,
+      description: seo.description,
+      url: `${SHOP_PUBLIC_URL}/p/${product.slug}`,
+      ...(image ? { images: [{ url: image }] } : {})
+    },
     robots: { index: true, follow: true }
   };
 }
@@ -50,7 +61,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.name,
-    description: product.description,
+    description: product.metaDescription || product.description,
+    image: product.images.map((img) => img.url).slice(0, 3),
     brand: product.vendor.businessName,
     offers: { "@type": "Offer", priceCurrency: "NGN", price: price / 100, availability: "https://schema.org/InStock" }
   };
@@ -62,11 +74,11 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         <span className="mx-2">/</span>
         <Link href={href(`/c/${product.category.slug}`)} className="hover:text-ink">{product.category.name}</Link>
       </p>
-      <div className="mt-5 grid gap-10 lg:grid-cols-[1.1fr_0.9fr]">
+      <div className="mt-5 grid gap-6 lg:grid-cols-[1.1fr_0.9fr] lg:gap-10">
         <ProductGallery images={product.images.map((img) => img.url)} name={product.name} />
         <div className="lg:sticky lg:top-28 lg:self-start">
           {product.sponsoredUntil && product.sponsoredUntil > new Date() ? <p className="text-xs font-bold uppercase tracking-wide text-goldink">Sponsored placement</p> : null}
-          <h1 className="font-display text-4xl">{product.name}</h1>
+          <h1 className="font-display text-3xl sm:text-4xl">{product.name}</h1>
           <p className="mt-3 text-sm text-ink2">
             <Link className="font-semibold text-ink" href={href(`/store/${product.vendor.slug}`)}>{product.vendor.businessName}</Link>
             <span> · {product.vendor.city}, {product.vendor.state}</span>
