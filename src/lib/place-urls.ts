@@ -117,6 +117,11 @@ export function needsLocationResolve(path: string) {
   return path.startsWith("/in/");
 }
 
+/** Auto-open the city hub only on `/` and `/in/...`. Shared vendor, service, and book links must stay put. */
+export function canAutoOpenPlaceHub(path: string) {
+  return path === "/" || path.startsWith("/in/");
+}
+
 export const inPlaceHref = inHref;
 
 /** Location-home paths require a known Nigerian state as the first segment. */

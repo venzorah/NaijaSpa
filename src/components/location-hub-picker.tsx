@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { MapPin } from "lucide-react";
 import { detectBrowserIpPlace, detectGpsPlace, detectServerIpPlace } from "@/components/detect-live-place";
 import { persistLivePlace, PLACE_EVENT } from "@/components/place-sync";
 import { navPlaceLabel, PLACE_COOKIE, parsePlaceCookie, stateBrowsePlace, type LivePlace } from "@/lib/nigeria";
-import { inHref } from "@/lib/place-urls";
+import { canAutoOpenPlaceHub, inHref } from "@/lib/place-urls";
 
 function readStoredPlace(): LivePlace | null {
   try {
@@ -22,6 +22,7 @@ function readStoredPlace(): LivePlace | null {
 
 export function LocationHubPicker() {
   const router = useRouter();
+  const pathname = usePathname();
   const [place, setPlace] = useState<LivePlace | null>(null);
   const [detecting, setDetecting] = useState(true);
   const inFlight = useRef(false);
@@ -46,7 +47,10 @@ export function LocationHubPicker() {
         if (hub && (hub.city !== stored.city || hub.state !== stored.state)) {
           persistLivePlace(hub);
           setPlace(hub);
-          router.replace(inHref(hub));
+          if (canAutoOpenPlaceHub(window.location.pathname)) {
+            const dest = inHref(hub);
+            if (dest !== window.location.pathname) router.replace(dest);
+          }
         }
       }
       return () => window.removeEventListener(PLACE_EVENT, onPlace);
@@ -61,14 +65,17 @@ export function LocationHubPicker() {
         if (!next || (!next.state && !next.city)) return;
         persistLivePlace(next);
         setPlace(next);
-        router.replace(inHref(next));
+        if (canAutoOpenPlaceHub(window.location.pathname)) {
+          const dest = inHref(next);
+          if (dest !== window.location.pathname) router.replace(dest);
+        }
       } finally {
         inFlight.current = false;
         setDetecting(false);
       }
     })();
     return () => window.removeEventListener(PLACE_EVENT, onPlace);
-  }, [router]);
+  }, [router, pathname]);
 
   const label = detecting ? "Locating…" : navPlaceLabel(place);
 

@@ -11,7 +11,7 @@ import {
 import { persistLivePlace } from "@/components/place-sync";
 import { isUntrustedNetworkPlace } from "@/lib/geo-ip";
 import { normalizePlace, PLACE_COOKIE, parsePlaceCookie, stateBrowsePlace, type LivePlace } from "@/lib/nigeria";
-import { inHref, needsLocationResolve, placeHasLocation } from "@/lib/place-urls";
+import { canAutoOpenPlaceHub, inHref, needsLocationResolve, placeHasLocation } from "@/lib/place-urls";
 
 function readStoredPlace(): LivePlace | null {
   try {
@@ -49,9 +49,9 @@ export function LocationGate() {
         if (placeKey(place) !== originalPlace) router.refresh();
         return;
       }
-      if (placeHasLocation(place)) {
+      if (placeHasLocation(place) && canAutoOpenPlaceHub(path)) {
         const next = inHref(place);
-        if (path === "/" || (path.startsWith("/in/") && path !== next)) {
+        if (path !== next) {
           router.replace(next);
           return;
         }

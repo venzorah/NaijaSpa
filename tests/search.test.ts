@@ -11,7 +11,7 @@ import {
   vendorMatchesPlace
 } from "../src/lib/nigeria";
 import { hubLabelForPlace } from "../src/lib/hubs";
-import { exploreHref, exploreQueryRedirect, inPlaceHref, needsLocationResolve, parsePlacePath } from "../src/lib/place-urls";
+import { canAutoOpenPlaceHub, exploreHref, exploreQueryRedirect, inPlaceHref, needsLocationResolve, parsePlacePath } from "../src/lib/place-urls";
 
 describe("exact place matching", () => {
   it("matches the whole state, treating Abuja and FCT as one area", () => {
@@ -128,6 +128,11 @@ describe("place URLs", () => {
     expect(needsLocationResolve("/in/lagos/lagos")).toBe(true);
     expect(needsLocationResolve("/account")).toBe(false);
     expect(needsLocationResolve("/login")).toBe(false);
+    expect(canAutoOpenPlaceHub("/")).toBe(true);
+    expect(canAutoOpenPlaceHub("/in/fct/abuja")).toBe(true);
+    expect(canAutoOpenPlaceHub("/providers/osun-wellness")).toBe(false);
+    expect(canAutoOpenPlaceHub("/services/swedish-massage")).toBe(false);
+    expect(canAutoOpenPlaceHub("/explore")).toBe(false);
   });
 
   it("builds distinct shareable paths for Lagos vs Abuja", () => {
