@@ -1,10 +1,11 @@
 import { VendorShopOrders } from "@/components/vendor/shop-orders";
 
-export default function Page() {
+export default async function Page({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+  const { q } = await searchParams;
   return (
     <div>
       <h1 className="font-display text-2xl">Product orders</h1>
-      <VendorShopOrders />
+      <VendorShopOrders query={q ?? ""} />
     </div>
   );
 }

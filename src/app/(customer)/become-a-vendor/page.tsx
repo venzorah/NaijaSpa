@@ -54,6 +54,9 @@ export default async function BecomeVendorPage() {
           <Link href="/vendor/onboarding" className="inline-flex min-h-11 items-center rounded-full border border-gold/50 px-5 text-sm font-semibold text-goldink">
             Open onboarding
           </Link>
+          <Link href="/shop/sell" className="inline-flex min-h-11 items-center rounded-full border border-line px-5 text-sm font-semibold">
+            Sell products on Shop
+          </Link>
         </div>
       </div>
     </div>

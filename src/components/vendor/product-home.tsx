@@ -116,8 +116,8 @@ export async function ProductVendorHome({ vendorId, firstName }: { vendorId: str
         description={`This home is for selling products on NaijaSpa Shop — not spa bookings. ${vendor?.businessName || ""}.`}
         actions={
           <>
-            <Link href="/vendor/chats" className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-line px-4 text-sm font-semibold">
-              <MessageCircle className="h-4 w-4" /> Chat
+            <Link href="/vendor/messages" className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-line px-4 text-sm font-semibold">
+              <MessageCircle className="h-4 w-4" /> Messages
             </Link>
             <Link
               href={needsSetup ? SHOP_ONBOARDING_HOME : "/vendor/shop/products"}

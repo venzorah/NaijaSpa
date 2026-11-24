@@ -3,7 +3,7 @@ import { lookupPlaceFromRequest, placeLockedByUser } from "@/lib/geo-ip";
 import { parsePlaceCookie, PLACE_COOKIE, type LivePlace } from "@/lib/nigeria";
 import { inHref, placeHasLocation } from "@/lib/place-urls";
 import { publicOriginFromRequest } from "@/lib/public-origin";
-import { shopHostFromHeaders, shopRewritePath } from "@/lib/shop-host";
+import { shopHostFromHeaders, shopHostSpaPath, shopRewritePath } from "@/lib/shop-host";
 
 function writePlaceCookie(response: NextResponse, place: LivePlace) {
   response.cookies.set(PLACE_COOKIE, encodeURIComponent(JSON.stringify(place)), {
@@ -21,6 +21,13 @@ export async function middleware(request: NextRequest) {
   headers.set("x-naijaspa-customer-path", dest);
   headers.set("x-naijaspa-admin-path", dest);
   if (shopHostFromHeaders(request.headers)) {
+    if (shopHostSpaPath(pathname)) {
+      const dest = new URL(publicOriginFromRequest(request));
+      dest.hostname = dest.hostname.replace(/^shop\./i, "");
+      dest.pathname = pathname;
+      dest.search = request.nextUrl.search;
+      return NextResponse.redirect(dest);
+    }
     const rewritten = shopRewritePath(pathname);
     if (rewritten && rewritten !== pathname) {
       const url = request.nextUrl.clone();

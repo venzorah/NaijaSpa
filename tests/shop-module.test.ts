@@ -24,6 +24,20 @@ describe("shop host", () => {
     expect(shopRewritePath("/")).toBe("/shop");
     expect(shopRewritePath("/cart")).toBe("/shop/cart");
     expect(shopRewritePath("/api/shop/cart")).toBe(null);
+    expect(shopRewritePath("/login")).toBe("/shop/login");
+    expect(shopRewritePath("/login/vendor")).toBe(null);
+    expect(shopRewritePath("/forgot")).toBe(null);
+    expect(shopRewritePath("/vendor/shop/onboarding")).toBe(null);
+    expect(shopRewritePath("/privacy")).toBe(null);
+    expect(shopRewritePath("/explore")).toBe(null);
+  });
+
+  it("sends spa marketplace URLs on the shop host to naijaspa.com", async () => {
+    const req = new NextRequest("https://shop.naijaspa.com/explore", {
+      headers: { host: "shop.naijaspa.com", "x-forwarded-host": "shop.naijaspa.com" }
+    });
+    const res = await middleware(req);
+    expect(res.headers.get("location")).toBe("https://naijaspa.com/explore");
   });
 
   it("does not geo-redirect shop.naijaspa.com", async () => {
@@ -181,6 +195,8 @@ describe("shop isolation in existing portals", () => {
     const hrefs = vendorNavFor("products").flatMap((g) => g.items.map((i) => i.href));
     expect(hrefs).toContain("/vendor/shop/products");
     expect(hrefs).toContain("/vendor/shop/plan");
+    expect(hrefs).toContain("/vendor/messages");
+    expect(hrefs).not.toContain("/vendor/chats");
     expect(hrefs).not.toContain("/vendor/bookings");
     expect(hrefs).not.toContain("/vendor/subscriptions");
     expect(vendorNavFor("both").flatMap((g) => g.items.map((i) => i.href))).toContain("/vendor/bookings");
@@ -192,6 +208,8 @@ describe("shop isolation in existing portals", () => {
     expect(isProductOnlyVendor("products")).toBe(true);
     expect(productVendorServicePath("/vendor/bookings")).toBe(true);
     expect(productVendorServicePath("/vendor/subscriptions")).toBe(true);
+    expect(productVendorServicePath("/vendor/chats")).toBe(true);
+    expect(productVendorServicePath("/vendor/messages")).toBe(false);
     expect(productVendorServicePath("/vendor/shop/orders")).toBe(false);
     expect(productVendorServicePath("/vendor/dashboard")).toBe(false);
   });

@@ -107,7 +107,7 @@ export function vendorNavFor(commerceKind: string) {
           { href: "/vendor/dashboard", label: "Store home", icon: LayoutDashboard },
           { href: "/vendor/shop/products", label: "My products", icon: Package },
           { href: "/vendor/shop/orders", label: "Orders", icon: CalendarCheck2 },
-          { href: "/vendor/chats", label: "Chats", icon: MessageCircle },
+          { href: "/vendor/messages", label: "Messages", icon: MessageCircle },
           { href: "/vendor/shop/shipping", label: "Shipping", icon: Truck },
           { href: "/vendor/shop/returns", label: "Returns", icon: Inbox }
         ]

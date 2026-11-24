@@ -7,7 +7,8 @@ const SERVICE_VENDOR_PREFIXES = [
   "/vendor/subscriptions",
   "/vendor/analytics",
   "/vendor/campaigns",
-  "/vendor/earnings"
+  "/vendor/earnings",
+  "/vendor/chats"
 ];
 
 export function isProductOnlyVendor(commerceKind: string | null | undefined) {

@@ -1,14 +1,16 @@
 "use client";
 import { useSupportEmail } from "./use-support-email";
 import Link from "next/link";
-import { Download, Facebook, Instagram, Mail, MessageCircle, Twitter } from "lucide-react";
+import { Download, Mail, MessageCircle } from "lucide-react";
 import { SUPPORT_WHATSAPP_DISPLAY, supportWhatsAppHref } from "@/lib/support";
+import { SHOP_PUBLIC_URL } from "@/lib/shop-host";
 
 const groups = [
   {
     title: "Discover",
     links: [
       { label: "Explore spas", href: "/explore" },
+      { label: "Shop products", href: SHOP_PUBLIC_URL },
       { label: "Ask NaijaSpa AI", href: "/ai" }
     ]
   },
@@ -102,17 +104,9 @@ export function SiteFooter() {
               </a>
             </p>
           </div>
-          <div className="flex gap-1">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full text-ink2 hover:bg-elev" aria-hidden>
-              <Instagram className="h-4 w-4" />
-            </span>
-            <span className="flex h-10 w-10 items-center justify-center rounded-full text-ink2 hover:bg-elev" aria-hidden>
-              <Twitter className="h-4 w-4" />
-            </span>
-            <span className="flex h-10 w-10 items-center justify-center rounded-full text-ink2 hover:bg-elev" aria-hidden>
-              <Facebook className="h-4 w-4" />
-            </span>
-          </div>
+          <Link href="/contact" className="inline-flex min-h-9 items-center text-xs font-semibold text-goldink hover:underline">
+            Contact &amp; social
+          </Link>
         </div>
       </div>
     </footer>
