@@ -6,6 +6,8 @@ import { prisma } from "./db";
 import { freeAbandonedIdentity } from "./account-purge";
 import { createSession } from "./auth";
 import { queueMail, sendWelcomeEmail } from "./mail";
+import { grantShopPlan } from "./shop/plans";
+import { SHOP_PLAN_FREE } from "./shop/constants";
 
 export const GOOGLE_OAUTH_COOKIE = "naijaspa_oauth";
 
@@ -170,21 +172,39 @@ export async function exchangeGoogleCode(code: string, redirectUri = googleCallb
   };
 }
 
-async function createVendorFor(tx: Pick<typeof prisma, "vendor">, userId: string, name: string) {
+async function createVendorFor(tx: Pick<typeof prisma, "vendor">, userId: string, name: string, asShop = false) {
   return tx.vendor.create({
-    data: {
-      ownerId: userId,
-      slug: `vendor-${userId.slice(-8)}`,
-      businessName: `${name}'s studio`,
-      city: "Lagos",
-      neighbourhood: "",
-      address: "",
-      applicationStatus: "draft"
-    }
+    data: asShop
+      ? {
+          ownerId: userId,
+          slug: `vendor-${userId.slice(-8)}`,
+          businessName: `${name}'s store`,
+          city: "Lagos",
+          neighbourhood: "",
+          address: "",
+          applicationStatus: "draft",
+          commerceKind: "products",
+          shopStatus: "none",
+          providerType: "retail"
+        }
+      : {
+          ownerId: userId,
+          slug: `vendor-${userId.slice(-8)}`,
+          businessName: `${name}'s studio`,
+          city: "Lagos",
+          neighbourhood: "",
+          address: "",
+          applicationStatus: "draft"
+        }
   });
 }
 
-export async function signInWithGoogle(profile: { googleId: string; email: string; name: string }, portal: GooglePortal, intent: GoogleAuthIntent = "login") {
+export async function signInWithGoogle(
+  profile: { googleId: string; email: string; name: string },
+  portal: GooglePortal,
+  intent: GoogleAuthIntent = "login",
+  asShop = false
+) {
   let isNew = false;
   let user = await prisma.user.findFirst({
     where: { OR: [{ googleId: profile.googleId }, { email: profile.email }] },
@@ -221,7 +241,7 @@ export async function signInWithGoogle(profile: { googleId: string; email: strin
         },
         include: { vendorOwned: true, staffMemberships: true }
       });
-      const vendorOwned = role === ROLES.VENDOR_OWNER ? await createVendorFor(tx, created.id, profile.name) : null;
+      const vendorOwned = role === ROLES.VENDOR_OWNER ? await createVendorFor(tx, created.id, profile.name, asShop) : null;
       return { ...created, vendorOwned };
     }).catch(error => {
       if (error && typeof error === "object" && "code" in error && error.code === "P2002") {
@@ -269,11 +289,15 @@ export async function signInWithGoogle(profile: { googleId: string; email: strin
     vendorId: user.vendorOwned?.id ?? user.staffMemberships[0]?.vendorId
   });
 
+  if (isNew && asShop && user.vendorOwned?.id) {
+    await grantShopPlan(user.vendorOwned.id, SHOP_PLAN_FREE, "signup").catch(() => undefined);
+  }
   if (isNew && portal !== "admin") {
     queueMail(sendWelcomeEmail({ to: user.email, name: user.name, asVendor: portal === "vendor" }));
   }
 
-  const home = isNew && portal === "vendor" ? "/vendor/onboarding" : portalHome(await getRoleAccess(user.role));
+  const home =
+    isNew && portal === "vendor" ? (asShop ? "/vendor/shop/onboarding" : "/vendor/onboarding") : portalHome(await getRoleAccess(user.role));
   return { home, isNew };
 }
 import { getRoleAccess } from "./admin-role-store";

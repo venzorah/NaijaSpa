@@ -9,6 +9,7 @@ import { isVendorRole } from "@/lib/rbac";
 import { vendorNext, vendorAccessHref, vendorReferrerPath } from "@/lib/vendor-access";
 import { isProductOnlyVendor, productVendorServicePath } from "@/lib/shop/vendor-kind";
 import { DEFAULT_SHOP_PLANS } from "@/lib/shop/constants";
+import { SHOP_ONBOARDING_HOME, shopOnboardingIncomplete } from "@/lib/shop/onboarding";
 
 export default async function VendorLayout({ children }: { children: React.ReactNode }) {
   const user = await getSession();
@@ -22,10 +23,40 @@ export default async function VendorLayout({ children }: { children: React.React
   const vendor = vendorId
     ? await prisma.vendor.findUnique({
         where: { id: vendorId },
-        select: { businessName: true, logoUrl: true, city: true, applicationStatus: true, verificationStatus: true, commerceKind: true, shopStatus: true }
+        select: {
+          businessName: true,
+          logoUrl: true,
+          coverUrl: true,
+          city: true,
+          address: true,
+          applicationStatus: true,
+          verificationStatus: true,
+          commerceKind: true,
+          shopStatus: true,
+          shopOnboardingStep: true,
+          owner: { select: { emailVerifiedAt: true } },
+          _count: { select: { documents: true } }
+        }
       })
     : null;
   const productOnly = isProductOnlyVendor(vendor?.commerceKind);
+  if (productOnly && next.startsWith("/vendor/onboarding")) redirect(SHOP_ONBOARDING_HOME);
+  if (
+    productOnly &&
+    shopOnboardingIncomplete(vendor?.commerceKind, {
+      shopStatus: vendor?.shopStatus,
+      businessName: vendor?.businessName,
+      city: vendor?.city,
+      address: vendor?.address,
+      logoUrl: vendor?.logoUrl,
+      coverUrl: vendor?.coverUrl,
+      docCount: vendor?._count.documents ?? 0,
+      emailVerified: Boolean(vendor?.owner?.emailVerifiedAt)
+    }) &&
+    !next.startsWith(SHOP_ONBOARDING_HOME)
+  ) {
+    redirect(SHOP_ONBOARDING_HOME);
+  }
   if (productOnly && productVendorServicePath(next)) redirect("/vendor/dashboard");
 
   const [ent, shopSub, actionCount, openTickets] = await Promise.all([

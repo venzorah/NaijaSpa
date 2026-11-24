@@ -5,6 +5,8 @@ import { ActivateShopButton } from "@/components/vendor/activate-shop";
 import { formatNgn } from "@/lib/money";
 import Link from "next/link";
 import { shopQuery } from "@/lib/shop/safe-query";
+import { SHOP_ONBOARDING_HOME } from "@/lib/shop/onboarding";
+import { isProductOnlyVendor } from "@/lib/shop/vendor-kind";
 
 export default async function VendorShopOverview() {
   const user = await getSession();
@@ -14,9 +16,9 @@ export default async function VendorShopOverview() {
     () =>
       prisma.vendor.findUnique({
         where: { id: vendorId },
-        select: { shopStatus: true, shopNote: true, shopRejectedReason: true }
+        select: { shopStatus: true, shopNote: true, shopRejectedReason: true, commerceKind: true }
       }),
-    { shopStatus: "none", shopNote: "", shopRejectedReason: "" }
+    { shopStatus: "none", shopNote: "", shopRejectedReason: "", commerceKind: "services" }
   );
   const products = await shopQuery(() => prisma.shopProduct.count({ where: { vendorId } }), 0);
   const orders = await shopQuery(
@@ -30,7 +32,11 @@ export default async function VendorShopOverview() {
       <h1 className="mt-1 font-display text-3xl">Overview</h1>
       <p className="mt-2 text-sm text-ink2">Status: {status}. This does not change your service listings or booking plans.</p>
       {vendor?.shopRejectedReason ? <p className="mt-2 text-sm text-ink2">Admin note: {vendor.shopRejectedReason}</p> : null}
-      {status === "none" || status === "rejected" ? (
+      {isProductOnlyVendor(vendor?.commerceKind) && (status === "none" || status === "rejected") ? (
+        <Link href={SHOP_ONBOARDING_HOME} className="mt-4 inline-flex min-h-11 items-center rounded-full bg-gold px-5 text-sm font-bold text-ongold">
+          Continue store setup
+        </Link>
+      ) : status === "none" || status === "rejected" ? (
         <div className="mt-4">
           <ActivateShopButton />
         </div>

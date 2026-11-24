@@ -2,11 +2,10 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { NIGERIA_STATES } from "@/lib/nigeria";
 import { getSession } from "@/lib/auth";
-import { jsonError } from "@/lib/http";
-import { getOrCreateShopCart } from "@/lib/shop/cart";
+import { jsonError, rateLimit, clientAddress } from "@/lib/http";
+import { getOrCreateShopCart, rememberShopOrder } from "@/lib/shop/cart";
 import { loadCartQuote, placeShopOrder } from "@/lib/shop/checkout";
 import { initPayment } from "@/lib/payments";
-import { SHOP_PUBLIC_URL } from "@/lib/shop-host";
 import { publicOriginFromRequest } from "@/lib/public-origin";
 
 const addressSchema = z.object({
@@ -22,6 +21,7 @@ const addressSchema = z.object({
 
 export async function POST(req: Request) {
   try {
+    await rateLimit(`shop-checkout:${clientAddress(req)}`, 20, 60_000);
     const user = await getSession();
     const body = z.object({ preview: z.boolean().optional() }).merge(addressSchema).parse(await req.json());
     const cart = await getOrCreateShopCart(user?.id);
@@ -40,14 +40,16 @@ export async function POST(req: Request) {
       neighbourhood: body.neighbourhood,
       pickup: body.pickup
     });
-    const origin = publicOriginFromRequest(req).includes("shop.") ? publicOriginFromRequest(req) : SHOP_PUBLIC_URL;
+    await rememberShopOrder(order.id);
+    const origin = publicOriginFromRequest(req);
+    const shopHost = origin.includes("shop.");
     const pay = await initPayment({
       email: body.email,
       amountKobo: order.totalKobo,
       purpose: "shop_order",
       shopMasterOrderId: order.id,
       customerId: user?.id,
-      callbackPath: "/checkout/verify",
+      callbackPath: shopHost ? "/checkout/verify" : "/shop/checkout/verify",
       callbackOrigin: origin,
       metadata: { shopMasterOrderId: order.id }
     });

@@ -22,6 +22,11 @@ export default async function EcommerceProductsPage() {
           <li key={p.id} className="rounded-3xl border border-line bg-card p-4">
             <p className="font-semibold">{p.name}</p>
             <p className="text-sm text-ink2">{p.vendor.businessName} · {p.category.name} · {p.status}</p>
+            <p className="mt-1">
+              <a href={`/admin/ecommerce/vendors/${p.vendorId}`} className="text-sm font-semibold text-goldink">
+                Open seller
+              </a>
+            </p>
             <ShopProductActions id={p.id} />
           </li>
         ))}

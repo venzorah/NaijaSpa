@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { SHOP_CONFIG, LIVE_PRODUCT_STATUS } from "./constants";
 import { quoteVendorShipping, shopCommissionKobo, shopVendorPayableKobo, unitSaleKobo } from "./quote";
+import { shopShipProfileOrDefault } from "./default-shipping";
 import { activeShopEntitlement } from "./plans";
 import { commitReservation, releaseReservation, reserveVariant } from "./inventory";
 import { shopSettlementDays } from "./ensure";
@@ -61,10 +62,11 @@ export async function loadCartQuote(cartId: string, destState: string, pickup = 
       continue;
     }
     const productKobo = items.reduce((sum, item) => sum + unitSaleKobo(item.variant.priceKobo, item.variant.compareKobo) * item.quantity, 0);
-    const profile = await prisma.shopShippingProfile.findUnique({
+    const stored = await prisma.shopShippingProfile.findUnique({
       where: { vendorId },
       include: { zones: true }
     });
+    const profile = shopShipProfileOrDefault(vendor.state, stored);
     const ship = quoteVendorShipping(vendor.state, destState, productKobo, profile, pickup);
     const ent = await activeShopEntitlement(vendorId);
     const commissionKobo = ship.ok ? shopCommissionKobo(productKobo, ent.commissionBps) : 0;
@@ -124,7 +126,7 @@ export async function placeShopOrder(input: {
       data: {
         number,
         userId: input.userId,
-        email: input.email,
+        email: input.email.toLowerCase(),
         name: input.name,
         phone: input.phone,
         address: input.address,

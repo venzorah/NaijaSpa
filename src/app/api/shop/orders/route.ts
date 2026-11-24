@@ -1,17 +1,12 @@
 import { NextResponse } from "next/server";
-import { getSession, requireUser } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { getSession } from "@/lib/auth";
 import { jsonError } from "@/lib/http";
+import { shopOrdersForBuyer } from "@/lib/shop/order-access";
 
 export async function GET() {
   try {
-    const user = requireUser(await getSession());
-    const orders = await prisma.shopMasterOrder.findMany({
-      where: { userId: user.id },
-      include: { vendorOrders: { include: { items: true, vendor: { select: { businessName: true, slug: true } } } } },
-      orderBy: { createdAt: "desc" },
-      take: 50
-    });
+    const user = await getSession();
+    const orders = await shopOrdersForBuyer(user?.id);
     return NextResponse.json({ orders });
   } catch (e) {
     return jsonError(e);

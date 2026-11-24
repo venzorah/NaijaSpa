@@ -21,11 +21,21 @@ function otpSecret() {
 
 export function assertOtpSecurityConfigured() { otpSecret(); }
 
+export type OtpPurpose = "password-reset" | "email-verify";
+
+export function hashOtp(purpose: OtpPurpose, userId: string, challengeId: string, otp: string) {
+  return crypto.createHmac("sha256", otpSecret()).update(JSON.stringify([purpose, userId, challengeId, normalizeResetOtp(otp)])).digest("hex");
+}
+
 export function hashResetOtp(userId: string, challengeId: string, otp: string) {
-  return crypto.createHmac("sha256", otpSecret()).update(JSON.stringify(["password-reset", userId, challengeId, normalizeResetOtp(otp)])).digest("hex");
+  return hashOtp("password-reset", userId, challengeId, otp);
+}
+
+export function otpMatches(purpose: OtpPurpose, digest: string, userId: string, challengeId: string, otp: string) {
+  const expected = hashOtp(purpose, userId, challengeId, otp);
+  return /^[a-f0-9]{64}$/.test(digest) && crypto.timingSafeEqual(Buffer.from(digest, "hex"), Buffer.from(expected, "hex"));
 }
 
 export function resetOtpMatches(digest: string, userId: string, challengeId: string, otp: string) {
-  const expected = hashResetOtp(userId, challengeId, otp);
-  return /^[a-f0-9]{64}$/.test(digest) && crypto.timingSafeEqual(Buffer.from(digest, "hex"), Buffer.from(expected, "hex"));
+  return otpMatches("password-reset", digest, userId, challengeId, otp);
 }

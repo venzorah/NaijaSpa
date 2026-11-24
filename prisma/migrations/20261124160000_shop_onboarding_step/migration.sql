@@ -1,0 +1,1 @@
+ALTER TABLE "Vendor" ADD COLUMN "shopOnboardingStep" INTEGER NOT NULL DEFAULT 0;

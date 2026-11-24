@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { formatNgn } from "@/lib/money";
 import { shopClientPath } from "@/lib/shop/paths";
+import { bumpShopCart, shopError, shopSuccess } from "@/lib/shop/ui-action";
 import { Minus, Plus, ShoppingBag } from "lucide-react";
 
 type Cart = {
@@ -17,17 +18,30 @@ type Cart = {
 
 export function ShopCartClient() {
   const [cart, setCart] = useState<Cart | null>(null);
+  const [busyId, setBusyId] = useState("");
   async function load() {
     const res = await fetch("/api/shop/cart");
     const d = await res.json();
     setCart(d.cart ?? { items: [] });
+    bumpShopCart();
   }
   useEffect(() => {
     load().catch(() => setCart({ items: [] }));
   }, []);
   async function setQty(itemId: string, quantity: number) {
-    await fetch("/api/shop/cart", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ itemId, quantity }) });
-    await load();
+    if (busyId) return;
+    setBusyId(itemId);
+    try {
+      const res = await fetch("/api/shop/cart", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ itemId, quantity }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Could not update cart");
+      await load();
+      shopSuccess(quantity < 1 ? "Item removed from your bag." : "Bag updated.");
+    } catch (err) {
+      shopError(err instanceof Error ? err.message : "Could not update cart");
+    } finally {
+      setBusyId("");
+    }
   }
   if (!cart) return <p className="mt-8 text-sm text-ink2">Loading cart…</p>;
   const groups = new Map<string, Cart["items"]>();
@@ -63,11 +77,11 @@ export function ShopCartClient() {
                     <p className="text-xs text-ink2">{item.variant.name} · {formatNgn(item.variant.priceKobo)}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button type="button" className="rounded-full border border-line p-1" onClick={() => void setQty(item.id, item.quantity - 1)} aria-label="Decrease">
+                    <button type="button" disabled={Boolean(busyId)} className="rounded-full border border-line p-1 disabled:opacity-50" onClick={() => void setQty(item.id, item.quantity - 1)} aria-label="Decrease">
                       <Minus className="h-3.5 w-3.5" />
                     </button>
-                    <span className="w-6 text-center">{item.quantity}</span>
-                    <button type="button" className="rounded-full border border-line p-1" onClick={() => void setQty(item.id, item.quantity + 1)} aria-label="Increase">
+                    <span className="w-6 text-center">{busyId === item.id ? "…" : item.quantity}</span>
+                    <button type="button" disabled={Boolean(busyId)} className="rounded-full border border-line p-1 disabled:opacity-50" onClick={() => void setQty(item.id, item.quantity + 1)} aria-label="Increase">
                       <Plus className="h-3.5 w-3.5" />
                     </button>
                     <span className="w-20 text-right font-semibold">{formatNgn(item.variant.priceKobo * item.quantity)}</span>

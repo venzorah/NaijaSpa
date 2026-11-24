@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Star } from "lucide-react";
-import { formatNgn } from "@/lib/money";
+import { ShopPrice } from "@/components/shop/shop-price";
 
 export function ProductCard({
   href,
@@ -73,10 +73,7 @@ export function ProductCard({
           ))}
           <span>{reviewCount ? `${ratingAvg.toFixed(1)} (${reviewCount})` : "New"}</span>
         </p>
-        <p className="mt-1.5 text-[15px] font-bold text-goldink">
-          {formatNgn(priceKobo)}
-          {compareKobo && compareKobo > priceKobo ? <span className="ml-1.5 text-xs font-normal text-ink2 line-through">{formatNgn(compareKobo)}</span> : null}
-        </p>
+        <ShopPrice regularKobo={priceKobo} salesKobo={compareKobo} />
       </Link>
     </article>
   );

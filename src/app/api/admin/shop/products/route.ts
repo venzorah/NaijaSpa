@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/admin-auth";
 import { prisma } from "@/lib/db";
 import { jsonError } from "@/lib/http";
 import { notifyShopUser } from "@/lib/shop/notify";
+import { shopProductWriteSchema, upsertShopProduct } from "@/lib/shop/upsert-product";
 
 export async function GET() {
   try {
@@ -14,6 +15,22 @@ export async function GET() {
       take: 200
     });
     return NextResponse.json({ products });
+  } catch (e) {
+    return jsonError(e);
+  }
+}
+
+export async function POST(req: Request) {
+  try {
+    await requireAdmin("shop.manage");
+    const body = shopProductWriteSchema.extend({ vendorId: z.string().min(1), live: z.boolean().optional() }).parse(await req.json());
+    const vendor = await prisma.vendor.findUnique({ where: { id: body.vendorId } });
+    if (!vendor) return NextResponse.json({ error: "Vendor not found" }, { status: 404 });
+    const { vendorId, live, ...product } = body;
+    const status = live === false ? "pending" : "approved";
+    const saved = await upsertShopProduct(vendorId, product, status);
+    await notifyShopUser(vendor.ownerId, "Product listing", `${saved.name} was listed for your store by Admin.`, "/vendor/shop/products");
+    return NextResponse.json({ product: saved });
   } catch (e) {
     return jsonError(e);
   }

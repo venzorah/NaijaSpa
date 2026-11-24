@@ -6,6 +6,7 @@ import {
   brandedEmailHtml,
   mailFrom,
   mailReplyTo,
+  emailVerifyOtpEmail,
   passwordResetEmail,
   vendorInviteEmail,
   welcomeEmail
@@ -68,6 +69,9 @@ describe("branded transactional mail", () => {
   });
 
   it("builds password reset OTP and vendor invite emails", () => {
+    const verify = emailVerifyOtpEmail({ code: "193847" });
+    expect(verify.subject.toLowerCase()).toMatch(/verif|code/);
+    expect(verify.html).toContain("193847");
     const reset = passwordResetEmail({ code: "482913" });
     expect(reset.subject.toLowerCase()).toMatch(/password|code/);
     expect(reset.html).toContain("482913");

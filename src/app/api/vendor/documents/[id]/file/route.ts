@@ -1,17 +1,21 @@
 import { NextResponse } from "next/server";
+import { getSession } from "@/lib/auth";
 import { requireVendor } from "@/lib/vendor-auth";
 import { prisma } from "@/lib/db";
 import { jsonError } from "@/lib/http";
 import { verificationDocBytes } from "@/lib/verification-docs";
+import { hasPermission, isAdminRole } from "@/lib/rbac";
 
 export const runtime = "nodejs";
 
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
-    const user = await requireVendor();
+    const session = await getSession();
     const { id } = await ctx.params;
+    const adminViewer = session && isAdminRole(session) && hasPermission(session, "shop.manage");
+    const vendorId = adminViewer ? undefined : (await requireVendor()).vendorId;
     const doc = await prisma.verificationDoc.findFirst({
-      where: { id, vendorId: user.vendorId },
+      where: adminViewer ? { id } : { id, vendorId },
       select: { filePath: true, mimeType: true, imagePayload: true }
     });
     if (!doc) return NextResponse.json({ error: "Not found" }, { status: 404 });

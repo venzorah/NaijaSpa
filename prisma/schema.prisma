@@ -30,6 +30,7 @@ model User {
 
   sessions           Session[]
   passwordResets     PasswordReset[]
+  emailOtps          EmailOtpChallenge[]
   vendorOwned        Vendor?               @relation("VendorOwner")
   staffMemberships   VendorStaff[]
   customerProfile    CustomerProfile?
@@ -73,6 +74,20 @@ model PasswordReset {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
+}
+
+model EmailOtpChallenge {
+  id             String    @id @default(cuid())
+  userId         String
+  purpose        String    @default("email-verify")
+  token          String
+  expiresAt      DateTime
+  usedAt         DateTime?
+  failedAttempts Int       @default(0)
+  createdAt      DateTime  @default(now())
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose, createdAt])
 }
 
 model PhoneOtpChallenge {
@@ -154,6 +169,7 @@ model Vendor {
   shopStatus           String    @default("none")
   shopNote             String    @default("")
   shopRejectedReason   String    @default("")
+  shopOnboardingStep   Int       @default(0)
   shopPlans            ShopVendorSubscription[]
   shopProducts         ShopProduct[]
   shopShipping         ShopShippingProfile?

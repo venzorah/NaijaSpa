@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { shopError, shopSuccess } from "@/lib/shop/ui-action";
 
 export function VendorShippingForm() {
   const [profile, setProfile] = useState<Record<string, unknown> | null>(null);
   const [states, setStates] = useState<string[]>([]);
   const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
   const [loaded, setLoaded] = useState(false);
   useEffect(() => {
     fetch("/api/shop/vendor/shipping")
@@ -24,22 +26,34 @@ export function VendorShippingForm() {
       className="mt-4 grid max-w-lg gap-2"
       onSubmit={async (e) => {
         e.preventDefault();
+        if (busy) return;
         const fd = new FormData(e.currentTarget);
         const zones = states.filter((s) => fd.get(`zone-${s}`) === "on").map((s) => ({ state: s, feeKobo: Number(fd.get(`fee-${s}`) || 0) * 100, etaDays: Number(fd.get(`eta-${s}`) || 5) }));
-        const res = await fetch("/api/shop/vendor/shipping", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            localEnabled: fd.get("localEnabled") === "on",
-            localFeeKobo: Number(fd.get("localFee")) * 100,
-            localEtaDays: Number(fd.get("localEta")),
-            interstateOn: fd.get("interstateOn") === "on",
-            pickupEnabled: fd.get("pickupEnabled") === "on",
-            freeAboveKobo: Number(fd.get("freeAbove") || 0) * 100,
-            zones
-          })
-        });
-        setMessage(res.ok ? "Saved" : "Could not save");
+        setBusy(true);
+        setMessage("");
+        try {
+          const res = await fetch("/api/shop/vendor/shipping", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              localEnabled: fd.get("localEnabled") === "on",
+              localFeeKobo: Number(fd.get("localFee")) * 100,
+              localEtaDays: Number(fd.get("localEta")),
+              interstateOn: fd.get("interstateOn") === "on",
+              pickupEnabled: fd.get("pickupEnabled") === "on",
+              freeAboveKobo: Number(fd.get("freeAbove") || 0) * 100,
+              zones
+            })
+          });
+          if (!res.ok) throw new Error("Could not save");
+          setMessage("Shipping saved.");
+          shopSuccess("Shipping profile saved.");
+        } catch {
+          setMessage("Could not save");
+          shopError("Could not save shipping.");
+        } finally {
+          setBusy(false);
+        }
       }}
     >
       <label><input type="checkbox" name="localEnabled" defaultChecked={(profile as { localEnabled?: boolean } | null)?.localEnabled !== false} /> Local delivery</label>
@@ -57,7 +71,7 @@ export function VendorShippingForm() {
           </label>
         ))}
       </div>
-      <button className="h-10 w-fit rounded-full bg-gold px-5 text-sm font-bold text-ongold">Save shipping</button>
+      <button disabled={busy} className="h-10 w-fit rounded-full bg-gold px-5 text-sm font-bold text-ongold disabled:opacity-60">{busy ? "Saving…" : "Save shipping"}</button>
       {message ? <p className="text-sm text-goldink">{message}</p> : null}
     </form>
   );

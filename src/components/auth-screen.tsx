@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, type InputHTMLAttributes, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
-import { Eye, EyeOff, Lock, Moon, Sparkles, Store, Sun, User } from "lucide-react";
+import { Eye, EyeOff, Lock, Moon, ShoppingBag, Sparkles, Store, Sun, User } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import { goNavBack } from "@/components/nav-history";
 
@@ -83,24 +83,44 @@ export function AuthHeading({ title, subtitle }: { title: string; subtitle: stri
   );
 }
 
-export function AccountTypeCards({ asVendor, onChange }: { asVendor: boolean; onChange: (vendor: boolean) => void }) {
+export function AccountTypeCards({
+  asVendor,
+  asShop,
+  onChange,
+  onKindChange
+}: {
+  asVendor: boolean;
+  asShop?: boolean;
+  onChange: (vendor: boolean) => void;
+  onKindChange?: (kind: "customer" | "vendor" | "shop") => void;
+}) {
+  const showShop = Boolean(onKindChange);
   return (
-    <div role="tablist" aria-label="Account type" className="mt-6 grid grid-cols-2 gap-2.5">
+    <div role="tablist" aria-label="Account type" className={`mt-6 grid gap-2.5 ${showShop ? "grid-cols-3" : "grid-cols-2"}`}>
       <AccountTypeCard
-        selected={!asVendor}
-        onClick={() => onChange(false)}
+        selected={!asVendor && !asShop}
+        onClick={() => (onKindChange ? onKindChange("customer") : onChange(false))}
         icon={User}
         title="I'm a Customer"
         subtitle="Book & enjoy services"
       />
       <AccountTypeCard
-        selected={asVendor}
-        onClick={() => onChange(true)}
+        selected={asVendor && !asShop}
+        onClick={() => (onKindChange ? onKindChange("vendor") : onChange(true))}
         icon={Store}
         title="I'm a Service Provider"
         subtitle="List services & grow"
         tone="forest"
       />
+      {showShop ? (
+        <AccountTypeCard
+          selected={Boolean(asShop)}
+          onClick={() => onKindChange?.("shop")}
+          icon={ShoppingBag}
+          title="I'm a Product Seller"
+          subtitle="Sell on Shop"
+        />
+      ) : null}
     </div>
   );
 }

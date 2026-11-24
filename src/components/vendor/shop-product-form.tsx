@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ImagePlus, X } from "lucide-react";
 import { formatNgn } from "@/lib/money";
+import { shopError, shopSuccess } from "@/lib/shop/ui-action";
 
 type Product = {
   id: string;
@@ -19,12 +20,16 @@ function ImageSlot({
   label,
   required,
   value,
-  onChange
+  onChange,
+  imageUrl = "/api/shop/vendor/product-images",
+  extra
 }: {
   label: string;
   required?: boolean;
   value: string;
   onChange: (url: string) => void;
+  imageUrl?: string;
+  extra?: Record<string, string>;
 }) {
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -36,12 +41,16 @@ function ImageSlot({
     try {
       const fd = new FormData();
       fd.set("file", file);
-      const res = await fetch("/api/shop/vendor/product-images", { method: "POST", body: fd });
+      Object.entries(extra || {}).forEach(([key, val]) => fd.set(key, val));
+      const res = await fetch(imageUrl, { method: "POST", body: fd });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Could not upload image.");
       onChange(data.url);
+      shopSuccess("Photo uploaded.");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not upload image.");
+      const text = e instanceof Error ? e.message : "Could not upload image.";
+      setError(text);
+      shopError(text);
     } finally {
       setBusy(false);
       if (input.current) input.current.value = "";
@@ -86,7 +95,19 @@ function ImageSlot({
   );
 }
 
-export function VendorProductForm() {
+export function VendorProductForm({
+  loadUrl = "/api/shop/vendor/products",
+  saveUrl = "/api/shop/vendor/products",
+  imageUrl = "/api/shop/vendor/product-images",
+  extraBody,
+  extraImage
+}: {
+  loadUrl?: string;
+  saveUrl?: string;
+  imageUrl?: string;
+  extraBody?: Record<string, unknown>;
+  extraImage?: Record<string, string>;
+} = {}) {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [message, setMessage] = useState("");
@@ -94,14 +115,14 @@ export function VendorProductForm() {
   const [gallery, setGallery] = useState<[string, string]>(["", ""]);
   const [busy, setBusy] = useState(false);
   useEffect(() => {
-    fetch("/api/shop/vendor/products")
+    fetch(loadUrl)
       .then((r) => r.json())
       .then((d) => {
         setProducts(d.products ?? []);
         setCategories(d.categories ?? []);
       })
       .catch(() => undefined);
-  }, []);
+  }, [loadUrl]);
   return (
     <div className="mt-4 grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
       <form
@@ -114,42 +135,51 @@ export function VendorProductForm() {
           const images = [featured, gallery[0], gallery[1]].filter(Boolean);
           setBusy(true);
           setMessage("");
-          const res = await fetch("/api/shop/vendor/products", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              name: fd.get("name"),
-              seoTitle: fd.get("seoTitle"),
-              metaDescription: fd.get("metaDescription"),
-              description: fd.get("description"),
-              categoryId: fd.get("categoryId"),
-              ingredients: fd.get("ingredients"),
-              usage: fd.get("usage"),
-              warnings: fd.get("warnings"),
-              expiryNote: fd.get("expiryNote"),
-              nafdacNumber: fd.get("nafdacNumber"),
-              images,
-              variants: [
-                {
-                  sku: fd.get("sku"),
-                  name: fd.get("variantName") || "Default",
-                  priceKobo: Number(fd.get("priceNaira")) * 100,
-                  compareKobo: Number(fd.get("compareNaira") || 0) * 100,
-                  stockOnHand: Number(fd.get("stock"))
-                }
-              ]
-            })
-          });
-          const data = await res.json();
-          setBusy(false);
-          setMessage(res.ok ? "Saved for admin approval." : data.error || "Could not save");
-          if (res.ok) {
+          try {
+            const res = await fetch(saveUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                ...extraBody,
+                name: fd.get("name"),
+                seoTitle: fd.get("seoTitle"),
+                metaDescription: fd.get("metaDescription"),
+                description: fd.get("description"),
+                categoryId: fd.get("categoryId"),
+                ingredients: fd.get("ingredients"),
+                usage: fd.get("usage"),
+                warnings: fd.get("warnings"),
+                expiryNote: fd.get("expiryNote"),
+                nafdacNumber: fd.get("nafdacNumber"),
+                images,
+                variants: [
+                  {
+                    sku: fd.get("sku"),
+                    name: fd.get("variantName") || "Default",
+                    priceKobo: Number(fd.get("priceNaira")) * 100,
+                    compareKobo: Number(fd.get("compareNaira") || 0) * 100,
+                    stockOnHand: Number(fd.get("stock"))
+                  }
+                ]
+              })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Could not save");
             form.reset();
             setFeatured("");
             setGallery(["", ""]);
-            const refresh = await fetch("/api/shop/vendor/products");
+            const refresh = await fetch(loadUrl);
             const next = await refresh.json();
             setProducts(next.products ?? []);
+            setMessage("Saved for admin approval. You can list another product here.");
+            shopSuccess("Product saved. It stays here until Admin approves it for Shop.");
+            document.getElementById("my-shop-products")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          } catch (err) {
+            const text = err instanceof Error ? err.message : "Could not save";
+            setMessage(text);
+            shopError(text);
+          } finally {
+            setBusy(false);
           }
         }}
       >
@@ -165,9 +195,9 @@ export function VendorProductForm() {
           <p className="text-xs font-semibold">Photos</p>
           <p className="mt-0.5 text-[11px] text-ink2">Upload a featured image and up to two gallery photos. File upload only, 2 MB max.</p>
           <div className="mt-2 grid grid-cols-3 gap-2">
-            <ImageSlot label="Featured" required value={featured} onChange={setFeatured} />
-            <ImageSlot label="Gallery 1" value={gallery[0]} onChange={(url) => setGallery([url, gallery[1]])} />
-            <ImageSlot label="Gallery 2" value={gallery[1]} onChange={(url) => setGallery([gallery[0], url])} />
+            <ImageSlot label="Featured" required value={featured} onChange={setFeatured} imageUrl={imageUrl} extra={extraImage} />
+            <ImageSlot label="Gallery 1" value={gallery[0]} onChange={(url) => setGallery([url, gallery[1]])} imageUrl={imageUrl} extra={extraImage} />
+            <ImageSlot label="Gallery 2" value={gallery[1]} onChange={(url) => setGallery([gallery[0], url])} imageUrl={imageUrl} extra={extraImage} />
           </div>
         </div>
         <label className="block text-xs font-semibold">
@@ -187,16 +217,17 @@ export function VendorProductForm() {
         <div className="grid grid-cols-2 gap-2">
           <input required name="sku" placeholder="SKU" className="h-11 rounded-xl border border-line px-3 text-sm" />
           <input name="variantName" placeholder="Variant name" defaultValue="Default" className="h-11 rounded-xl border border-line px-3 text-sm" />
-          <input required name="priceNaira" type="number" placeholder="Price ₦" className="h-11 rounded-xl border border-line px-3 text-sm" />
-          <input name="compareNaira" type="number" placeholder="Compare-at ₦" className="h-11 rounded-xl border border-line px-3 text-sm" />
+          <input required name="priceNaira" type="number" min="1" placeholder="Regular price ₦" className="h-11 rounded-xl border border-line px-3 text-sm" />
+          <input name="compareNaira" type="number" min="0" placeholder="Sales price ₦ (slashed)" className="h-11 rounded-xl border border-line px-3 text-sm" />
+          <p className="col-span-2 text-[11px] text-ink2">Sales price is the slashed figure on Shop. Enter it only when it is higher than regular.</p>
           <input required name="stock" type="number" placeholder="Stock" className="col-span-2 h-11 rounded-xl border border-line px-3 text-sm" />
         </div>
         <button disabled={busy} className="h-11 rounded-full bg-gold text-sm font-bold text-ongold disabled:opacity-60">
           {busy ? "Saving…" : "Save product"}
         </button>
-        {message ? <p className="text-sm text-goldink">{message}</p> : null}
+        {message ? <p className={`text-sm ${message.startsWith("Saved") ? "text-goldink" : "text-red-600"}`}>{message}</p> : null}
       </form>
-      <ul className="space-y-2">
+      <ul id="my-shop-products" className="space-y-2">
         {products.map((p) => {
           const cover = [...(p.images ?? [])].sort((a, b) => a.sortOrder - b.sortOrder)[0]?.url;
           return (

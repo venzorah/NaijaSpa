@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/db";
 import { LIVE_PRODUCT_STATUS } from "@/lib/shop/constants";
-import { formatNgn } from "@/lib/money";
+import { ShopPrice } from "@/components/shop/shop-price";
 import { shopHostFromHeaders, shopPublicPath, SHOP_PUBLIC_URL } from "@/lib/shop-host";
 import { AddToCart } from "@/components/shop/add-to-cart";
 import { ProductGallery } from "@/components/shop/product-gallery";
@@ -84,7 +84,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             <span> · {product.vendor.city}, {product.vendor.state}</span>
             {product.reviewCount ? <span> · {product.ratingAvg.toFixed(1)} / 5 ({product.reviewCount})</span> : null}
           </p>
-          <p className="mt-5 font-display text-3xl text-goldink">{formatNgn(price)}</p>
+          <ShopPrice regularKobo={price} salesKobo={variant?.compareKobo ?? 0} size="pdp" />
           <p className="mt-4 text-sm leading-relaxed text-ink2">{product.description || "Details from the seller."}</p>
           {variant ? <AddToCart variants={product.variants} productName={product.name} image={product.images[0]?.url} /> : null}
           <div className="mt-8 grid gap-3">

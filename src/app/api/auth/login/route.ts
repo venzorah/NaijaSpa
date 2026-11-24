@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { createSession, verifyPassword } from "@/lib/auth";
 import { isAdminRole, isVendorRole, portalHome } from "@/lib/rbac";
+import { SHOP_ONBOARDING_HOME, shopOnboardingIncomplete } from "@/lib/shop/onboarding";
 import { jsonError, rateLimit, clientAddress } from "@/lib/http";
 import { getRoleAccess } from "@/lib/admin-role-store";
 
@@ -48,7 +49,25 @@ export async function POST(req: Request) {
       theme: user.theme,
       vendorId: user.vendorOwned?.id ?? user.staffMemberships[0]?.vendorId
     }, user.passwordHash);
-    return NextResponse.json({ ok: true, role: user.role, home: portalHome(access) });
+    let home = portalHome(access);
+    if (user.vendorOwned?.commerceKind === "products") {
+      const docCount = await prisma.verificationDoc.count({ where: { vendorId: user.vendorOwned.id } });
+      if (
+        shopOnboardingIncomplete("products", {
+          shopStatus: user.vendorOwned.shopStatus,
+          businessName: user.vendorOwned.businessName,
+          city: user.vendorOwned.city,
+          address: user.vendorOwned.address,
+          logoUrl: user.vendorOwned.logoUrl,
+          coverUrl: user.vendorOwned.coverUrl,
+          docCount,
+          emailVerified: Boolean(user.emailVerifiedAt)
+        })
+      ) {
+        home = SHOP_ONBOARDING_HOME;
+      }
+    }
+    return NextResponse.json({ ok: true, role: user.role, home });
   } catch (e) {
     return jsonError(e);
   }

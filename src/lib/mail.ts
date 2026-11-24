@@ -173,6 +173,19 @@ export function guestBookingOtpEmail({ code }: { code: string }) {
   };
 }
 
+export function emailVerifyOtpEmail({ code }: { code: string }) {
+  return {
+    subject: "Your NaijaSpa email verification code",
+    html: brandedEmailHtml({
+      title: "Verify your email",
+      preheader: "Enter this 6-digit code to verify your product seller account. It expires in 15 minutes.",
+      intro: "Use this code on NaijaSpa to confirm your email. Do not share it.",
+      body: "The code expires in 15 minutes. If you did not create a product seller account, you can ignore this email.",
+      code
+    })
+  };
+}
+
 export function passwordResetEmail({ code }: { code: string }) {
   return {
     subject: "Your NaijaSpa password reset code",
@@ -276,6 +289,15 @@ export function queueMail(task: Promise<unknown>) {
 export async function sendWelcomeEmail({ to, name, asVendor }: { to: string; name: string; asVendor: boolean }) {
   const mail = welcomeEmail({ name, asVendor });
   await sendMail({ to, ...mail });
+}
+
+export async function sendEmailVerifyOtp({ to, code }: { to: string; code: string }) {
+  const mail = emailVerifyOtpEmail({ code });
+  await sendMail({
+    to,
+    ...mail,
+    text: `Your NaijaSpa email verification code is ${code}. Enter it to continue store setup. It expires in 15 minutes.`
+  });
 }
 
 export async function sendPasswordResetEmail({ to, code }: { to: string; code: string }) {

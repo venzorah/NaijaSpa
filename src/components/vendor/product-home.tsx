@@ -7,7 +7,7 @@ import { VendorPageHeader } from "@/components/vendor/page-header";
 import { Panel } from "@/components/admin/panel";
 import { StatCard } from "@/components/vendor/stat-card";
 import { AdminStatusPill } from "@/components/admin/status-pill";
-import { ActivateShopButton } from "@/components/vendor/activate-shop";
+import { SHOP_ONBOARDING_HOME, shopOnboardingIncomplete } from "@/lib/shop/onboarding";
 
 function greeting() {
   const hour = (new Date().getUTCHours() + 1) % 24;
@@ -40,9 +40,29 @@ export async function ProductVendorHome({ vendorId, firstName }: { vendorId: str
       () =>
         prisma.vendor.findUnique({
           where: { id: vendorId },
-          select: { businessName: true, shopStatus: true, shopRejectedReason: true }
+          select: {
+            businessName: true,
+            shopStatus: true,
+            shopRejectedReason: true,
+            city: true,
+            address: true,
+            logoUrl: true,
+            coverUrl: true,
+            owner: { select: { emailVerifiedAt: true } },
+            _count: { select: { documents: true } }
+          }
         }),
-      { businessName: "your store", shopStatus: "none", shopRejectedReason: "" }
+      {
+        businessName: "your store",
+        shopStatus: "none",
+        shopRejectedReason: "",
+        city: "",
+        address: "",
+        logoUrl: null,
+        coverUrl: null,
+        owner: { emailVerifiedAt: null },
+        _count: { documents: 0 }
+      }
     ),
     shopQuery(() => prisma.shopProduct.count({ where: { vendorId } }), 0),
     shopQuery(() => prisma.shopProduct.count({ where: { vendorId, status: "pending" } }), 0),
@@ -77,7 +97,16 @@ export async function ProductVendorHome({ vendorId, firstName }: { vendorId: str
   const openOrders = orders.filter((o) => ["confirmed", "processing"].includes(o.status)).length;
   const weekPayable = weekOrders.reduce((s, o) => s + o.vendorPayableKobo, 0);
   const status = vendor?.shopStatus ?? "none";
-  const needsApply = status === "none" || status === "rejected";
+  const needsSetup = shopOnboardingIncomplete("products", {
+    shopStatus: status,
+    businessName: vendor?.businessName,
+    city: vendor?.city,
+    address: vendor?.address,
+    logoUrl: vendor?.logoUrl,
+    coverUrl: vendor?.coverUrl,
+    docCount: vendor?._count.documents ?? 0,
+    emailVerified: Boolean(vendor?.owner?.emailVerifiedAt)
+  });
   return (
     <div>
       <VendorPageHeader
@@ -90,17 +119,22 @@ export async function ProductVendorHome({ vendorId, firstName }: { vendorId: str
             <Link href="/vendor/chats" className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-line px-4 text-sm font-semibold">
               <MessageCircle className="h-4 w-4" /> Chat
             </Link>
-            <Link href="/vendor/shop/products" className="inline-flex min-h-11 items-center gap-1 rounded-full bg-gold px-4 text-sm font-bold text-ongold">
-              Add a product <ArrowRight className="h-4 w-4" />
+            <Link
+              href={needsSetup ? SHOP_ONBOARDING_HOME : "/vendor/shop/products"}
+              className="inline-flex min-h-11 items-center gap-1 rounded-full bg-gold px-4 text-sm font-bold text-ongold"
+            >
+              {needsSetup ? "Continue setup" : "Add a product"} <ArrowRight className="h-4 w-4" />
             </Link>
           </>
         }
       />
 
-      {needsApply ? (
-        <Panel className="mb-4" title="Activate Product Store" description="Admin must approve your shop before products go live. This is not a treatment listing.">
+      {needsSetup ? (
+        <Panel className="mb-4" title="Finish store setup" description="Save business details, KYC and store images. You can leave and continue from the same section.">
           {vendor?.shopRejectedReason ? <p className="mb-3 text-sm text-ink2">Admin note: {vendor.shopRejectedReason}</p> : null}
-          <ActivateShopButton />
+          <Link href={SHOP_ONBOARDING_HOME} className="inline-flex min-h-11 items-center rounded-full bg-gold px-5 text-sm font-bold text-ongold">
+            Continue onboarding
+          </Link>
         </Panel>
       ) : (
         <p className="mb-4 text-sm text-ink2">

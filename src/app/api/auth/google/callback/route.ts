@@ -59,9 +59,14 @@ export async function GET(req: Request) {
       return fail(origin, portalPath, "Gmail sign-in could not be verified. Try again.");
     }
     const profile = await exchangeGoogleCode(code, state.redirectUri);
-    const result = await signInWithGoogle(profile, state.portal, state.intent);
+    const asShop = (state.next || "").includes("/vendor/shop/onboarding") || (state.next || "").includes("asShop=1");
+    const result = await signInWithGoogle(profile, state.portal, state.intent, asShop);
     const next =
-      result.isNew && state.portal === "vendor" ? "/vendor/onboarding" : portalNext(state.next || result.home, state.portal);
+      result.isNew && state.portal === "vendor"
+        ? asShop
+          ? "/vendor/shop/onboarding"
+          : "/vendor/onboarding"
+        : portalNext(state.next || result.home, state.portal);
     return NextResponse.redirect(new URL(next, origin));
   } catch (e) {
     const message = e instanceof Error ? e.message : "Gmail sign-in failed.";

@@ -16,14 +16,19 @@ const uploadHint: Record<VerificationDocKind, string> = {
 export function VendorOnboardingDocs({
   docs,
   disabled,
+  kinds,
+  intro,
   onChange,
   onError
 }: {
   docs: OnboardingDoc[];
   disabled?: boolean;
+  kinds?: VerificationDocKind[];
+  intro?: string;
   onChange: (next: OnboardingDoc[]) => void;
   onError: (message: string) => void;
 }) {
+  const options = kinds?.length ? VERIFICATION_DOC_OPTIONS.filter((option) => kinds.includes(option.id)) : VERIFICATION_DOC_OPTIONS;
   const [busyKind, setBusyKind] = useState<VerificationDocKind | "">("");
   const [overKind, setOverKind] = useState<VerificationDocKind | "">("");
   const inputs = useRef<Record<string, HTMLInputElement | null>>({});
@@ -69,10 +74,14 @@ export function VendorOnboardingDocs({
   return (
     <div className="space-y-4">
       <p className="text-sm text-ink2">
-        Upload a clear photo of <span className="font-semibold text-goldink">one</span> of these. One is enough for
-        review. You can add the others if you have them.
+        {intro ?? (
+          <>
+            Upload a clear photo of <span className="font-semibold text-goldink">one</span> of these. One is enough for
+            review. You can add the others if you have them.
+          </>
+        )}
       </p>
-      {VERIFICATION_DOC_OPTIONS.map((option) => {
+      {options.map((option) => {
         const current = docs.find((doc) => doc.kind === option.id);
         const busy = busyKind === option.id;
         const dragging = overKind === option.id;

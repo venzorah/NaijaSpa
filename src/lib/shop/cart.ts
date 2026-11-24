@@ -1,7 +1,9 @@
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/db";
+import { sessionCookieDomain } from "@/lib/shop-host";
 
 export const SHOP_CART_COOKIE = "naijaspa_shop_cart";
+export const SHOP_ORDER_COOKIE = "naijaspa_shop_orders";
 
 export async function getOrCreateShopCart(userId?: string | null) {
   const jar = await cookies();
@@ -34,7 +36,38 @@ export async function getOrCreateShopCart(userId?: string | null) {
   }
   const cart = await prisma.shopCart.create({ data: { userId: userId || undefined, guestKey: userId ? undefined : crypto.randomUUID() } });
   if (!userId && cart.guestKey) {
-    jar.set(SHOP_CART_COOKIE, cart.guestKey, { path: "/", maxAge: 60 * 60 * 24 * 30, sameSite: "lax" });
+    const domain = sessionCookieDomain();
+    jar.set(SHOP_CART_COOKIE, cart.guestKey, {
+      path: "/",
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24 * 30,
+      ...(domain ? { domain } : {})
+    });
   }
   return cart;
+}
+
+export async function rememberedShopOrderIds() {
+  const jar = await cookies();
+  return (jar.get(SHOP_ORDER_COOKIE)?.value || "")
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean)
+    .slice(0, 20);
+}
+
+export async function rememberShopOrder(orderId: string) {
+  const jar = await cookies();
+  const next = [orderId, ...(await rememberedShopOrderIds()).filter((id) => id !== orderId)].slice(0, 20);
+  const domain = sessionCookieDomain();
+  jar.set(SHOP_ORDER_COOKIE, next.join(","), {
+    path: "/",
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 60 * 60 * 24 * 180,
+    ...(domain ? { domain } : {})
+  });
 }

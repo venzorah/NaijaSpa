@@ -5,7 +5,8 @@ import { getSession } from "@/lib/auth";
 import { shopHostFromHeaders, shopPublicPath } from "@/lib/shop-host";
 import { PUBLIC_SITE_URL } from "@/lib/public-origin";
 import { shopCategories } from "@/lib/shop/catalog";
-import { Search, ShoppingBag, UserRound } from "lucide-react";
+import { ShopCartBadge } from "@/components/shop/cart-badge";
+import { Search, UserRound } from "lucide-react";
 
 export async function ShopChrome({ children }: { children: React.ReactNode }) {
   const hdrs = await headers();
@@ -35,9 +36,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
           <Link href={href("/search")} className="hidden h-11 items-center px-3 text-sm font-semibold hover:text-goldink sm:inline-flex">
             Explore
           </Link>
-          <Link href={href("/cart")} className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line hover:bg-elev sm:h-11 sm:w-auto sm:gap-1.5 sm:px-3.5 sm:text-sm sm:font-semibold">
-            <ShoppingBag className="h-4 w-4" /> <span className="hidden sm:inline">Cart</span>
-          </Link>
+          <ShopCartBadge />
           <Link href={user ? href("/orders") : href("/login")} className="inline-flex h-9 shrink-0 items-center gap-1 rounded-full bg-gold px-2.5 text-[11px] font-bold text-ongold sm:h-11 sm:gap-1.5 sm:px-4 sm:text-sm">
             <UserRound className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> <span>{user ? "Orders" : "Sign in"}</span>
           </Link>

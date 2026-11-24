@@ -1,27 +1,19 @@
 import { headers } from "next/headers";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { getSession } from "@/lib/auth";
-import { prisma } from "@/lib/db";
 import { formatNgn } from "@/lib/money";
 import { OrderReturnForm } from "@/components/shop/return-form";
 import { shopQuery } from "@/lib/shop/safe-query";
 import { shopHostFromHeaders, shopPublicPath } from "@/lib/shop-host";
+import { shopOrderForBuyer } from "@/lib/shop/order-access";
 import Link from "next/link";
 
 export default async function ShopOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const shopHost = shopHostFromHeaders(await headers());
   const href = (path: string) => shopPublicPath(`/shop${path}`, shopHost);
   const user = await getSession();
-  if (!user) redirect(`${href("/login")}?${new URLSearchParams({ next: href("/orders") })}`);
   const { id } = await params;
-  const order = await shopQuery(
-    () =>
-      prisma.shopMasterOrder.findFirst({
-        where: { id, userId: user.id },
-        include: { vendorOrders: { include: { items: true, vendor: { select: { businessName: true } } } } }
-      }),
-    null
-  );
+  const order = await shopQuery(() => shopOrderForBuyer(id, user?.id), null);
   if (!order) notFound();
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 lg:px-8">
@@ -42,7 +34,7 @@ export default async function ShopOrderDetailPage({ params }: { params: Promise<
               ))}
             </ul>
             <p className="mt-2 text-sm">Items {formatNgn(vo.productKobo)} · Shipping {formatNgn(vo.shippingKobo)}</p>
-            {order.status === "paid" ? <OrderReturnForm vendorOrderId={vo.id} /> : null}
+            {order.status === "paid" && user ? <OrderReturnForm vendorOrderId={vo.id} /> : null}
           </section>
         ))}
       </div>

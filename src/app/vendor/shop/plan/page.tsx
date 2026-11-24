@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { formatNgn } from "@/lib/money";
+import { shopError, shopSuccess } from "@/lib/shop/ui-action";
 
 export default function VendorShopPlanPage() {
   const [plans, setPlans] = useState<{ code: string; name: string; priceKobo: number; commissionBps: number }[]>([]);
   const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState("");
   useEffect(() => {
     fetch("/api/shop/vendor/subscribe").then((r) => r.json()).then((d) => setPlans(d.plans ?? [])).catch(() => undefined);
   }, []);
@@ -20,15 +22,34 @@ export default function VendorShopPlanPage() {
             className="rounded-3xl border border-line bg-card p-4"
             onSubmit={async (e) => {
               e.preventDefault();
-              const res = await fetch("/api/shop/vendor/subscribe", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ planCode: p.code }) });
-              const data = await res.json();
-              if (data.pay?.authorizationUrl) location.href = data.pay.authorizationUrl;
-              else setMessage(res.ok ? "Plan updated." : data.error || "Could not update");
+              if (busy) return;
+              setBusy(p.code);
+              setMessage("");
+              let leaving = false;
+              try {
+                const res = await fetch("/api/shop/vendor/subscribe", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ planCode: p.code }) });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || "Could not update");
+                if (data.pay?.authorizationUrl) {
+                  leaving = true;
+                  shopSuccess("Opening Paystack to activate this plan.");
+                  window.location.assign(data.pay.authorizationUrl);
+                  return;
+                }
+                setMessage("Plan updated.");
+                shopSuccess("Shop plan updated.");
+              } catch (err) {
+                const text = err instanceof Error ? err.message : "Could not update";
+                setMessage(text);
+                shopError(text);
+              } finally {
+                if (!leaving) setBusy("");
+              }
             }}
           >
             <p className="font-semibold">{p.name}</p>
             <p className="text-sm">{formatNgn(p.priceKobo)} · {p.commissionBps / 100}% commission</p>
-            <button className="mt-3 h-10 rounded-full bg-gold px-4 text-sm font-bold text-ongold">Choose</button>
+            <button disabled={Boolean(busy)} className="mt-3 h-10 rounded-full bg-gold px-4 text-sm font-bold text-ongold disabled:opacity-60">{busy === p.code ? "Working…" : "Choose"}</button>
           </form>
         ))}
       </div>

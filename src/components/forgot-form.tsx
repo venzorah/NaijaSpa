@@ -12,6 +12,7 @@ import {
   authCtaClass,
   authFieldClass
 } from "@/components/auth-screen";
+import { OTP_LENGTH, OtpBoxes } from "@/components/otp-boxes";
 type ResetPortal = "customer" | "vendor" | "admin";
 const RESEND_SECONDS = 60;
 
@@ -32,6 +33,7 @@ export function ForgotForm() {
   const [portal, setPortal] = useState<ResetPortal>(() => portalFromSearch(search.get("portal")));
   const [step, setStep] = useState<"email" | "otp">("email");
   const [email, setEmail] = useState(() => search.get("email")?.trim() || "");
+  const [otp, setOtp] = useState("");
   const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -68,7 +70,7 @@ export function ForgotForm() {
 
   const heading =
     portal === "vendor"
-      ? { title: "Vendor password recovery", subtitle: "We'll email a 6-digit code if this service provider account exists. Enter it on this screen." }
+      ? { title: "Vendor password recovery", subtitle: "We'll email a 6-digit code if this service provider or product seller account exists. Enter it on this screen." }
       : portal === "admin"
         ? { title: "Admin password recovery", subtitle: "We'll email a 6-digit code if this admin account exists. Enter it on this screen." }
         : { title: "Password recovery", subtitle: "We'll email a 6-digit code if this customer account exists. Enter it on this screen." };
@@ -95,7 +97,7 @@ export function ForgotForm() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   email,
-                  otp: fd.get("otp"),
+                  otp,
                   password: fd.get("password")
                 })
               });
@@ -112,27 +114,14 @@ export function ForgotForm() {
           <div>
             <AuthLabel htmlFor="otp">6-digit code</AuthLabel>
             <input type="text" name="username" value={email} readOnly tabIndex={-1} autoComplete="username" className="sr-only" aria-hidden />
-            <input
-              id="otp"
-              name="otp"
-              type="text"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-              maxLength={12}
-              required
-              placeholder="6-digit code"
-              className={`${authFieldClass} tracking-[0.35em] text-center text-lg`}
-            />
+            <OtpBoxes id="otp" value={otp} onChange={setOtp} disabled={busy} />
           </div>
           <div>
             <AuthLabel htmlFor="password">New password</AuthLabel>
             <AuthPassword name="password" autoComplete="new-password" />
           </div>
           {error ? <p className="text-sm text-red-400">{error}</p> : null}
-          <button className={authCtaClass} disabled={busy}>
+          <button className={authCtaClass} disabled={busy || otp.replace(/\D/g, "").length < OTP_LENGTH}>
             {busy ? "Saving…" : "Update password"}
           </button>
         </form>
@@ -180,7 +169,12 @@ export function ForgotForm() {
     <AuthScreen>
       <AuthHeading title={heading.title} subtitle={heading.subtitle} />
       {split ? (
-        <AccountTypeCards asVendor={portal === "vendor"} onChange={(vendor) => setPortalAndUrl(vendor ? "vendor" : "customer")} />
+        <AccountTypeCards
+          asVendor={portal === "vendor"}
+          asShop={false}
+          onChange={(vendor) => setPortalAndUrl(vendor ? "vendor" : "customer")}
+          onKindChange={(kind) => setPortalAndUrl(kind === "customer" ? "customer" : "vendor")}
+        />
       ) : (
         <p className="mt-6 text-center text-xs font-bold uppercase tracking-[0.18em] text-goldink">Admin</p>
       )}
