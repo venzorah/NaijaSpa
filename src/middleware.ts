@@ -20,6 +20,7 @@ export async function middleware(request: NextRequest) {
   headers.set("x-naijaspa-vendor-path", dest);
   headers.set("x-naijaspa-customer-path", dest);
   headers.set("x-naijaspa-admin-path", dest);
+  headers.set("x-naijaspa-pathname", pathname);
   if (shopHostFromHeaders(request.headers)) {
     if (shopHostSpaPath(pathname)) {
       const dest = new URL(publicOriginFromRequest(request));

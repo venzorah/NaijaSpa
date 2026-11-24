@@ -1,24 +1,34 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { shopQuery } from "@/lib/shop/safe-query";
 import { ShopVendorActions, ShopProductActions } from "@/components/admin/shop-actions";
+import { ShopAdminError } from "@/components/admin/shop-admin-error";
 import { VendorProductForm } from "@/components/vendor/shop-product-form";
+import { adminShopLoad } from "@/lib/shop/admin-load";
 
 export default async function EcommerceVendorDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const vendor = await shopQuery(
-    () =>
-      prisma.vendor.findUnique({
-        where: { id },
-        include: {
-          owner: { select: { email: true, name: true, emailVerifiedAt: true } },
-          documents: { select: { id: true, kind: true, status: true } },
-          shopProducts: { select: { id: true, name: true, status: true }, orderBy: { updatedAt: "desc" }, take: 40 }
-        }
-      }),
-    null
+  const loaded = await adminShopLoad(() =>
+    prisma.vendor.findUnique({
+      where: { id },
+      include: {
+        owner: { select: { email: true, name: true, emailVerifiedAt: true } },
+        documents: { select: { id: true, kind: true, status: true } },
+        shopProducts: { select: { id: true, name: true, status: true }, orderBy: { updatedAt: "desc" }, take: 40 }
+      }
+    })
   );
+  if (!loaded.ok) {
+    return (
+      <div>
+        <Link href="/admin/ecommerce/vendors" className="text-sm font-semibold text-goldink">
+          ← Product vendors
+        </Link>
+        <ShopAdminError message={loaded.error} />
+      </div>
+    );
+  }
+  const vendor = loaded.data;
   if (!vendor) notFound();
   return (
     <div>

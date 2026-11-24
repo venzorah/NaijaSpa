@@ -16,19 +16,33 @@ const LINKS = [
   ["Promotions", "/admin/ecommerce/promotions"],
   ["Reports", "/admin/ecommerce/reports"],
   ["Settings", "/admin/ecommerce/settings"]
-];
+] as const;
 
-export function EcommerceNav() {
+export function ecommerceNavActive(path: string, href: string) {
+  if (href === "/admin/ecommerce") return path === href;
+  return path === href || path.startsWith(`${href}/`);
+}
+
+export function EcommerceNav({ orientation = "side" }: { orientation?: "side" | "row" }) {
   const path = usePathname();
+  const row = orientation === "row";
   return (
-    <nav className="mt-6 space-y-1">
+    <nav
+      aria-label="Ecommerce admin"
+      className={row ? "flex gap-1 overflow-x-auto pb-1" : "mt-6 space-y-1"}
+    >
       {LINKS.map(([label, href]) => {
-        const active = href === "/admin/ecommerce" ? path === href : path.startsWith(href);
+        const active = ecommerceNavActive(path, href);
         return (
           <Link
             key={href}
             href={href}
-            className={`block rounded-lg px-3 py-2 text-sm ${active ? "bg-elev font-semibold text-ink" : "text-ink2 hover:bg-elev hover:text-ink"}`}
+            prefetch={false}
+            className={
+              row
+                ? `shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold ${active ? "bg-gold/15 text-goldink" : "text-ink2 hover:bg-elev hover:text-ink"}`
+                : `block rounded-lg px-3 py-2 text-sm ${active ? "bg-elev font-semibold text-ink" : "text-ink2 hover:bg-elev hover:text-ink"}`
+            }
           >
             {label}
           </Link>

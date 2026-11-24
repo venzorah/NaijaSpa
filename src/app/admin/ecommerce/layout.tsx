@@ -3,6 +3,8 @@ import { requireAdminScreen } from "@/lib/admin-auth";
 import { EcommerceNav } from "@/components/admin/ecommerce-nav";
 import { BrandLogo } from "@/components/brand-logo";
 
+export const dynamic = "force-dynamic";
+
 export default async function EcommerceAdminLayout({ children }: { children: React.ReactNode }) {
   await requireAdminScreen("ecommerce");
   return (
@@ -16,9 +18,17 @@ export default async function EcommerceAdminLayout({ children }: { children: Rea
         </Link>
       </aside>
       <div className="min-w-0 flex-1">
-        <header className="flex h-14 items-center justify-between border-b border-line px-4 lg:hidden">
-          <p className="font-semibold">Shop admin</p>
-          <Link href="/admin/dashboard" className="text-sm text-goldink">Main Admin</Link>
+        <header className="sticky top-0 z-30 border-b border-line bg-bg/95 backdrop-blur">
+          <div className="flex h-14 items-center justify-between px-4">
+            <p className="font-semibold lg:hidden">Shop admin</p>
+            <p className="hidden text-[11px] font-bold uppercase tracking-[0.18em] text-goldink lg:block">NaijaSpa Shop</p>
+            <Link href="/admin/dashboard" className="text-sm font-semibold text-goldink">
+              Main Admin
+            </Link>
+          </div>
+          <div className="px-3 pb-2 lg:hidden">
+            <EcommerceNav orientation="row" />
+          </div>
         </header>
         <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
       </div>

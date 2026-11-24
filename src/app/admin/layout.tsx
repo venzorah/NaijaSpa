@@ -2,18 +2,19 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { isAdminRole } from "@/lib/rbac";
-import { ADMIN_ROLE_LABELS } from "@/lib/admin";
+import { ADMIN_ROLE_LABELS, isEcommerceAdminPath } from "@/lib/admin";
 import { prisma } from "@/lib/db";
 import { PortalChrome } from "@/components/portal-chrome";
 import { portalNext } from "@/lib/portal-auth";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await getSession();
-  const adminPath = (await headers()).get("x-naijaspa-admin-path") || "";
-  const next = portalNext(adminPath, "admin");
+  const hdrs = await headers();
+  const adminPath = hdrs.get("x-naijaspa-pathname") || hdrs.get("x-naijaspa-admin-path") || "";
+  const next = portalNext(hdrs.get("x-naijaspa-admin-path") || adminPath, "admin");
   if (!user) redirect(`/login/admin?${new URLSearchParams({ next })}`);
   if (!isAdminRole(user)) redirect("/account/dashboard");
-  if (adminPath.startsWith("/admin/ecommerce") || adminPath.split("?")[0] === "/admin/ecommerce") {
+  if (isEcommerceAdminPath(adminPath)) {
     return children;
   }
   const openTickets = await prisma.supportTicket.count({ where: { status: { in: ["open", "pending"] } } }).catch(() => 0);

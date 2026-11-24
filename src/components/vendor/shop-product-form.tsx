@@ -12,7 +12,7 @@ type Product = {
   seoTitle?: string;
   metaDescription?: string;
   images: { url: string; sortOrder: number }[];
-  variants: { priceKobo: number }[];
+  variants?: { priceKobo: number }[];
 };
 type Category = { id: string; name: string };
 
@@ -241,7 +241,7 @@ export function VendorProductForm({
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold">{p.name}</p>
                 <p className="mt-0.5 text-[11px] uppercase tracking-wide text-ink2">
-                  {p.status} · {p.variants[0] ? formatNgn(p.variants[0].priceKobo) : ""}
+                  {p.status} · {p.variants?.[0] ? formatNgn(p.variants[0].priceKobo) : ""}
                 </p>
                 {p.seoTitle ? <p className="mt-1 line-clamp-1 text-[11px] text-ink2">{p.seoTitle}</p> : null}
               </div>

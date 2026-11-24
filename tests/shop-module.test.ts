@@ -4,7 +4,8 @@ import { middleware } from "../src/middleware";
 import { isShopHostname, shopRewritePath, sessionCookieDomain } from "../src/lib/shop-host";
 import { quoteVendorShipping, shopCommissionKobo, shopVendorPayableKobo, quoteMasterTotals } from "../src/lib/shop/quote";
 import { availableStock } from "../src/lib/shop/inventory";
-import { visibleAdminScreens } from "../src/lib/admin";
+import { isEcommerceAdminPath, visibleAdminScreens } from "../src/lib/admin";
+import { ecommerceNavActive } from "../src/components/admin/ecommerce-nav";
 import { vendorNavFor } from "../src/components/portal-chrome";
 import { DEFAULT_SHOP_HERO, parseShopHero, presentShopHero, publicShopCtaHref } from "../src/lib/shop/hero";
 
@@ -183,12 +184,33 @@ describe("shop catalog filters", () => {
   });
 });
 
+describe("admin shop load", () => {
+  it("returns the error instead of a silent empty fallback", async () => {
+    const { adminShopLoad } = await import("../src/lib/shop/admin-load");
+    const failed = await adminShopLoad(async () => {
+      throw new Error("relation shopProduct does not exist");
+    });
+    expect(failed).toEqual({ ok: false, error: "relation shopProduct does not exist" });
+    const ok = await adminShopLoad(async () => [{ id: "1" }]);
+    expect(ok).toEqual({ ok: true, data: [{ id: "1" }] });
+  });
+});
+
 describe("shop isolation in existing portals", () => {
   it("adds Manage Ecommerce for super admins without hiding homepage", () => {
     const screens = visibleAdminScreens("super_admin");
     expect(screens.some((s) => s.id === "ecommerce")).toBe(true);
     expect(screens.some((s) => s.id === "homepage")).toBe(true);
     expect(visibleAdminScreens("analyst").some((s) => s.id === "ecommerce")).toBe(false);
+  });
+
+  it("keeps Shop admin chrome off Main Admin and Vendors active only on vendor routes", () => {
+    expect(isEcommerceAdminPath("/admin/ecommerce")).toBe(true);
+    expect(isEcommerceAdminPath("/admin/ecommerce/vendors?q=a")).toBe(true);
+    expect(isEcommerceAdminPath("/admin/vendors")).toBe(false);
+    expect(ecommerceNavActive("/admin/ecommerce/vendors/abc", "/admin/ecommerce/vendors")).toBe(true);
+    expect(ecommerceNavActive("/admin/ecommerce/vendors", "/admin/ecommerce")).toBe(false);
+    expect(ecommerceNavActive("/admin/ecommerce", "/admin/ecommerce")).toBe(true);
   });
 
   it("hides service booking nav for product-only vendors", () => {

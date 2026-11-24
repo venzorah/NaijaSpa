@@ -1,17 +1,27 @@
+import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { ShopProductActions } from "@/components/admin/shop-actions";
-import { shopQuery } from "@/lib/shop/safe-query";
+import { ShopAdminError } from "@/components/admin/shop-admin-error";
+import { adminShopLoad } from "@/lib/shop/admin-load";
 
 export default async function EcommerceProductsPage() {
-  const products = await shopQuery(
-    () =>
-      prisma.shopProduct.findMany({
-        include: { vendor: { select: { businessName: true } }, category: true },
-        orderBy: { updatedAt: "desc" },
-        take: 200
-      }),
-    []
+  const loaded = await adminShopLoad(() =>
+    prisma.shopProduct.findMany({
+      include: { vendor: { select: { businessName: true } }, category: true },
+      orderBy: { updatedAt: "desc" },
+      take: 200
+    })
   );
+  if (!loaded.ok) {
+    return (
+      <div>
+        <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-goldink">Catalog</p>
+        <h1 className="mt-1 font-display text-3xl">Products</h1>
+        <ShopAdminError message={loaded.error} />
+      </div>
+    );
+  }
+  const products = loaded.data;
   return (
     <div>
       <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-goldink">Catalog</p>
@@ -23,9 +33,9 @@ export default async function EcommerceProductsPage() {
             <p className="font-semibold">{p.name}</p>
             <p className="text-sm text-ink2">{p.vendor.businessName} · {p.category.name} · {p.status}</p>
             <p className="mt-1">
-              <a href={`/admin/ecommerce/vendors/${p.vendorId}`} className="text-sm font-semibold text-goldink">
+              <Link prefetch={false} href={`/admin/ecommerce/vendors/${p.vendorId}`} className="text-sm font-semibold text-goldink">
                 Open seller
-              </a>
+              </Link>
             </p>
             <ShopProductActions id={p.id} />
           </li>

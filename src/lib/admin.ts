@@ -53,6 +53,11 @@ export type AdminAccess = "full" | "view";
 
 export const ADMIN_SCREEN_GROUPS = ["Overview", "Marketplace", "Revenue", "Content & care", "Platform"] as const;
 
+export function isEcommerceAdminPath(raw: string | null | undefined) {
+  const path = (raw ?? "").split("?")[0].replace(/\/+$/, "") || "/";
+  return path === "/admin/ecommerce" || path.startsWith("/admin/ecommerce/");
+}
+
 export const ADMIN_SCREENS: {
   id: AdminScreenId;
   href: string;

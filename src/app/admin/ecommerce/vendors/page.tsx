@@ -1,28 +1,37 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { ShopVendorActions } from "@/components/admin/shop-actions";
-import { shopQuery } from "@/lib/shop/safe-query";
+import { ShopAdminError } from "@/components/admin/shop-admin-error";
+import { adminShopLoad } from "@/lib/shop/admin-load";
 
 export default async function EcommerceVendorsPage() {
-  const vendors = await shopQuery(
-    () =>
-      prisma.vendor.findMany({
-        where: { shopStatus: { not: "none" } },
-        orderBy: { updatedAt: "desc" },
-        select: {
-          id: true,
-          businessName: true,
-          state: true,
-          city: true,
-          shopStatus: true,
-          commerceKind: true,
-          shopNote: true,
-          owner: { select: { email: true, emailVerifiedAt: true } },
-          _count: { select: { shopProducts: { where: { status: "pending" } } } }
-        }
-      }),
-    []
+  const loaded = await adminShopLoad(() =>
+    prisma.vendor.findMany({
+      where: { shopStatus: { not: "none" } },
+      orderBy: { updatedAt: "desc" },
+      select: {
+        id: true,
+        businessName: true,
+        state: true,
+        city: true,
+        shopStatus: true,
+        commerceKind: true,
+        shopNote: true,
+        owner: { select: { email: true, emailVerifiedAt: true } },
+        _count: { select: { shopProducts: { where: { status: "pending" } } } }
+      }
+    })
   );
+  if (!loaded.ok) {
+    return (
+      <div>
+        <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-goldink">Sellers</p>
+        <h1 className="mt-1 font-display text-3xl">Product vendors</h1>
+        <ShopAdminError message={loaded.error} />
+      </div>
+    );
+  }
+  const vendors = loaded.data;
   return (
     <div>
       <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-goldink">Sellers</p>
@@ -37,7 +46,7 @@ export default async function EcommerceVendorsPage() {
             </p>
             {v.shopNote ? <p className="mt-1 text-sm">{v.shopNote}</p> : null}
             <div className="mt-2 flex flex-wrap items-center gap-3">
-              <Link href={`/admin/ecommerce/vendors/${v.id}`} className="text-sm font-semibold text-goldink">
+              <Link prefetch={false} href={`/admin/ecommerce/vendors/${v.id}`} className="text-sm font-semibold text-goldink">
                 Open & assist listing →
               </Link>
             </div>

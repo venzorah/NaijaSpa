@@ -1,17 +1,26 @@
 import { prisma } from "@/lib/db";
 import { formatNgn } from "@/lib/money";
-import { shopQuery } from "@/lib/shop/safe-query";
+import { ShopAdminError } from "@/components/admin/shop-admin-error";
+import { adminShopLoad } from "@/lib/shop/admin-load";
 
 export default async function EcommerceOrdersPage() {
-  const orders = await shopQuery(
-    () =>
-      prisma.shopMasterOrder.findMany({
-        include: { vendorOrders: { include: { vendor: { select: { businessName: true } } } } },
-        orderBy: { createdAt: "desc" },
-        take: 100
-      }),
-    []
+  const loaded = await adminShopLoad(() =>
+    prisma.shopMasterOrder.findMany({
+      include: { vendorOrders: { include: { vendor: { select: { businessName: true } } } } },
+      orderBy: { createdAt: "desc" },
+      take: 100
+    })
   );
+  if (!loaded.ok) {
+    return (
+      <div>
+        <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-goldink">Orders</p>
+        <h1 className="mt-1 font-display text-3xl">Product orders</h1>
+        <ShopAdminError message={loaded.error} />
+      </div>
+    );
+  }
+  const orders = loaded.data;
   return (
     <div>
       <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-goldink">Orders</p>

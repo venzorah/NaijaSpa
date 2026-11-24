@@ -1,18 +1,27 @@
 import { prisma } from "@/lib/db";
 import { formatNgn } from "@/lib/money";
 import { ShopPayoutButton } from "@/components/admin/shop-payout-button";
-import { shopQuery } from "@/lib/shop/safe-query";
+import { ShopAdminError } from "@/components/admin/shop-admin-error";
+import { adminShopLoad } from "@/lib/shop/admin-load";
 
 export default async function EcommercePayoutsPage() {
-  const settlements = await shopQuery(
-    () =>
-      prisma.shopSettlement.findMany({
-        include: { vendor: { select: { id: true, businessName: true } } },
-        orderBy: { createdAt: "desc" },
-        take: 200
-      }),
-    []
+  const loaded = await adminShopLoad(() =>
+    prisma.shopSettlement.findMany({
+      include: { vendor: { select: { id: true, businessName: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 200
+    })
   );
+  if (!loaded.ok) {
+    return (
+      <div>
+        <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-goldink">Money</p>
+        <h1 className="mt-1 font-display text-3xl">Settlements and payouts</h1>
+        <ShopAdminError message={loaded.error} />
+      </div>
+    );
+  }
+  const settlements = loaded.data;
   return (
     <div>
       <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-goldink">Money</p>
