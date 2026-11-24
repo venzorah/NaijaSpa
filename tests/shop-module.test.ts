@@ -179,8 +179,20 @@ describe("shop isolation in existing portals", () => {
 
   it("hides service booking nav for product-only vendors", () => {
     const hrefs = vendorNavFor("products").flatMap((g) => g.items.map((i) => i.href));
-    expect(hrefs).toContain("/vendor/shop");
+    expect(hrefs).toContain("/vendor/shop/products");
+    expect(hrefs).toContain("/vendor/shop/plan");
     expect(hrefs).not.toContain("/vendor/bookings");
+    expect(hrefs).not.toContain("/vendor/subscriptions");
     expect(vendorNavFor("both").flatMap((g) => g.items.map((i) => i.href))).toContain("/vendor/bookings");
+    expect(vendorNavFor("services").flatMap((g) => g.items.map((i) => i.href))).toContain("/vendor/bookings");
+  });
+
+  it("sends product-only vendors away from treatment pages", async () => {
+    const { productVendorServicePath, isProductOnlyVendor } = await import("../src/lib/shop/vendor-kind");
+    expect(isProductOnlyVendor("products")).toBe(true);
+    expect(productVendorServicePath("/vendor/bookings")).toBe(true);
+    expect(productVendorServicePath("/vendor/subscriptions")).toBe(true);
+    expect(productVendorServicePath("/vendor/shop/orders")).toBe(false);
+    expect(productVendorServicePath("/vendor/dashboard")).toBe(false);
   });
 });

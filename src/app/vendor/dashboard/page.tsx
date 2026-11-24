@@ -13,6 +13,8 @@ import { AdminStatusPill } from "@/components/admin/status-pill";
 import { EarningsChart } from "@/components/vendor/earnings-chart";
 import { lagosDayStart } from "@/lib/vendor-calendar";
 import { verificationDocLabel } from "@/lib/verification-doc-kinds";
+import { DualWorkspaceBanner, ProductVendorHome } from "@/components/vendor/product-home";
+import { isProductOnlyVendor } from "@/lib/shop/vendor-kind";
 function greeting() {
     const hour = (new Date().getUTCHours() + 1) % 24;
     if (hour < 12)
@@ -26,6 +28,11 @@ export default async function VendorHome() {
     const vendorId = user?.vendorId;
     if (!vendorId)
         return <p>No vendor profile.</p>;
+    const firstName = user?.name.split(" ")[0] || "there";
+    const kindRow = await prisma.vendor.findUnique({ where: { id: vendorId }, select: { commerceKind: true } });
+    if (isProductOnlyVendor(kindRow?.commerceKind)) {
+        return <ProductVendorHome vendorId={vendorId} firstName={firstName} />;
+    }
     const start = lagosDayStart();
     const tomorrow = new Date(start.getTime() + 86400000);
     const weekAgo = new Date(Date.now() - 7 * 864e5);
@@ -49,7 +56,6 @@ export default async function VendorHome() {
     const payable = earnings.reduce((s, e) => s + e.payableKobo, 0);
     const paidWeekBookings = weekBookings.filter(b => b.payments.length > 0);
     const weekPayable = paidWeekBookings.reduce((s, b) => s + b.vendorPayableKobo, 0);
-    const firstName = user?.name.split(" ")[0] || "there";
     const paid = ent.activePaid;
     const later = Math.max(0, bookings.length - 8);
     const shown = bookings.slice(0, 8);
@@ -72,7 +78,8 @@ export default async function VendorHome() {
         return { label: d.toLocaleDateString("en-NG", { weekday: "short", timeZone: "Africa/Lagos" }), value: val };
     });
     return (<div>
-      <VendorPageHeader hideBack eyebrow={start.toLocaleDateString("en-NG", { weekday: "long", day: "numeric", month: "long", timeZone: "Africa/Lagos" })} title={`${greeting()}, ${firstName}`} description={`Here’s what’s happening at ${vendor.businessName} today.`} actions={<>
+      {vendor.commerceKind === "both" ? <DualWorkspaceBanner /> : null}
+      <VendorPageHeader hideBack eyebrow={start.toLocaleDateString("en-NG", { weekday: "long", day: "numeric", month: "long", timeZone: "Africa/Lagos" })} title={`${greeting()}, ${firstName}`} description={`Here’s what’s happening with treatments at ${vendor.businessName} today.`} actions={<>
             <Link href="/vendor/availability" className="inline-flex min-h-11 items-center rounded-full border border-line px-4 text-sm font-semibold">
               Block time
             </Link>
