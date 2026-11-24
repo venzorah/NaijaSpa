@@ -32,6 +32,8 @@ describe("Gmail OAuth helpers", () => {
     expect(requestOrigin(req)).toBe("https://www.naijaspa.com");
     expect(googleReturnPath("customer", "register")).toBe("/register");
     expect(googleReturnPath("vendor", "register")).toBe("/register?asVendor=1");
+    expect(googleReturnPath("vendor", "register", "/vendor/shop/onboarding")).toBe("/register?asShop=1");
+    expect(googleReturnPath("vendor", "login", "/vendor/shop")).toBe("/login/vendor?asShop=1");
     expect(googleReturnPath("customer", "login")).toBe("/login");
   });
 });

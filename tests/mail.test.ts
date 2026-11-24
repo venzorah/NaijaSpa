@@ -66,6 +66,10 @@ describe("branded transactional mail", () => {
     const vendor = welcomeEmail({ name: "Luna Spa", asVendor: true });
     expect(vendor.subject).toMatch(/vendor|listing|spa partner/i);
     expect(vendor.html).toContain("/vendor/onboarding");
+    const shop = welcomeEmail({ name: "Ada Oils", asVendor: false, asShop: true });
+    expect(shop.html).toContain("/vendor/shop/onboarding");
+    expect(shop.html).not.toContain("/vendor/onboarding");
+    expect(shop.html.toLowerCase()).toMatch(/product seller|shop/);
   });
 
   it("builds password reset OTP and vendor invite emails", () => {

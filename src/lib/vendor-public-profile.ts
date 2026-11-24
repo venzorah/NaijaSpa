@@ -8,6 +8,7 @@ export const LIVE_SERVICE_WHERE = { active: true, deletedAt: null } as const;
 export const PUBLIC_LIVE_VENDOR_WHERE = {
   visibility: "public" as const,
   applicationStatus: "approved" as const,
+  commerceKind: { not: "products" },
   services: { some: LIVE_SERVICE_WHERE }
 };
 

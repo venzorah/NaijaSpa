@@ -21,14 +21,14 @@ export function AuthScreen({ children, backTo }: { children: ReactNode; backTo?:
   const { theme, toggle } = useTheme();
   const pathname = usePathname();
   const router = useRouter();
-  const adminLogin = pathname === "/login/admin" || pathname.startsWith("/login/admin/");
-  const fallback = backTo || "/";
+  const shopAuth = pathname === "/shop" || pathname.startsWith("/shop/");
+  const fallback = backTo || (shopAuth ? "/shop" : "/");
   return (
     <div className="relative mx-auto flex min-h-dvh w-full max-w-md flex-col overflow-hidden px-5 pb-4 pt-[max(0.75rem,env(safe-area-inset-top))]">
       <div className="flex items-center justify-between">
         <button
           type="button"
-          onClick={() => goNavBack(router, fallback, { forceFallback: Boolean(backTo) || adminLogin })}
+          onClick={() => goNavBack(router, fallback, { forceFallback: true })}
           className="inline-flex min-h-11 w-fit items-center gap-1 text-sm font-semibold text-ink"
         >
           <span aria-hidden className="text-lg text-ink2">

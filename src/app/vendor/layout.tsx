@@ -40,21 +40,20 @@ export default async function VendorLayout({ children }: { children: React.React
       })
     : null;
   const productOnly = isProductOnlyVendor(vendor?.commerceKind);
-  if (productOnly && next.startsWith("/vendor/onboarding")) redirect(SHOP_ONBOARDING_HOME);
-  if (
-    productOnly &&
-    shopOnboardingIncomplete(vendor?.commerceKind, {
-      shopStatus: vendor?.shopStatus,
-      businessName: vendor?.businessName,
-      city: vendor?.city,
-      address: vendor?.address,
-      logoUrl: vendor?.logoUrl,
-      coverUrl: vendor?.coverUrl,
-      docCount: vendor?._count.documents ?? 0,
-      emailVerified: Boolean(vendor?.owner?.emailVerifiedAt)
-    }) &&
-    !next.startsWith(SHOP_ONBOARDING_HOME)
-  ) {
+  const shopSetupIncomplete = shopOnboardingIncomplete(vendor?.commerceKind, {
+    shopStatus: vendor?.shopStatus,
+    businessName: vendor?.businessName,
+    city: vendor?.city,
+    address: vendor?.address,
+    logoUrl: vendor?.logoUrl,
+    coverUrl: vendor?.coverUrl,
+    docCount: vendor?._count.documents ?? 0,
+    emailVerified: Boolean(vendor?.owner?.emailVerifiedAt)
+  });
+  if (productOnly && next.startsWith("/vendor/onboarding")) {
+    redirect(shopSetupIncomplete ? SHOP_ONBOARDING_HOME : "/vendor/dashboard");
+  }
+  if (productOnly && shopSetupIncomplete && !next.startsWith(SHOP_ONBOARDING_HOME)) {
     redirect(SHOP_ONBOARDING_HOME);
   }
   if (productOnly && productVendorServicePath(next)) redirect("/vendor/dashboard");

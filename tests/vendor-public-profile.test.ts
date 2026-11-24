@@ -9,6 +9,7 @@ describe("vendor public profile availability", () => {
     expect(vendorPublicProfileState("public", "approved", 0).message).toMatch(/treatment/i);
     expect(vendorPublicProfileState("hidden", "approved").available).toBe(false);
     expect(PUBLIC_LIVE_VENDOR_WHERE.services.some.active).toBe(true);
+    expect(PUBLIC_LIVE_VENDOR_WHERE.commerceKind).toEqual({ not: "products" });
   });
   it("keeps nationwide public listings when no state is known, then AND-filters by state", () => {
     expect(liveVendorWhereForPlace(null)).toEqual(PUBLIC_LIVE_VENDOR_WHERE);

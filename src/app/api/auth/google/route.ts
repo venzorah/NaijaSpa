@@ -25,17 +25,30 @@ export async function GET(req: Request) {
       return NextResponse.redirect(new URL("/login?error=Invalid+portal", origin));
     }
     if (!googleConfigured()) {
-      const back = googleReturnPath(portal, url.searchParams.get("from"));
+      const back = googleReturnPath(portal, url.searchParams.get("from"), url.searchParams.get("next"));
       const sep = back.includes("?") ? "&" : "?";
       return NextResponse.redirect(
         new URL(`${back}${sep}error=${encodeURIComponent("Gmail sign-in is not configured yet.")}`, origin)
       );
     }
-    const fallback = portal === "vendor" ? (intent === "register" ? "/vendor/onboarding" : "/vendor/dashboard") : portal === "admin" ? portalHome("super_admin") : "/account/dashboard";
-    const next = safeNext(url.searchParams.get("next"), fallback);
+    const requestedNext = url.searchParams.get("next");
+    const asShop = Boolean(requestedNext && (requestedNext.includes("/vendor/shop") || requestedNext.includes("asShop=1")));
+    const fallback =
+      portal === "vendor"
+        ? intent === "register"
+          ? asShop
+            ? "/vendor/shop/onboarding"
+            : "/vendor/onboarding"
+          : asShop
+            ? "/vendor/shop"
+            : "/vendor/dashboard"
+        : portal === "admin"
+          ? portalHome("super_admin")
+          : "/account/dashboard";
+    const next = safeNext(requestedNext, fallback);
     const nonce = crypto.randomUUID();
     const redirectUri = googleCallbackUrlFor(requestOrigin(req));
-    const returnPath = googleReturnPath(portal, url.searchParams.get("from"));
+    const returnPath = googleReturnPath(portal, url.searchParams.get("from"), next);
     const state = await signOauthState({ portal, next, n: nonce, redirectUri, returnPath, intent });
     const jar = await cookies();
     jar.set(GOOGLE_OAUTH_COOKIE, nonce, {

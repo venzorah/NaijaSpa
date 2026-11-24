@@ -30,8 +30,8 @@ export async function POST(req: Request) {
       if (still) return NextResponse.json({ error: "Email already registered" }, { status: 409 });
     }
     const asShop = Boolean(body.asShop);
-    const asVendor = Boolean(body.asVendor) || asShop;
-    const role = asVendor ? ROLES.VENDOR_OWNER : ROLES.CUSTOMER;
+    const asVendor = Boolean(body.asVendor) && !asShop;
+    const role = asVendor || asShop ? ROLES.VENDOR_OWNER : ROLES.CUSTOMER;
     const user = await prisma.user.create({
       data: {
         email,
@@ -41,7 +41,8 @@ export async function POST(req: Request) {
         customerProfile: role === ROLES.CUSTOMER ? { create: {} } : undefined
       }
     });
-    if (asVendor) {
+    let vendorId: string | undefined;
+    if (asVendor || asShop) {
       const vendor = await prisma.vendor.create({
         data: asShop
           ? {
@@ -66,6 +67,7 @@ export async function POST(req: Request) {
               applicationStatus: "draft"
             }
       });
+      vendorId = vendor.id;
       if (asShop) {
         await grantShopPlan(vendor.id, SHOP_PLAN_FREE, "signup").catch(() => undefined);
         void queueShopEmailOtp(user.id, user.email);
@@ -77,9 +79,10 @@ export async function POST(req: Request) {
       name: user.name,
       role: user.role as never,
       locale: "en",
-      theme: "light"
+      theme: "light",
+      vendorId
     }, user.passwordHash || undefined);
-    queueMail(sendWelcomeEmail({ to: user.email, name: user.name, asVendor }));
+    queueMail(sendWelcomeEmail({ to: user.email, name: user.name, asVendor, asShop }));
     return NextResponse.json({ ok: true, home: asShop ? "/vendor/shop/onboarding" : undefined });
   } catch (e) {
     return jsonError(e);

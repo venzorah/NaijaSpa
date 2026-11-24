@@ -157,7 +157,7 @@ export function RegisterForm({ guestUpgrade = false }: { guestUpgrade?: boolean 
       <p className="mt-6 pb-2 text-center text-sm text-ink2">
         Already have an account?{" "}
         <Link
-          href={`${asVendor || asShop ? "/login/vendor" : "/login"}${returnNext ? `?next=${encodeURIComponent(returnNext)}` : ""}`}
+          href={`${asShop ? "/login/vendor?asShop=1" : asVendor ? "/login/vendor" : "/login"}${returnNext ? `${asShop ? "&" : "?"}next=${encodeURIComponent(returnNext)}` : ""}`}
           className="font-semibold text-ink"
         >
           Sign in

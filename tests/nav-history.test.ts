@@ -12,6 +12,8 @@ describe("nav history", () => {
   it("records each page including auth screens and drops duplicates", () => {
     expect(isAuthNavPath("/login/vendor")).toBe(true);
     expect(isAuthNavPath("/login/admin")).toBe(true);
+    expect(isAuthNavPath("/shop/login")).toBe(true);
+    expect(isAuthNavPath("/shop/search")).toBe(false);
     const stacked = nextNavStack(["/explore"], "/explore");
     expect(stacked).toEqual(["/explore"]);
     expect(nextNavStack(["/explore"], "/login?next=/book/1")).toEqual(["/explore", "/login?next=/book/1"]);

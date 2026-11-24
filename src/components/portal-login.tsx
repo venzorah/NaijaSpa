@@ -4,7 +4,7 @@ import { PENDING_BOOKING_KEY, resumeHrefFromPendingJson } from "@/lib/nav-histor
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Store, User } from "lucide-react";
+import { ShoppingBag, Store, User } from "lucide-react";
 import { GoogleAuthButton } from "@/components/google-auth-button";
 import {
   AccountTypeCards,
@@ -33,41 +33,67 @@ export function PortalLogin({
   const [busy, setBusy] = useState(false);
   const [next, setNext] = useState(defaultNext);
   const [asVendor, setAsVendor] = useState(portal === "vendor");
+  const [asShop, setAsShop] = useState(false);
   const split = portal !== "admin";
-  const expect = split ? (asVendor ? "vendor" : "customer") : "admin";
-  const heading = split ? (asVendor ? "Service Provider Sign In" : "Customer Sign In") : title;
+  const expect = split ? (asVendor || asShop ? "vendor" : "customer") : "admin";
+  const heading = split
+    ? asShop
+      ? "Product Seller Sign In"
+      : asVendor
+        ? "Service Provider Sign In"
+        : "Customer Sign In"
+    : title;
   const sub = split
-    ? asVendor
-      ? "Sign in to manage services, bookings and earnings."
-      : "Sign in to book treatments and manage your appointments."
+    ? asShop
+      ? "Sign in to manage your Shop store, products and orders."
+      : asVendor
+        ? "Sign in to manage services, bookings and earnings."
+        : "Sign in to book treatments and manage your appointments."
     : subtitle;
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const err = params.get("error");
     if (err) setError(err);
+    const shop = params.get("asShop") === "1";
+    setAsShop(shop);
+    if (shop) setAsVendor(false);
     const fromQuery = params.get("next");
     const pending = resumeHrefFromPendingJson(sessionStorage.getItem(PENDING_BOOKING_KEY));
-    setNext(fromQuery || (!asVendor && pending) || defaultNext);
+    setNext(fromQuery || (shop ? "/vendor/shop/onboarding" : !asVendor && pending) || defaultNext);
   }, [asVendor, defaultNext]);
 
-  const pick = (vendor: boolean) => {
-    setAsVendor(vendor);
+  const pickKind = (kind: "customer" | "vendor" | "shop") => {
+    setAsVendor(kind === "vendor");
+    setAsShop(kind === "shop");
     const params = new URLSearchParams(window.location.search);
+    params.delete("asShop");
+    if (kind === "shop") params.set("asShop", "1");
     const q = params.toString();
-    router.replace((vendor ? "/login/vendor" : "/login") + (q ? `?${q}` : ""), { scroll: false });
+    const path = kind === "customer" ? "/login" : "/login/vendor";
+    router.replace(q ? `${path}?${q}` : path, { scroll: false });
   };
 
+  const pick = (vendor: boolean) => pickKind(vendor ? "vendor" : "customer");
+
+  const registerHref = asShop
+    ? `/register?asShop=1${next ? `&next=${encodeURIComponent(next)}` : ""}`
+    : asVendor
+      ? `/register?asVendor=1${next ? `&next=${encodeURIComponent(next)}` : ""}`
+      : `/register${next ? `?next=${encodeURIComponent(next)}` : ""}`;
+
   return (
-    <AuthScreen backTo={portal === "admin" ? "/" : undefined}>
+    <AuthScreen>
       <AuthHeading title={heading} subtitle={sub} />
       {split ? (
         <>
-          <AccountTypeCards asVendor={asVendor} onChange={pick} />
-          <AuthHint icon={asVendor ? Store : User}>
-            {asVendor
-              ? "Sign in as a service provider to manage services, galleries, bookings and earnings."
-              : "Sign in as a customer to book treatments, manage appointments and pay with Paystack."}
+          <AccountTypeCards asVendor={asVendor} asShop={asShop} onChange={pick} onKindChange={pickKind} />
+          <AuthHint icon={asShop ? ShoppingBag : asVendor ? Store : User}>
+            {asShop
+              ? "Sign in as a product seller to list items on Shop. This is not a spa or treatment listing."
+              : asVendor
+                ? "Sign in as a service provider to manage services, galleries, bookings and earnings."
+                : "Sign in as a customer to book treatments, manage appointments and pay with Paystack."}
           </AuthHint>
         </>
       ) : (
@@ -96,7 +122,10 @@ export function PortalLogin({
               setError(json.error || "Could not log in.");
               return;
             }
-            const dest = new URLSearchParams(window.location.search).get("next") || json.home || (asVendor ? "/vendor/dashboard" : defaultNext);
+            const requested = new URLSearchParams(window.location.search).get("next");
+            const dest = asShop
+              ? json.home || "/vendor/shop"
+              : requested || json.home || (asVendor ? "/vendor/dashboard" : defaultNext);
             const pending = expect === "customer" ? resumeHrefFromPendingJson(sessionStorage.getItem(PENDING_BOOKING_KEY)) : null;
             window.location.assign(portalNext(pending || dest, expect));
             router.refresh();
@@ -124,14 +153,22 @@ export function PortalLogin({
           <AuthPassword autoComplete="current-password" minLength={1} placeholder="Enter your password" />
         </div>
         <button disabled={busy} className={authCtaClass}>
-          {busy ? "Signing in…" : split ? (asVendor ? "Sign in as Service Provider" : "Sign in as Customer") : "Sign in"}
+          {busy
+            ? "Signing in…"
+            : split
+              ? asShop
+                ? "Sign in as Product Seller"
+                : asVendor
+                  ? "Sign in as Service Provider"
+                  : "Sign in as Customer"
+              : "Sign in"}
         </button>
       </form>
 
       <div className="mt-6">
         <GoogleAuthButton
           portal={expect}
-          next={next}
+          next={asShop ? "/vendor/shop/onboarding" : next}
           from="login"
           label={expect === "admin" ? "Continue with Gmail" : "Continue with Google"}
         />
@@ -140,14 +177,7 @@ export function PortalLogin({
       {split ? (
         <p className="mt-6 text-center text-sm text-ink2">
           Don&apos;t have an account?{" "}
-          <Link
-            href={
-              asVendor
-                ? `/register?asVendor=1${next ? `&next=${encodeURIComponent(next)}` : ""}`
-                : `/register${next ? `?next=${encodeURIComponent(next)}` : ""}`
-            }
-            className="font-semibold text-ink"
-          >
+          <Link href={registerHref} className="font-semibold text-ink">
             Create account
           </Link>
         </p>
@@ -178,6 +208,8 @@ export function PortalLogin({
           <Link href="/login">Customer</Link>
           {" · "}
           <Link href="/login/vendor">Service Provider</Link>
+          {" · "}
+          <Link href="/login/vendor?asShop=1">Product Seller</Link>
         </p>
       ) : null}
     </AuthScreen>

@@ -56,8 +56,13 @@ export function googleCallbackUrlFor(origin: string) {
   return `${base}/api/auth/google/callback`;
 }
 
-export function googleReturnPath(portal: GooglePortal, from: string | null) {
-  if (from === "register") return portal === "vendor" ? "/register?asVendor=1" : "/register";
+export function googleReturnPath(portal: GooglePortal, from: string | null, next?: string | null) {
+  const shop = Boolean(next && (next.includes("/vendor/shop") || next.includes("asShop=1")));
+  if (from === "register") {
+    if (portal === "vendor") return shop ? "/register?asShop=1" : "/register?asVendor=1";
+    return "/register";
+  }
+  if (portal === "vendor" && shop) return "/login/vendor?asShop=1";
   return loginPath(portal);
 }
 
@@ -293,7 +298,7 @@ export async function signInWithGoogle(
     await grantShopPlan(user.vendorOwned.id, SHOP_PLAN_FREE, "signup").catch(() => undefined);
   }
   if (isNew && portal !== "admin") {
-    queueMail(sendWelcomeEmail({ to: user.email, name: user.name, asVendor: portal === "vendor" }));
+    queueMail(sendWelcomeEmail({ to: user.email, name: user.name, asVendor: portal === "vendor" && !asShop, asShop }));
   }
 
   const home =

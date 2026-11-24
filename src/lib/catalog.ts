@@ -474,7 +474,7 @@ async function loadHomeCatalog(rawPlace: LivePlace | null) {
   ].filter((id, index, all) => all.indexOf(id) === index && !nearbyByVendorId.has(id));
   if (missingVendorIds.length) {
     const extraVendors = await prisma.vendor.findMany({
-      where: { id: { in: missingVendorIds }, ...areaVendor },
+      where: { id: { in: missingVendorIds }, commerceKind: { not: "products" }, ...areaVendor },
       select: {
         id: true,
         slug: true,
@@ -790,7 +790,7 @@ export async function getPublicVendor(slug: string) {
     }
   });
   if (!vendor) return usingDemoListings() ? demoVendorBySlug(slug) : null;
-  if (vendor.visibility !== "public" || vendor.applicationStatus !== "approved" || vendor.services.length === 0) return null;
+  if (vendor.commerceKind === "products" || vendor.visibility !== "public" || vendor.applicationStatus !== "approved" || vendor.services.length === 0) return null;
   const ent = await vendorEntitlement(vendor.id);
   return {
     vendor: sanitizePublicVendor(

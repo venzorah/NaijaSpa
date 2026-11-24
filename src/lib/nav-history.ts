@@ -2,7 +2,7 @@ export const NAV_STACK_KEY = "naijaspa-nav-stack";
 export const PENDING_BOOKING_KEY = "naijaspa-pending-booking";
 
 export function isAuthNavPath(path: string) {
-  return /^\/(login|register|forgot|reset|find-bookings)(\/|$)/.test(path);
+  return /^\/(login|register|forgot|reset|find-bookings|shop\/login)(\/|$)/.test(path);
 }
 
 export function currentHref(pathname: string, search = "") {

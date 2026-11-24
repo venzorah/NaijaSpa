@@ -134,8 +134,20 @@ export function brandedEmailHtml({
 </html>`;
 }
 
-export function welcomeEmail({ name, asVendor }: { name: string; asVendor: boolean }) {
+export function welcomeEmail({ name, asVendor, asShop }: { name: string; asVendor: boolean; asShop?: boolean }) {
   const first = name.trim().split(/\s+/)[0] || "there";
+  if (asShop) {
+    return {
+      subject: "Welcome to NaijaSpa Shop",
+      html: brandedEmailHtml({
+        title: "Welcome, product seller",
+        preheader: "Your NaijaSpa Shop seller account is ready.",
+        intro: `Hello ${first}, thank you for joining NaijaSpa Shop as a product seller.`,
+        body: "This is a product store, not a spa listing. Verify your email, add business details and KYC, then list products for admin approval. Customers buy on Shop; treatments stay on the main site.",
+        cta: { href: `${appUrl()}/vendor/shop/onboarding`, label: "Continue store setup" }
+      })
+    };
+  }
   if (asVendor) {
     return {
       subject: "Welcome to NaijaSpa — your spa listing",
@@ -286,8 +298,8 @@ export function queueMail(task: Promise<unknown>) {
   void task.catch((err) => console.error("[mail]", err));
 }
 
-export async function sendWelcomeEmail({ to, name, asVendor }: { to: string; name: string; asVendor: boolean }) {
-  const mail = welcomeEmail({ name, asVendor });
+export async function sendWelcomeEmail({ to, name, asVendor, asShop }: { to: string; name: string; asVendor: boolean; asShop?: boolean }) {
+  const mail = welcomeEmail({ name, asVendor, asShop });
   await sendMail({ to, ...mail });
 }
 

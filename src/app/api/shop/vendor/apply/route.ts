@@ -130,17 +130,19 @@ export async function PATCH(req: Request) {
         approveProducts: z.boolean().optional()
       })
       .parse(await req.json());
+    const current = await prisma.vendor.findUnique({ where: { id: body.vendorId } });
+    if (!current) return NextResponse.json({ error: "Vendor not found" }, { status: 404 });
+    const productOnly = current.commerceKind === "products";
     const vendor = await prisma.vendor.update({
       where: { id: body.vendorId },
       data: {
         shopStatus: body.status,
         shopRejectedReason: body.reason ?? "",
-        applicationStatus: body.status === "approved" ? "approved" : undefined
+        ...(productOnly || body.status !== "approved" ? {} : { applicationStatus: "approved" })
       }
     });
     if (body.status === "approved") {
-      const current = await prisma.vendor.findUnique({ where: { id: vendor.id } });
-      if (current?.commerceKind === "services") {
+      if (current.commerceKind === "services") {
         await prisma.vendor.update({ where: { id: vendor.id }, data: { commerceKind: "both" } });
       }
       await grantShopPlan(vendor.id, SHOP_PLAN_FREE, "approval").catch(() => undefined);
