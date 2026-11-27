@@ -31,8 +31,11 @@ export async function middleware(request: NextRequest) {
     }
     const rewritten = shopRewritePath(pathname);
     if (rewritten && rewritten !== pathname) {
-      const url = request.nextUrl.clone();
-      url.pathname = rewritten;
+      // Next runs behind Nginx. Keep this rewrite on the internal HTTP hop:
+      // cloning nextUrl would inherit the public HTTPS scheme and create an
+      // unreachable https://localhost:3100 rewrite.
+      const url = new URL(rewritten, "http://localhost:3100");
+      url.search = request.nextUrl.search;
       return NextResponse.rewrite(url, { request: { headers } });
     }
     return NextResponse.next({ request: { headers } });
