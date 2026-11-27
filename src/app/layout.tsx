@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { SplashScreen } from "@/components/splash-screen";
 import { MediaShield } from "@/components/media-shield";
 import { NavHistoryTracker } from "@/components/nav-history";
+import { SessionHistoryGuard } from "@/components/session-history-guard";
 import { Suspense } from "react";
 import { appleStartupImages, PWA_SPLASH_BG, SPLASH_MAX_MS } from "@/lib/pwa-splash";
 
@@ -54,6 +55,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AppToastProvider><ThemeProvider>
           <SplashScreen />
           <MediaShield />
+          <SessionHistoryGuard />
           <Suspense fallback={null}>
             <NavHistoryTracker />
           </Suspense>

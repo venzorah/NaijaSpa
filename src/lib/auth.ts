@@ -76,10 +76,12 @@ export async function destroySession() {
     path: "/",
     expires: expired
   };
-  jar.set(COOKIE, "", base);
   const domain = sessionCookieDomain();
-  if (domain) jar.set(COOKIE, "", { ...base, domain });
   jar.delete(COOKIE);
+  // The active production session spans naijaspa.com and shop.naijaspa.com.
+  // Set this last because Next's mutable cookie store keys entries by name and
+  // path; a later host-only delete would otherwise replace the domain cookie.
+  if (domain) jar.set(COOKIE, "", { ...base, domain });
   if (token) {
     await withTimeout(prisma.session.deleteMany({ where: { token } }), 2500).catch(() => undefined);
   }
