@@ -11,7 +11,8 @@ export default async function VendorLoginPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const [user, sp] = await Promise.all([getSession(), searchParams]);
-  const next = vendorNext(typeof sp.next === "string" ? sp.next : undefined);
+  const asShop = sp.asShop === "1";
+  const next = vendorNext(typeof sp.next === "string" ? sp.next : asShop ? "/vendor/shop" : undefined);
   if (user && isVendorRole(user.role)) redirect(next);
   if (user) {
     const h = await headers();
@@ -22,7 +23,8 @@ export default async function VendorLoginPage({
       portal="vendor"
       title="Vendor portal"
       subtitle="Manage services, galleries, bookings and earnings."
-      defaultNext="/vendor/dashboard"
+      defaultNext={asShop ? "/vendor/shop" : "/vendor/dashboard"}
+      initialAsShop={asShop}
     />
   );
 }

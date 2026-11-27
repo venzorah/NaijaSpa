@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, Mail, Store, User } from "lucide-react";
+import { ArrowRight, Mail, ShoppingBag, Store, User } from "lucide-react";
 import { GoogleAuthButton } from "@/components/google-auth-button";
 import { portalNext } from "@/lib/portal-auth";
 import { PENDING_BOOKING_KEY, resumeHrefFromPendingJson } from "@/lib/nav-history";
@@ -55,7 +55,7 @@ export function RegisterForm({ guestUpgrade = false }: { guestUpgrade?: boolean 
         subtitle="Join Nigeria's beauty, grooming and wellness community."
       />
       <AccountTypeCards asVendor={asVendor} asShop={asShop} onChange={pick} onKindChange={pickKind} />
-      <AuthHint icon={asVendor || asShop ? Store : User}>
+      <AuthHint icon={asShop ? ShoppingBag : asVendor ? Store : User}>
         {asShop
           ? "Create a product seller account, then finish store setup: business details, KYC, store images and listings."
           : asVendor

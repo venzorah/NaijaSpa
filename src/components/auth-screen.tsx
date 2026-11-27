@@ -12,10 +12,10 @@ export const authFieldClass =
   "min-h-12 w-full rounded-2xl border border-line bg-card px-4 text-base text-ink outline-none placeholder:text-ink2 focus:border-forest";
 
 export const authCtaClass =
-  "min-h-12 w-full rounded-full bg-forest text-base font-bold text-white shadow-[0_8px_24px_rgba(6,78,59,0.22)] disabled:opacity-60 dark:bg-leaf dark:text-forest dark:shadow-[0_8px_24px_rgba(95,211,165,0.2)]";
+  "min-h-12 w-full rounded-full bg-forest px-4 text-center text-base font-bold leading-tight text-white shadow-[0_8px_24px_rgba(6,78,59,0.22)] disabled:opacity-60 dark:bg-leaf dark:text-forest dark:shadow-[0_8px_24px_rgba(95,211,165,0.2)]";
 
 export const authGoldCtaClass =
-  "inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-gold text-base font-bold text-ongold shadow-[0_8px_24px_rgba(212,175,55,0.35)] disabled:opacity-60";
+  "inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-gold px-4 text-center text-base font-bold leading-tight text-ongold shadow-[0_8px_24px_rgba(212,175,55,0.35)] disabled:opacity-60";
 
 export function AuthScreen({ children, backTo }: { children: ReactNode; backTo?: string }) {
   const { theme, toggle } = useTheme();
@@ -96,19 +96,25 @@ export function AccountTypeCards({
 }) {
   const showShop = Boolean(onKindChange);
   return (
-    <div role="tablist" aria-label="Account type" className={`mt-6 grid gap-2.5 ${showShop ? "grid-cols-3" : "grid-cols-2"}`}>
+    <div
+      role="tablist"
+      aria-label="Account type"
+      className={`mt-6 grid min-w-0 gap-2 ${showShop ? "grid-cols-3" : "grid-cols-2"}`}
+    >
       <AccountTypeCard
         selected={!asVendor && !asShop}
         onClick={() => (onKindChange ? onKindChange("customer") : onChange(false))}
         icon={User}
-        title="I'm a Customer"
+        kicker="I'm a"
+        title="Customer"
         subtitle="Book & enjoy services"
       />
       <AccountTypeCard
         selected={asVendor && !asShop}
         onClick={() => (onKindChange ? onKindChange("vendor") : onChange(true))}
         icon={Store}
-        title="I'm a Service Provider"
+        kicker="I'm a"
+        title="Service provider"
         subtitle="List services & grow"
         tone="forest"
       />
@@ -117,7 +123,8 @@ export function AccountTypeCards({
           selected={Boolean(asShop)}
           onClick={() => onKindChange?.("shop")}
           icon={ShoppingBag}
-          title="I'm a Product Seller"
+          kicker="I'm a"
+          title="Product seller"
           subtitle="Sell on Shop"
         />
       ) : null}
@@ -129,6 +136,7 @@ function AccountTypeCard({
   selected,
   onClick,
   icon: Icon,
+  kicker,
   title,
   subtitle,
   tone = "gold"
@@ -136,6 +144,7 @@ function AccountTypeCard({
   selected: boolean;
   onClick: () => void;
   icon: LucideIcon;
+  kicker: string;
   title: string;
   subtitle: string;
   tone?: "gold" | "forest";
@@ -148,22 +157,32 @@ function AccountTypeCard({
     <button
       type="button"
       role="tab"
+      aria-label={`${kicker} ${title}`}
       aria-selected={selected}
       onClick={onClick}
-      className={`flex min-h-[4.75rem] flex-col items-start rounded-[1.35rem] px-2.5 py-3 text-left transition sm:px-3 ${
+      className={`flex min-h-[6.25rem] min-w-0 flex-col items-start overflow-hidden rounded-[1.35rem] px-2 py-2.5 text-left transition sm:min-h-[6.5rem] sm:px-3 ${
         selected ? selectedClass : "border border-line bg-card text-ink"
       }`}
     >
       <span
-        className={`mb-1.5 flex h-8 w-8 items-center justify-center rounded-full ${
+        className={`mb-1.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full sm:h-8 sm:w-8 ${
           selected ? "bg-white/20" : "bg-forest/10 text-forest"
         }`}
         aria-hidden
       >
         <Icon className="h-4 w-4" />
       </span>
-      <span className="whitespace-nowrap text-[12px] font-bold leading-none tracking-tight sm:text-[13px]">{title}</span>
-      <span className={`mt-0.5 text-[11px] leading-snug ${selected ? (tone === "forest" ? "text-white/80" : "text-ongold/80") : "text-ink2"}`}>
+      <span className="min-w-0 w-full">
+        <span className="block text-[10px] font-semibold leading-tight sm:text-[11px]">{kicker}</span>
+        <span className="mt-0.5 block text-[12px] font-bold leading-snug tracking-tight [overflow-wrap:anywhere] sm:text-[13px]">
+          {title}
+        </span>
+      </span>
+      <span
+        className={`mt-1 min-w-0 w-full text-[10px] leading-snug [overflow-wrap:anywhere] sm:text-[11px] ${
+          selected ? (tone === "forest" ? "text-white/80" : "text-ongold/80") : "text-ink2"
+        }`}
+      >
         {subtitle}
       </span>
     </button>

@@ -21,19 +21,21 @@ export function PortalLogin({
   portal,
   title,
   subtitle,
-  defaultNext
+  defaultNext,
+  initialAsShop = false
 }: {
   portal: "customer" | "vendor" | "admin";
   title: string;
   subtitle: string;
   defaultNext: string;
+  initialAsShop?: boolean;
 }) {
   const router = useRouter();
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [next, setNext] = useState(defaultNext);
-  const [asVendor, setAsVendor] = useState(portal === "vendor");
-  const [asShop, setAsShop] = useState(false);
+  const [asVendor, setAsVendor] = useState(portal === "vendor" && !initialAsShop);
+  const [asShop, setAsShop] = useState(initialAsShop);
   const split = portal !== "admin";
   const expect = split ? (asVendor || asShop ? "vendor" : "customer") : "admin";
   const heading = split

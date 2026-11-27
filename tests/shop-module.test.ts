@@ -27,6 +27,7 @@ describe("shop host", () => {
     expect(shopRewritePath("/api/shop/cart")).toBe(null);
     expect(shopRewritePath("/login")).toBe("/shop/login");
     expect(shopRewritePath("/login/vendor")).toBe(null);
+    expect(shopRewritePath("/register")).toBe(null);
     expect(shopRewritePath("/forgot")).toBe(null);
     expect(shopRewritePath("/vendor/shop/onboarding")).toBe(null);
     expect(shopRewritePath("/privacy")).toBe(null);
@@ -39,6 +40,21 @@ describe("shop host", () => {
     });
     const res = await middleware(req);
     expect(res.headers.get("location")).toBe("https://naijaspa.com/explore");
+  });
+
+  it("sends seller register and vendor login off the shop host", async () => {
+    const register = await middleware(
+      new NextRequest("https://shop.naijaspa.com/register?asShop=1", {
+        headers: { host: "shop.naijaspa.com", "x-forwarded-host": "shop.naijaspa.com" }
+      })
+    );
+    expect(register.headers.get("location")).toBe("https://naijaspa.com/register?asShop=1");
+    const vendorLogin = await middleware(
+      new NextRequest("https://shop.naijaspa.com/login/vendor?asShop=1", {
+        headers: { host: "shop.naijaspa.com", "x-forwarded-host": "shop.naijaspa.com" }
+      })
+    );
+    expect(vendorLogin.headers.get("location")).toBe("https://naijaspa.com/login/vendor?asShop=1");
   });
 
   it("does not geo-redirect shop.naijaspa.com", async () => {
