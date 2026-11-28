@@ -40,11 +40,7 @@ const SHOP_HOST_SPA_PATHS = [
   /^\/install(?:\/|$)/,
   /^\/account(?:\/|$)/,
   /^\/customer-access(?:\/|$)/,
-  /^\/vendor-access(?:\/|$)/,
-  /^\/register(?:\/|$)/,
-  /^\/login\/(?:vendor|admin)(?:\/|$)/,
-  /^\/forgot(?:\/|$)/,
-  /^\/reset(?:\/|$)/
+  /^\/vendor-access(?:\/|$)/
 ];
 
 export function shopRewritePath(pathname: string) {

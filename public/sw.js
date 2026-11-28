@@ -1,5 +1,22 @@
-const CACHE = "naijaspa-shell-v12";
+const CACHE = "naijaspa-shell-v13";
 const SHELL = ["/", "/brand/splash-logo.png", "/splash/icon-512.png", "/icons/icon-192.png", "/icons/icon-512.png", "/offline.html"];
+
+function bypassServiceWorker(pathname) {
+  return (
+    pathname.startsWith("/api/") ||
+    pathname.startsWith("/_next/") ||
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/vendor") ||
+    pathname.startsWith("/account") ||
+    pathname.startsWith("/checkout") ||
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/register") ||
+    pathname.startsWith("/forgot") ||
+    pathname.startsWith("/reset") ||
+    pathname.startsWith("/find-bookings") ||
+    pathname === "/offline.html"
+  );
+}
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -46,9 +63,8 @@ self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;
   const url = new URL(req.url);
-  if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/admin") || url.pathname.startsWith("/vendor") || url.pathname.startsWith("/account") || url.pathname.startsWith("/checkout")) {
-    return;
-  }
+  if (url.origin !== self.location.origin) return;
+  if (bypassServiceWorker(url.pathname)) return;
   event.respondWith(
     fetch(req).catch(async () => {
       const cached = await caches.match(req);

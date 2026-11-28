@@ -20,6 +20,7 @@ function isAuthPath(path: string) {
   return (
     path === "/login" ||
     path.startsWith("/login/") ||
+    path === "/shop/login" ||
     path === "/register" ||
     path === "/forgot" ||
     path === "/reset" ||
