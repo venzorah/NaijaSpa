@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { ImagePlus, X } from "lucide-react";
 import { formatNgn } from "@/lib/money";
 import { shopError, shopSuccess } from "@/lib/shop/ui-action";
+import { SHOP_PRODUCT_IMAGE_BYTES, shopProductImageLimitLabel, shopProductImageTooLargeMessage } from "@/lib/shop/product-media";
+import { ShopProductImage } from "@/components/shop/product-image";
 
 type Product = {
   id: string;
@@ -22,7 +24,8 @@ function ImageSlot({
   value,
   onChange,
   imageUrl = "/api/shop/vendor/product-images",
-  extra
+  extra,
+  maxBytes
 }: {
   label: string;
   required?: boolean;
@@ -30,12 +33,20 @@ function ImageSlot({
   onChange: (url: string) => void;
   imageUrl?: string;
   extra?: Record<string, string>;
+  maxBytes: number;
 }) {
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   async function upload(file: File | undefined) {
     if (!file) return;
+    if (file.size > maxBytes) {
+      const text = shopProductImageTooLargeMessage(maxBytes);
+      setError(text);
+      shopError(text);
+      if (input.current) input.current.value = "";
+      return;
+    }
     setBusy(true);
     setError("");
     try {
@@ -69,8 +80,7 @@ function ImageSlot({
         className="mt-1 flex aspect-square w-full items-center justify-center overflow-hidden rounded-2xl border border-dashed border-line bg-elev"
       >
         {value ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={value} alt="" className="h-full w-full object-cover" />
+          <ShopProductImage src={value} alt="" className="h-full w-full" />
         ) : (
           <span className="flex flex-col items-center gap-1 px-2 text-center text-[11px] text-ink2">
             <ImagePlus className="h-5 w-5" aria-hidden />
@@ -114,12 +124,14 @@ export function VendorProductForm({
   const [featured, setFeatured] = useState("");
   const [gallery, setGallery] = useState<[string, string]>(["", ""]);
   const [busy, setBusy] = useState(false);
+  const [maxBytes, setMaxBytes] = useState(SHOP_PRODUCT_IMAGE_BYTES);
   useEffect(() => {
     fetch(loadUrl)
       .then((r) => r.json())
       .then((d) => {
         setProducts(d.products ?? []);
         setCategories(d.categories ?? []);
+        if (typeof d.maxImageBytes === "number") setMaxBytes(d.maxImageBytes);
       })
       .catch(() => undefined);
   }, [loadUrl]);
@@ -193,11 +205,13 @@ export function VendorProductForm({
         </select>
         <div>
           <p className="text-xs font-semibold">Photos</p>
-          <p className="mt-0.5 text-[11px] text-ink2">Upload a featured image and up to two gallery photos. File upload only, 2 MB max.</p>
+          <p className="mt-0.5 text-[11px] text-ink2">
+            Upload a featured image and up to two gallery photos. File upload only, {shopProductImageLimitLabel(maxBytes)} max.
+          </p>
           <div className="mt-2 grid grid-cols-3 gap-2">
-            <ImageSlot label="Featured" required value={featured} onChange={setFeatured} imageUrl={imageUrl} extra={extraImage} />
-            <ImageSlot label="Gallery 1" value={gallery[0]} onChange={(url) => setGallery([url, gallery[1]])} imageUrl={imageUrl} extra={extraImage} />
-            <ImageSlot label="Gallery 2" value={gallery[1]} onChange={(url) => setGallery([gallery[0], url])} imageUrl={imageUrl} extra={extraImage} />
+            <ImageSlot label="Featured" required value={featured} onChange={setFeatured} imageUrl={imageUrl} extra={extraImage} maxBytes={maxBytes} />
+            <ImageSlot label="Gallery 1" value={gallery[0]} onChange={(url) => setGallery([url, gallery[1]])} imageUrl={imageUrl} extra={extraImage} maxBytes={maxBytes} />
+            <ImageSlot label="Gallery 2" value={gallery[1]} onChange={(url) => setGallery([gallery[0], url])} imageUrl={imageUrl} extra={extraImage} maxBytes={maxBytes} />
           </div>
         </div>
         <label className="block text-xs font-semibold">
@@ -233,10 +247,7 @@ export function VendorProductForm({
           return (
             <li key={p.id} className="flex gap-3 rounded-2xl border border-line bg-card p-3">
               <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-elev">
-                {cover ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={cover} alt="" className="h-full w-full object-cover" />
-                ) : null}
+                {cover ? <ShopProductImage src={cover} alt="" className="h-full w-full" padded={false} /> : null}
               </div>
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold">{p.name}</p>

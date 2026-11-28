@@ -3,7 +3,7 @@ import { requireAdmin } from "@/lib/admin-auth";
 import { prisma } from "@/lib/db";
 import { jsonError } from "@/lib/http";
 import { vendorDocumentView } from "@/lib/verification-docs";
-import { ensureShopCatalog } from "@/lib/shop/ensure";
+import { ensureShopCatalog, shopProductImageMaxBytes } from "@/lib/shop/ensure";
 
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   try {
@@ -42,7 +42,8 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
         documents: vendor.documents.map(vendorDocumentView)
       },
       products,
-      categories
+      categories,
+      maxImageBytes: await shopProductImageMaxBytes()
     });
   } catch (e) {
     return jsonError(e);

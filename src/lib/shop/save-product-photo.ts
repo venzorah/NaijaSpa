@@ -1,11 +1,13 @@
 import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/db";
 import { deleteGalleryImageFile, saveGalleryImageFile } from "@/lib/gallery-media";
-import { SHOP_PRODUCT_IMAGE_BYTES } from "@/lib/shop/product-media";
+import { shopProductImageTooLargeMessage } from "@/lib/shop/product-media";
+import { shopProductImageMaxBytes } from "@/lib/shop/ensure";
 
 export async function saveShopProductPhoto(vendorId: string, userId: string, file: { size: number; arrayBuffer: () => Promise<ArrayBuffer> }) {
-  if (file.size > SHOP_PRODUCT_IMAGE_BYTES) {
-    const err = new Error("Image must be 2 MB or smaller.");
+  const maxBytes = await shopProductImageMaxBytes();
+  if (file.size > maxBytes) {
+    const err = new Error(shopProductImageTooLargeMessage(maxBytes));
     (err as Error & { status: number }).status = 400;
     throw err;
   }

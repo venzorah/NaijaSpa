@@ -28,7 +28,8 @@ export const SHOP_CONFIG = {
   minPayoutKobo: "shop.minPayoutKobo",
   payoutMode: "shop.payoutMode",
   orderSeq: "shop.orderSeq",
-  hero: "shop.hero"
+  hero: "shop.hero",
+  productImageMaxBytes: "shop.productImageMaxBytes"
 } as const;
 
 export const LIVE_PRODUCT_STATUS = "approved";

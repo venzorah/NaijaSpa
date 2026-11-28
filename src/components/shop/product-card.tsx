@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Star } from "lucide-react";
 import { ShopPrice } from "@/components/shop/shop-price";
+import { ShopProductImage } from "@/components/shop/product-image";
 
 export function ProductCard({
   href,
@@ -37,9 +38,8 @@ export function ProductCard({
   return (
     <article className="group overflow-hidden rounded-2xl border border-line bg-card shadow-[0_1px_0_rgba(24,49,39,0.04)] transition hover:border-gold/40 hover:shadow-md">
       <Link href={href} className="block">
-        <div className="relative overflow-hidden bg-elev">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={shown} alt="" className="aspect-square h-auto w-full object-cover sm:aspect-[4/5] sm:h-auto" />
+        <div className="relative">
+          <ShopProductImage src={shown} alt={name} className="aspect-square w-full" />
           {sponsored ? (
             <span className="absolute left-2 top-2 rounded-full bg-gold px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-ongold">Sponsored</span>
           ) : null}
@@ -57,8 +57,7 @@ export function ProductCard({
               onClick={() => setActive(i)}
               className={`h-9 w-9 overflow-hidden rounded-lg border sm:h-11 sm:w-11 ${i === active ? "border-gold" : "border-line"}`}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={url} alt="" className="h-full w-full object-cover" />
+              <ShopProductImage src={url} alt="" className="h-full w-full" padded={false} />
             </button>
           ))}
         </div>

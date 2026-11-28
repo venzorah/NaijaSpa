@@ -1,6 +1,7 @@
 import { prisma, setConfig } from "@/lib/db";
 import { duringNextBuild } from "@/lib/live-db";
 import { DEFAULT_SHOP_PLANS, DEFAULT_SHOP_VENDOR_STATES, SHOP_CATEGORIES, SHOP_CONFIG } from "./constants";
+import { clampShopProductImageBytes, SHOP_PRODUCT_IMAGE_BYTES } from "./product-media";
 
 export { DEFAULT_SHOP_VENDOR_STATES };
 
@@ -69,6 +70,8 @@ export async function ensureShopCatalog() {
     if (!min) await setConfig(SHOP_CONFIG.minPayoutKobo, "500000");
     const mode = await prisma.systemConfig.findUnique({ where: { key: SHOP_CONFIG.payoutMode } });
     if (!mode) await setConfig(SHOP_CONFIG.payoutMode, "request");
+    const imageCap = await prisma.systemConfig.findUnique({ where: { key: SHOP_CONFIG.productImageMaxBytes } });
+    if (!imageCap) await setConfig(SHOP_CONFIG.productImageMaxBytes, String(SHOP_PRODUCT_IMAGE_BYTES));
   } catch (error) {
     markShopDbUnavailable(error);
   }
@@ -110,4 +113,15 @@ export async function shopMinPayoutKobo() {
 export async function shopPayoutMode() {
   const row = await prisma.systemConfig.findUnique({ where: { key: SHOP_CONFIG.payoutMode } });
   return row?.value === "automatic" ? "automatic" : "request";
+}
+
+export async function shopProductImageMaxBytes() {
+  if (!(await shopDbReady())) return SHOP_PRODUCT_IMAGE_BYTES;
+  try {
+    const row = await prisma.systemConfig.findUnique({ where: { key: SHOP_CONFIG.productImageMaxBytes } });
+    return clampShopProductImageBytes(Number(row?.value ?? SHOP_PRODUCT_IMAGE_BYTES));
+  } catch (error) {
+    markShopDbUnavailable(error);
+    return SHOP_PRODUCT_IMAGE_BYTES;
+  }
 }

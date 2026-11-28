@@ -5,6 +5,7 @@ import { jsonError } from "@/lib/http";
 import { ensureShopCatalog } from "@/lib/shop/ensure";
 import { canDraftShopProducts } from "@/lib/shop/onboarding";
 import { shopProductWriteSchema, upsertShopProduct } from "@/lib/shop/upsert-product";
+import { shopProductImageMaxBytes } from "@/lib/shop/ensure";
 
 export async function GET() {
   try {
@@ -16,7 +17,8 @@ export async function GET() {
       orderBy: { updatedAt: "desc" }
     });
     const categories = await prisma.shopCategory.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" } });
-    return NextResponse.json({ products, categories });
+    const maxImageBytes = await shopProductImageMaxBytes();
+    return NextResponse.json({ products, categories, maxImageBytes });
   } catch (e) {
     return jsonError(e);
   }

@@ -8,6 +8,13 @@ import { isEcommerceAdminPath, visibleAdminScreens } from "../src/lib/admin";
 import { ecommerceNavActive } from "../src/components/admin/ecommerce-nav";
 import { vendorNavFor } from "../src/components/portal-chrome";
 import { DEFAULT_SHOP_HERO, parseShopHero, presentShopHero, publicShopCtaHref } from "../src/lib/shop/hero";
+import {
+  clampShopProductImageBytes,
+  clampShopProductImageMb,
+  SHOP_PRODUCT_IMAGE_BYTES,
+  SHOP_PRODUCT_IMAGE_BYTES_CAP,
+  shopProductImageTooLargeMessage
+} from "../src/lib/shop/product-media";
 
 const profile = {
   localEnabled: true,
@@ -42,19 +49,19 @@ describe("shop host", () => {
     expect(res.headers.get("location")).toBe("https://naijaspa.com/explore");
   });
 
-  it("sends seller register and vendor login off the shop host", async () => {
+  it("keeps shop register and vendor login on the shop host", async () => {
     const register = await middleware(
       new NextRequest("https://shop.naijaspa.com/register?asShop=1", {
         headers: { host: "shop.naijaspa.com", "x-forwarded-host": "shop.naijaspa.com" }
       })
     );
-    expect(register.headers.get("location")).toBe("https://naijaspa.com/register?asShop=1");
+    expect(register.headers.get("location")).toBe(null);
     const vendorLogin = await middleware(
       new NextRequest("https://shop.naijaspa.com/login/vendor?asShop=1", {
         headers: { host: "shop.naijaspa.com", "x-forwarded-host": "shop.naijaspa.com" }
       })
     );
-    expect(vendorLogin.headers.get("location")).toBe("https://naijaspa.com/login/vendor?asShop=1");
+    expect(vendorLogin.headers.get("location")).toBe(null);
   });
 
   it("does not geo-redirect shop.naijaspa.com", async () => {
@@ -197,6 +204,18 @@ describe("shop catalog filters", () => {
       filters
     );
     expect(rows.map((r) => r.priceKobo)).toEqual([400000]);
+  });
+});
+
+describe("shop product image upload limit", () => {
+  it("defaults to 2 MB and never exceeds 5 MB", () => {
+    expect(clampShopProductImageMb(Number.NaN)).toBe(2);
+    expect(clampShopProductImageMb(0)).toBe(1);
+    expect(clampShopProductImageMb(3.4)).toBe(3);
+    expect(clampShopProductImageMb(9)).toBe(5);
+    expect(clampShopProductImageBytes(8 * 1024 * 1024)).toBe(SHOP_PRODUCT_IMAGE_BYTES_CAP);
+    expect(clampShopProductImageBytes(SHOP_PRODUCT_IMAGE_BYTES)).toBe(SHOP_PRODUCT_IMAGE_BYTES);
+    expect(shopProductImageTooLargeMessage(SHOP_PRODUCT_IMAGE_BYTES_CAP)).toBe("Image must be 5 MB or smaller.");
   });
 });
 
