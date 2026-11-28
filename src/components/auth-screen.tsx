@@ -121,14 +121,14 @@ export function AccountTypeCards({
     <div
       role="tablist"
       aria-label="Account type"
-      className={`mt-6 grid min-w-0 gap-1 rounded-2xl border border-line bg-elev p-1 ${showShop ? "grid-cols-3" : "grid-cols-2"}`}
+      className={`mt-6 grid min-w-0 gap-2 ${showShop ? "grid-cols-3" : "grid-cols-2"}`}
     >
       {tabs.map((tab) => {
         const active = selected === tab.kind;
         const selectedClass =
           tab.tone === "forest"
-            ? "bg-forest text-white shadow-sm"
-            : "bg-gold text-ongold shadow-sm";
+            ? "border-forest bg-forest text-white shadow-sm"
+            : "border-gold bg-gold text-ongold shadow-sm";
         return (
           <button
             key={tab.kind}
@@ -137,8 +137,8 @@ export function AccountTypeCards({
             aria-label={tab.hint ? `${tab.label}, ${tab.hint}` : tab.label}
             aria-selected={active}
             onClick={() => (onKindChange ? onKindChange(tab.kind) : onChange(tab.kind === "vendor"))}
-            className={`flex min-h-[3.25rem] min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1.5 transition-colors duration-150 touch-manipulation ${
-              active ? selectedClass : "text-ink hover:bg-card"
+            className={`flex min-h-[4.25rem] min-w-0 flex-col items-center justify-center gap-0.5 rounded-2xl border px-1.5 py-2 transition-colors duration-150 touch-manipulation ${
+              active ? selectedClass : "border-line bg-card text-ink hover:border-gold/50"
             }`}
           >
             <span className="flex max-w-full items-center justify-center gap-1">
