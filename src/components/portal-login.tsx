@@ -14,7 +14,9 @@ import {
   AuthPassword,
   AuthScreen,
   authCtaClass,
-  authFieldClass
+  authFieldClass,
+  syncAccountKindQuery,
+  type AccountKind
 } from "@/components/auth-screen";
 
 export function PortalLogin({
@@ -22,19 +24,21 @@ export function PortalLogin({
   title,
   subtitle,
   defaultNext,
-  initialAsShop = false
+  initialAsShop = false,
+  initialAsVendor = false
 }: {
   portal: "customer" | "vendor" | "admin";
   title: string;
   subtitle: string;
   defaultNext: string;
   initialAsShop?: boolean;
+  initialAsVendor?: boolean;
 }) {
   const router = useRouter();
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [next, setNext] = useState(defaultNext);
-  const [asVendor, setAsVendor] = useState(portal === "vendor" && !initialAsShop);
+  const [asVendor, setAsVendor] = useState(initialAsShop ? false : initialAsVendor || (portal === "vendor" && !initialAsShop));
   const [asShop, setAsShop] = useState(initialAsShop);
   const split = portal !== "admin";
   const expect = split ? (asVendor || asShop ? "vendor" : "customer") : "admin";
@@ -57,23 +61,16 @@ export function PortalLogin({
     const params = new URLSearchParams(window.location.search);
     const err = params.get("error");
     if (err) setError(err);
-    const shop = params.get("asShop") === "1";
-    setAsShop(shop);
-    if (shop) setAsVendor(false);
     const fromQuery = params.get("next");
     const pending = resumeHrefFromPendingJson(sessionStorage.getItem(PENDING_BOOKING_KEY));
-    setNext(fromQuery || (shop ? "/vendor/shop/onboarding" : !asVendor && pending) || defaultNext);
-  }, [asVendor, defaultNext]);
+    setNext(fromQuery || (initialAsShop ? "/vendor/shop/onboarding" : pending) || defaultNext);
+  }, [defaultNext, initialAsShop]);
 
-  const pickKind = (kind: "customer" | "vendor" | "shop") => {
+  const pickKind = (kind: AccountKind) => {
     setAsVendor(kind === "vendor");
     setAsShop(kind === "shop");
-    const params = new URLSearchParams(window.location.search);
-    params.delete("asShop");
-    if (kind === "shop") params.set("asShop", "1");
-    const q = params.toString();
-    const path = kind === "customer" ? "/login" : "/login/vendor";
-    router.replace(q ? `${path}?${q}` : path, { scroll: false });
+    setNext(kind === "shop" ? "/vendor/shop/onboarding" : defaultNext);
+    syncAccountKindQuery(kind);
   };
 
   const pick = (vendor: boolean) => pickKind(vendor ? "vendor" : "customer");
@@ -89,7 +86,7 @@ export function PortalLogin({
       <AuthHeading title={heading} subtitle={sub} />
       {split ? (
         <>
-          <AccountTypeCards asVendor={asVendor} asShop={asShop} onChange={pick} onKindChange={pickKind} />
+          <AccountTypeCards asVendor={asVendor} asShop={asShop} onChange={pick} onKindChange={pickKind} showShop />
           <AuthHint icon={asShop ? ShoppingBag : asVendor ? Store : User}>
             {asShop
               ? "Sign in as a product seller to list items on Shop. This is not a spa or treatment listing."

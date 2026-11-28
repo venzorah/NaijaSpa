@@ -33,7 +33,7 @@ describe("shop host", () => {
     expect(shopRewritePath("/cart")).toBe("/shop/cart");
     expect(shopRewritePath("/api/shop/cart")).toBe(null);
     expect(shopRewritePath("/login")).toBe("/shop/login");
-    expect(shopRewritePath("/login/vendor")).toBe(null);
+    expect(shopRewritePath("/login/vendor")).toBe("/shop/login");
     expect(shopRewritePath("/register")).toBe(null);
     expect(shopRewritePath("/forgot")).toBe(null);
     expect(shopRewritePath("/vendor/shop/onboarding")).toBe(null);

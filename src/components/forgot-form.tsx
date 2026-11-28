@@ -53,7 +53,8 @@ export function ForgotForm() {
     if (next === "customer") params.delete("portal");
     else params.set("portal", next);
     const q = params.toString();
-    router.replace(`/forgot${q ? `?${q}` : ""}`, { scroll: false });
+    const href = `/forgot${q ? `?${q}` : ""}`;
+    window.history.replaceState(window.history.state, "", href);
   }
 
   async function sendCode(address: string) {

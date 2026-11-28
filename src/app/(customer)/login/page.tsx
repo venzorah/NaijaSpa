@@ -19,6 +19,8 @@ export default async function CustomerLoginPage({
       title="Welcome back"
       subtitle="Book treatments, manage appointments and pay with Paystack."
       defaultNext="/account/dashboard"
+      initialAsShop={sp.asShop === "1"}
+      initialAsVendor={sp.asVendor === "1"}
     />
   );
 }

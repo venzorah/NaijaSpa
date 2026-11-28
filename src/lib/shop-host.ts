@@ -47,7 +47,7 @@ export function shopRewritePath(pathname: string) {
   if (pathname.startsWith("/api") || pathname.startsWith("/_next")) return null;
   if (pathname.startsWith(SHOP_PREFIX)) return pathname;
   if (pathname === "/") return SHOP_PREFIX;
-  if (pathname === "/login") return `${SHOP_PREFIX}/login`;
+  if (pathname === "/login" || pathname === "/login/vendor") return `${SHOP_PREFIX}/login`;
   if (SHOP_HOST_PATHS.some((re) => re.test(pathname))) return `${SHOP_PREFIX}${pathname}`;
   return null;
 }

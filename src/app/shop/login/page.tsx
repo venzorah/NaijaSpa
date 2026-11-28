@@ -4,11 +4,16 @@ import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { shopHostFromHeaders, shopPublicPath } from "@/lib/shop-host";
 
-export default async function ShopLoginPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
+export default async function ShopLoginPage({
+  searchParams
+}: {
+  searchParams: Promise<{ next?: string; asShop?: string; asVendor?: string }>;
+}) {
   const user = await getSession();
   const shopHost = shopHostFromHeaders(await headers());
   const orders = shopPublicPath("/shop/orders", shopHost);
-  const next = (await searchParams).next || orders;
+  const sp = await searchParams;
+  const next = sp.next || orders;
   if (user) redirect(next);
   return (
     <PortalLogin
@@ -16,6 +21,8 @@ export default async function ShopLoginPage({ searchParams }: { searchParams: Pr
       title="Shop sign in"
       subtitle="Use your NaijaSpa account. There is no second password for Shop."
       defaultNext={next}
+      initialAsShop={sp.asShop === "1"}
+      initialAsVendor={sp.asVendor === "1"}
     />
   );
 }

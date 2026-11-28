@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, Mail, ShoppingBag, Store, User } from "lucide-react";
 import { GoogleAuthButton } from "@/components/google-auth-button";
@@ -16,11 +16,21 @@ import {
   AuthPassword,
   AuthScreen,
   AuthTextField,
-  authGoldCtaClass
+  authGoldCtaClass,
+  syncAccountKindQuery,
+  type AccountKind
 } from "@/components/auth-screen";
 
+function signInHref(asShop: boolean, asVendor: boolean, next?: string | null) {
+  const params = new URLSearchParams();
+  if (asShop) params.set("asShop", "1");
+  else if (asVendor) params.set("asVendor", "1");
+  if (next) params.set("next", next);
+  const q = params.toString();
+  return q ? `/login?${q}` : "/login";
+}
+
 export function RegisterForm({ guestUpgrade = false }: { guestUpgrade?: boolean }) {
-  const router = useRouter();
   const search = useSearchParams();
   const [asVendor, setAsVendor] = useState(search.get("asVendor") === "1" && search.get("asShop") !== "1");
   const [asShop, setAsShop] = useState(search.get("asShop") === "1");
@@ -36,15 +46,10 @@ export function RegisterForm({ guestUpgrade = false }: { guestUpgrade?: boolean 
   const afterAuth = asVendor || asShop ? dest : pendingResume || dest;
   const returnNext = asVendor || asShop ? requested : requested || pendingResume;
 
-  const pickKind = (kind: "customer" | "vendor" | "shop") => {
+  const pickKind = (kind: AccountKind) => {
     setAsVendor(kind === "vendor");
     setAsShop(kind === "shop");
-    const params = new URLSearchParams();
-    if (kind === "vendor") params.set("asVendor", "1");
-    if (kind === "shop") params.set("asShop", "1");
-    if (requested) params.set("next", requested);
-    const q = params.toString();
-    router.replace(`/register${q ? `?${q}` : ""}`, { scroll: false });
+    syncAccountKindQuery(kind);
   };
   const pick = (vendor: boolean) => pickKind(vendor ? "vendor" : "customer");
 
@@ -54,7 +59,7 @@ export function RegisterForm({ guestUpgrade = false }: { guestUpgrade?: boolean 
         title={asShop ? "Product Seller Sign Up" : asVendor ? "Service Provider Sign Up" : "Customer Sign Up"}
         subtitle="Join Nigeria's beauty, grooming and wellness community."
       />
-      <AccountTypeCards asVendor={asVendor} asShop={asShop} onChange={pick} onKindChange={pickKind} />
+      <AccountTypeCards asVendor={asVendor} asShop={asShop} onChange={pick} onKindChange={pickKind} showShop />
       <AuthHint icon={asShop ? ShoppingBag : asVendor ? Store : User}>
         {asShop
           ? "Create a product seller account, then finish store setup: business details, KYC, store images and listings."
@@ -157,7 +162,7 @@ export function RegisterForm({ guestUpgrade = false }: { guestUpgrade?: boolean 
       <p className="mt-6 pb-2 text-center text-sm text-ink2">
         Already have an account?{" "}
         <Link
-          href={`${asShop ? "/login/vendor?asShop=1" : asVendor ? "/login/vendor" : "/login"}${returnNext ? `${asShop ? "&" : "?"}next=${encodeURIComponent(returnNext)}` : ""}`}
+          href={signInHref(asShop, asVendor, returnNext)}
           className="font-semibold text-ink"
         >
           Sign in

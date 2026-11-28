@@ -77,125 +77,99 @@ export function AuthHeading({ title, subtitle }: { title: string; subtitle: stri
   return (
     <>
       <h1 className="mt-5 text-center font-display text-[2rem] font-semibold leading-tight text-ink">{title}</h1>
-      <p className="mt-2 text-center text-sm leading-relaxed text-ink2">{subtitle}</p>
+      <p className="mt-1.5 text-center text-[11px] leading-snug text-ink2 sm:text-xs">{subtitle}</p>
       <span className="mx-auto mt-3 block h-1 w-12 rounded-full bg-gold" aria-hidden />
     </>
   );
+}
+
+export type AccountKind = "customer" | "vendor" | "shop";
+
+/** Update asVendor/asShop in the URL without a Next.js navigation, so tabs switch instantly. */
+export function syncAccountKindQuery(kind: AccountKind) {
+  if (typeof window === "undefined") return;
+  const url = new URL(window.location.href);
+  url.searchParams.delete("asShop");
+  url.searchParams.delete("asVendor");
+  if (kind === "shop") url.searchParams.set("asShop", "1");
+  if (kind === "vendor") url.searchParams.set("asVendor", "1");
+  const next = `${url.pathname}${url.search}${url.hash}`;
+  const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  if (next !== current) window.history.replaceState(window.history.state, "", next);
 }
 
 export function AccountTypeCards({
   asVendor,
   asShop,
   onChange,
-  onKindChange
+  onKindChange,
+  showShop = false
 }: {
   asVendor: boolean;
   asShop?: boolean;
   onChange: (vendor: boolean) => void;
-  onKindChange?: (kind: "customer" | "vendor" | "shop") => void;
+  onKindChange?: (kind: AccountKind) => void;
+  showShop?: boolean;
 }) {
-  const showShop = Boolean(onKindChange);
+  const selected: AccountKind = asShop ? "shop" : asVendor ? "vendor" : "customer";
+  const tabs: { kind: AccountKind; label: string; hint?: string; icon: LucideIcon; tone?: "gold" | "forest" }[] = [
+    { kind: "customer", label: "Customer", icon: User },
+    { kind: "vendor", label: "Provider", hint: "services", icon: Store, tone: "forest" },
+    ...(showShop ? [{ kind: "shop" as const, label: "Seller", hint: "sell Product", icon: ShoppingBag }] : [])
+  ];
   return (
     <div
       role="tablist"
       aria-label="Account type"
-      className={`mt-6 grid min-w-0 gap-2 ${showShop ? "grid-cols-3" : "grid-cols-2"}`}
+      className={`mt-6 grid min-w-0 gap-1 rounded-2xl border border-line bg-elev p-1 ${showShop ? "grid-cols-3" : "grid-cols-2"}`}
     >
-      <AccountTypeCard
-        selected={!asVendor && !asShop}
-        onClick={() => (onKindChange ? onKindChange("customer") : onChange(false))}
-        icon={User}
-        kicker="I'm a"
-        title="Customer"
-        subtitle="Book & enjoy services"
-      />
-      <AccountTypeCard
-        selected={asVendor && !asShop}
-        onClick={() => (onKindChange ? onKindChange("vendor") : onChange(true))}
-        icon={Store}
-        kicker="I'm a"
-        title="Service provider"
-        subtitle="List services & grow"
-        tone="forest"
-      />
-      {showShop ? (
-        <AccountTypeCard
-          selected={Boolean(asShop)}
-          onClick={() => onKindChange?.("shop")}
-          icon={ShoppingBag}
-          kicker="I'm a"
-          title="Product seller"
-          subtitle="Sell on Shop"
-        />
-      ) : null}
+      {tabs.map((tab) => {
+        const active = selected === tab.kind;
+        const selectedClass =
+          tab.tone === "forest"
+            ? "bg-forest text-white shadow-sm"
+            : "bg-gold text-ongold shadow-sm";
+        return (
+          <button
+            key={tab.kind}
+            type="button"
+            role="tab"
+            aria-label={tab.hint ? `${tab.label}, ${tab.hint}` : tab.label}
+            aria-selected={active}
+            onClick={() => (onKindChange ? onKindChange(tab.kind) : onChange(tab.kind === "vendor"))}
+            className={`flex min-h-[3.25rem] min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1.5 transition-colors duration-150 touch-manipulation ${
+              active ? selectedClass : "text-ink hover:bg-card"
+            }`}
+          >
+            <span className="flex max-w-full items-center justify-center gap-1">
+              <tab.icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              <span className="truncate text-[12px] font-bold leading-none tracking-tight sm:text-[13px]">{tab.label}</span>
+            </span>
+            {tab.hint ? (
+              <span
+                className={`max-w-full truncate text-[9px] font-medium leading-tight sm:text-[10px] ${
+                  active ? (tab.tone === "forest" ? "text-white/80" : "text-ongold/80") : "text-ink2"
+                }`}
+              >
+                {tab.hint}
+              </span>
+            ) : (
+              <span className="h-[10px]" aria-hidden />
+            )}
+          </button>
+        );
+      })}
     </div>
-  );
-}
-
-function AccountTypeCard({
-  selected,
-  onClick,
-  icon: Icon,
-  kicker,
-  title,
-  subtitle,
-  tone = "gold"
-}: {
-  selected: boolean;
-  onClick: () => void;
-  icon: LucideIcon;
-  kicker: string;
-  title: string;
-  subtitle: string;
-  tone?: "gold" | "forest";
-}) {
-  const selectedClass =
-    tone === "forest"
-      ? "bg-forest text-white shadow-[0_8px_20px_rgba(6,78,59,0.28)]"
-      : "bg-gold text-ongold shadow-[0_8px_20px_rgba(212,175,55,0.28)]";
-  return (
-    <button
-      type="button"
-      role="tab"
-      aria-label={`${kicker} ${title}`}
-      aria-selected={selected}
-      onClick={onClick}
-      className={`flex min-h-[6.25rem] min-w-0 flex-col items-start overflow-hidden rounded-[1.35rem] px-2 py-2.5 text-left transition sm:min-h-[6.5rem] sm:px-3 ${
-        selected ? selectedClass : "border border-line bg-card text-ink"
-      }`}
-    >
-      <span
-        className={`mb-1.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full sm:h-8 sm:w-8 ${
-          selected ? "bg-white/20" : "bg-forest/10 text-forest"
-        }`}
-        aria-hidden
-      >
-        <Icon className="h-4 w-4" />
-      </span>
-      <span className="min-w-0 w-full">
-        <span className="block text-[10px] font-semibold leading-tight sm:text-[11px]">{kicker}</span>
-        <span className="mt-0.5 block text-[12px] font-bold leading-snug tracking-tight [overflow-wrap:anywhere] sm:text-[13px]">
-          {title}
-        </span>
-      </span>
-      <span
-        className={`mt-1 min-w-0 w-full text-[10px] leading-snug [overflow-wrap:anywhere] sm:text-[11px] ${
-          selected ? (tone === "forest" ? "text-white/80" : "text-ongold/80") : "text-ink2"
-        }`}
-      >
-        {subtitle}
-      </span>
-    </button>
   );
 }
 
 export function AuthHint({ children, icon: Icon = Sparkles }: { children: ReactNode; icon?: LucideIcon }) {
   return (
-    <div className="mt-4 flex items-start gap-3 rounded-2xl border border-gold/40 bg-[#FBF6E8] px-3.5 py-3.5 dark:bg-gold/10">
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-gold/50 bg-gold/15 text-goldink">
-        <Icon className="h-5 w-5" aria-hidden />
+    <div className="mt-3 flex items-start gap-2 rounded-xl border border-gold/40 bg-[#FBF6E8] px-2.5 py-2 dark:bg-gold/10">
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-gold/50 bg-gold/15 text-goldink">
+        <Icon className="h-3.5 w-3.5" aria-hidden />
       </span>
-      <p className="pt-0.5 text-[13px] leading-relaxed text-ink">{children}</p>
+      <p className="pt-0.5 text-[11px] leading-snug text-ink2">{children}</p>
     </div>
   );
 }

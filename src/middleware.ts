@@ -36,6 +36,9 @@ export async function middleware(request: NextRequest) {
       // unreachable https://localhost:3100 rewrite.
       const url = new URL(rewritten, "http://localhost:3100");
       url.search = request.nextUrl.search;
+      if (pathname === "/login/vendor" && url.searchParams.get("asShop") !== "1") {
+        url.searchParams.set("asVendor", "1");
+      }
       return NextResponse.rewrite(url, { request: { headers } });
     }
     return NextResponse.next({ request: { headers } });
