@@ -2,6 +2,9 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { shopSlug } from "@/lib/shop/slug";
 import { shopProductImages } from "@/lib/shop/product-media";
+import type { ShopProductSaveStatus } from "@/lib/shop/listing-status";
+
+export { shopProductEditStatus, shopProductSaveStatus } from "@/lib/shop/listing-status";
 
 export const shopProductWriteSchema = z.object({
   id: z.string().optional(),
@@ -16,6 +19,7 @@ export const shopProductWriteSchema = z.object({
   expiryNote: z.string().max(240).default(""),
   nafdacNumber: z.string().max(80).default(""),
   images: z.array(z.string()).max(3).default([]),
+  intent: z.enum(["draft", "publish"]).optional(),
   variants: z
     .array(
       z.object({
@@ -33,10 +37,6 @@ export const shopProductWriteSchema = z.object({
 
 export type ShopProductWrite = z.infer<typeof shopProductWriteSchema>;
 
-export function shopProductEditStatus(current: string): "pending" | "approved" {
-  return current === "approved" ? "approved" : "pending";
-}
-
 async function uniqueSlug(name: string, excludeId?: string) {
   const base = shopSlug(name);
   let slug = base;
@@ -49,16 +49,18 @@ async function uniqueSlug(name: string, excludeId?: string) {
   }
 }
 
-export async function upsertShopProduct(vendorId: string, body: ShopProductWrite, status: "pending" | "approved") {
-  const images = shopProductImages(body.images);
+export async function upsertShopProduct(vendorId: string, body: ShopProductWrite, status: ShopProductSaveStatus) {
+  const { intent: _intent, ...fields } = body;
+  void _intent;
+  const images = shopProductImages(fields.images);
   if (!images.length) {
     const err = new Error("Upload a featured product image.");
     (err as Error & { status: number }).status = 400;
     throw err;
   }
-  const slug = await uniqueSlug(body.name, body.id);
-  if (body.id) {
-    const existing = await prisma.shopProduct.findFirst({ where: { id: body.id, vendorId } });
+  const slug = await uniqueSlug(fields.name, fields.id);
+  if (fields.id) {
+    const existing = await prisma.shopProduct.findFirst({ where: { id: fields.id, vendorId } });
     if (!existing) {
       const err = new Error("Product not found");
       (err as Error & { status: number }).status = 404;
@@ -68,16 +70,16 @@ export async function upsertShopProduct(vendorId: string, body: ShopProductWrite
       const updated = await tx.shopProduct.update({
         where: { id: existing.id },
         data: {
-          name: body.name,
-          description: body.description,
-          categoryId: body.categoryId,
-          ingredients: body.ingredients,
-          usage: body.usage,
-          warnings: body.warnings,
-          expiryNote: body.expiryNote,
-          nafdacNumber: body.nafdacNumber,
-          seoTitle: body.seoTitle,
-          metaDescription: body.metaDescription,
+          name: fields.name,
+          description: fields.description,
+          categoryId: fields.categoryId,
+          ingredients: fields.ingredients,
+          usage: fields.usage,
+          warnings: fields.warnings,
+          expiryNote: fields.expiryNote,
+          nafdacNumber: fields.nafdacNumber,
+          seoTitle: fields.seoTitle,
+          metaDescription: fields.metaDescription,
           slug,
           status
         }
@@ -86,12 +88,12 @@ export async function upsertShopProduct(vendorId: string, body: ShopProductWrite
       for (const [i, url] of images.entries()) {
         await tx.shopProductImage.create({ data: { productId: updated.id, url, sortOrder: i } });
       }
-      const keep = body.variants.map((v) => v.id).filter(Boolean) as string[];
+      const keep = fields.variants.map((v) => v.id).filter(Boolean) as string[];
       await tx.shopProductVariant.updateMany({
         where: { productId: updated.id, id: { notIn: keep } },
         data: { active: false }
       });
-      for (const variant of body.variants) {
+      for (const variant of fields.variants) {
         if (variant.id) {
           await tx.shopProductVariant.update({
             where: { id: variant.id },
@@ -123,21 +125,21 @@ export async function upsertShopProduct(vendorId: string, body: ShopProductWrite
   return prisma.shopProduct.create({
     data: {
       vendorId,
-      categoryId: body.categoryId,
+      categoryId: fields.categoryId,
       slug,
-      name: body.name,
-      description: body.description,
-      ingredients: body.ingredients,
-      usage: body.usage,
-      warnings: body.warnings,
-      expiryNote: body.expiryNote,
-      nafdacNumber: body.nafdacNumber,
-      seoTitle: body.seoTitle,
-      metaDescription: body.metaDescription,
+      name: fields.name,
+      description: fields.description,
+      ingredients: fields.ingredients,
+      usage: fields.usage,
+      warnings: fields.warnings,
+      expiryNote: fields.expiryNote,
+      nafdacNumber: fields.nafdacNumber,
+      seoTitle: fields.seoTitle,
+      metaDescription: fields.metaDescription,
       status,
       images: { create: images.map((url, i) => ({ url, sortOrder: i })) },
       variants: {
-        create: body.variants.map((variant) => ({
+        create: fields.variants.map((variant) => ({
           sku: variant.sku,
           name: variant.name,
           priceKobo: variant.priceKobo,

@@ -65,7 +65,7 @@ export async function ProductVendorHome({ vendorId, firstName }: { vendorId: str
       }
     ),
     shopQuery(() => prisma.shopProduct.count({ where: { vendorId } }), 0),
-    shopQuery(() => prisma.shopProduct.count({ where: { vendorId, status: "pending" } }), 0),
+    shopQuery(() => prisma.shopProduct.count({ where: { vendorId, status: { in: ["draft", "pending", "unpublished"] } } }), 0),
     shopQuery(() => prisma.shopProduct.count({ where: { vendorId, status: "approved" } }), 0),
     shopQuery(
       () =>
@@ -144,7 +144,7 @@ export async function ProductVendorHome({ vendorId, firstName }: { vendorId: str
       )}
 
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <StatCard href="/vendor/shop/products" label="Products" value={formatCount(products)} icon={Package} sub={`${liveProducts} live · ${pendingProducts} awaiting approval`} />
+        <StatCard href="/vendor/shop/products" label="Products" value={formatCount(products)} icon={Package} sub={`${liveProducts} published · ${pendingProducts} drafts`} />
         <StatCard href="/vendor/shop/orders" label="Open orders" value={formatCount(openOrders)} icon={ShoppingBag} sub="Paid orders to pack or dispatch" />
         <StatCard href="/vendor/shop/earnings" label="Payable this week" value={formatNgnCompact(weekPayable)} icon={Wallet} sub="Shop sales after product commission · payouts" emphasis="gold" />
         <StatCard href="/vendor/shop/plan" label="Shop plan" value={sub?.plan.name || "Shop Free"} icon={Truck} sub={`${((sub?.plan.commissionBps ?? 1000) / 100).toFixed(0)}% commission on products`} />
@@ -152,7 +152,7 @@ export async function ProductVendorHome({ vendorId, firstName }: { vendorId: str
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
-          { href: "/vendor/shop/products", label: "My products", body: "Featured photo, gallery and SEO" },
+          { href: "/vendor/shop/products", label: "My products", body: "Draft, publish, unpublish or delete" },
           { href: "/vendor/shop/orders", label: "Orders", body: "Pack, dispatch and track" },
           { href: "/vendor/shop/shipping", label: "Shipping", body: "Local and interstate fees" },
           { href: "/vendor/shop/plan", label: "Shop plan", body: "Free or monthly — not listing plans" }

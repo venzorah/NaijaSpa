@@ -5,6 +5,7 @@ import { ShopVendorActions, ShopProductActions } from "@/components/admin/shop-a
 import { ShopAdminError } from "@/components/admin/shop-admin-error";
 import { VendorProductForm } from "@/components/vendor/shop-product-form";
 import { adminShopLoad } from "@/lib/shop/admin-load";
+import { shopProductListingLabel } from "@/lib/shop/listing-status";
 
 export default async function EcommerceVendorDetailPage({
   params,
@@ -90,13 +91,13 @@ export default async function EcommerceVendorDetailPage({
           {vendor.shopProducts.map((product) => (
             <li key={product.id} className="rounded-2xl border border-line bg-card p-3">
               <p className="text-sm font-semibold">{product.name}</p>
-              <p className="text-xs text-ink2">{product.status}</p>
+              <p className="text-xs text-ink2">{shopProductListingLabel(product.status)}</p>
               <p className="mt-1">
                 <Link prefetch={false} href={`?edit=${product.id}#shop-product-form`} className="text-sm font-semibold text-goldink">
                   Edit listing
                 </Link>
               </p>
-              <ShopProductActions id={product.id} />
+              <ShopProductActions id={product.id} status={product.status} />
             </li>
           ))}
           {!vendor.shopProducts.length ? <li className="text-sm text-ink2">No products yet. List one below.</li> : null}
@@ -113,6 +114,7 @@ export default async function EcommerceVendorDetailPage({
           extraBody={{ vendorId: vendor.id, live: true }}
           extraImage={{ vendorId: vendor.id }}
           initialEditId={editId}
+          statusUrl="/api/admin/shop/products"
         />
       </div>
     </div>

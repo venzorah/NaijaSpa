@@ -6,6 +6,8 @@ import { formatNgn } from "@/lib/money";
 import { shopError, shopSuccess } from "@/lib/shop/ui-action";
 import { SHOP_PRODUCT_IMAGE_BYTES, shopProductImageLimitLabel, shopProductImageTooLargeMessage } from "@/lib/shop/product-media";
 import { ShopProductImage } from "@/components/shop/product-image";
+import { ShopListingActions } from "@/components/shop/listing-actions";
+import { shopProductListingLabel } from "@/lib/shop/listing-status";
 
 type Variant = {
   id: string;
@@ -130,7 +132,8 @@ export function VendorProductForm({
   imageUrl = "/api/shop/vendor/product-images",
   extraBody,
   extraImage,
-  initialEditId
+  initialEditId,
+  statusUrl = "/api/shop/vendor/products"
 }: {
   loadUrl?: string;
   saveUrl?: string;
@@ -138,6 +141,7 @@ export function VendorProductForm({
   extraBody?: Record<string, unknown>;
   extraImage?: Record<string, string>;
   initialEditId?: string;
+  statusUrl?: string;
 } = {}) {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -149,6 +153,11 @@ export function VendorProductForm({
   const [editing, setEditing] = useState<Product | null>(null);
   const [formKey, setFormKey] = useState("new");
   const appliedEdit = useRef("");
+  async function refreshProducts() {
+    const refresh = await fetch(loadUrl);
+    const next = await refresh.json();
+    setProducts(next.products ?? []);
+  }
   function fillForm(product: Product) {
     const imgs = sortedImages(product);
     setEditing(product);
@@ -194,6 +203,8 @@ export function VendorProductForm({
           if (busy) return;
           const form = e.currentTarget;
           const fd = new FormData(form);
+          const submitter = (e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
+          const intent = submitter?.value === "publish" ? "publish" : "draft";
           const images = [featured, gallery[0], gallery[1]].filter(Boolean);
           const primary = editing?.variants?.[0];
           const rest = (editing?.variants ?? []).slice(1);
@@ -205,6 +216,7 @@ export function VendorProductForm({
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 ...extraBody,
+                intent,
                 ...(editing ? { id: editing.id } : {}),
                 name: fd.get("name"),
                 seoTitle: fd.get("seoTitle"),
@@ -239,20 +251,12 @@ export function VendorProductForm({
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Could not save");
-            const wasEdit = Boolean(editing);
             form.reset();
             clearForm();
-            const refresh = await fetch(loadUrl);
-            const next = await refresh.json();
-            setProducts(next.products ?? []);
-            const adminLive = Boolean(extraBody && extraBody.live);
-            const text = wasEdit
-              ? "Product updated."
-              : adminLive
-                ? "Product saved and live on Shop."
-                : "Saved for admin approval. You can list another product here.";
+            await refreshProducts();
+            const text = intent === "publish" ? "Listing published." : "Draft saved.";
             setMessage(text);
-            shopSuccess(wasEdit ? "Product updated." : adminLive ? "Product saved and live on Shop." : "Product saved. It stays here until Admin approves it for Shop.");
+            shopSuccess(text);
             document.getElementById("my-shop-products")?.scrollIntoView({ behavior: "smooth", block: "start" });
           } catch (err) {
             const text = err instanceof Error ? err.message : "Could not save";
@@ -307,8 +311,11 @@ export function VendorProductForm({
           <input required name="stock" type="number" defaultValue={editing?.variants?.[0]?.stockOnHand ?? undefined} placeholder="Stock" className="col-span-2 h-11 rounded-xl border border-line px-3 text-sm" />
         </div>
         <div className="flex flex-wrap gap-2">
-          <button disabled={busy} className="h-11 flex-1 rounded-full bg-gold text-sm font-bold text-ongold disabled:opacity-60">
-            {busy ? "Saving…" : editing ? "Save changes" : "Save product"}
+          <button type="submit" name="intent" value="draft" disabled={busy} className="h-11 flex-1 rounded-full border border-line px-4 text-sm font-semibold disabled:opacity-60">
+            {busy ? "Saving…" : "Save draft"}
+          </button>
+          <button type="submit" name="intent" value="publish" disabled={busy} className="h-11 flex-1 rounded-full bg-gold text-sm font-bold text-ongold disabled:opacity-60">
+            {busy ? "Saving…" : "Publish"}
           </button>
           {editing ? (
             <button type="button" disabled={busy} className="h-11 rounded-full border border-line px-4 text-sm font-semibold" onClick={clearForm}>
@@ -329,25 +336,28 @@ export function VendorProductForm({
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold">{p.name}</p>
                 <p className="mt-0.5 text-[11px] uppercase tracking-wide text-ink2">
-                  {p.status} · {p.variants?.[0] ? formatNgn(p.variants[0].priceKobo) : ""}
+                  {shopProductListingLabel(p.status)} · {p.variants?.[0] ? formatNgn(p.variants[0].priceKobo) : ""}
                 </p>
                 {p.seoTitle ? <p className="mt-1 line-clamp-1 text-[11px] text-ink2">{p.seoTitle}</p> : null}
+                <ShopListingActions id={p.id} status={p.status} endpoint={statusUrl} onDone={() => void refreshProducts()} />
               </div>
-              <button
-                type="button"
-                className="self-start text-xs font-semibold text-goldink"
-                onClick={() => {
-                  fillForm(p);
-                  document.getElementById("shop-product-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
-                }}
-              >
-                Edit
-              </button>
+              {p.status !== "archived" ? (
+                <button
+                  type="button"
+                  className="self-start text-xs font-semibold text-goldink"
+                  onClick={() => {
+                    fillForm(p);
+                    document.getElementById("shop-product-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }}
+                >
+                  Edit
+                </button>
+              ) : null}
             </li>
           );
         })}
         {!products.length ? (
-          <li className="rounded-2xl border border-dashed border-line px-4 py-8 text-center text-sm text-ink2">No products yet. Save one for admin approval.</li>
+          <li className="rounded-2xl border border-dashed border-line px-4 py-8 text-center text-sm text-ink2">No products yet. Save a draft or publish a listing.</li>
         ) : null}
       </ul>
     </div>

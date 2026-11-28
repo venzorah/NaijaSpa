@@ -4,7 +4,7 @@ import { requireAdmin } from "@/lib/admin-auth";
 import { prisma } from "@/lib/db";
 import { jsonError } from "@/lib/http";
 import { notifyShopUser } from "@/lib/shop/notify";
-import { shopProductWriteSchema, upsertShopProduct } from "@/lib/shop/upsert-product";
+import { shopProductSaveStatus, shopProductWriteSchema, upsertShopProduct } from "@/lib/shop/upsert-product";
 
 export async function GET() {
   try {
@@ -27,11 +27,16 @@ export async function POST(req: Request) {
     const vendor = await prisma.vendor.findUnique({ where: { id: body.vendorId } });
     if (!vendor) return NextResponse.json({ error: "Vendor not found" }, { status: 404 });
     const { vendorId, live, ...product } = body;
-    let status: "pending" | "approved" = live === false ? "pending" : "approved";
-    if (product.id && live === undefined) {
+    let existingStatus: string | undefined;
+    if (product.id) {
       const existing = await prisma.shopProduct.findFirst({ where: { id: product.id, vendorId }, select: { status: true } });
-      if (existing?.status === "pending") status = "pending";
+      existingStatus = existing?.status;
     }
+    const status = shopProductSaveStatus({
+      intent: product.intent,
+      existing: existingStatus,
+      fallback: live === false ? "pending" : "approved"
+    });
     const saved = await upsertShopProduct(vendorId, product, status);
     await notifyShopUser(
       vendor.ownerId,
@@ -48,7 +53,13 @@ export async function POST(req: Request) {
 export async function PATCH(req: Request) {
   try {
     await requireAdmin("shop.manage");
-    const body = z.object({ id: z.string(), status: z.enum(["approved", "rejected", "suspended", "archived"]), reason: z.string().max(240).optional() }).parse(await req.json());
+    const body = z
+      .object({
+        id: z.string(),
+        status: z.enum(["approved", "draft", "unpublished", "rejected", "suspended", "archived"]),
+        reason: z.string().max(240).optional()
+      })
+      .parse(await req.json());
     const product = await prisma.shopProduct.update({
       where: { id: body.id },
       data: { status: body.status },

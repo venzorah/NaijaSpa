@@ -220,11 +220,17 @@ describe("shop product image upload limit", () => {
 });
 
 describe("shop product edits", () => {
-  it("keeps approved listings live and sends others back to pending", async () => {
-    const { shopProductEditStatus } = await import("../src/lib/shop/upsert-product");
+  it("keeps listing visibility unless the seller drafts or publishes", async () => {
+    const { shopProductEditStatus, shopProductSaveStatus } = await import("../src/lib/shop/upsert-product");
+    const { shopProductListingLabel } = await import("../src/lib/shop/listing-status");
     expect(shopProductEditStatus("approved")).toBe("approved");
-    expect(shopProductEditStatus("pending")).toBe("pending");
-    expect(shopProductEditStatus("rejected")).toBe("pending");
+    expect(shopProductEditStatus("draft")).toBe("draft");
+    expect(shopProductEditStatus("unpublished")).toBe("unpublished");
+    expect(shopProductEditStatus("rejected")).toBe("draft");
+    expect(shopProductSaveStatus({ intent: "publish" })).toBe("approved");
+    expect(shopProductSaveStatus({ intent: "draft" })).toBe("draft");
+    expect(shopProductListingLabel("approved")).toBe("Published");
+    expect(shopProductListingLabel("archived")).toBe("Deleted");
   });
 });
 
