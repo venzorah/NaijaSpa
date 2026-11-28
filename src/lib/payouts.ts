@@ -44,7 +44,7 @@ function paystackSecret() {
   return key;
 }
 
-async function paystackJson(path: string, init?: RequestInit) {
+export async function paystackJson(path: string, init?: RequestInit) {
   const res = await fetch(`https://api.paystack.co${path}`, {
     ...init,
     signal: AbortSignal.timeout(15000),
@@ -168,7 +168,7 @@ export async function saveVendorPayoutAccount(vendorId: string, bankCode: string
   return saved;
 }
 
-async function ensureVendorRecipient(vendor: {
+export async function ensureVendorRecipient(vendor: {
   id: string;
   payoutRecipientCode: string | null;
   payoutAccountNumber: string | null;
@@ -357,6 +357,9 @@ export async function releaseVendorPayout(bookingId: string) {
 }
 
 export async function applyPayoutTransferEvent(reference: string, status: string, providerRef?: string) {
+  const { applyShopPayoutTransferEvent } = await import("./shop/payout");
+  const shop = await applyShopPayoutTransferEvent(reference, status, providerRef);
+  if (shop) return shop;
   const payout = await prisma.payout.findFirst({ where: { reference } });
   if (!payout) return null;
   const outcome = transferOutcome(status);

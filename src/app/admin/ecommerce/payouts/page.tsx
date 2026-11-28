@@ -26,7 +26,7 @@ export default async function EcommercePayoutsPage() {
     <div>
       <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-goldink">Money</p>
       <h1 className="mt-1 font-display text-3xl">Settlements and payouts</h1>
-      <p className="mt-2 text-sm text-ink2">Ledger-only payouts. This is not Paystack Transfers and not VendorEarning.</p>
+      <p className="mt-2 text-sm text-ink2">Pays available Shop settlements to the vendor’s saved NUBAN by Paystack Transfer, the same way spa payouts work.</p>
       <ul className="mt-6 space-y-3">
         {settlements.map((s) => (
           <li key={s.id} className="rounded-3xl border border-line bg-card p-4">

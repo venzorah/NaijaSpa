@@ -42,7 +42,7 @@ export async function POST(req: Request) {
   try {
     const user = await requireVendor();
     if (user.role !== ROLES.VENDOR_OWNER) {
-      return NextResponse.json({ error: "Only the spa owner can set the payout account." }, { status: 403 });
+      return NextResponse.json({ error: "Only the business owner can set the payout account." }, { status: 403 });
     }
     const body = z
       .object({ bankCode: z.string().min(1), accountNumber: z.string().min(8), verifyOnly: z.boolean().optional() })

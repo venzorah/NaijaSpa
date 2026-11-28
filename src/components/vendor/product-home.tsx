@@ -146,7 +146,7 @@ export async function ProductVendorHome({ vendorId, firstName }: { vendorId: str
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <StatCard href="/vendor/shop/products" label="Products" value={formatCount(products)} icon={Package} sub={`${liveProducts} live · ${pendingProducts} awaiting approval`} />
         <StatCard href="/vendor/shop/orders" label="Open orders" value={formatCount(openOrders)} icon={ShoppingBag} sub="Paid orders to pack or dispatch" />
-        <StatCard href="/vendor/shop/earnings" label="Payable this week" value={formatNgnCompact(weekPayable)} icon={Wallet} sub="Shop sales after product commission" emphasis="gold" />
+        <StatCard href="/vendor/shop/earnings" label="Payable this week" value={formatNgnCompact(weekPayable)} icon={Wallet} sub="Shop sales after product commission · payouts" emphasis="gold" />
         <StatCard href="/vendor/shop/plan" label="Shop plan" value={sub?.plan.name || "Shop Free"} icon={Truck} sub={`${((sub?.plan.commissionBps ?? 1000) / 100).toFixed(0)}% commission on products`} />
       </div>
 

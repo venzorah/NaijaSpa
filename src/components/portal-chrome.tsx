@@ -93,7 +93,7 @@ const PRODUCT_STORE_NAV: { label: string; items: PortalLink[] } = {
     { href: "/vendor/shop/orders", label: "Product orders", icon: CalendarCheck2 },
     { href: "/vendor/shop/shipping", label: "Shipping", icon: Truck },
     { href: "/vendor/shop/returns", label: "Returns", icon: Inbox },
-    { href: "/vendor/shop/earnings", label: "Shop earnings", icon: Wallet },
+    { href: "/vendor/shop/earnings", label: "Earnings & payouts", icon: Wallet },
     { href: "/vendor/shop/plan", label: "Shop plan", icon: Crown }
   ]
 };
@@ -115,7 +115,7 @@ export function vendorNavFor(commerceKind: string) {
       {
         label: "Money",
         items: [
-          { href: "/vendor/shop/earnings", label: "Shop earnings", icon: Wallet },
+          { href: "/vendor/shop/earnings", label: "Earnings & payouts", icon: Wallet },
           { href: "/vendor/shop/plan", label: "Shop plan", icon: Crown }
         ]
       },

@@ -16,7 +16,7 @@ type Account = {
   ready: boolean;
 };
 
-export function PayoutAccountForm() {
+export function PayoutAccountForm({ kind = "spa" }: { kind?: "spa" | "shop" }) {
   const [banks, setBanks] = useState<Bank[]>([]);
   const [account, setAccount] = useState<Account | null>(null);
   const [bankCode, setBankCode] = useState("");
@@ -71,7 +71,9 @@ export function PayoutAccountForm() {
   return (
     <Panel title="Payout account" className="mt-4">
       <p className="text-sm text-ink2">
-        After a customer or you confirm the visit, NaijaSpa sends the vendor share to this Nigerian bank account by Paystack Transfer. Commission stays with NaijaSpa.
+        {kind === "shop"
+          ? "After a Shop order settles, NaijaSpa sends your product share to this Nigerian bank account by Paystack Transfer. Product commission stays with NaijaSpa."
+          : "After a customer or you confirm the visit, NaijaSpa sends the vendor share to this Nigerian bank account by Paystack Transfer. Commission stays with NaijaSpa."}
       </p>
       {account?.bankName || account?.accountName ? (
         <p className="mt-3 text-sm text-ink">
@@ -81,7 +83,11 @@ export function PayoutAccountForm() {
           {account.ready ? " · connected to Paystack" : " · saved, Paystack recipient pending"}
         </p>
       ) : (
-        <p className="mt-3 text-sm text-ink2">No payout account yet. Verify a 10-digit NUBAN so confirmed bookings can pay you.</p>
+        <p className="mt-3 text-sm text-ink2">
+          {kind === "shop"
+            ? "No payout account yet. Verify a 10-digit NUBAN so Shop sales can pay you."
+            : "No payout account yet. Verify a 10-digit NUBAN so confirmed bookings can pay you."}
+        </p>
       )}
       <form
         className="mt-4 grid gap-3 sm:grid-cols-2"

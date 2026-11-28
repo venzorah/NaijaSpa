@@ -232,6 +232,7 @@ describe("shop isolation in existing portals", () => {
   it("hides service booking nav for product-only vendors", () => {
     const hrefs = vendorNavFor("products").flatMap((g) => g.items.map((i) => i.href));
     expect(hrefs).toContain("/vendor/shop/products");
+    expect(hrefs).toContain("/vendor/shop/earnings");
     expect(hrefs).toContain("/vendor/shop/plan");
     expect(hrefs).toContain("/vendor/messages");
     expect(hrefs).not.toContain("/vendor/chats");

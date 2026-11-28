@@ -1098,6 +1098,7 @@ model ShopPayout {
   status      String
   reference   String   @unique
   providerRef String?
+  note        String   @default("")
   createdAt   DateTime @default(now())
   vendor      Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
   settlements ShopSettlement[]

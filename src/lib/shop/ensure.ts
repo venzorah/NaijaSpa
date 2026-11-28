@@ -106,3 +106,8 @@ export async function shopMinPayoutKobo() {
   const n = Number(row?.value ?? 500000);
   return Number.isFinite(n) && n >= 0 ? Math.round(n) : 500000;
 }
+
+export async function shopPayoutMode() {
+  const row = await prisma.systemConfig.findUnique({ where: { key: SHOP_CONFIG.payoutMode } });
+  return row?.value === "automatic" ? "automatic" : "request";
+}
