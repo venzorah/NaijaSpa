@@ -18,7 +18,7 @@ export async function POST(req: Request) {
       .object({
         name: z.string().trim().min(2).max(80),
         phone: z.string().trim().min(10).max(20),
-        email: z.union([z.string().trim().email(), z.literal("")]).optional(),
+        email: z.string().trim().email(),
         serviceId: z.string(),
         staffId: z.string().optional(),
         locationType: z.enum(["spa", "hotel", "home"]),

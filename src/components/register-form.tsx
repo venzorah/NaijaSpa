@@ -61,7 +61,7 @@ export function RegisterForm({ guestUpgrade = false }: { guestUpgrade?: boolean 
           : asVendor
           ? "Create a service provider account to showcase your services, attract customers and grow on NaijaSpa."
           : guestUpgrade
-            ? "Keep every guest booking and chat on this phone number, then add a password for next time."
+            ? "Keep every guest booking and chat on this email, then add a password for next time."
             : "Create a customer account to book treatments, save favourites and enjoy wellness on NaijaSpa."}
       </AuthHint>
 

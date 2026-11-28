@@ -296,10 +296,10 @@ export function BookForm({ loggedIn }: { loggedIn: boolean }) {
                   <input required value={guestPhone} onChange={(e) => setGuestPhone(e.target.value)} inputMode="tel" placeholder="0803…" className="mt-1 min-h-12 w-full rounded-2xl border border-line bg-bg px-3 font-normal" />
                 </label>
                 <label className="block text-sm font-semibold">
-                  Email (optional — for email verification)
-                  <input type="email" value={guestEmail} onChange={(e) => setGuestEmail(e.target.value)} placeholder="you@email.com" className="mt-1 min-h-12 w-full rounded-2xl border border-line bg-bg px-3 font-normal" />
+                  Email
+                  <input required type="email" value={guestEmail} onChange={(e) => setGuestEmail(e.target.value)} placeholder="you@email.com" className="mt-1 min-h-12 w-full rounded-2xl border border-line bg-bg px-3 font-normal" />
                 </label>
-                <p className="text-xs text-ink2">Add an email if you want to find this booking later with an email code, not only SMS.</p>
+                <p className="text-xs text-ink2">Use this email later to find the booking with a 6-digit code. Guest recovery is by email, not SMS.</p>
                 <label className="block text-sm font-semibold">
                   Additional instructions (optional)
                   <textarea value={guestNotes} onChange={(e) => setGuestNotes(e.target.value)} maxLength={1000} className="mt-1 min-h-20 w-full rounded-2xl border border-line bg-bg p-3 font-normal" />

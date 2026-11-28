@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { portalNext } from "@/lib/portal-auth";
 import { PENDING_BOOKING_KEY, resumeHrefFromPendingJson } from "@/lib/nav-history";
 import Link from "next/link";
-import { Mail, ShieldCheck, Smartphone } from "lucide-react";
+import { Mail, ShieldCheck } from "lucide-react";
 import {
   AuthHeading,
   AuthHint,
@@ -45,16 +45,12 @@ function recalled(key: string) {
 
 export function GuestOtpRequestScreen({ resume }: { resume?: string }) {
   const router = useRouter();
-  const [channel, setChannel] = useState<"phone" | "email">("phone");
-  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    const savedPhone = recalled(PHONE_KEY);
     const savedEmail = recalled(EMAIL_KEY);
-    if (savedPhone) setPhone(savedPhone);
     if (savedEmail) setEmail(savedEmail);
   }, []);
 
@@ -63,30 +59,21 @@ export function GuestOtpRequestScreen({ resume }: { resume?: string }) {
     setBusy(true);
     setError("");
     try {
-      if (channel === "phone") {
-        if (!normalizeNgPhone(phone)) throw new Error("Enter a valid Nigerian mobile number.");
-      } else if (!normalizeGuestEmail(email)) {
+      if (!normalizeGuestEmail(email)) {
         throw new Error("Enter the email used at guest checkout.");
       }
       const res = await fetch("/api/guest/otp/request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(channel === "phone" ? { phone } : { email: email.trim().toLowerCase() })
+        body: JSON.stringify({ email: email.trim().toLowerCase() })
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(apiError(json, "Could not send a code."));
-      if (channel === "phone") {
-        remember(PHONE_KEY, phone.trim());
-        const q = new URLSearchParams({ phone: phone.trim() });
-        if (resume) q.set("next", resume);
-        router.push(`/find-bookings/verify?${q}`);
-      } else {
-        const nextEmail = email.trim().toLowerCase();
-        remember(EMAIL_KEY, nextEmail);
-        const q = new URLSearchParams({ email: nextEmail });
-        if (resume) q.set("next", resume);
-        router.push(`/find-bookings/verify?${q}`);
-      }
+      const nextEmail = email.trim().toLowerCase();
+      remember(EMAIL_KEY, nextEmail);
+      const q = new URLSearchParams({ email: nextEmail });
+      if (resume) q.set("next", resume);
+      router.push(`/find-bookings/verify?${q}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not send a code.");
     } finally {
@@ -98,60 +85,25 @@ export function GuestOtpRequestScreen({ resume }: { resume?: string }) {
     <AuthScreen>
       <AuthHeading
         title="Find guest bookings"
-        subtitle="Use the Nigerian mobile number or the email from guest checkout. We send a 6-digit code. Bookings stay hidden until the code is verified."
+        subtitle="Use the email from guest checkout. We send a 6-digit code. Bookings stay hidden until the code is verified."
       />
-      <div className="mt-5 grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          onClick={() => setChannel("phone")}
-          className={`min-h-11 rounded-2xl border text-sm font-semibold ${channel === "phone" ? "border-forest bg-forest/10 text-ink" : "border-line text-ink2"}`}
-        >
-          Phone
-        </button>
-        <button
-          type="button"
-          onClick={() => setChannel("email")}
-          className={`min-h-11 rounded-2xl border text-sm font-semibold ${channel === "email" ? "border-forest bg-forest/10 text-ink" : "border-line text-ink2"}`}
-        >
-          Email
-        </button>
-      </div>
-      <AuthHint icon={channel === "email" ? Mail : Smartphone}>
-        {channel === "email"
-          ? "Use the same email from guest checkout. If you skipped email then, verify with your phone instead."
-          : "Guest checkout does not need an account. Verify this phone to open paid bookings and chat."}
+      <AuthHint icon={Mail}>
+        Guest checkout does not need an account. Verify this email to open paid bookings and chat.
       </AuthHint>
       <form className="mt-6 space-y-4" onSubmit={(e) => void requestCode(e)}>
-        {channel === "phone" ? (
-          <div>
-            <AuthLabel htmlFor="guest-phone">Phone number</AuthLabel>
-            <input
-              id="guest-phone"
-              type="tel"
-              inputMode="tel"
-              autoComplete="tel"
-              required
-              placeholder="0803 123 4567"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className={authFieldClass}
-            />
-          </div>
-        ) : (
-          <div>
-            <AuthLabel htmlFor="guest-email">Email</AuthLabel>
-            <input
-              id="guest-email"
-              type="email"
-              autoComplete="email"
-              required
-              placeholder="you@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className={authFieldClass}
-            />
-          </div>
-        )}
+        <div>
+          <AuthLabel htmlFor="guest-email">Email</AuthLabel>
+          <input
+            id="guest-email"
+            type="email"
+            autoComplete="email"
+            required
+            placeholder="you@email.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className={authFieldClass}
+          />
+        </div>
         {error ? <p className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
         <button className={authGoldCtaClass} disabled={busy}>
           {busy ? "Sending…" : "Send verification code"}
@@ -347,7 +299,7 @@ export function GuestOtpVerifyScreen({
       </p>
       <p className="mt-4 text-center text-sm">
         <Link href={`/find-bookings${next ? `?next=${encodeURIComponent(next)}` : ""}`} className="font-semibold text-ink">
-          {viaEmail ? "Use a different email or phone" : "Use a different number"}
+          Use a different email
         </Link>
       </p>
       <p className="mt-6 text-center text-sm text-ink2">
