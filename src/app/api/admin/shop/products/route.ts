@@ -27,9 +27,18 @@ export async function POST(req: Request) {
     const vendor = await prisma.vendor.findUnique({ where: { id: body.vendorId } });
     if (!vendor) return NextResponse.json({ error: "Vendor not found" }, { status: 404 });
     const { vendorId, live, ...product } = body;
-    const status = live === false ? "pending" : "approved";
+    let status: "pending" | "approved" = live === false ? "pending" : "approved";
+    if (product.id && live === undefined) {
+      const existing = await prisma.shopProduct.findFirst({ where: { id: product.id, vendorId }, select: { status: true } });
+      if (existing?.status === "pending") status = "pending";
+    }
     const saved = await upsertShopProduct(vendorId, product, status);
-    await notifyShopUser(vendor.ownerId, "Product listing", `${saved.name} was listed for your store by Admin.`, "/vendor/shop/products");
+    await notifyShopUser(
+      vendor.ownerId,
+      "Product listing",
+      product.id ? `${saved.name} was updated by Admin.` : `${saved.name} was listed for your store by Admin.`,
+      "/vendor/shop/products"
+    );
     return NextResponse.json({ product: saved });
   } catch (e) {
     return jsonError(e);

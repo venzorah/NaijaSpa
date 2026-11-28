@@ -33,6 +33,10 @@ export const shopProductWriteSchema = z.object({
 
 export type ShopProductWrite = z.infer<typeof shopProductWriteSchema>;
 
+export function shopProductEditStatus(current: string): "pending" | "approved" {
+  return current === "approved" ? "approved" : "pending";
+}
+
 async function uniqueSlug(name: string, excludeId?: string) {
   const base = shopSlug(name);
   let slug = base;

@@ -6,8 +6,15 @@ import { ShopAdminError } from "@/components/admin/shop-admin-error";
 import { VendorProductForm } from "@/components/vendor/shop-product-form";
 import { adminShopLoad } from "@/lib/shop/admin-load";
 
-export default async function EcommerceVendorDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function EcommerceVendorDetailPage({
+  params,
+  searchParams
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ edit?: string }>;
+}) {
   const { id } = await params;
+  const editId = (await searchParams).edit;
   const loaded = await adminShopLoad(() =>
     prisma.vendor.findUnique({
       where: { id },
@@ -84,6 +91,11 @@ export default async function EcommerceVendorDetailPage({ params }: { params: Pr
             <li key={product.id} className="rounded-2xl border border-line bg-card p-3">
               <p className="text-sm font-semibold">{product.name}</p>
               <p className="text-xs text-ink2">{product.status}</p>
+              <p className="mt-1">
+                <Link prefetch={false} href={`?edit=${product.id}#shop-product-form`} className="text-sm font-semibold text-goldink">
+                  Edit listing
+                </Link>
+              </p>
               <ShopProductActions id={product.id} />
             </li>
           ))}
@@ -93,13 +105,14 @@ export default async function EcommerceVendorDetailPage({ params }: { params: Pr
 
       <div className="mt-8">
         <h2 className="font-display text-2xl">Assist listing</h2>
-        <p className="mt-1 text-sm text-ink2">Create a product for this seller. Admin listings go live immediately.</p>
+        <p className="mt-1 text-sm text-ink2">Create or edit a product for this seller. Admin saves go live immediately.</p>
         <VendorProductForm
           loadUrl={`/api/admin/shop/vendors/${vendor.id}`}
           saveUrl="/api/admin/shop/products"
           imageUrl="/api/admin/shop/product-images"
           extraBody={{ vendorId: vendor.id, live: true }}
           extraImage={{ vendorId: vendor.id }}
+          initialEditId={editId}
         />
       </div>
     </div>

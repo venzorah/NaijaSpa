@@ -7,15 +7,34 @@ import { shopError, shopSuccess } from "@/lib/shop/ui-action";
 import { SHOP_PRODUCT_IMAGE_BYTES, shopProductImageLimitLabel, shopProductImageTooLargeMessage } from "@/lib/shop/product-media";
 import { ShopProductImage } from "@/components/shop/product-image";
 
+type Variant = {
+  id: string;
+  sku: string;
+  name: string;
+  priceKobo: number;
+  compareKobo?: number | null;
+  stockOnHand: number;
+};
 type Product = {
   id: string;
   name: string;
   status: string;
+  categoryId?: string;
   seoTitle?: string;
   metaDescription?: string;
+  description?: string;
+  ingredients?: string;
+  usage?: string;
+  warnings?: string;
+  expiryNote?: string;
+  nafdacNumber?: string;
   images: { url: string; sortOrder: number }[];
-  variants?: { priceKobo: number }[];
+  variants?: Variant[];
 };
+
+function sortedImages(product: Product) {
+  return [...(product.images ?? [])].sort((a, b) => a.sortOrder - b.sortOrder);
+}
 type Category = { id: string; name: string };
 
 function ImageSlot({
@@ -110,13 +129,15 @@ export function VendorProductForm({
   saveUrl = "/api/shop/vendor/products",
   imageUrl = "/api/shop/vendor/product-images",
   extraBody,
-  extraImage
+  extraImage,
+  initialEditId
 }: {
   loadUrl?: string;
   saveUrl?: string;
   imageUrl?: string;
   extraBody?: Record<string, unknown>;
   extraImage?: Record<string, string>;
+  initialEditId?: string;
 } = {}) {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -125,6 +146,24 @@ export function VendorProductForm({
   const [gallery, setGallery] = useState<[string, string]>(["", ""]);
   const [busy, setBusy] = useState(false);
   const [maxBytes, setMaxBytes] = useState(SHOP_PRODUCT_IMAGE_BYTES);
+  const [editing, setEditing] = useState<Product | null>(null);
+  const [formKey, setFormKey] = useState("new");
+  const appliedEdit = useRef("");
+  function fillForm(product: Product) {
+    const imgs = sortedImages(product);
+    setEditing(product);
+    setFeatured(imgs[0]?.url || "");
+    setGallery([imgs[1]?.url || "", imgs[2]?.url || ""]);
+    setFormKey(product.id);
+    setMessage("");
+  }
+  function clearForm() {
+    setEditing(null);
+    setFeatured("");
+    setGallery(["", ""]);
+    setFormKey("new");
+    setMessage("");
+  }
   useEffect(() => {
     fetch(loadUrl)
       .then((r) => r.json())
@@ -135,9 +174,20 @@ export function VendorProductForm({
       })
       .catch(() => undefined);
   }, [loadUrl]);
+  useEffect(() => {
+    const fromQuery = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("edit") : null;
+    const id = initialEditId || fromQuery;
+    if (!id || appliedEdit.current === id) return;
+    const product = products.find((item) => item.id === id);
+    if (!product) return;
+    appliedEdit.current = id;
+    fillForm(product);
+  }, [products, initialEditId]);
   return (
     <div className="mt-4 grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
       <form
+        key={formKey}
+        id="shop-product-form"
         className="grid gap-3 rounded-3xl border border-line bg-card p-4"
         onSubmit={async (e) => {
           e.preventDefault();
@@ -145,6 +195,8 @@ export function VendorProductForm({
           const form = e.currentTarget;
           const fd = new FormData(form);
           const images = [featured, gallery[0], gallery[1]].filter(Boolean);
+          const primary = editing?.variants?.[0];
+          const rest = (editing?.variants ?? []).slice(1);
           setBusy(true);
           setMessage("");
           try {
@@ -153,6 +205,7 @@ export function VendorProductForm({
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 ...extraBody,
+                ...(editing ? { id: editing.id } : {}),
                 name: fd.get("name"),
                 seoTitle: fd.get("seoTitle"),
                 metaDescription: fd.get("metaDescription"),
@@ -166,25 +219,40 @@ export function VendorProductForm({
                 images,
                 variants: [
                   {
+                    ...(primary?.id ? { id: primary.id } : {}),
                     sku: fd.get("sku"),
                     name: fd.get("variantName") || "Default",
                     priceKobo: Number(fd.get("priceNaira")) * 100,
                     compareKobo: Number(fd.get("compareNaira") || 0) * 100,
                     stockOnHand: Number(fd.get("stock"))
-                  }
+                  },
+                  ...rest.map((variant) => ({
+                    id: variant.id,
+                    sku: variant.sku,
+                    name: variant.name,
+                    priceKobo: variant.priceKobo,
+                    compareKobo: variant.compareKobo ?? 0,
+                    stockOnHand: variant.stockOnHand
+                  }))
                 ]
               })
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Could not save");
+            const wasEdit = Boolean(editing);
             form.reset();
-            setFeatured("");
-            setGallery(["", ""]);
+            clearForm();
             const refresh = await fetch(loadUrl);
             const next = await refresh.json();
             setProducts(next.products ?? []);
-            setMessage("Saved for admin approval. You can list another product here.");
-            shopSuccess("Product saved. It stays here until Admin approves it for Shop.");
+            const adminLive = Boolean(extraBody && extraBody.live);
+            const text = wasEdit
+              ? "Product updated."
+              : adminLive
+                ? "Product saved and live on Shop."
+                : "Saved for admin approval. You can list another product here.";
+            setMessage(text);
+            shopSuccess(wasEdit ? "Product updated." : adminLive ? "Product saved and live on Shop." : "Product saved. It stays here until Admin approves it for Shop.");
             document.getElementById("my-shop-products")?.scrollIntoView({ behavior: "smooth", block: "start" });
           } catch (err) {
             const text = err instanceof Error ? err.message : "Could not save";
@@ -195,8 +263,10 @@ export function VendorProductForm({
           }
         }}
       >
-        <input required name="name" placeholder="Product name" className="h-11 rounded-xl border border-line px-3 text-sm" />
-        <select required name="categoryId" className="h-11 rounded-xl border border-line px-3 text-sm">
+        <p className="text-sm font-semibold">{editing ? "Edit product" : "New product"}</p>
+        <input required name="name" defaultValue={editing?.name ?? ""} placeholder="Product name" className="h-11 rounded-xl border border-line px-3 text-sm" />
+        <select required name="categoryId" defaultValue={editing?.categoryId ?? ""} className="h-11 rounded-xl border border-line px-3 text-sm">
+          {!editing?.categoryId ? <option value="">Choose a category</option> : null}
           {categories.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
@@ -216,29 +286,36 @@ export function VendorProductForm({
         </div>
         <label className="block text-xs font-semibold">
           SEO title
-          <input name="seoTitle" maxLength={70} placeholder="Search title (70 characters)" className="mt-1 h-11 w-full rounded-xl border border-line px-3 text-sm font-normal" />
+          <input name="seoTitle" maxLength={70} defaultValue={editing?.seoTitle ?? ""} placeholder="Search title (70 characters)" className="mt-1 h-11 w-full rounded-xl border border-line px-3 text-sm font-normal" />
         </label>
         <label className="block text-xs font-semibold">
           Meta description
-          <textarea name="metaDescription" maxLength={320} rows={3} placeholder="Short search snippet (320 characters)" className="mt-1 w-full rounded-xl border border-line p-3 text-sm font-normal" />
+          <textarea name="metaDescription" maxLength={320} rows={3} defaultValue={editing?.metaDescription ?? ""} placeholder="Short search snippet (320 characters)" className="mt-1 w-full rounded-xl border border-line p-3 text-sm font-normal" />
         </label>
-        <textarea name="description" placeholder="Product description" className="rounded-xl border border-line p-3 text-sm" rows={4} />
-        <input name="ingredients" placeholder="Ingredients" className="h-11 rounded-xl border border-line px-3 text-sm" />
-        <input name="usage" placeholder="Usage" className="h-11 rounded-xl border border-line px-3 text-sm" />
-        <input name="warnings" placeholder="Warnings" className="h-11 rounded-xl border border-line px-3 text-sm" />
-        <input name="expiryNote" placeholder="Expiry" className="h-11 rounded-xl border border-line px-3 text-sm" />
-        <input name="nafdacNumber" placeholder="NAFDAC number if required" className="h-11 rounded-xl border border-line px-3 text-sm" />
+        <textarea name="description" defaultValue={editing?.description ?? ""} placeholder="Product description" className="rounded-xl border border-line p-3 text-sm" rows={4} />
+        <input name="ingredients" defaultValue={editing?.ingredients ?? ""} placeholder="Ingredients" className="h-11 rounded-xl border border-line px-3 text-sm" />
+        <input name="usage" defaultValue={editing?.usage ?? ""} placeholder="Usage" className="h-11 rounded-xl border border-line px-3 text-sm" />
+        <input name="warnings" defaultValue={editing?.warnings ?? ""} placeholder="Warnings" className="h-11 rounded-xl border border-line px-3 text-sm" />
+        <input name="expiryNote" defaultValue={editing?.expiryNote ?? ""} placeholder="Expiry" className="h-11 rounded-xl border border-line px-3 text-sm" />
+        <input name="nafdacNumber" defaultValue={editing?.nafdacNumber ?? ""} placeholder="NAFDAC number if required" className="h-11 rounded-xl border border-line px-3 text-sm" />
         <div className="grid grid-cols-2 gap-2">
-          <input required name="sku" placeholder="SKU" className="h-11 rounded-xl border border-line px-3 text-sm" />
-          <input name="variantName" placeholder="Variant name" defaultValue="Default" className="h-11 rounded-xl border border-line px-3 text-sm" />
-          <input required name="priceNaira" type="number" min="1" placeholder="Regular price ₦" className="h-11 rounded-xl border border-line px-3 text-sm" />
-          <input name="compareNaira" type="number" min="0" placeholder="Sales price ₦ (slashed)" className="h-11 rounded-xl border border-line px-3 text-sm" />
+          <input required name="sku" defaultValue={editing?.variants?.[0]?.sku ?? ""} placeholder="SKU" className="h-11 rounded-xl border border-line px-3 text-sm" />
+          <input name="variantName" placeholder="Variant name" defaultValue={editing?.variants?.[0]?.name ?? "Default"} className="h-11 rounded-xl border border-line px-3 text-sm" />
+          <input required name="priceNaira" type="number" min="1" defaultValue={editing?.variants?.[0] ? editing.variants[0].priceKobo / 100 : undefined} placeholder="Regular price ₦" className="h-11 rounded-xl border border-line px-3 text-sm" />
+          <input name="compareNaira" type="number" min="0" defaultValue={editing?.variants?.[0]?.compareKobo ? editing.variants[0].compareKobo / 100 : undefined} placeholder="Sales price ₦ (slashed)" className="h-11 rounded-xl border border-line px-3 text-sm" />
           <p className="col-span-2 text-[11px] text-ink2">Sales price is the slashed figure on Shop. Enter it only when it is higher than regular.</p>
-          <input required name="stock" type="number" placeholder="Stock" className="col-span-2 h-11 rounded-xl border border-line px-3 text-sm" />
+          <input required name="stock" type="number" defaultValue={editing?.variants?.[0]?.stockOnHand ?? undefined} placeholder="Stock" className="col-span-2 h-11 rounded-xl border border-line px-3 text-sm" />
         </div>
-        <button disabled={busy} className="h-11 rounded-full bg-gold text-sm font-bold text-ongold disabled:opacity-60">
-          {busy ? "Saving…" : "Save product"}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button disabled={busy} className="h-11 flex-1 rounded-full bg-gold text-sm font-bold text-ongold disabled:opacity-60">
+            {busy ? "Saving…" : editing ? "Save changes" : "Save product"}
+          </button>
+          {editing ? (
+            <button type="button" disabled={busy} className="h-11 rounded-full border border-line px-4 text-sm font-semibold" onClick={clearForm}>
+              Cancel
+            </button>
+          ) : null}
+        </div>
         {message ? <p className={`text-sm ${message.startsWith("Saved") ? "text-goldink" : "text-red-600"}`}>{message}</p> : null}
       </form>
       <ul id="my-shop-products" className="space-y-2">
@@ -249,13 +326,23 @@ export function VendorProductForm({
               <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-elev">
                 {cover ? <ShopProductImage src={cover} alt="" className="h-full w-full" padded={false} /> : null}
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold">{p.name}</p>
                 <p className="mt-0.5 text-[11px] uppercase tracking-wide text-ink2">
                   {p.status} · {p.variants?.[0] ? formatNgn(p.variants[0].priceKobo) : ""}
                 </p>
                 {p.seoTitle ? <p className="mt-1 line-clamp-1 text-[11px] text-ink2">{p.seoTitle}</p> : null}
               </div>
+              <button
+                type="button"
+                className="self-start text-xs font-semibold text-goldink"
+                onClick={() => {
+                  fillForm(p);
+                  document.getElementById("shop-product-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+              >
+                Edit
+              </button>
             </li>
           );
         })}

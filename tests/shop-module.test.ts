@@ -219,6 +219,15 @@ describe("shop product image upload limit", () => {
   });
 });
 
+describe("shop product edits", () => {
+  it("keeps approved listings live and sends others back to pending", async () => {
+    const { shopProductEditStatus } = await import("../src/lib/shop/upsert-product");
+    expect(shopProductEditStatus("approved")).toBe("approved");
+    expect(shopProductEditStatus("pending")).toBe("pending");
+    expect(shopProductEditStatus("rejected")).toBe("pending");
+  });
+});
+
 describe("admin shop load", () => {
   it("returns the error instead of a silent empty fallback", async () => {
     const { adminShopLoad } = await import("../src/lib/shop/admin-load");

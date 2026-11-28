@@ -32,9 +32,12 @@ export default async function EcommerceProductsPage() {
           <li key={p.id} className="rounded-3xl border border-line bg-card p-4">
             <p className="font-semibold">{p.name}</p>
             <p className="text-sm text-ink2">{p.vendor.businessName} · {p.category.name} · {p.status}</p>
-            <p className="mt-1">
+            <p className="mt-1 flex flex-wrap gap-3">
               <Link prefetch={false} href={`/admin/ecommerce/vendors/${p.vendorId}`} className="text-sm font-semibold text-goldink">
                 Open seller
+              </Link>
+              <Link prefetch={false} href={`/admin/ecommerce/vendors/${p.vendorId}?edit=${p.id}#shop-product-form`} className="text-sm font-semibold text-goldink">
+                Edit listing
               </Link>
             </p>
             <ShopProductActions id={p.id} />
