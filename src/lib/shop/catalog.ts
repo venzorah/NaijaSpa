@@ -25,6 +25,7 @@ const productInclude = {
 };
 
 export function mapProduct(p: {
+  id: string;
   variants: { priceKobo: number; compareKobo: number; stockOnHand: number; reserved: number }[];
   images: { url: string }[];
   name: string;

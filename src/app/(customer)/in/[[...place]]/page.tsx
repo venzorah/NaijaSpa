@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 };
 
 async function HomeCatalog({ place }: { place: LivePlace }) {
-  const { categories, rails, nearby, faqs, hero, spotlight, extraRails, extraNearby, layout } = await getHomeCatalog(place);
+  const { categories, rails, nearby, faqs, hero, spotlight, extraRails, extraNearby, shopProducts, extraShopProducts, layout } = await getHomeCatalog(place);
   return (
     <CustomerHome
       place={place}
@@ -30,6 +30,8 @@ async function HomeCatalog({ place }: { place: LivePlace }) {
       spotlight={spotlight}
       extraRails={extraRails}
       extraNearby={extraNearby}
+      shopProducts={shopProducts}
+      extraShopProducts={extraShopProducts}
       layout={layout}
     />
   );

@@ -20,12 +20,13 @@ vi.mock("../src/lib/auth", () => ({
   }
 }));
 vi.mock("../src/lib/db", () => ({
-  prisma: {
-    systemConfig: { findUnique: mock.findUnique },
-    category: { findMany: async () => [] },
-    vendor: { findMany: async () => [] },
-    service: { findMany: async () => [] }
-  },
+    prisma: {
+      systemConfig: { findUnique: mock.findUnique },
+      category: { findMany: async () => [] },
+      vendor: { findMany: async () => [] },
+      service: { findMany: async () => [] },
+      shopProduct: { findMany: async () => [] }
+    },
   setConfig: mock.setConfig
 }));
 vi.mock("../src/lib/audit", () => ({ audit: mock.audit }));
@@ -90,7 +91,8 @@ describe("admin homepage section curator", () => {
       serviceIds: [] as string[],
       vendorIds: [] as string[],
       categorySlugs: [] as string[],
-      sortOrder: 9
+      productIds: [] as string[],
+      sortOrder: 10
     };
     expect((await PUT(req({ sections: [...DEFAULT_HOME_SECTIONS, extra] }))).status).toBe(200);
     expect(mock.setConfig).toHaveBeenCalled();
@@ -108,10 +110,24 @@ describe("admin homepage section curator", () => {
       serviceIds: [],
       vendorIds: [],
       categorySlugs: [],
-      sortOrder: 9
+      productIds: [],
+      sortOrder: 10
     };
     expect((await PUT(req({ sections: [...DEFAULT_HOME_SECTIONS, extra] }))).status).toBe(400);
     expect(mock.setConfig).not.toHaveBeenCalled();
+  });
+
+  it("saves Shop product ids on the shopProducts rail", async () => {
+    const sections = DEFAULT_HOME_SECTIONS.map((row) =>
+      row.id === "shopProducts" ? { ...row, visible: true, source: "manual" as const, productIds: ["prod_1"] } : row
+    );
+    expect((await PUT(req({ sections }))).status).toBe(200);
+    const saved = JSON.parse(mock.setConfig.mock.calls[0][1]) as { id: string; productIds: string[] }[];
+    expect(saved.find((row) => row.id === "shopProducts")).toMatchObject({
+      visible: true,
+      source: "manual",
+      productIds: ["prod_1"]
+    });
   });
 
   it("saves a complete layout and refreshes the public homepage", async () => {

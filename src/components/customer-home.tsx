@@ -14,6 +14,9 @@ import { categoryHref } from "@/lib/category-images";
 import { exploreHref } from "@/lib/place-urls";
 import type { HomeHeroAd, HomeHeroBanner } from "@/lib/home-hero";
 import { DEFAULT_HOME_SECTIONS, homeSection, orderedHomeSections, sectionKind, type HomeSection } from "@/lib/home-sections";
+import { ProductCarousel } from "@/components/shop/product-carousel";
+import { SHOP_PUBLIC_URL } from "@/lib/shop-host";
+import type { HomeShopProduct } from "@/lib/shop/home-rail";
 import type { HomeCard, NearbyVendor } from "@/lib/home-types";
 import type { LivePlace } from "@/lib/nigeria";
 
@@ -36,6 +39,8 @@ export function CustomerHome({
   spotlight,
   extraRails = {},
   extraNearby = {},
+  shopProducts = [],
+  extraShopProducts = {},
   layout = DEFAULT_HOME_SECTIONS
 }: {
   place: LivePlace | null;
@@ -47,6 +52,8 @@ export function CustomerHome({
   spotlight?: HomeCard[];
   extraRails?: Record<string, HomeCard[]>;
   extraNearby?: Record<string, NearbyVendor[]>;
+  shopProducts?: HomeShopProduct[];
+  extraShopProducts?: Record<string, HomeShopProduct[]>;
   layout?: HomeSection[];
 }) {
   const browse = (query?: Record<string, string | undefined>) => exploreHref(place, query);
@@ -172,6 +179,19 @@ export function CustomerHome({
               subtitle={section.subtitle}
               seeAllHref={browse({ sort: "price" })}
               cards={extra ? cards : rails.promo}
+            />
+          ) : null;
+        }
+        if (kind === "shopProducts") {
+          const items = extra ? extraShopProducts[section.id] ?? [] : shopProducts;
+          return section.visible ? (
+            <ProductCarousel
+              key={section.id}
+              id={extra ? `shop-products-${section.id}` : "shop-products"}
+              title={section.title}
+              subtitle={section.subtitle}
+              products={items}
+              seeAllHref={SHOP_PUBLIC_URL}
             />
           ) : null;
         }

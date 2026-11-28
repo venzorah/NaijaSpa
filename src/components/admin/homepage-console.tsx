@@ -25,6 +25,7 @@ type Payload = {
   categories: { slug: string; name: string }[];
   vendors: { id: string; businessName: string; city: string; state: string }[];
   services: { id: string; name: string; vendorId: string; vendorName: string; categorySlug: string; categoryName: string }[];
+  products: { id: string; name: string; slug: string; vendor: { businessName: string }; category: { name: string } | null }[];
 };
 
 function toggleId(list: string[], id: string) {
@@ -102,6 +103,11 @@ export function HomepageConsole({ initial }: { initial: Payload }) {
     label: row.name,
     hint: [row.vendorName, row.categoryName].filter(Boolean).join(" · ")
   }));
+  const productOptions = (initial.products ?? []).map((row) => ({
+    id: row.id,
+    label: row.name,
+    hint: [row.vendor.businessName, row.category?.name].filter(Boolean).join(" · ")
+  }));
 
   function patch(id: HomeSection["id"], next: Partial<HomeSection>) {
     setLayout((rows) => rows.map((row) => (row.id === id ? { ...row, ...next } : row)));
@@ -141,10 +147,16 @@ export function HomepageConsole({ initial }: { initial: Payload }) {
     }
   }
 
-  const pickers: Record<HomeSectionPickKind, { label: string; hint: string; options: Option[]; key: "serviceIds" | "vendorIds" | "categorySlugs" }> = {
+  const pickers: Record<HomeSectionPickKind, { label: string; hint: string; options: Option[]; key: "serviceIds" | "vendorIds" | "categorySlugs" | "productIds" }> = {
     services: { label: "Services", hint: "Chosen treatments appear first, in tick order.", options: serviceOptions, key: "serviceIds" },
     vendors: { label: "Providers", hint: "All live treatments from these providers can fill the section.", options: vendorOptions, key: "vendorIds" },
-    categories: { label: "Categories", hint: "Limit the section to treatments or tiles in these categories.", options: categoryOptions, key: "categorySlugs" }
+    categories: { label: "Categories", hint: "Limit the section to treatments or tiles in these categories.", options: categoryOptions, key: "categorySlugs" },
+    products: {
+      label: "Shop products",
+      hint: "Published Shop listings only. Cards open on shop.naijaspa.com. Tick order is carousel order. Not treatments.",
+      options: productOptions,
+      key: "productIds"
+    }
   };
 
   return (
@@ -152,7 +164,7 @@ export function HomepageConsole({ initial }: { initial: Payload }) {
       {message ? <p role="status" className="text-sm text-goldink">{message}</p> : null}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="max-w-2xl text-sm text-ink2">
-          The hero banner and category tiles stay first. Number the rails below so 1 is the first section after those. Add extra rails of any type if you need more. Hide a built-in section instead of deleting it. Automatic keeps ranking and paid ads. Manual shows only what you pick.
+          The hero banner and category tiles stay first. Number the rails below so 1 is the first section after those. Add extra rails of any type if you need more. Hide a built-in section instead of deleting it. Automatic keeps ranking and paid ads. Manual shows only what you pick. Shop products is off until you show it; it never mixes with treatments or Shop’s own homepage.
         </p>
         <div className="flex flex-wrap gap-2">
           <label className="flex items-center gap-2 text-sm">
@@ -263,7 +275,11 @@ export function HomepageConsole({ initial }: { initial: Payload }) {
                   value={section.source}
                   onChange={(e) => patch(id, { source: e.target.value === "manual" ? "manual" : "auto" })}
                 >
-                  <option value="auto">Automatic (ads and live ranking, optionally limited by category)</option>
+                  <option value="auto">
+                    {kind === "shopProducts"
+                      ? "Automatic (live published Shop products)"
+                      : "Automatic (ads and live ranking, optionally limited by category)"}
+                  </option>
                   <option value="manual">Manual picks only</option>
                 </select>
               </FormRow>

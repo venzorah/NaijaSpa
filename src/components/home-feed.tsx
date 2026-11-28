@@ -3,7 +3,7 @@ import { getHomeCatalog } from "@/lib/catalog";
 import type { LivePlace } from "@/lib/nigeria";
 
 export async function HomeFeed({ place }: { place: LivePlace | null }) {
-  const { categories, rails, nearby, faqs, hero, spotlight, extraRails, extraNearby, layout } = await getHomeCatalog(place);
+  const { categories, rails, nearby, faqs, hero, spotlight, extraRails, extraNearby, shopProducts, extraShopProducts, layout } = await getHomeCatalog(place);
   return (
     <CustomerHome
       place={place}
@@ -15,6 +15,8 @@ export async function HomeFeed({ place }: { place: LivePlace | null }) {
       spotlight={spotlight}
       extraRails={extraRails}
       extraNearby={extraNearby}
+      shopProducts={shopProducts}
+      extraShopProducts={extraShopProducts}
       layout={layout}
     />
   );

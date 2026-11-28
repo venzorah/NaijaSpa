@@ -224,7 +224,7 @@ export const ADMIN_SCREENS: {
     label: "Homepage sections",
     group: "Content & care",
     icon: LayoutDashboard,
-    description: "Choose which services and providers appear in homepage rails, and add extra rails if you need more. The hero banner and category tiles stay on their existing screens.",
+    description: "Choose which services, providers and Shop products appear in homepage rails, and add extra rails if you need more. The hero banner and category tiles stay on their existing screens. Shop products open on shop.naijaspa.com and stay separate from treatments.",
     view: ["cms.manage", "campaigns.manage"],
     edit: ["cms.manage"]
   },

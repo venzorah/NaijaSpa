@@ -7,7 +7,8 @@ import {
   makeExtraHomeSection,
   parseHomeSections,
   pickManualIds,
-  sectionKind
+  sectionKind,
+  collectedManualProductIds
 } from "../src/lib/home-sections";
 
 describe("homepage section layout", () => {
@@ -53,7 +54,8 @@ describe("homepage section layout", () => {
         sortOrder: 4,
         serviceIds: [],
         vendorIds: [],
-        categorySlugs: ["nuru", "spa"]
+        categorySlugs: ["nuru", "spa"],
+        productIds: []
       }).map((row) => row.slug)
     ).toEqual(["nuru", "spa"]);
     expect(HOME_SECTION_IDS.includes("categories" as (typeof HOME_SECTION_IDS)[number])).toBe(false);
@@ -67,7 +69,8 @@ describe("homepage section layout", () => {
         sortOrder: 4,
         serviceIds: [],
         vendorIds: [],
-        categorySlugs: []
+        categorySlugs: [],
+        productIds: []
       })
     ).toEqual([]);
   });
@@ -88,7 +91,8 @@ describe("homepage section layout", () => {
         sortOrder: 1,
         serviceIds: ["s-c"],
         vendorIds: ["v1"],
-        categorySlugs: ["nuru"]
+        categorySlugs: ["nuru"],
+        productIds: []
       },
       8,
       (id) => pool.find((row) => row.id === id),
@@ -109,7 +113,8 @@ describe("homepage section layout", () => {
           sortOrder: 4,
           serviceIds: [],
           vendorIds: [],
-          categorySlugs: []
+          categorySlugs: [],
+          productIds: []
         },
         4
       ).map((row) => row.slug)
@@ -131,6 +136,30 @@ describe("homepage section layout", () => {
     expect(parseHomeSections(JSON.stringify([...DEFAULT_HOME_SECTIONS, { id: "invented", kind: "promo" }])).map((row) => row.id)).toEqual([
       ...HOME_SECTION_IDS
     ]);
+  });
+
+  it("keeps Shop products off the spa homepage until an admin turns the section on", () => {
+    const layout = parseHomeSections(null);
+    expect(HOME_SECTION_IDS).toContain("shopProducts");
+    expect(layout.find((row) => row.id === "shopProducts")).toMatchObject({
+      visible: false,
+      source: "auto",
+      productIds: []
+    });
+    expect(layout.find((row) => row.id === "featured")?.visible).toBe(true);
+  });
+
+  it("hydrates manual Shop product ids without mixing them into treatment rails", () => {
+    const layout = parseHomeSections(
+      JSON.stringify([
+        { id: "shopProducts", visible: true, source: "manual", productIds: ["p1", "p1", "", "p2"] },
+        { id: "featured", source: "manual", visible: true, productIds: ["ignore-me"], serviceIds: ["s1"] }
+      ])
+    );
+    const shop = layout.find((row) => row.id === "shopProducts");
+    expect(shop).toMatchObject({ visible: true, source: "manual", productIds: ["p1", "p2"] });
+    expect(layout.find((row) => row.id === "featured")?.productIds).toEqual([]);
+    expect(collectedManualProductIds(layout)).toEqual(["p1", "p2"]);
   });
 
   it("exposes the homepage curator to content and marketing staff", () => {

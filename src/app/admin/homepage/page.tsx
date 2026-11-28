@@ -3,12 +3,13 @@ import { AdminPageHeader } from "@/components/admin/page-header";
 import { HomepageConsole } from "@/components/admin/homepage-console";
 import { prisma } from "@/lib/db";
 import { HOME_SECTIONS_CONFIG_KEY, parseHomeSections } from "@/lib/home-sections";
+import { LIVE_PRODUCT_STATUS } from "@/lib/shop/constants";
 
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
   const { editable } = await requireAdminScreen("homepage");
-  const [row, categories, vendors, services] = await Promise.all([
+  const [row, categories, vendors, services, products] = await Promise.all([
     prisma.systemConfig.findUnique({ where: { key: HOME_SECTIONS_CONFIG_KEY } }),
     prisma.category.findMany({ where: { active: true }, orderBy: { sortOrder: "asc" }, select: { slug: true, name: true } }),
     prisma.vendor.findMany({
@@ -28,7 +29,21 @@ export default async function Page() {
         vendor: { select: { businessName: true } },
         category: { select: { slug: true, name: true } }
       }
-    })
+    }),
+    prisma.shopProduct
+      .findMany({
+        where: { status: LIVE_PRODUCT_STATUS, vendor: { shopStatus: "approved" } },
+        orderBy: { updatedAt: "desc" },
+        take: 300,
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          vendor: { select: { businessName: true } },
+          category: { select: { name: true } }
+        }
+      })
+      .catch(() => [])
   ]);
   return (
     <div className="max-w-3xl">
@@ -39,6 +54,7 @@ export default async function Page() {
           layout: parseHomeSections(row?.value),
           categories,
           vendors,
+          products,
           services: services.map((service) => ({
             id: service.id,
             name: service.name,

@@ -47,6 +47,12 @@ import {
   type HomeSection
 } from "./home-sections";
 import { PHOTOS, publicWellnessPhoto } from "./photos";
+import { homeShopProductRails, type HomeShopProduct } from "./shop/home-rail";
+
+const emptyShopRails = {
+  shopProducts: [] as HomeShopProduct[],
+  extraShopProducts: {} as Record<string, HomeShopProduct[]>
+};
 import { serviceAvailabilityLabels } from "./service-availability";
 import { LIVE_SERVICE_WHERE, liveVendorWhereForPlace } from "./vendor-public-profile";
 
@@ -117,6 +123,7 @@ function demoHomePayload(limits: HomeFeedConfig, place?: LivePlace | null, hero?
       : [],
     extraRails: {},
     extraNearby: {},
+    ...emptyShopRails,
     faqs: demoFaqs,
     hero: hero ?? demoHomeHero(),
     layout
@@ -569,6 +576,8 @@ async function loadHomeCatalog(rawPlace: LivePlace | null) {
     }
   }
 
+  const shopRails = await homeShopProductRails(layout, limits.featured).catch(() => emptyShopRails);
+
   return {
     demo: false,
     categories,
@@ -577,13 +586,14 @@ async function loadHomeCatalog(rawPlace: LivePlace | null) {
     nearby,
     extraRails,
     extraNearby,
+    ...shopRails,
     faqs,
     hero,
     layout
   };
   } catch {
     if (!usingDemoListings()) {
-      return { demo: false, categories: demoCategories, rails: { featured: [], premium: [], promo: [] }, spotlight: [], nearby: [], extraRails: {}, extraNearby: {}, faqs: [], hero, layout };
+      return { demo: false, categories: demoCategories, rails: { featured: [], premium: [], promo: [] }, spotlight: [], nearby: [], extraRails: {}, extraNearby: {}, ...emptyShopRails, faqs: [], hero, layout };
     }
     return demoHomePayload(limits, place, hero, layout);
   }

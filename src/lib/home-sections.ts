@@ -8,12 +8,13 @@ export const HOME_SECTION_IDS = [
   "premium",
   "promo",
   "bandSpa",
-  "bandCouples"
+  "bandCouples",
+  "shopProducts"
 ] as const;
 
 export type HomeSectionId = (typeof HOME_SECTION_IDS)[number];
 export type HomeSectionSource = "auto" | "manual";
-export type HomeSectionPickKind = "services" | "vendors" | "categories";
+export type HomeSectionPickKind = "services" | "vendors" | "categories" | "products";
 export const MAX_HOME_SECTIONS = 24;
 export const EXTRA_SECTION_ID = /^extra_[a-z0-9]{8,32}$/;
 
@@ -28,6 +29,7 @@ export type HomeSection = {
   serviceIds: string[];
   vendorIds: string[];
   categorySlugs: string[];
+  productIds: string[];
 };
 
 export function isHomeSectionId(id: string): id is HomeSectionId {
@@ -51,9 +53,11 @@ export function makeExtraHomeSection(kind: HomeSectionId, sortOrder: number): Ho
     id: `extra_${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}`,
     kind,
     sortOrder,
+    visible: true,
     serviceIds: [],
     vendorIds: [],
-    categorySlugs: []
+    categorySlugs: [],
+    productIds: []
   };
 }
 
@@ -100,6 +104,11 @@ export const HOME_SECTION_META: Record<
     label: "Couples story band",
     hint: "Full-width photo band. Link goes to the first selected category, or Couples treatments if none is selected.",
     picks: ["categories"]
+  },
+  shopProducts: {
+    label: "Shop products",
+    hint: "Product carousel on the spa homepage. Links open NaijaSpa Shop. Automatic uses live published products; manual uses only the products you tick. Hidden until you turn it on. Separate from treatments, providers and Shop’s own homepage.",
+    picks: ["products"]
   }
 };
 
@@ -113,7 +122,8 @@ export const DEFAULT_HOME_SECTIONS: HomeSection[] = [
     sortOrder: 1,
     serviceIds: [],
     vendorIds: [],
-    categorySlugs: []
+    categorySlugs: [],
+    productIds: []
   },
   {
     id: "nearby",
@@ -124,7 +134,8 @@ export const DEFAULT_HOME_SECTIONS: HomeSection[] = [
     sortOrder: 2,
     serviceIds: [],
     vendorIds: [],
-    categorySlugs: []
+    categorySlugs: [],
+    productIds: []
   },
   {
     id: "spotlight",
@@ -135,7 +146,8 @@ export const DEFAULT_HOME_SECTIONS: HomeSection[] = [
     sortOrder: 3,
     serviceIds: [],
     vendorIds: [],
-    categorySlugs: []
+    categorySlugs: [],
+    productIds: []
   },
   {
     id: "collections",
@@ -146,7 +158,8 @@ export const DEFAULT_HOME_SECTIONS: HomeSection[] = [
     sortOrder: 4,
     serviceIds: [],
     vendorIds: [],
-    categorySlugs: []
+    categorySlugs: [],
+    productIds: []
   },
   {
     id: "premium",
@@ -157,7 +170,8 @@ export const DEFAULT_HOME_SECTIONS: HomeSection[] = [
     sortOrder: 5,
     serviceIds: [],
     vendorIds: [],
-    categorySlugs: []
+    categorySlugs: [],
+    productIds: []
   },
   {
     id: "promo",
@@ -168,7 +182,8 @@ export const DEFAULT_HOME_SECTIONS: HomeSection[] = [
     sortOrder: 6,
     serviceIds: [],
     vendorIds: [],
-    categorySlugs: []
+    categorySlugs: [],
+    productIds: []
   },
   {
     id: "bandSpa",
@@ -179,7 +194,8 @@ export const DEFAULT_HOME_SECTIONS: HomeSection[] = [
     sortOrder: 7,
     serviceIds: [],
     vendorIds: [],
-    categorySlugs: []
+    categorySlugs: [],
+    productIds: []
   },
   {
     id: "bandCouples",
@@ -190,7 +206,20 @@ export const DEFAULT_HOME_SECTIONS: HomeSection[] = [
     sortOrder: 8,
     serviceIds: [],
     vendorIds: [],
-    categorySlugs: []
+    categorySlugs: [],
+    productIds: []
+  },
+  {
+    id: "shopProducts",
+    title: "Shop products",
+    subtitle: "Oils, soaps and tools from approved sellers on NaijaSpa Shop.",
+    visible: false,
+    source: "auto",
+    sortOrder: 9,
+    serviceIds: [],
+    vendorIds: [],
+    categorySlugs: [],
+    productIds: []
   }
 ];
 
@@ -216,7 +245,15 @@ function uniqStrings(value: unknown, max: number, normalize: (item: string) => s
 }
 
 function hydrateSection(def: HomeSection, row: Record<string, unknown> | undefined, index: number): HomeSection {
-  if (!row) return { ...def, serviceIds: [...def.serviceIds], vendorIds: [...def.vendorIds], categorySlugs: [...def.categorySlugs] };
+  if (!row) {
+    return {
+      ...def,
+      serviceIds: [...def.serviceIds],
+      vendorIds: [...def.vendorIds],
+      categorySlugs: [...def.categorySlugs],
+      productIds: [...(def.productIds ?? [])]
+    };
+  }
   const rawOrder = Number(row.sortOrder);
   const rawId = String(row.id || def.id);
   const inferredKind = String(row.kind || def.kind || def.id);
@@ -227,12 +264,13 @@ function hydrateSection(def: HomeSection, row: Record<string, unknown> | undefin
     kind,
     title: clampText(row.title, def.title, 80),
     subtitle: clampText(row.subtitle, def.subtitle, 240),
-    visible: row.visible !== false,
+    visible: typeof row.visible === "boolean" ? row.visible : def.visible,
     source: row.source === "manual" ? "manual" : "auto",
     sortOrder: Number.isInteger(rawOrder) && rawOrder >= 1 && rawOrder <= MAX_HOME_SECTIONS ? rawOrder : index + 1,
-    serviceIds: uniqStrings(row.serviceIds, 48, (item) => item.trim()),
-    vendorIds: uniqStrings(row.vendorIds, 48, (item) => item.trim()),
-    categorySlugs: uniqStrings(row.categorySlugs, 24, (slug) => slug.trim().toLowerCase())
+    serviceIds: kind === "shopProducts" ? [] : uniqStrings(row.serviceIds, 48, (item) => item.trim()),
+    vendorIds: kind === "shopProducts" ? [] : uniqStrings(row.vendorIds, 48, (item) => item.trim()),
+    categorySlugs: kind === "shopProducts" ? [] : uniqStrings(row.categorySlugs, 24, (slug) => slug.trim().toLowerCase()),
+    productIds: kind === "shopProducts" ? uniqStrings(row.productIds, 48, (item) => item.trim()) : []
   };
 }
 
@@ -283,6 +321,10 @@ export function collectedManualServiceIds(layout: HomeSection[]) {
 
 export function collectedManualVendorIds(layout: HomeSection[]) {
   return [...new Set(layout.flatMap((section) => (section.source === "manual" ? section.vendorIds : [])))];
+}
+
+export function collectedManualProductIds(layout: HomeSection[]) {
+  return [...new Set(layout.flatMap((section) => (sectionKind(section) === "shopProducts" && section.source === "manual" ? section.productIds : [])))];
 }
 
 export function orderByKeys<T>(items: T[], keys: string[], keyOf: (item: T) => string) {

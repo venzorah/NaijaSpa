@@ -4,6 +4,7 @@ import { revalidateTag } from "next/cache";
 import { requireAdmin } from "@/lib/admin-auth";
 import { hasPermission } from "@/lib/rbac";
 import { prisma, setConfig } from "@/lib/db";
+import { LIVE_PRODUCT_STATUS } from "@/lib/shop/constants";
 import { audit } from "@/lib/audit";
 import { jsonError } from "@/lib/http";
 import {
@@ -25,6 +26,7 @@ const sectionSchema = z.object({
   serviceIds: z.array(z.string().min(1).max(64)).max(48),
   vendorIds: z.array(z.string().min(1).max(64)).max(48),
   categorySlugs: z.array(z.string().min(1).max(80)).max(24),
+  productIds: z.array(z.string().min(1).max(64)).max(48).default([]),
   sortOrder: z.number().int().min(1).max(MAX_HOME_SECTIONS)
 });
 
@@ -66,7 +68,7 @@ async function loadLayout() {
 export async function GET() {
   try {
     const user = await requireAdmin(["cms.manage", "campaigns.manage"]);
-    const [layout, categories, vendors, services] = await Promise.all([
+    const [layout, categories, vendors, services, products] = await Promise.all([
       loadLayout(),
       prisma.category.findMany({
         where: { active: true },
@@ -90,13 +92,28 @@ export async function GET() {
           vendor: { select: { businessName: true } },
           category: { select: { slug: true, name: true } }
         }
-      })
+      }),
+      prisma.shopProduct
+        .findMany({
+          where: { status: LIVE_PRODUCT_STATUS, vendor: { shopStatus: "approved" } },
+          orderBy: { updatedAt: "desc" },
+          take: 300,
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            vendor: { select: { businessName: true } },
+            category: { select: { name: true } }
+          }
+        })
+        .catch(() => [])
     ]);
     return NextResponse.json({
       canEdit: hasPermission(user, "cms.manage"),
       layout,
       categories,
       vendors,
+      products,
       services: services.map((service) => ({
         id: service.id,
         name: service.name,
